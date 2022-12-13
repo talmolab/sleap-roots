@@ -2,7 +2,9 @@ from sleap_roots.series import Series, find_all_series
 
 
 def test_series_load(canola_h5):
-    series = Series.load(canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes")
+    series = Series.load(
+        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
+    )
     assert len(series) == 72
 
 
