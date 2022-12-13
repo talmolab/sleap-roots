@@ -1,0 +1,7 @@
+name: sleap-roots
+
+dependencies:
+  - python=3.8
+  - pip
+  - pip:
+    - "--editable=.[dev]"
