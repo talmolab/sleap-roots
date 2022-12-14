@@ -1,20 +1,22 @@
 """Series-level data loader."""
 
 import attrs
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List, Union
 from pathlib import Path
-
-try:
-    import sleap
-except:
-    import sleap_io as sleap
+import sleap
 
 
 @attrs.define
 class Series:
+    """Data and predictions for a single image series.
+
+    Attributes:
+        h5_path: Path to the HDF5-formatted image series.
+        primary_labels: A `sleap.Labels` corresponding to the primary root predictions.
+        lateral_labels: A `sleap.Labels` corresponding to the lateral root predictions.
+    """
+
     h5_path: Optional[str] = None
-    primary_name: str = "primary_multi_day"
-    lateral_name: str = "lateral__nodes"
     primary_labels: Optional[sleap.Labels] = None
     lateral_labels: Optional[sleap.Labels] = None
 
@@ -25,6 +27,15 @@ class Series:
         primary_name: str = "primary_multi_day",
         lateral_name: str = "lateral__nodes",
     ):
+        """Load a set of predictions for this series.
+
+        Args:
+            h5_path: Path to the HDF5-formatted image series.
+            primary_name: Name of the primary root predictions. The predictions file is
+                expected to be named `"{h5_path}.{primary_name}.predictions.slp"`.
+            lateral_name: Name of the lateral root predictions. The predictions file is
+                expected to be named `"{h5_path}.{lateral_name}.predictions.slp"`.
+        """
         primary_path = (
             Path(h5_path).with_suffix(f".{primary_name}.predictions.slp").as_posix()
         )
@@ -34,27 +45,30 @@ class Series:
 
         return cls(
             h5_path,
-            primary_name=primary_name,
-            lateral_name=lateral_name,
             primary_labels=sleap.load_file(primary_path),
             lateral_labels=sleap.load_file(lateral_path),
         )
 
     @property
     def series_name(self) -> str:
+        """Name of the series derived from the HDF5 filename."""
         return Path(self.h5_path).stem
 
     @property
     def video(self) -> sleap.Video:
+        """The `sleap.Video` corresponding to the image series."""
         return self.primary_labels.video
 
     def __len__(self) -> int:
+        """Length of the series (number of images)."""
         return len(self.video)
 
     def __getitem__(self, idx: int) -> Tuple[sleap.LabeledFrame, sleap.LabeledFrame]:
+        """Return labeled frames for primary and lateral predictions."""
         return self.get_frame(idx)
 
     def __iter__(self):
+        """Iterator for looping through predictions."""
         for i in range(len(self)):
             yield self[i]
 
@@ -79,17 +93,24 @@ class Series:
         return lf_primary, lf_lateral
 
     def plot(self, frame_idx: int, scale: float = 1.0, **kwargs):
+        """Plot predictions on top of the image.
+
+        Args:
+            frame_idx: Frame index to visualize.
+            scale: Relative size of the visualized image. Useful for plotting smaller
+                images within notebooks.
+        """
         primary_lf, lateral_lf = self.get_frame(frame_idx)
         sleap.nn.viz.plot_img(primary_lf.image, scale=scale)
         sleap.nn.viz.plot_instances(primary_lf.instances, cmap=["r"], **kwargs)
         sleap.nn.viz.plot_instances(lateral_lf.instances, cmap=["g"], **kwargs)
 
 
-def find_all_series(data_folders: List[str]) -> List[str]:
+def find_all_series(data_folders: Union[str, List[str]]) -> List[str]:
     """Find all .h5 series from a list of folders.
 
     Args:
-        data_folders: List of paths to folders containing .h5 series.
+        data_folders: Path or list of paths to folders containing .h5 series.
 
     Returns:
         A list of filenames to .h5 series.
