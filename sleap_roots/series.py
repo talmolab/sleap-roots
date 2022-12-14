@@ -45,8 +45,6 @@ class Series:
 
         return cls(
             h5_path,
-            primary_name=primary_name,
-            lateral_name=lateral_name,
             primary_labels=sleap.load_file(primary_path),
             lateral_labels=sleap.load_file(lateral_path),
         )
