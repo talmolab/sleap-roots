@@ -75,6 +75,15 @@ class Series:
     def get_frame(
         self, frame_idx: int
     ) -> Tuple[sleap.LabeledFrame, sleap.LabeledFrame]:
+        """Return labeled frames for primary and lateral predictions.
+
+        Args:
+            frame_idx: Integer frame number.
+
+        Returns:
+            Tuple of (primary_lf, lateral_lf) corresponding to the
+            `sleap.LabeledFrame` from each set of predictions on the same frame.
+        """
         lf_primary = self.primary_labels.find(
             self.primary_labels.video, frame_idx, return_new=True
         )[0]
