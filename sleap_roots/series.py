@@ -66,7 +66,7 @@ class Series:
         return len(self.video)
 
     def __getitem__(self, idx: int) -> Tuple[sleap.LabeledFrame, sleap.LabeledFrame]:
-        """eturn labeled frames for primary and lateral predictions."""
+        """Return labeled frames for primary and lateral predictions."""
         return self.get_frame(idx)
 
     def __iter__(self):
@@ -95,6 +95,13 @@ class Series:
         return lf_primary, lf_lateral
 
     def plot(self, frame_idx: int, scale: float = 1.0, **kwargs):
+        """Plot predictions on top of the image.
+
+        Args:
+            frame_idx: Frame index to visualize.
+            scale: Relative size of the visualized image. Useful for plotting smaller
+                images within notebooks.
+        """
         primary_lf, lateral_lf = self.get_frame(frame_idx)
         sleap.nn.viz.plot_img(primary_lf.image, scale=scale)
         sleap.nn.viz.plot_instances(primary_lf.instances, cmap=["r"], **kwargs)
