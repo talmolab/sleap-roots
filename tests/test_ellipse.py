@@ -11,9 +11,9 @@ def test_get_ellipse(canola_h5):
 
     pts = primary.numpy()
     a, b, ratio = fit_ellipse(pts)
-    np.testing.assert_almost_equal(a, 733.3038028507555)
-    np.testing.assert_almost_equal(b, 146.47723651978848)
-    np.testing.assert_almost_equal(ratio, 0.19974972985323525)
+    np.testing.assert_almost_equal(a, 733.3038028507555, decimal=3)
+    np.testing.assert_almost_equal(b, 146.47723651978848, decimal=3)
+    np.testing.assert_almost_equal(ratio, 0.19974972985323525, decimal=3)
 
     a, b, ratio = fit_ellipse(np.array([[1, 2], [np.nan, np.nan], [np.nan, np.nan]]))
     assert np.isnan(a)
