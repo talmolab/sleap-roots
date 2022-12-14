@@ -12,3 +12,4 @@ def get_bases(pts):
     # (instances, 2)
     base_pts = pts[:, 0]
     return base_pts
+
