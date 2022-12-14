@@ -82,7 +82,7 @@ class Series:
 
         Returns:
             Tuple of (primary_lf, lateral_lf) corresponding to the
-            sleap.LabeledFrames from each set of predictions on the same frame.
+            `sleap.LabeledFrame` from each set of predictions on the same frame.
         """
         lf_primary = self.primary_labels.find(
             self.primary_labels.video, frame_idx, return_new=True
