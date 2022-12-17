@@ -15,8 +15,8 @@ def get_bases(pts: np.ndarray) -> np.ndarray:
     # Exceptions
     if len(pts) == 0 or np.isnan(pts[:, 0].all()):
         # (instances, 2)
-        base_pts = np.empty((len(pts),2))
-        
+        base_pts = np.empty((0, 2))
+
     else:
         # (instances, 2)
         base_pts = pts[:, 0]
