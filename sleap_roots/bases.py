@@ -11,10 +11,11 @@ def get_bases(pts: np.ndarray) -> np.ndarray:
 
     Returns:
         Array of bases (instances, (x, y)).
+        If there is no root, or the roots don't have bases, an empty array of shape (0,2) is returned.
     """
-    # Exceptions
+    # Check for edge cases where the root is missing or doesn't have bases.
     if len(pts) == 0 or np.isnan(pts[:, 0].all()):
-        # (instances, 2)
+        # Shape is (0, 2)
         base_pts = np.empty((0, 2))
 
     else:
