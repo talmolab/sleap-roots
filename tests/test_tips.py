@@ -21,23 +21,23 @@ def pts_standard():
 
 
 @pytest.fixture
-def pts_no_bases():
+def pts_no_tips():
     return np.array(
         [
             [
+                [1, 2],
                 [np.nan, np.nan],
-                [3, 4],
             ],
             [
+                [5, 6],
                 [np.nan, np.nan],
-                [7, 8],
             ],
         ]
     )
 
 
 @pytest.fixture
-def pts_one_base():
+def pts_one_tip():
     return np.array(
         [
             [
@@ -46,7 +46,7 @@ def pts_one_base():
             ],
             [
                 [np.nan, np.nan],
-                [7, 8],
+                [np.nan, np.nan],
             ],
         ]
     )
