@@ -155,3 +155,11 @@ def test_get_root_lengths_no_roots():
     root_lengths = get_root_lengths(pts)
     assert root_lengths.shape == (2,)
     np.testing.assert_array_almost_equal(root_lengths, np.array([np.nan, np.nan]))
+
+
+def test_get_root_lengths_one_point(pts_one_base):
+    root_lengths = get_root_lengths(pts_one_base)
+    assert root_lengths.shape == (2,)
+    np.testing.assert_array_almost_equal(
+        root_lengths, np.array([2.82842712475, np.nan])
+    )
