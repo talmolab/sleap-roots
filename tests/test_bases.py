@@ -132,27 +132,8 @@ def test_get_root_lengths(canola_h5):
     )
 
 
-def test_get_root_lengths_one_point(pts_no_bases):
+def test_get_root_lengths_no_roots(pts_no_bases):
     root_lengths = get_root_lengths(pts_no_bases)
-    assert root_lengths.shape == (2,)
-    np.testing.assert_array_almost_equal(root_lengths, np.array([np.nan, np.nan]))
-
-
-def test_get_root_lengths_no_roots():
-    pts = np.array(
-        [
-            [
-                [np.nan, np.nan],
-                [np.nan, np.nan],
-            ],
-            [
-                [np.nan, np.nan],
-                [np.nan, np.nan],
-            ],
-        ]
-    )
-
-    root_lengths = get_root_lengths(pts)
     assert root_lengths.shape == (2,)
     np.testing.assert_array_almost_equal(root_lengths, np.array([np.nan, np.nan]))
 
