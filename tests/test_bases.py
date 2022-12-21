@@ -3,78 +3,10 @@ from sleap_roots import Series
 import numpy as np
 import pytest
 
-pts_standard = np.array(
-    [
-        [
-            [1, 2],
-            [3, 4],
-        ],
-        [
-            [5, 6],
-            [7, 8],
-        ],
-    ]
-)
 
-pts_no_bases = np.array(
-    [
-        [
-            [np.nan, np.nan],
-            [3, 4],
-        ],
-        [
-            [np.nan, np.nan],
-            [7, 8],
-        ],
-    ]
-)
-
-
-pts_one_base = np.array(
-    [
-        [
-            [1, 2],
-            [3, 4],
-        ],
-        [
-            [np.nan, np.nan],
-            [7, 8],
-        ],
-    ]
-)
-
-
-pts_no_roots = np.array(
-    [
-        [
-            [np.nan, np.nan],
-            [np.nan, np.nan],
-        ],
-        [
-            [np.nan, np.nan],
-            [np.nan, np.nan],
-        ],
-    ]
-)
-
-
-@pytest.mark.parametrize(
-    "test_input,expected_shape,expected_array",
-    [
-        (pts_standard, (2, 2), [[1, 2], [5, 6]]),
-        (pts_no_bases, (0, 2), np.empty((0, 2))),
-        (pts_one_base, (1, 2), [[1, 2]]),
-        (pts_no_roots, (0, 2), np.empty((0, 2))),
-    ],
-)
-def test_bases(test_input, expected):
-    bases = get_bases(test_input)
-    assert bases.shape == expected_shape
-    np.testing.assert_array_equal(bases, expected_array)
-
-
-def test_get_bases_standard():
-    pts = np.array(
+@pytest.fixture
+def pts_standard():
+    return np.array(
         [
             [
                 [1, 2],
@@ -87,13 +19,10 @@ def test_get_bases_standard():
         ]
     )
 
-    bases = get_bases(pts)
-    assert bases.shape == (2, 2)
-    np.testing.assert_array_equal(bases, [[1, 2], [5, 6]])
 
-
-def test_get_bases_no_bases():
-    pts = np.array(
+@pytest.fixture
+def pts_no_bases():
+    return np.array(
         [
             [
                 [np.nan, np.nan],
@@ -106,13 +35,10 @@ def test_get_bases_no_bases():
         ]
     )
 
-    bases = get_bases(pts)
-    assert bases.shape == (0, 2)
-    np.testing.assert_array_equal(bases, np.empty((0, 2)))
 
-
-def test_get_bases_one_base():
-    pts = np.array(
+@pytest.fixture
+def pts_one_base():
+    return np.array(
         [
             [
                 [1, 2],
@@ -125,13 +51,10 @@ def test_get_bases_one_base():
         ]
     )
 
-    bases = get_bases(pts)
-    assert bases.shape == (1, 2)
-    np.testing.assert_array_equal(bases, [[1, 2]])
 
-
-def test_get_bases_no_roots():
-    pts = np.array(
+@pytest.fixture
+def pts_no_roots():
+    return np.array(
         [
             [
                 [np.nan, np.nan],
@@ -144,7 +67,45 @@ def test_get_bases_no_roots():
         ]
     )
 
-    bases = get_bases(pts)
+
+@pytest.fixture
+def pts_not_contiguous():
+    return np.array(
+        [
+            [
+                [1, 2],
+                [np.nan, np.nan],
+                [3, 4],
+            ],
+            [
+                [5, 6],
+                [np.nan, np.nan],
+                [7, 8],
+            ],
+        ]
+    )
+
+
+def test_bases_standard(pts_standard):
+    bases = get_bases(pts_standard)
+    assert bases.shape == (2, 2)
+    np.testing.assert_array_equal(bases, [[1, 2], [5, 6]])
+
+
+def test_bases_no_bases(pts_no_bases):
+    bases = get_bases(pts_no_bases)
+    assert bases.shape == (0, 2)
+    np.testing.assert_array_equal(bases, np.empty((0, 2)))
+
+
+def test_bases_one_base(pts_one_base):
+    bases = get_bases(pts_one_base)
+    assert bases.shape == (1, 2)
+    np.testing.assert_array_equal(bases, [[1, 2]])
+
+
+def test_bases_no_roots(pts_no_roots):
+    bases = get_bases(pts_no_roots)
     assert bases.shape == (0, 2)
     np.testing.assert_array_equal(bases, np.empty((0, 2)))
 
@@ -171,6 +132,12 @@ def test_get_root_lengths(canola_h5):
     )
 
 
+def test_get_root_lengths_one_point(pts_no_bases):
+    root_lengths = get_root_lengths(pts_no_bases)
+    assert root_lengths.shape == (2,)
+    np.testing.assert_array_almost_equal(root_lengths, np.array([np.nan, np.nan]))
+
+
 def test_get_root_lengths_no_roots():
     pts = np.array(
         [
@@ -185,8 +152,6 @@ def test_get_root_lengths_no_roots():
         ]
     )
 
-    assert pts.shape == (2, 2, 2)
-
     root_lengths = get_root_lengths(pts)
     assert root_lengths.shape == (2,)
-    np.testing.assert_array_almost_equal(root_lengths, [0, 0])
+    np.testing.assert_array_almost_equal(root_lengths, np.array([np.nan, np.nan]))
