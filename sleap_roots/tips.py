@@ -3,6 +3,7 @@
 
 def get_tips(pts):
     """Return tips (last node) from each lateral root.
+
     Args:
         pts: Root landmarks as array of shape (instances, nodes, 2)
 
