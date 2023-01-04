@@ -94,20 +94,20 @@ def test_bases_standard(pts_standard):
 
 def test_bases_no_bases(pts_no_bases):
     bases = get_bases(pts_no_bases)
-    assert bases.shape == (0, 2)
-    np.testing.assert_array_equal(bases, np.empty((0, 2)))
+    assert bases.shape == (2, 2)
+    np.testing.assert_array_equal(bases, [[np.nan, np.nan], [np.nan, np.nan]])
 
 
 def test_bases_one_base(pts_one_base):
     bases = get_bases(pts_one_base)
-    assert bases.shape == (1, 2)
-    np.testing.assert_array_equal(bases, [[1, 2]])
+    assert bases.shape == (2, 2)
+    np.testing.assert_array_equal(bases, [[1, 2], [np.nan, np.nan]])
 
 
 def test_bases_no_roots(pts_no_roots):
     bases = get_bases(pts_no_roots)
-    assert bases.shape == (0, 2)
-    np.testing.assert_array_equal(bases, np.empty((0, 2)))
+    assert bases.shape == (2, 2)
+    np.testing.assert_array_equal(bases, [[np.nan, np.nan], [np.nan, np.nan]])
 
 
 def test_get_root_lengths(canola_h5):

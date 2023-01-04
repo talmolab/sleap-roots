@@ -11,13 +11,9 @@ def get_bases(pts: np.ndarray) -> np.ndarray:
 
     Returns:
         Array of bases (instances, (x, y)).
-        If there is no root, or the roots don't have bases, an empty array of shape
-        (0,2) is returned.
     """
     # Get the first point of each instance. Shape is (instances, 2)
     base_pts = pts[:, 0]
-    # Exclude NaN points
-    base_pts = base_pts[~np.isnan(base_pts[:, 0])]
     return base_pts
 
 
