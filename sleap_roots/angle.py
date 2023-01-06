@@ -19,6 +19,8 @@ def get_node_ind(pts: np.ndarray, proximal=True) -> np.ndarray:
         ind = 1 if proximal else pts.shape[1] - 1  # set initial proximal/distal node
         while np.isnan(pts[i, ind]).any():
             ind += 1 if proximal else -1
+            if (ind == pts.shape[1] and proximal) or (ind == 0 and not proximal):
+                break
         node_ind.append(ind)
     return node_ind
 

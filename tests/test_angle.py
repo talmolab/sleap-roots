@@ -53,6 +53,22 @@ def pts_nan6():
 
 
 @pytest.fixture
+def pts_nanall():
+    return np.array(
+        [
+            [
+                [np.nan, np.nan],
+                [np.nan, np.nan],
+                [np.nan, np.nan],
+                [np.nan, np.nan],
+                [np.nan, np.nan],
+                [np.nan, np.nan],
+            ]
+        ]
+    )
+
+
+@pytest.fixture
 def pts_nan32():
     return np.array(
         [
@@ -138,6 +154,13 @@ def test_get_node_ind_nan6(pts_nan6):
     np.testing.assert_array_equal(node_ind, [4])
 
 
+# test get_node_ind function using root with all nan node
+def test_get_node_ind_nanall(pts_nanall):
+    proximal = False
+    node_ind = get_node_ind(pts_nanall, proximal)
+    np.testing.assert_array_equal(node_ind, [0])
+
+
 # test canola get_root_angle function (base node to distal node angle)
 def test_get_root_angle_distal(canola_h5):
     series = Series.load(
@@ -180,3 +203,11 @@ def test_get_root_angle_proximal_5node(pts_nan32_5node):
     angs = get_root_angle(pts_nan32_5node, proximal)
     assert angs.shape == (2,)
     np.testing.assert_almost_equal(angs, [np.nan, 2.3339111], decimal=3)
+
+
+# test get_root_angle function using root/instance with all nan value
+def test_get_root_angle_proximal_5node(pts_nanall):
+    proximal = True
+    angs = get_root_angle(pts_nanall, proximal)
+    assert angs.shape == (1,)
+    np.testing.assert_almost_equal(angs, np.nan, decimal=3)
