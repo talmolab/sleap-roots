@@ -42,7 +42,7 @@ def pts_nan_5node():
 
 
 # test canola model
-def test_get_ellipse_canola(canola_h5):
+def test_get_convhull_canola(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
@@ -72,7 +72,7 @@ def test_get_ellipse_canola(canola_h5):
 
 
 # test rice model
-def test_get_ellipse_rice(rice_h5):
+def test_get_convhull_rice(rice_h5):
     series = Series.load(
         rice_h5, primary_name="main_3do_6nodes", lateral_name="longest_3do_6nodes"
     )
@@ -102,7 +102,7 @@ def test_get_ellipse_rice(rice_h5):
 
 
 # test plant with 2 roots/instances with nan nodes
-def test_get_ellipse_nan(pts_nan31_5node):
+def test_get_convhull_nan(pts_nan31_5node):
     (
         perimeters,
         areas,
@@ -123,7 +123,7 @@ def test_get_ellipse_nan(pts_nan31_5node):
 
 
 # test plant with 1 root/instance with only 2 non-nan nodes
-def test_get_ellipse_nanall(pts_nan_5node):
+def test_get_convhull_nanall(pts_nan_5node):
     (
         perimeters,
         areas,
