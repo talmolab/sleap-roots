@@ -65,11 +65,11 @@ def get_convhull_features(
 
     pts = pts.reshape(-1, 2)
     pts = pts[~(np.isnan(pts).any(axis=-1))]
-    
+
     # max 'width'
-    max_width = np.nanmax(pts[:, 0]) - np.nanmin(pts[:,  0])
+    max_width = np.nanmax(pts[:, 0]) - np.nanmin(pts[:, 0])
     # max 'height'
-    max_height = np.nanmax(pts[:,  1]) - np.nanmin(pts[:, 1])
+    max_height = np.nanmax(pts[:, 1]) - np.nanmin(pts[:, 1])
 
     return (
         perimeter,
