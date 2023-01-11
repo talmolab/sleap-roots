@@ -1,5 +1,6 @@
 """High-level imports."""
 
+import sleap_roots.angle
 import sleap_roots.bases
 import sleap_roots.convhull
 import sleap_roots.ellipse
