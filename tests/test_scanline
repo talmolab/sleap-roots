@@ -1,0 +1,15 @@
+from sleap_roots import Series
+from sleap_roots.scanline import get_intersection_scanline
+
+
+def test_get_intersection_scanline(canola_h5):
+    series = Series.load(
+        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
+    )
+    primary, lateral = series[0]
+    pts = primary.numpy()
+    depth = 1080
+    width = 2048
+    Nline = 50
+    intersection = get_intersection_scanline(pts, depth, width, Nline)
+    assert len(intersection)==50
