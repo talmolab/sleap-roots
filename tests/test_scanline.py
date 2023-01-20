@@ -28,7 +28,9 @@ def test_get_pt_scanline(canola_h5):
     Nline = 50
     intersection = get_pt_scanline(pts, depth, width, Nline)
     assert len(intersection) == 50
-    np.testing.assert_almost_equal(intersection[10], [[1146.7898883311389, 253.0]], decimal=7)
+    np.testing.assert_almost_equal(
+        intersection[10], [[1146.7898883311389, 253.0]], decimal=7
+        )
 
 
 def test_get_pt_scanline_rice(rice_h5):
@@ -44,7 +46,10 @@ def test_get_pt_scanline_rice(rice_h5):
 
     intersection = get_pt_scanline(pts, depth, width, Nline)
     assert len(intersection) == 50
-    np.testing.assert_almost_equal(intersection[14], [[811.6129907162684, 345.0], [850.4184814416584, 345.0]], decimal=7)
+    np.testing.assert_almost_equal(
+        intersection[14], [[811.6129907162684, 345.0], [850.4184814416584, 345.0]], 
+        decimal=7
+        )
 
 
 def test_scanline_nan(pts_nan3):
