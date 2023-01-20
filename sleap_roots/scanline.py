@@ -26,7 +26,7 @@ def get_pt_scanline(pts: np.ndarray, depth=1080, width=2048, Nline=50) -> list:
     
     intersection = []
     for i in range(Nline):
-        y_loc = Ninterval*(i+1)
+        y_loc = Ninterval * (i+1)
         line = LineString([(0,y_loc),(width,y_loc)])
         
         #intersection = np.zeros([5,2])
@@ -34,7 +34,7 @@ def get_pt_scanline(pts: np.ndarray, depth=1080, width=2048, Nline=50) -> list:
         for j in range(len(points)):
             # filter out nan nodes
             pts_j = points[j][~np.isnan(points[j]).any(axis=1)]
-            if pts_j.shape[0]>1:
+            if pts_j.shape[0] > 1:
                 if line.intersects(LineString(points[j])):
                     intersection_root = line.intersection(LineString(points[j]))
                     intersection_line.append([intersection_root.x,intersection_root.y])

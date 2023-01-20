@@ -100,3 +100,4 @@ def test_Npt_scanline_nan(pts_nan3):
     Ninter = get_Npt_scanline(pts, depth, width, Nline)
     assert len(Ninter) == 50
     np.testing.assert_equal(Ninter[14], 0)
+    
