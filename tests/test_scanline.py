@@ -17,7 +17,7 @@ def pts_nan3():
     )
 
 
-def test_get_pt_scanline(canola_h5):
+def test_get_pt_scanline_canola(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
@@ -52,7 +52,7 @@ def test_get_pt_scanline_rice(rice_h5):
         )
 
 
-def test_scanline_nan(pts_nan3):
+def test_get_pt_scanline_nan(pts_nan3):
     pts = pts_nan3
     depth = 1080
     width = 2048
@@ -62,7 +62,7 @@ def test_scanline_nan(pts_nan3):
     np.testing.assert_almost_equal(intersection[1], [], decimal=7)
 
 
-def test_get_Npt_scanline(canola_h5):
+def test_get_Npt_scanline_canola(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
@@ -100,4 +100,3 @@ def test_Npt_scanline_nan(pts_nan3):
     Ninter = get_Npt_scanline(pts, depth, width, Nline)
     assert len(Ninter) == 50
     np.testing.assert_equal(Ninter[14], 0)
-    

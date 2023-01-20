@@ -38,7 +38,6 @@ def get_pt_scanline(pts: np.ndarray, depth=1080, width=2048, Nline=50) -> list:
                 if line.intersects(LineString(points[j])):
                     intersection_root = line.intersection(LineString(points[j]))
                     intersection_line.append([intersection_root.x,intersection_root.y])
-    
         intersection.append(intersection_line)
     return intersection
 
@@ -56,7 +55,6 @@ def get_Npt_scanline(pts: np.ndarray, depth=1080, width=2048, Nline=50) -> np.nd
         An array with shape of (#Nline,) of intersection numbers of each scan line.
     """
     intersection = get_pt_scanline(pts, depth, width, Nline)
-
     Ninter = []
     for i in range(len(intersection)):
         Num_inter = len(intersection[i])
