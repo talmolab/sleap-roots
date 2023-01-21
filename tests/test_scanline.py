@@ -25,8 +25,8 @@ def test_get_pt_scanline_canola(canola_h5):
     pts = primary.numpy()
     depth = 1080
     width = 2048
-    Nline = 50
-    intersection = get_pt_scanline(pts, depth, width, Nline)
+    n_line = 50
+    intersection = get_pt_scanline(pts, depth, width, n_line)
     assert len(intersection) == 50
     np.testing.assert_almost_equal(
         intersection[10], [[1146.7898883311389, 253.0]], decimal=7
@@ -42,9 +42,9 @@ def test_get_pt_scanline_rice(rice_h5):
 
     depth = 1080
     width = 2048
-    Nline = 50
+    n_line = 50
 
-    intersection = get_pt_scanline(pts, depth, width, Nline)
+    intersection = get_pt_scanline(pts, depth, width, n_line)
     assert len(intersection) == 50
     np.testing.assert_almost_equal(
         intersection[14], [[811.6129907162684, 345.0], [850.4184814416584, 345.0]], 
@@ -56,8 +56,8 @@ def test_get_pt_scanline_nan(pts_nan3):
     pts = pts_nan3
     depth = 1080
     width = 2048
-    Nline = 50
-    intersection = get_pt_scanline(pts, depth, width, Nline)
+    n_line = 50
+    intersection = get_pt_scanline(pts, depth, width, n_line)
     assert len(intersection) == 50
     np.testing.assert_almost_equal(intersection[1], [], decimal=7)
 
@@ -70,10 +70,10 @@ def test_get_Npt_scanline_canola(canola_h5):
     pts = primary.numpy()
     depth = 1080
     width = 2048
-    Nline = 50
-    Ninter = get_Npt_scanline(pts, depth, width, Nline)
-    assert Ninter.shape == (50,)
-    np.testing.assert_equal(Ninter[14], 1)
+    n_line = 50
+    n_inter = get_Npt_scanline(pts, depth, width, n_line)
+    assert n_inter.shape == (50,)
+    np.testing.assert_equal(n_inter[14], 1)
 
 
 def test_get_Npt_scanline_rice(rice_h5):
@@ -85,18 +85,18 @@ def test_get_Npt_scanline_rice(rice_h5):
 
     depth = 1080
     width = 2048
-    Nline = 50
+    n_line = 50
 
-    Ninter = get_Npt_scanline(pts, depth, width, Nline)
-    assert Ninter.shape == (50,)
-    np.testing.assert_equal(Ninter[14], 2)
+    n_inter = get_Npt_scanline(pts, depth, width, n_line)
+    assert n_inter.shape == (50,)
+    np.testing.assert_equal(n_inter[14], 2)
 
 
 def test_Npt_scanline_nan(pts_nan3):
     pts = pts_nan3
     depth = 1080
     width = 2048
-    Nline = 50
-    Ninter = get_Npt_scanline(pts, depth, width, Nline)
-    assert len(Ninter) == 50
-    np.testing.assert_equal(Ninter[14], 0)
+    n_line = 50
+    n_inter = get_Npt_scanline(pts, depth, width, n_line)
+    assert len(n_inter) == 50
+    np.testing.assert_equal(n_inter[14], 0)
