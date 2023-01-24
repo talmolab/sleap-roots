@@ -1,4 +1,8 @@
-from sleap_roots.bases import get_bases, get_root_lengths
+from sleap_roots.bases import (
+    get_bases,
+    get_root_lengths,
+    get_root_pair_widths_projections,
+)
 from sleap_roots import Series
 import numpy as np
 import pytest
@@ -94,20 +98,20 @@ def test_bases_standard(pts_standard):
 
 def test_bases_no_bases(pts_no_bases):
     bases = get_bases(pts_no_bases)
-    assert bases.shape == (0, 2)
-    np.testing.assert_array_equal(bases, np.empty((0, 2)))
+    assert bases.shape == (2, 2)
+    np.testing.assert_array_equal(bases, [[np.nan, np.nan], [np.nan, np.nan]])
 
 
 def test_bases_one_base(pts_one_base):
     bases = get_bases(pts_one_base)
-    assert bases.shape == (1, 2)
-    np.testing.assert_array_equal(bases, [[1, 2]])
+    assert bases.shape == (2, 2)
+    np.testing.assert_array_equal(bases, [[1, 2], [np.nan, np.nan]])
 
 
 def test_bases_no_roots(pts_no_roots):
     bases = get_bases(pts_no_roots)
-    assert bases.shape == (0, 2)
-    np.testing.assert_array_equal(bases, np.empty((0, 2)))
+    assert bases.shape == (2, 2)
+    np.testing.assert_array_equal(bases, [[np.nan, np.nan], [np.nan, np.nan]])
 
 
 def test_get_root_lengths(canola_h5):
@@ -144,3 +148,17 @@ def test_get_root_lengths_one_point(pts_one_base):
     np.testing.assert_array_almost_equal(
         root_lengths, np.array([2.82842712475, np.nan])
     )
+
+
+def test_stem_width(canola_h5):
+    series = Series.load(
+        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
+    )
+    primary, lateral = series[0]
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
+    assert primary_pts.shape == (1, 6, 2)
+    assert lateral_pts.shape == (5, 3, 2)
+
+    stem_widths = get_root_pair_widths_projections(lateral_pts, primary_pts, 0.02)
+    np.testing.assert_array_almost_equal(stem_widths, [[31.603239], [1], [0]])
