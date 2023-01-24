@@ -44,7 +44,6 @@ def get_root_lengths(pts: np.ndarray) -> np.ndarray:
     return total_lengths
 
 
-# def get_root_pair_widths_projections(lateral_pts: np.ndarray, primary_pts: np.ndarray, tolerance: float) -> tuple(vector, vector, vector):
 def get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance):
     """Return estimation of stem width using bases of lateral roots.
 
