@@ -41,7 +41,7 @@ def get_pt_scanline(pts: np.ndarray, depth=1080, width=2048, n_line=50) -> list:
     return intersection
 
 
-def get_Npt_scanline(pts: np.ndarray, depth=1080, width=2048, n_line=50) -> np.ndarray:
+def count_scaline_intersections(pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50) -> np.ndarray:
     """Get number of intersection points of roots and scan lines.
 
     Args:
