@@ -47,3 +47,27 @@ def rice_long_slp():
 def rice_main_slp():
     """Path to main root predictions for 3 day old rice."""
     return "tests/data/rice_3do/YR39SJX.main_3do_6nodes.predictions.slp"
+
+
+@pytest.fixture
+def soy_folder():
+    """Path to a folder with the predictions for 6 day old soy."""
+    return "tests/data/soy_6do"
+
+
+@pytest.fixture
+def soy_h5():
+    """Path to image stack for 6 day old soy."""
+    return "tests/data/soy_6do/6PR6AA22JK.h5"
+
+
+@pytest.fixture
+def soy_primary_slp():
+    """Path to primary root predictions for 6 day old soy."""
+    return "tests/data/soy_6do/6PR6AA22JK.primary_multi_day.predictions.slp"
+
+
+@pytest.fixture
+def soy_lateral_slp():
+    """Path to lateral root predictions for 6 day old soy."""
+    return "tests/data/soy_6do/6PR6AA22JK.lateral__nodes.predictions.slp"
