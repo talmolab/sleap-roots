@@ -5,7 +5,7 @@ import math
 from shapely import LineString
 
 
-def get_pt_scanline(pts: np.ndarray, depth=1080, width=2048, n_line=50) -> list:
+def get_scanline_intersections(pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50) -> list:
     """Get intersection points of roots and scan lines.
 
     Args:
