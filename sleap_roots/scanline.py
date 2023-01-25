@@ -5,7 +5,9 @@ import math
 from shapely import LineString
 
 
-def get_scanline_intersections(pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50) -> list:
+def get_scanline_intersections(
+    pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50
+) -> list:
     """Get intersection points of roots and scan lines.
 
     Args:
@@ -41,7 +43,9 @@ def get_scanline_intersections(pts: np.ndarray, depth: int = 1080, width: int = 
     return intersection
 
 
-def count_scaline_intersections(pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50) -> np.ndarray:
+def count_scaline_intersections(
+    pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50
+) -> np.ndarray:
     """Get number of intersection points of roots and scan lines.
 
     Args:
@@ -53,7 +57,7 @@ def count_scaline_intersections(pts: np.ndarray, depth: int = 1080, width: int =
     Returns:
         An array with shape of (#Nline,) of intersection numbers of each scan line.
     """
-    intersection = get_pt_scanline(pts, depth, width, n_line)
+    intersection = get_scanline_intersections(pts, depth, width, n_line)
     n_inter = []
     for i in range(len(intersection)):
         num_inter = len(intersection[i])
