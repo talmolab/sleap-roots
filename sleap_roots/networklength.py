@@ -64,8 +64,7 @@ def get_network_length(pts: np.ndarray, fraction: float = 2 / 3) -> float:
 
 
 def get_network_length_ratio(pts: np.ndarray, fraction: float = 2 / 3) -> float:
-    """Return ratio of the root length in the lower fraction of the plant over all
-    root length.
+    """Return ratio of the root length in the lower fraction over all root length.
 
     Args:
         pts: Root landmarks as array of shape (..., 2).
