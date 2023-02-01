@@ -5,6 +5,7 @@ from sleap_roots.networklength import get_bbox
 from sleap_roots.networklength import get_network_distribution
 from sleap_roots.networklength import get_network_distribution_ratio
 from sleap_roots.networklength import get_network_length
+from sleap_roots.networklength import get_network_solidity
 from sleap_roots.networklength import get_network_width_depth_ratio
 
 
@@ -76,6 +77,32 @@ def test_get_network_width_depth_ratio_rice(rice_h5):
 def test_get_network_width_depth_ratio_nan(pts_nan3):
     pts = pts_nan3
     ratio = get_network_width_depth_ratio(pts)
+    np.testing.assert_almost_equal(ratio, np.nan, decimal=7)
+
+
+def test_get_network_solidity(canola_h5):
+    series = Series.load(
+        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
+    )
+    primary, lateral = series[0]
+    pts = primary.numpy()
+    ratio = get_network_solidity(pts)
+    np.testing.assert_almost_equal(ratio, 2.0351966283618834, decimal=7)
+
+
+def test_get_network_solidity_rice(rice_h5):
+    series = Series.load(
+        rice_h5, primary_name="main_3do_6nodes", lateral_name="longest_3do_6nodes"
+    )
+    primary, lateral = series[0]
+    pts = primary.numpy()
+    ratio = get_network_solidity(pts)
+    np.testing.assert_almost_equal(ratio, 1.9411037610434734, decimal=7)
+
+
+def test_get_network_solidity_nan(pts_nan3):
+    pts = pts_nan3
+    ratio = get_network_solidity(pts)
     np.testing.assert_almost_equal(ratio, np.nan, decimal=7)
 
 

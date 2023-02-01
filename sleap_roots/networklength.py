@@ -3,6 +3,7 @@
 import numpy as np
 from shapely import LineString, Polygon
 from sleap_roots.bases import get_root_lengths
+from sleap_roots.convhull import get_convhull_features
 from typing import Tuple
 
 
@@ -46,6 +47,31 @@ def get_network_width_depth_ratio(pts: np.ndarray) -> float:
     width, height = bbox[2], bbox[3]
     if width > 0 and height > 0:
         ratio = width / height
+        return ratio
+    else:
+        return np.nan
+
+
+def get_network_solidity(pts: np.ndarray) -> float:
+    """Return the total network area divided by the network convex area.
+
+    Args:
+        pts: Root landmarks as array of shape (..., 2).
+
+    Returns:
+        float of the total network area divided by the network convex area.
+    """
+    # get the bounding box area
+    bbox = get_bbox(pts)
+    width, height = bbox[2], bbox[3]
+    bbox_area = width*height
+
+    # get the convex hull area
+    convhull_features = get_convhull_features(pts)
+    conv_area = convhull_features[1]
+
+    if bbox_area > 0 and conv_area > 0:
+        ratio = bbox_area / conv_area
         return ratio
     else:
         return np.nan
