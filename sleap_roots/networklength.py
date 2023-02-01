@@ -64,7 +64,7 @@ def get_network_solidity(pts: np.ndarray) -> float:
     # get the bounding box area
     bbox = get_bbox(pts)
     width, height = bbox[2], bbox[3]
-    bbox_area = width*height
+    bbox_area = width * height
 
     # get the convex hull area
     convhull_features = get_convhull_features(pts)
