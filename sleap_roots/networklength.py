@@ -5,7 +5,7 @@ from shapely import LineString, Polygon
 from sleap_roots.bases import get_root_lengths
 
 
-def get_network_length(pts: np.ndarray, fraction: float = 2 / 3) -> float:
+def get_network_distribution(pts: np.ndarray, fraction: float = 2 / 3) -> float:
     """Return the root length in the lower fraction of the plant.
 
     Args:
@@ -63,7 +63,7 @@ def get_network_length(pts: np.ndarray, fraction: float = 2 / 3) -> float:
     return root_length
 
 
-def get_network_length_ratio(pts: np.ndarray, fraction: float = 2 / 3) -> float:
+def get_network_distribution_ratio(pts: np.ndarray, fraction: float = 2 / 3) -> float:
     """Return ratio of the root length in the lower fraction over all root length.
 
     Args:
@@ -75,7 +75,7 @@ def get_network_length_ratio(pts: np.ndarray, fraction: float = 2 / 3) -> float:
         over all root length.
     """
     if np.sum(get_root_lengths(pts)) > 0:
-        ratio = get_network_length(pts, fraction) / np.sum(get_root_lengths(pts))
+        ratio = get_network_distribution(pts, fraction) / np.sum(get_root_lengths(pts))
         return ratio
     else:
         return np.nan
