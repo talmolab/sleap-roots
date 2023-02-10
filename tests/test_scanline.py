@@ -100,4 +100,4 @@ def test_count_scaline_intersections_nan(pts_nan3):
     n_line = 50
     n_inter = count_scaline_intersections(pts, depth, width, n_line)
     assert len(n_inter) == 50
-    np.testing.assert_equal(n_inter[14], 0)
+    np.testing.assert_equal(n_inter[14], np.nan)

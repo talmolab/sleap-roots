@@ -60,7 +60,9 @@ def count_scaline_intersections(
     intersection = get_scanline_intersections(pts, depth, width, n_line)
     n_inter = []
     for i in range(len(intersection)):
-        num_inter = len(intersection[i])
+        if len(intersection[i]) >0:
+            num_inter = len(intersection[i])
+        else: num_inter = np.nan
         n_inter.append(num_inter)
     Ninter = np.array(n_inter)
     return Ninter
