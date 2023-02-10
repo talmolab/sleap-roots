@@ -36,14 +36,14 @@ def get_scanline_intersections(
             # filter out nan nodes
             pts_j = points[j][~np.isnan(points[j]).any(axis=1)]
             if pts_j.shape[0] > 1:
-                if line.intersects(LineString(points[j])):
-                    intersection_root = line.intersection(LineString(points[j]))
+                if line.intersects(LineString(pts_j)):
+                    intersection_root = line.intersection(LineString(pts_j))
                     intersection_line.append([intersection_root.x, intersection_root.y])
         intersection.append(intersection_line)
     return intersection
 
 
-def count_scaline_intersections(
+def count_scanline_intersections(
     pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50
 ) -> np.ndarray:
     """Get number of intersection points of roots and scan lines.
