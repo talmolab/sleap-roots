@@ -52,7 +52,7 @@ def count_scanline_intersections(
         pts: Numpy array of points of shape (instances, nodes, 2).
         depth: the depth of cylinder, or number of rows of the image.
         width: the width of cylinder, or number of columns of the image.
-        n_line: number of scan lines.
+        n_line: number of scan lines, np.nan for no interaction.
 
     Returns:
         An array with shape of (#Nline,) of intersection numbers of each scan line.
