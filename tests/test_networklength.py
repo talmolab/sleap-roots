@@ -87,7 +87,7 @@ def test_get_network_solidity(canola_h5):
     primary, lateral = series[0]
     pts = primary.numpy()
     ratio = get_network_solidity(pts)
-    np.testing.assert_almost_equal(ratio, 2.0351966283618834, decimal=7)
+    np.testing.assert_almost_equal(ratio, 0.011735994007177439, decimal=7)
 
 
 def test_get_network_solidity_rice(rice_h5):
@@ -97,7 +97,7 @@ def test_get_network_solidity_rice(rice_h5):
     primary, lateral = series[0]
     pts = primary.numpy()
     ratio = get_network_solidity(pts)
-    np.testing.assert_almost_equal(ratio, 1.9411037610434734, decimal=7)
+    np.testing.assert_almost_equal(ratio, 0.03366254601775008, decimal=7)
 
 
 def test_get_network_solidity_nan(pts_nan3):

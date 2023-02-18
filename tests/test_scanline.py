@@ -145,7 +145,7 @@ def test_count_scanline_intersections_nan(pts_nan3):
     n_line = 50
     n_inter = count_scanline_intersections(pts, depth, width, n_line)
     assert len(n_inter) == 50
-    np.testing.assert_equal(n_inter[14], 0)
+    np.testing.assert_equal(n_inter[14], np.nan)
 
 
 def test_count_scanline_intersections_3roots_nan(pts_3roots_with_nan):

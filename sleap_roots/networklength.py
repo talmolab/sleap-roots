@@ -53,25 +53,23 @@ def get_network_width_depth_ratio(pts: np.ndarray) -> float:
 
 
 def get_network_solidity(pts: np.ndarray) -> float:
-    """Return the total network area divided by the network convex area.
+    """Return the total network length divided by the network convex area.
 
     Args:
         pts: Root landmarks as array of shape (..., 2).
 
     Returns:
-        float of the total network area divided by the network convex area.
+        float of the total network length divided by the network convex area.
     """
-    # get the bounding box area
-    bbox = get_bbox(pts)
-    width, height = bbox[2], bbox[3]
-    bbox_area = width * height
+    # get the total network length
+    network_length = get_network_length(pts)
 
     # get the convex hull area
     convhull_features = get_convhull_features(pts)
     conv_area = convhull_features[1]
 
-    if bbox_area > 0 and conv_area > 0:
-        ratio = bbox_area / conv_area
+    if network_length > 0 and conv_area > 0:
+        ratio = network_length / conv_area
         return ratio
     else:
         return np.nan
