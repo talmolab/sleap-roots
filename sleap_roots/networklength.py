@@ -115,8 +115,8 @@ def get_network_distribution(pts: np.ndarray, fraction: float = 2 / 3) -> float:
     for j in range(len(points)):
         # filter out nan nodes
         pts_j = points[j][~np.isnan(points[j]).any(axis=1)]
-        linestring = LineString(points[j])
         if pts_j.shape[0] > 1:
+            linestring = LineString(pts_j)
             if linestring.intersection(polygon):
                 intersection = linestring.intersection(polygon)
                 root_length += (
