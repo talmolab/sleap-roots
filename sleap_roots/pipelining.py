@@ -74,7 +74,6 @@ def get_pts_all(h5, rice=False, frame=0) -> np.ndarray:
     Returns:
         An array of points location in shape of (# points, 2).
     """
-
     if rice:
         pts_lr = get_pts_pr_lr(h5, rice=True, frame=frame, primaryroot=False)
         pts_all = pts_lr.reshape(-1, 2)
@@ -270,9 +269,11 @@ def get_traits_frame(
         count_scanline_interaction_std,
         count_scanline_interaction_median,
     ) = get_statistics(count_scanline_interaction)
-    # get the scan line number (or index of count_scanline_interaction) for the first interaction
+    # get the scan line number (or index of count_scanline_interaction) for the
+    # first interaction
     scanline_start = np.where((count_scanline_interaction > 0))[1][0]
-    # get the scan line number (or index of count_scanline_interaction) for the last interaction
+    # get the scan line number (or index of count_scanline_interaction) for the
+    # last interaction
     scanline_end = np.where((count_scanline_interaction > 0))[1][-1]
 
     # save data as dataframe
