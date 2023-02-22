@@ -112,11 +112,73 @@ def get_traits_frame(
 
     Returns:
         A DataFrame with a single row containing columns with traits:
-            - primary_angles_proximal: Primary root angles computed relative to
+        primary_angles_proximal: Primary root angles computed relative to
                 the proximal blah blah... If none are detected, NaN will be
                 returned for this trait.
-            - primary_angles_distal:
-            - lateral_angles_proximal_max:
+
+
+            - plant_name: record of plant name
+            - frame: frame index, 72 frames in total, 0 to 71
+            - primary_angles_proximal: primary root angle with base node and proximal
+            node
+            - primary_angles_distal: primary root angle with base node and distal node
+            - lateral_angles_proximal_max: maximum lateral root angle with proximal node
+            among all lateral roots within one frame
+            - lateral_angles_proximal_min: minimum lateral root angle with proximal node
+            among all lateral roots within one frame
+            - lateral_angles_proximal_mean: mean lateral root angle with proximal node
+            among all lateral roots within one frame
+            - lateral_angles_proximal_std: standard deviation of lateral root angle with
+            proximal node among all lateral roots within one frame
+            - lateral_angles_proximal_median: median lateral root angle with proximal
+            node among all lateral roots within one frame
+            - lateral_angles_distal_max: maximum lateral root angle with distal node
+            among all lateral roots within one frame
+            - lateral_angles_distal_min: minimum lateral root angle with distal node
+            among all lateral roots within one frame
+            - lateral_angles_distal_mean: mean lateral root angle with distal node
+            among all lateral roots within one frame
+            - lateral_angles_distal_std: standard deviation of lateral root angle with
+            distal node among all lateral roots within one frame
+            - lateral_angles_distal_median: median lateral root angle with distal
+            node among all lateral roots within one frame
+            - primary_length: length of primary root
+            - lateral_length_max: maximum length of lateral roots
+            - lateral_length_min: minimum length of lateral roots
+            - lateral_length_mean: mean length of lateral roots
+            - lateral_length_std: standard deviation length of lateral roots
+            - lateral_length_median: median length of lateral roots
+            - stem_widths_max: maximum stem width based on paired lateral root bases
+            - stem_widths_min: minimum stem width based on paired lateral root bases
+            - stem_widths_mean: mean stem width based on paired lateral root bases
+            - stem_widths_std: standard deviation stem width based on paired lateral
+            root bases
+            - stem_widths_median: median stem width based on paired lateral root bases
+            - pts_number: number of roots
+            - conv_perimeters: perimeter of convex hull
+            - conv_areas: area of convex hull
+            - conv_longest_dists: longest distance of convex hull
+            - conv_shortest_dists: shortest of convex hull
+            - conv_median_dists: median distance of convex hull
+            - conv_max_widths: maximum width of convex hull
+            - conv_max_heights: maxinum height of convex hull
+            - ellipse_a: semi-major axis length of the fitted ellipse
+            - ellipse_b: semi-minor axis length of the fitted ellipse
+            - ellipse_ratio: ratio of the minor to major lengths
+            - network_width_depth_ratio: width to depth ratio of bounding box for root 
+            network
+            - network_solidity: total network length divided by the network convex area
+            - network_length_lower_network: root length in the lower fraction 
+            - network_distribution_ratio: ratio of the root length in the lower fraction
+            over all root length
+            - count_scanline_interaction_max: maximum interaction of scanline and roots
+            - count_scanline_interaction_min: minimum interaction of scanline and roots
+            - count_scanline_interaction_mean: mean interaction of scanline and roots
+            - count_scanline_interaction_std: standard deviation interaction of scanline
+            and roots
+            - count_scanline_interaction_median: median interaction of scanline and roots
+            - scanline_start: the scanline index where start interaction with roots
+            - scanline_end: the scanline index where end interaction with roots
     """
     # check whether 2 *.slp files exist
     plant_name = os.path.splitext(os.path.split(h5)[1])[0]
