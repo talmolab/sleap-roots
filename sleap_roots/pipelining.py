@@ -3,7 +3,7 @@
 import numpy as np
 import os
 import pandas as pd
-from sleap_roots import Series
+from sleap_roots.series import Series
 from sleap_roots.angle import get_root_angle
 from sleap_roots.bases import get_root_lengths, get_root_pair_widths_projections
 from sleap_roots.convhull import get_convhull_features
