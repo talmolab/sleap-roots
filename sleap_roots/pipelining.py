@@ -165,10 +165,10 @@ def get_traits_frame(
             - ellipse_a: semi-major axis length of the fitted ellipse
             - ellipse_b: semi-minor axis length of the fitted ellipse
             - ellipse_ratio: ratio of the minor to major lengths
-            - network_width_depth_ratio: width to depth ratio of bounding box for root 
+            - network_width_depth_ratio: width to depth ratio of bounding box for root
             network
             - network_solidity: total network length divided by the network convex area
-            - network_length_lower_network: root length in the lower fraction 
+            - network_length_lower_network: root length in the lower fraction
             - network_distribution_ratio: ratio of the root length in the lower fraction
             over all root length
             - count_scanline_interaction_max: maximum interaction of scanline and roots
@@ -176,7 +176,8 @@ def get_traits_frame(
             - count_scanline_interaction_mean: mean interaction of scanline and roots
             - count_scanline_interaction_std: standard deviation interaction of scanline
             and roots
-            - count_scanline_interaction_median: median interaction of scanline and roots
+            - count_scanline_interaction_median: median interaction of scanline and
+            roots
             - scanline_start: the scanline index where start interaction with roots
             - scanline_end: the scanline index where end interaction with roots
     """
