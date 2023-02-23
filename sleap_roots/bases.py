@@ -69,7 +69,14 @@ def get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance):
     max_length_idx = np.nanargmax(get_root_lengths(primary_pts))
 
     # Make a line of the primary points
-    primary_line = LineString(primary_pts[max_length_idx])
+    # exclude the nan node(s)
+    primary_line = LineString(
+        primary_pts[
+            max_length_idx,
+            np.where(~np.isnan(primary_pts[max_length_idx]).any(axis=1))[0],
+            :,
+        ]
+    )
 
     # Filter by whether the base node is present.
     has_base = ~np.isnan(lateral_pts[:, 0, 0])

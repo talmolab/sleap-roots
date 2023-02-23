@@ -38,7 +38,18 @@ def get_scanline_intersections(
             if pts_j.shape[0] > 1:
                 if line.intersects(LineString(pts_j)):
                     intersection_root = line.intersection(LineString(pts_j))
-                    intersection_line.append([intersection_root.x, intersection_root.y])
+                    # append intersection(s) location
+                    intersection_line.append(
+                        [intersection_root.x, intersection_root.y]
+                    ) if intersection_root.geom_type == "Point" else [
+                        intersection_line.append(
+                            [
+                                list(intersection_root.geoms)[k].x,
+                                list(intersection_root.geoms)[k].y,
+                            ]
+                        )
+                        for k in range(len(intersection_root.geoms))
+                    ]
         intersection.append(intersection_line)
     return intersection
 
