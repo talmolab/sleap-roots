@@ -20,6 +20,22 @@ def get_bases(pts: np.ndarray) -> np.ndarray:
     return base_pts
 
 
+def get_base_tip_dist(pts):
+    """Return distance from root base to tip.
+
+    Args:
+        pts: Root landmarks as array of shape (instances, nodes, 2)
+
+    Returns:
+        Array of distances from base to tip of shape (instances,).
+    """
+    # (instances, 2)
+    base_pt = pts[:, 0]
+    tip_pt = pts[:, -1]
+    distance = np.linalg.norm(base_pt - tip_pt, axis=-1)
+    return distance
+
+
 def get_root_lengths(pts: np.ndarray) -> np.ndarray:
     """Return root lengths for all roots in a frame.
 

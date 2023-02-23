@@ -5,7 +5,11 @@ import os
 import pandas as pd
 from sleap_roots.series import Series
 from sleap_roots.angle import get_root_angle
-from sleap_roots.bases import get_root_lengths, get_root_pair_widths_projections
+from sleap_roots.bases import (
+    get_root_lengths,
+    get_base_tip_dist,
+    get_root_pair_widths_projections,
+)
 from sleap_roots.convhull import get_convhull_features
 from sleap_roots.ellipse import fit_ellipse
 from sleap_roots.networklength import get_network_distribution
@@ -143,6 +147,10 @@ def get_traits_frame(
             - lateral_angles_distal_median: median lateral root angle with distal
             node among all lateral roots within one frame
             - primary_length: length of primary root
+            - primary_base_tip_dist: primary root base to tip distance in y axis
+            - primary_depth: primary root tip depth
+            - grav_index: primary root gravitropism index
+            - lateral_length_total: total lateral root length
             - lateral_length_max: maximum length of lateral roots
             - lateral_length_min: minimum length of lateral roots
             - lateral_length_mean: mean length of lateral roots
@@ -204,7 +212,6 @@ def get_traits_frame(
     primary_angles_proximal = get_root_angle(pts_pr, proximal=True)
     # priminary root angle with the distal node and base node
     primary_angles_distal = get_root_angle(pts_pr, proximal=False)
-
     # lateral root angle with the proximal node and base node, 5 statistics
     lateral_angles_proximal = get_root_angle(pts_lr, proximal=True)
     (
@@ -228,8 +235,17 @@ def get_traits_frame(
     # calculate root length related traits
     # primary root length
     primary_length = get_root_lengths(pts_pr)
+    # primary root base to tip distance in y axis
+    primary_base_tip_dist = get_base_tip_dist(pts_pr)
+    # primary root tip depth
+    primary_depth = np.nanmax(pts_pr[:, :, 1])
+    # primary root gravitropism index
+    grav_index = (
+        np.nanmax(primary_length) - np.nanmax(primary_base_tip_dist)
+    ) / np.nanmax(primary_length)
     # lateral root length
     lateral_length = get_root_lengths(pts_lr)
+    lateral_length_total = np.nansum(lateral_length)
     (
         lateral_length_max,
         lateral_length_min,
@@ -360,6 +376,10 @@ def get_traits_frame(
             "lateral_angles_distal_std": lateral_angles_distal_std,
             "lateral_angles_distal_median": lateral_angles_distal_median,
             "primary_length": primary_length,
+            "primary_base_tip_dist": primary_base_tip_dist,
+            "primary_depth": primary_depth,
+            "grav_index": grav_index,
+            "lateral_length_total": lateral_length_total,
             "lateral_length_max": lateral_length_max,
             "lateral_length_min": lateral_length_min,
             "lateral_length_mean": lateral_length_mean,

@@ -1,5 +1,6 @@
 from sleap_roots.bases import (
     get_bases,
+    get_base_tip_dist,
     get_root_lengths,
     get_root_pair_widths_projections,
 )
@@ -112,6 +113,34 @@ def test_bases_no_roots(pts_no_roots):
     bases = get_bases(pts_no_roots)
     assert bases.shape == (2, 2)
     np.testing.assert_array_equal(bases, [[np.nan, np.nan], [np.nan, np.nan]])
+
+
+# test get_base_tip_dist with standard points
+def test_get_base_tip_dist_standard(pts_standard):
+    distance = get_base_tip_dist(pts_standard)
+    assert distance.shape == (2,)
+    np.testing.assert_almost_equal(distance, [2.82842712, 2.82842712], decimal=7)
+
+
+# test get_base_tip_dist with roots without bases
+def test_get_base_tip_dist_no_bases(pts_no_bases):
+    distance = get_base_tip_dist(pts_no_bases)
+    assert distance.shape == (2,)
+    np.testing.assert_almost_equal(distance, [np.nan, np.nan], decimal=7)
+
+
+# test get_base_tip_dist with roots with one base
+def test_get_base_tip_dist_one_base(pts_one_base):
+    distance = get_base_tip_dist(pts_one_base)
+    assert distance.shape == (2,)
+    np.testing.assert_almost_equal(distance, [2.82842712, np.nan], decimal=7)
+
+
+# test get_base_tip_dist with no roots
+def test_get_base_tip_dist_no_roots(pts_no_roots):
+    distance = get_base_tip_dist(pts_no_roots)
+    assert distance.shape == (2,)
+    np.testing.assert_almost_equal(distance, [np.nan, np.nan], decimal=7)
 
 
 def test_get_root_lengths(canola_h5):
