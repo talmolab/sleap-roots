@@ -193,7 +193,10 @@ def get_traits_frame(
         return "Incomplete SLEAP prediction!"
 
     # get the primary and lateral roots points
+    # choose the longest primary root if more than one
     pts_pr = get_pts_pr_lr(h5, rice=rice, frame=frame, primaryroot=True)
+    max_length_idx = np.nanargmax(get_root_lengths(pts_pr))
+    pts_pr = pts_pr[np.newaxis, max_length_idx]
     pts_lr = get_pts_pr_lr(h5, rice=rice, frame=frame, primaryroot=False)
 
     # calculate root angle related traits
