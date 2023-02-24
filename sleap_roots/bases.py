@@ -20,6 +20,21 @@ def get_bases(pts: np.ndarray) -> np.ndarray:
     return base_pts
 
 
+def get_bases_percentile(pts: np.ndarray, pctl: np.ndarray) -> np.ndarray:
+    """Return y axis of all base points based on given percentile.
+
+    Args:
+        pts: Root landmarks as array of shape (instances, nodes, 2)
+        pctl: the percentile of all base points to calculate y-axis.
+
+    Returns:
+        Array of y-axis value of given pctl value.
+    """
+    base_pts = get_bases(pts)
+    base_pctl = np.nanpercentile(base_pts[:, 1], pctl)
+    return base_pctl
+
+
 def get_base_tip_dist(pts):
     """Return distance from root base to tip.
 

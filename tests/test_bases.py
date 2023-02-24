@@ -1,5 +1,6 @@
 from sleap_roots.bases import (
     get_bases,
+    get_bases_percentile,
     get_base_tip_dist,
     get_root_lengths,
     get_root_pair_widths_projections,
@@ -113,6 +114,34 @@ def test_bases_no_roots(pts_no_roots):
     bases = get_bases(pts_no_roots)
     assert bases.shape == (2, 2)
     np.testing.assert_array_equal(bases, [[np.nan, np.nan], [np.nan, np.nan]])
+
+
+# test get_bases_percentile with standard points
+def test_get_bases_percentile_standard(pts_standard):
+    base_pctl = get_bases_percentile(pts_standard, [25, 75])
+    assert base_pctl.shape == (2,)
+    np.testing.assert_almost_equal(base_pctl, [3, 5], decimal=7)
+
+
+# test get_bases_percentile with roots without bases
+def test_get_bases_percentile_no_bases(pts_no_bases):
+    base_pctl = get_bases_percentile(pts_no_bases, [25, 75])
+    assert base_pctl.shape == (2,)
+    np.testing.assert_almost_equal(base_pctl, [np.nan, np.nan], decimal=7)
+
+
+# test get_bases_percentile with roots with one base
+def test_get_bases_percentile_one_base(pts_one_base):
+    base_pctl = get_bases_percentile(pts_one_base, [25, 75])
+    assert base_pctl.shape == (2,)
+    np.testing.assert_almost_equal(base_pctl, [2, 2], decimal=7)
+
+
+# test get_bases_percentile with no roots
+def test_get_bases_percentile_no_roots(pts_no_roots):
+    base_pctl = get_bases_percentile(pts_no_roots, [25, 75])
+    assert base_pctl.shape == (2,)
+    np.testing.assert_almost_equal(base_pctl, [np.nan, np.nan], decimal=7)
 
 
 # test get_base_tip_dist with standard points
