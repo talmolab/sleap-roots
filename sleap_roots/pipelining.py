@@ -7,6 +7,8 @@ from sleap_roots.series import Series
 from sleap_roots.angle import get_root_angle
 from sleap_roots.bases import (
     get_root_lengths,
+    get_bases,
+    get_bases_percentile,
     get_base_tip_dist,
     get_root_pair_widths_projections,
 )
@@ -17,7 +19,7 @@ from sleap_roots.networklength import get_network_distribution_ratio
 from sleap_roots.networklength import get_network_solidity
 from sleap_roots.networklength import get_network_width_depth_ratio
 from sleap_roots.scanline import count_scanline_intersections
-from sleap_roots.tips import get_tips
+from sleap_roots.tips import get_tips, get_tips_percentile
 from typing import Tuple
 
 
@@ -96,6 +98,8 @@ def get_traits_frame(
     rice=False,
     frame=0,
     tolerance=0.02,
+    pctl_base=[25, 75],
+    pctl_tip=[25, 75],
     fraction: float = 2 / 3,
     depth: int = 1080,
     width: int = 2048,
@@ -109,6 +113,8 @@ def get_traits_frame(
         rice: Boolean value, where true is rice (default), false is other species.
         frame: the frame index, default value is 0, i.e., first frame.
         tolerance: difference in projection norm between the right and left side.
+        pctl_base: the percentile of all base points to calculate y-axis.
+        pctl_tip: the percentile of all tip points to calculate y-axis.
         fraction: the network length found in the lower fration value of the network.
         depth: the depth of cylinder, or number of rows of the image.
         width: the width of cylinder, or number of columns of the image.
@@ -162,7 +168,31 @@ def get_traits_frame(
             - stem_widths_std: standard deviation stem width based on paired lateral
             root bases
             - stem_widths_median: median stem width based on paired lateral root bases
-            - pts_number: number of roots
+            - base_ct: number of lateral root bases
+            - base_top: top base point in y-axis
+            - base_deep: deepest base point in y-axis
+            - base_length: top and deepest bases distance y-axis
+            - base_length_ratio: ratio of top-deep length to primary root length
+            - base_meanx: mean value of x axis of all base points
+            - base_meany: mean value of y axis of all base points
+            - base_medianx: median value of x axis of all base points
+            - base_mediany: median value of y axis of all base points
+            - base_stdx: standard deviation of x axis of all base points
+            - base_stdy: standard deviation of y axis of all base points
+            - pr_tip_depth: tip of primary root in y axis
+            - base_median_ratio: ratio of median value in all base points to tip of primary root in y axis
+            - base_ct_density: number of base points to maximum primary root length
+            - tip_ct: number of lateral root tips
+            - tip_top: top tip point in y-axis
+            - tip_deep: deepest tip point in y-axis
+            - tip_meanx: mean value of x axis of all tip points
+            - tip_meany: mean value of y axis of all tip points
+            - tip_medianx: median value of x axis of all tip points
+            - tip_mediany: median value of y axis of all tip points
+            - tip_stdx: standard deviation of x axis of all tip points
+            - tip_stdy: standard deviation of y axis of all tip points
+            - tip_sdx_sdys: ratio of tip_stdx to tip_stdy
+            - tip_median_ratio: ratio of median value in all tip points to tip of primary root in y axis
             - conv_perimeters: perimeter of convex hull
             - conv_areas: area of convex hull
             - conv_longest_dists: longest distance of convex hull
@@ -188,6 +218,8 @@ def get_traits_frame(
             roots
             - scanline_start: the scanline index where start interaction with roots
             - scanline_end: the scanline index where end interaction with roots
+            - base_pctl: lateral root bases percentile in y-axis, # columns = # pctl
+            - tip_pctl: lateral root tips percentile in y-axis, # columns = # pctl
     """
     # check whether 2 *.slp files exist
     plant_name = os.path.splitext(os.path.split(h5)[1])[0]
@@ -279,16 +311,86 @@ def get_traits_frame(
             stem_widths_median,
         ) = get_statistics(stem_widths)
 
-    # calculate tip number
-    _tip_pts_pr = get_tips(pts_pr)
-    _tip_pts_lr = get_tips(pts_lr)
-    if rice:
-        pts_number = _tip_pts_lr[~np.isnan(_tip_pts_lr[:, 0])].shape[0]
+    # calculate base-based traits
+    if len(pts_pr) == 0 or len(pts_lr) == 0 or np.isnan(get_bases(pts_lr)).all():
+        base_ct = base_top = base_deep = base_length = base_length_ratio = np.nan
+        base_meanx = (
+            base_meany
+        ) = base_medianx = base_mediany = base_stdx = base_stdy = np.nan
+        pr_tip_depth = base_median_ratio = base_ct_density = base_pctl = np.nan
     else:
-        pts_number = (
-            _tip_pts_pr[~np.isnan(_tip_pts_pr[:, 0])].shape[0]
-            + _tip_pts_lr[~np.isnan(_tip_pts_lr[:, 0])].shape[0]
-        )
+        lengths_primary = get_root_lengths(pts_pr)
+        _base_pts = get_bases(pts_lr)
+        valid_pts = _base_pts[~np.isnan(_base_pts[:, 0])]
+        _base_sorted_inds = np.argsort(valid_pts[:, 1])
+        _base_pts_sorted = valid_pts[_base_sorted_inds]
+
+        # number of lateral root bases
+        base_ct = len(_base_pts[~np.isnan(_base_pts[:, 0])])
+        # Top and deepest base points y-axis
+        base_top = _base_pts_sorted[0][1]
+        base_deep = _base_pts_sorted[-1][1]
+        # top and deepest bases distance y-axis
+        base_length = np.linalg.norm(base_deep - base_top)
+        # ratio of top-deep length to primary root length
+        base_length_ratio = base_length / np.nanmax(lengths_primary)
+
+        # mean value of x axis and y axis of all base points
+        base_meanx = np.nanmean(_base_pts[:, 0])
+        base_meany = np.nanmean(_base_pts[:, 1])
+        # median value of x axis and y axis of all base points
+        base_medianx = np.nanmedian(_base_pts[:, 0])
+        base_mediany = np.nanmedian(_base_pts[:, 1])
+        # standard deviation of x axis and y axis of all base points
+        base_stdx = np.nanstd(_base_pts[:, 0])
+        base_stdy = np.nanstd(_base_pts[:, 1])
+
+        # tip of primary root in y axis
+        pr_tip_depth = np.nanmax(pts_pr[:, :, 1])
+        # ratio of median value in all base points to tip of primary root in y axis
+        base_median_ratio = np.nanmedian(_base_pts[:, 1]) / pr_tip_depth
+        # number of base points to maximum primary root length
+        base_ct_density = base_ct / np.nanmax(lengths_primary)
+
+        # lateral root bases percentile in y-axis
+        base_pctl = get_bases_percentile(pts_lr, pctl_base)
+
+    # calculate tip-based traits
+    if len(pts_pr) == 0 or len(pts_lr) == 0 or np.isnan(get_tips(pts_lr)).all():
+        tip_ct = tip_top = tip_deep = np.nan
+        tip_meanx = tip_meany = tip_medianx = tip_mediany = tip_stdx = tip_stdy = np.nan
+        tip_sdx_sdys = tip_median_ratio = tip_pctl = np.nan
+    else:
+        _tip_pts = get_tips(pts_lr)
+        valid_pts = _tip_pts[~np.isnan(_tip_pts[:, 0])]
+        _tip_sorted_inds = np.argsort(valid_pts[:, 1])
+        _tip_pts_sorted = valid_pts[_tip_sorted_inds]
+
+        # number of lateral root tips
+        tip_ct = len(_tip_pts[~np.isnan(_tip_pts[:, 0])])
+        # Top and deepest tip points y-axis
+        tip_top = _tip_pts_sorted[0][1]
+        tip_deep = _tip_pts_sorted[-1][1]
+
+        # mean value of x axis and y axis of all tip points
+        tip_meanx = np.nanmean(_tip_pts[:, 0])
+        tip_meany = np.nanmean(_tip_pts[:, 1])
+        # median value of x axis and y axis of all tip points
+        tip_medianx = np.nanmedian(_tip_pts[:, 0])
+        tip_mediany = np.nanmedian(_tip_pts[:, 1])
+        # standard deviation of x axis and y axis of all tip points
+        tip_stdx = np.nanstd(_tip_pts[:, 0])
+        tip_stdy = np.nanstd(_tip_pts[:, 1])
+        # ratio of tip_stdx to tip_stdy
+        tip_sdx_sdys = tip_stdx / tip_stdy
+
+        # tip of primary root in y axis
+        pr_tip_depth = np.nanmax(pts_pr[:, :, 1])
+        # ratio of median value in all tip points to tip of primary root in y axis
+        tip_median_ratio = np.nanmedian(_tip_pts[:, 1]) / pr_tip_depth
+
+        # lateral root tips percentile in y-axis
+        tip_pctl = get_tips_percentile(pts_lr, pctl_tip)
 
     # calculate root prediction points convex hull related traits
     # get all points (lateral for rice; primary+lateral for other species)
@@ -390,7 +492,31 @@ def get_traits_frame(
             "stem_widths_mean": stem_widths_mean,
             "stem_widths_std": stem_widths_std,
             "stem_widths_median": stem_widths_median,
-            "pts_number": pts_number,
+            "base_ct": base_ct,
+            "base_top": base_top,
+            "base_deep": base_deep,
+            "base_length": base_length,
+            "base_length_ratio": base_length_ratio,
+            "base_meanx": base_meanx,
+            "base_meany": base_meany,
+            "base_medianx": base_medianx,
+            "base_mediany": base_mediany,
+            "base_stdx": base_stdx,
+            "base_stdy": base_stdy,
+            "pr_tip_depth": pr_tip_depth,
+            "base_median_ratio": base_median_ratio,
+            "base_ct_density": base_ct_density,
+            "tip_ct": tip_ct,
+            "tip_top": tip_top,
+            "tip_deep": tip_deep,
+            "tip_meanx": tip_meanx,
+            "tip_meany": tip_meany,
+            "tip_medianx": tip_medianx,
+            "tip_mediany": tip_mediany,
+            "tip_stdx": tip_stdx,
+            "tip_stdy": tip_stdy,
+            "tip_sdx_sdys": tip_sdx_sdys,
+            "tip_median_ratio": tip_median_ratio,
             "conv_perimeters": conv_perimeters,
             "conv_areas": conv_areas,
             "conv_longest_dists": conv_longest_dists,
@@ -415,6 +541,12 @@ def get_traits_frame(
         }
     )
 
+    # append base and tip percentile data
+    for pctl in range(len(pctl_base)):
+        df["base_pctl_" + str(pctl_base[pctl])] = base_pctl[pctl]
+    for pctl in range(len(pctl_tip)):
+        df["base_pctl_" + str(pctl_tip[pctl])] = tip_pctl[pctl]
+
     return df
 
 
@@ -423,6 +555,8 @@ def get_traits_plant(
     h5,
     rice=False,
     tolerance=0.02,
+    pctl_base=[25, 75],
+    pctl_tip=[25, 75],
     fraction: float = 2 / 3,
     depth: int = 1080,
     width: int = 2048,
@@ -459,9 +593,19 @@ def get_traits_plant(
     n_frame = len(series)
 
     # get traits for each frames in a row
-    for i in range(30):  # n_frame
+    for i in range(n_frame):
         df_frame = get_traits_frame(
-            path, h5, rice, i, tolerance, fraction, depth, width, n_line
+            path,
+            h5,
+            rice,
+            i,
+            tolerance,
+            pctl_base,
+            pctl_tip,
+            fraction,
+            depth,
+            width,
+            n_line,
         )
         df_plant = df_frame if i == 0 else df_plant.append(df_frame, ignore_index=True)
 

@@ -228,13 +228,15 @@ def test_get_traits_frame(canola_folder, canola_h5):
         rice=False,
         frame=0,
         tolerance=0.02,
+        pctl_base=[25, 75],
+        pctl_tip=[25, 75],
         fraction=2 / 3,
         depth=1080,
         width=2048,
         n_line=50,
     )
     assert len(df) == 1
-    assert len(df.columns) == 51
+    assert len(df.columns) == 77
     np.testing.assert_almost_equal(
         df.primary_angles_proximal[0], 50.13129559736394, decimal=7
     )
@@ -257,6 +259,8 @@ def test_get_traits_plant(canola_folder, canola_h5):
         canola_h5,
         rice=False,
         tolerance=0.02,
+        pctl_base=[25, 75],
+        pctl_tip=[25, 75],
         fraction=2 / 3,
         depth=1080,
         width=2048,
@@ -264,22 +268,22 @@ def test_get_traits_plant(canola_folder, canola_h5):
         write_csv=False,
     )
     assert len(df) == 1
-    assert len(df.columns) == 246
+    assert len(df.columns) == 376
 
     np.testing.assert_almost_equal(
-        df.primary_angles_proximal_max[0], 50.13129559736394, decimal=7
+        df.primary_angles_proximal_max[0], 62.483951542407084, decimal=7
     )
     np.testing.assert_almost_equal(
         df.lateral_length_mean_min[0], 20.29789164406169, decimal=7
     )
-    np.testing.assert_almost_equal(df.stem_widths_median_median[0], 1, decimal=7)
+    np.testing.assert_almost_equal(df.stem_widths_median_median[0], 1.25, decimal=7)
     np.testing.assert_almost_equal(df.conv_areas_max[0], 93255.32153574759, decimal=7)
     np.testing.assert_almost_equal(
         df.ellipse_ratio_min[0], 0.2889459577340097, decimal=7
     )
     np.testing.assert_almost_equal(
-        df.network_solidity_std[0], 0.007457101693169275, decimal=7
+        df.network_solidity_std[0], 0.063421767709279, decimal=7
     )
     np.testing.assert_almost_equal(
-        df.scanline_start_mean[0], 5.866666666666666, decimal=7
+        df.scanline_start_mean[0], 6.694444444444445, decimal=7
     )
