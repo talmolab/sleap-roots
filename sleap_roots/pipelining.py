@@ -122,11 +122,6 @@ def get_traits_frame(
 
     Returns:
         A DataFrame with a single row containing columns with traits:
-        primary_angles_proximal: Primary root angles computed relative to
-                the proximal blah blah... If none are detected, NaN will be
-                returned for this trait.
-
-
             - plant_name: record of plant name
             - frame: frame index, 72 frames in total, 0 to 71
             - primary_angles_proximal: primary root angle with base node and proximal
