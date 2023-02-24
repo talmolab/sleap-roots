@@ -236,7 +236,7 @@ def test_get_traits_frame(canola_folder, canola_h5):
         n_line=50,
     )
     assert len(df) == 1
-    assert len(df.columns) == 77
+    assert len(df.columns) == 79
     np.testing.assert_almost_equal(
         df.primary_angles_proximal[0], 50.13129559736394, decimal=7
     )
@@ -268,7 +268,7 @@ def test_get_traits_plant(canola_folder, canola_h5):
         write_csv=False,
     )
     assert len(df) == 1
-    assert len(df.columns) == 376
+    assert len(df.columns) == 386
 
     np.testing.assert_almost_equal(
         df.primary_angles_proximal_max[0], 62.483951542407084, decimal=7

@@ -540,7 +540,7 @@ def get_traits_frame(
     for pctl in range(len(pctl_base)):
         df["base_pctl_" + str(pctl_base[pctl])] = base_pctl[pctl]
     for pctl in range(len(pctl_tip)):
-        df["base_pctl_" + str(pctl_tip[pctl])] = tip_pctl[pctl]
+        df["tip_pctl_" + str(pctl_tip[pctl])] = tip_pctl[pctl]
 
     return df
 
