@@ -1,7 +1,6 @@
 """Extract plant traits based on SLEAP prediction."""
 
 import numpy as np
-import os
 import pandas as pd
 from sleap_roots.series import Series
 from sleap_roots.angle import get_root_angle
@@ -26,13 +25,14 @@ from typing import Tuple
 def get_statistics(
     traits_array: np.ndarray,
 ) -> Tuple[float, float, float, float, float]:
-    """Get 5 statistics of the traits.
+    """Get summary statistics of an array of traits.
 
     Args:
-        traits_array: the traits array that need to calculate 5 statistics.
+        traits_array: An array of traits of shape `(n_samples,)`.
 
     Returns:
-        A Tuple of 5 statistics: max, min, mean, std, median.
+        A tuple of summary statistics scalars:
+        `trait_max, trait_min, trait_mean, trait_std, trait_median`
     """
     trait_max = np.nanmax(traits_array)
     trait_min = np.nanmin(traits_array)
@@ -42,59 +42,8 @@ def get_statistics(
     return trait_max, trait_min, trait_mean, trait_std, trait_median
 
 
-def get_pts_pr_lr(h5, rice=False, frame=0, primaryroot=True):
-    """Get all predicted points of primary/lateral root (# instance, # nodes, 2).
-
-    Args:
-        h5: h5 file, SLEAP prediction.
-        rice: Boolean value, where true is rice (default), false is other species.
-        frame: the frame index, default value is 0, i.e., first frame.
-        primaryroot: Boolean value, where true is primary root, false is lateral root.
-
-    Returns:
-        An array of points location in shape of (# points, 2).
-    """
-    if rice:
-        series = Series.load(
-            h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
-        )
-    else:
-        series = Series.load(
-            h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-        )
-    primary, lateral = series[frame]
-    if primaryroot:
-        return primary.numpy()
-    else:
-        return lateral.numpy()
-
-
-def get_pts_all(h5, rice=False, frame=0) -> np.ndarray:
-    """Get all predicted points in shape of (# points, 2).
-
-    Args:
-        h5: h5 file, SLEAP prediction.
-        rice: Boolean value, where true is rice (default), false is other species.
-        frame: the frame index, default value is 0, i.e., first frame.
-
-    Returns:
-        An array of points location in shape of (# points, 2).
-    """
-    if rice:
-        pts_lr = get_pts_pr_lr(h5, rice=True, frame=frame, primaryroot=False)
-        pts_all = pts_lr.reshape(-1, 2)
-    else:
-        pts_pr = get_pts_pr_lr(h5, rice=False, frame=frame, primaryroot=True)
-        pts_lr = get_pts_pr_lr(h5, rice=False, frame=frame, primaryroot=False)
-        primary_points = pts_pr.reshape(-1, 2)
-        lateral_points = pts_lr.reshape(-1, 2)
-        pts_all = np.concatenate((primary_points, lateral_points), axis=0)
-    return pts_all
-
-
 def get_traits_frame(
-    path,
-    h5,
+    plant,
     rice=False,
     frame=0,
     tolerance=0.02,
@@ -108,9 +57,8 @@ def get_traits_frame(
     """Extract frame-based traits based on SLEAP prediction *.h5 and *.slp files.
 
     Args:
-        path: the work directory where store h5 and slp files.
-        h5: h5 file, SLEAP prediction.
-        rice: Boolean value, where true is rice (default), false is other species.
+        plant: plant series name.
+        rice: Boolean value, where true is rice, false is other species.
         frame: the frame index, default value is 0, i.e., first frame.
         tolerance: difference in projection norm between the right and left side.
         pctl_base: the percentile of all base points to calculate y-axis.
@@ -175,7 +123,8 @@ def get_traits_frame(
             - base_stdx: standard deviation of x axis of all base points
             - base_stdy: standard deviation of y axis of all base points
             - pr_tip_depth: tip of primary root in y axis
-            - base_median_ratio: ratio of median value in all base points to tip of primary root in y axis
+            - base_median_ratio: ratio of median value in all base points to tip of
+            primary root in y axis
             - base_ct_density: number of base points to maximum primary root length
             - tip_ct: number of lateral root tips
             - tip_top: top tip point in y-axis
@@ -187,7 +136,8 @@ def get_traits_frame(
             - tip_stdx: standard deviation of x axis of all tip points
             - tip_stdy: standard deviation of y axis of all tip points
             - tip_sdx_sdys: ratio of tip_stdx to tip_stdy
-            - tip_median_ratio: ratio of median value in all tip points to tip of primary root in y axis
+            - tip_median_ratio: ratio of median value in all tip points to tip of
+            primary root in y axis
             - conv_perimeters: perimeter of convex hull
             - conv_areas: area of convex hull
             - conv_longest_dists: longest distance of convex hull
@@ -216,23 +166,15 @@ def get_traits_frame(
             - base_pctl: lateral root bases percentile in y-axis, # columns = # pctl
             - tip_pctl: lateral root tips percentile in y-axis, # columns = # pctl
     """
-    # check whether 2 *.slp files exist
-    plant_name = os.path.splitext(os.path.split(h5)[1])[0]
-    slp_files = [
-        file
-        for file in os.listdir(path)
-        if (file.endswith(".slp") and file.startswith(plant_name))
-    ]
-
-    if len(slp_files) < 2:
-        return "Incomplete SLEAP prediction!"
+    # get plant name
+    plant_name = plant.series_name
 
     # get the primary and lateral roots points
     # choose the longest primary root if more than one
-    pts_pr = get_pts_pr_lr(h5, rice=rice, frame=frame, primaryroot=True)
+    pts_pr = plant.get_primary_points(frame_idx=frame)
     max_length_idx = np.nanargmax(get_root_lengths(pts_pr))
     pts_pr = pts_pr[np.newaxis, max_length_idx]
-    pts_lr = get_pts_pr_lr(h5, rice=rice, frame=frame, primaryroot=False)
+    pts_lr = plant.get_lateral_points(frame_idx=frame)
 
     # calculate root angle related traits
     # priminary root angle with the proximal node and base node
@@ -389,7 +331,11 @@ def get_traits_frame(
 
     # calculate root prediction points convex hull related traits
     # get all points (lateral for rice; primary+lateral for other species)
-    pts_all = get_pts_all(h5)
+    pts_all = (
+        pts_lr.reshape(-1, 2)
+        if rice
+        else np.concatenate((pts_pr.reshape(-1, 2), pts_lr.reshape(-1, 2)), axis=0)
+    )
 
     (
         conv_perimeters,
@@ -546,7 +492,6 @@ def get_traits_frame(
 
 
 def get_traits_plant(
-    path,
     h5,
     rice=False,
     tolerance=0.02,
@@ -561,8 +506,7 @@ def get_traits_plant(
     """Extract plant-based traits based on SLEAP prediction *.h5 and *.slp files.
 
     Args:
-        path: the work directory where store h5 and slp files.
-        h5: h5 file, SLEAP prediction.
+        h5: h5 file, plant image series.
         rice: Boolean value, where true is rice (default), false is other species.
         tolerance: difference in projection norm between the right and left side.
         fraction: the network length found in the lower fration value of the network.
@@ -577,21 +521,20 @@ def get_traits_plant(
     """
     # load series
     if rice:
-        series = Series.load(
+        plant = Series.load(
             h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
         )
     else:
-        series = Series.load(
+        plant = Series.load(
             h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
         )
     # get nymber of frames per plant
-    n_frame = len(series)
+    n_frame = len(plant)
 
     # get traits for each frames in a row
     for i in range(n_frame):
         df_frame = get_traits_frame(
-            path,
-            h5,
+            plant,
             rice,
             i,
             tolerance,

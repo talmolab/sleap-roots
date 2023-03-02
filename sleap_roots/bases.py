@@ -1,7 +1,6 @@
 """Trait calculations that rely on bases (i.e., dicot-only)."""
 
 import numpy as np
-import shapely
 from shapely.geometry import LineString, Point
 from shapely.ops import nearest_points
 
@@ -35,7 +34,7 @@ def get_bases_percentile(pts: np.ndarray, pctl: np.ndarray) -> np.ndarray:
     return base_pctl
 
 
-def get_base_tip_dist(pts):
+def get_base_tip_dist(pts: np.ndarray) -> np.ndarray:
     """Return distance from root base to tip.
 
     Args:
