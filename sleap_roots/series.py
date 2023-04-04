@@ -1,9 +1,10 @@
 """Series-level data loader."""
 
 import attrs
-from typing import Optional, Tuple, List, Union
+import numpy as np
 from pathlib import Path
 import sleap
+from typing import Optional, Tuple, List, Union
 
 
 @attrs.define
@@ -104,6 +105,24 @@ class Series:
         sleap.nn.viz.plot_img(primary_lf.image, scale=scale)
         sleap.nn.viz.plot_instances(primary_lf.instances, cmap=["r"], **kwargs)
         sleap.nn.viz.plot_instances(lateral_lf.instances, cmap=["g"], **kwargs)
+
+    def get_primary_points(self, frame_idx: int) -> np.ndarray:
+        """Get primary root points.
+        Args:
+            frame_idx: frame index to get primary root points in shape (# instance,
+            # node, 2)
+        """
+        primary_lf, lateral_lf = self.get_frame(frame_idx)
+        return primary_lf.numpy()
+
+    def get_lateral_points(self, frame_idx: int) -> np.ndarray:
+        """Get lateral root points.
+        Args:
+            frame_idx: frame index to get lateral root points in shape (# instance,
+            # node, 2)
+        """
+        primary_lf, lateral_lf = self.get_frame(frame_idx)
+        return lateral_lf.numpy()
 
 
 def find_all_series(data_folders: Union[str, List[str]]) -> List[str]:
