@@ -108,6 +108,7 @@ class Series:
 
     def get_primary_points(self, frame_idx: int) -> np.ndarray:
         """Get primary root points.
+
         Args:
             frame_idx: frame index to get primary root points in shape (# instance,
             # node, 2)
@@ -117,6 +118,7 @@ class Series:
 
     def get_lateral_points(self, frame_idx: int) -> np.ndarray:
         """Get lateral root points.
+
         Args:
             frame_idx: frame index to get lateral root points in shape (# instance,
             # node, 2)
