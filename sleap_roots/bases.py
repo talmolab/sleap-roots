@@ -44,6 +44,112 @@ def get_root_lengths(pts: np.ndarray) -> np.ndarray:
     return total_lengths
 
 
+def get_root_lengths_max(lengths: np.ndarray) -> np.ndarray:
+    """Return maximum root length for all roots in a frame.
+
+    Args:
+        lengths: root lengths with shape of (instances,).
+
+    Returns:
+        Scalar of the maximum root length.
+    """
+    max_length = np.nanmax(lengths)
+    return max_length
+
+
+def get_base_tip_dist(pts: np.ndarray) -> np.ndarray:
+    """Return distance from root base to tip.
+
+    Args:
+        pts: Root landmarks as array of shape (instances, nodes, 2)
+
+    Returns:
+        Array of distances from base to tip of shape (instances,).
+    """
+    base_pt = pts[:, 0]
+    tip_pt = pts[:, -1]
+    distance = np.linalg.norm(base_pt - tip_pt, axis=-1)
+    return distance
+
+
+def get_grav_index(pts: np.ndarray):
+    """Get gravity index based on primary_length_max and primary_base_tip_dist.
+
+    Args:
+        pts: primary root landmarks as array of shape (1, node, 2)
+
+    Returns:
+        Scalar of primary root gravity index.
+
+    """
+    # get primary root length, if predicted >1 primary roots, use the longest one
+    primary_length = get_root_lengths(pts)
+    primary_length_max = get_root_lengths_max(primary_length)
+
+    # get the distance between base and tip in y axis
+    primary_base_tip_dist = get_base_tip_dist(pts)
+    # calculate gravity index
+    grav_index = (
+        np.nanmax(primary_length_max) - np.nanmax(primary_base_tip_dist)
+    ) / np.nanmax(primary_length_max)
+    return grav_index
+
+
+def get_lateral_count(pts: np.ndarray):
+    """Get number of lateral roots.
+
+    Args:
+        pts: lateral root landmarks as array of shape (instance, node, 2)
+
+    Return:
+        scalar of number of lateral roots.
+    """
+    lateral_count = pts.shape[0]
+    return lateral_count
+
+
+def get_base_xs(pts: np.ndarray):
+    """Get x coordinations of base points.
+
+    Args:
+        pts: root landmarks as array of shape (instance, point, 2)
+
+    Return:
+        An array of bases in x axis (instance,).
+    """
+    _base_pts = get_bases(pts)
+    base_xs = _base_pts[:, 0]
+    return base_xs
+
+
+def get_base_ys(pts: np.ndarray):
+    """Get y coordinations of base points.
+
+    Args:
+        pts: root landmarks as array of shape (instance, point, 2)
+
+    Return:
+        An array of bases in y axis (instance,).
+    """
+    _base_pts = get_bases(pts)
+    base_ys = _base_pts[:, 1]
+    return base_ys
+
+
+def get_base_length(pts: np.ndarray):
+    """Get lateral roots top and deepest bases distance in y axis.
+
+    Args:
+        pts: lateral root landmarks as array of shape (instance, point, 2)
+
+    Return:
+        top and deepest bases distance y-axis.
+    """
+    base_ys = get_base_ys(pts)
+    base_length = np.nanmax(base_ys) - np.nanmin(base_ys)
+    return base_length
+
+
 def get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance):
     """Return estimation of stem width using bases of lateral roots.
 
