@@ -5,7 +5,7 @@ import math
 
 
 def get_node_ind(pts: np.ndarray, proximal=True) -> np.ndarray:
-    """Find proximal/distal node index.
+    """Find nproximal/distal node index.
 
     Args:
         pts: Numpy array of points of shape (instances, nodes, 2).
