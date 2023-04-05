@@ -1,6 +1,11 @@
 from scipy.spatial import ConvexHull
 from sleap_roots import Series
-from sleap_roots.convhull import get_convhull, get_convhull_features
+from sleap_roots.convhull import (
+    get_convhull,
+    get_convhull_features,
+    get_chull_line_lengths,
+)
+from sleap_roots.points import get_all_pts_array
 import numpy as np
 import pytest
 
@@ -70,18 +75,12 @@ def test_get_convhull_features_canola(canola_h5):
     (
         perimeters,
         areas,
-        longest_dists,
-        shortest_dists,
-        median_dists,
         max_widths,
         max_heights,
     ) = get_convhull_features(convex_hull_points)
 
     np.testing.assert_almost_equal(perimeters, 1910.0476127930017, decimal=3)
     np.testing.assert_almost_equal(areas, 93255.32153574759, decimal=3)
-    np.testing.assert_almost_equal(longest_dists, 884.6450178192455, decimal=3)
-    np.testing.assert_almost_equal(shortest_dists, 185.15460001685398, decimal=3)
-    np.testing.assert_almost_equal(median_dists, 404.77175083902506, decimal=3)
     np.testing.assert_almost_equal(max_widths, 211.279296875, decimal=3)
     np.testing.assert_almost_equal(max_heights, 876.5622253417969, decimal=3)
 
@@ -100,18 +99,12 @@ def test_get_convhull_features_rice(rice_h5):
     (
         perimeters,
         areas,
-        longest_dists,
-        shortest_dists,
-        median_dists,
         max_widths,
         max_heights,
     ) = get_convhull_features(convex_hull_points)
 
     np.testing.assert_almost_equal(perimeters, 1458.8585933576614, decimal=3)
     np.testing.assert_almost_equal(areas, 23878.72090798154, decimal=3)
-    np.testing.assert_almost_equal(longest_dists, 720.0494276295367, decimal=3)
-    np.testing.assert_almost_equal(shortest_dists, 139.99063366108192, decimal=3)
-    np.testing.assert_almost_equal(median_dists, 480.1270688506847, decimal=3)
     np.testing.assert_almost_equal(max_widths, 64.4229736328125, decimal=3)
     np.testing.assert_almost_equal(max_heights, 720.0375061035156, decimal=3)
 
@@ -121,18 +114,12 @@ def test_get_convhull_features_nan(pts_nan31_5node):
     (
         perimeters,
         areas,
-        longest_dists,
-        shortest_dists,
-        median_dists,
         max_widths,
         max_heights,
     ) = get_convhull_features(pts_nan31_5node)
 
     np.testing.assert_almost_equal(perimeters, 1184.6684128638494, decimal=3)
     np.testing.assert_almost_equal(areas, 2276.1159928281368, decimal=3)
-    np.testing.assert_almost_equal(longest_dists, 592.2322796929061, decimal=3)
-    np.testing.assert_almost_equal(shortest_dists, 104.52632471064256, decimal=3)
-    np.testing.assert_almost_equal(median_dists, 296.20807552792064, decimal=3)
     np.testing.assert_almost_equal(max_widths, 35.46612548999997, decimal=3)
     np.testing.assert_almost_equal(max_heights, 591.16937256, decimal=3)
 
@@ -142,17 +129,22 @@ def test_get_convhull_features_nanall(pts_nan_5node):
     (
         perimeters,
         areas,
-        longest_dists,
-        shortest_dists,
-        median_dists,
         max_widths,
         max_heights,
     ) = get_convhull_features(pts_nan_5node)
 
     np.testing.assert_almost_equal(perimeters, np.nan, decimal=3)
     np.testing.assert_almost_equal(areas, np.nan, decimal=3)
-    np.testing.assert_almost_equal(longest_dists, np.nan, decimal=3)
-    np.testing.assert_almost_equal(shortest_dists, np.nan, decimal=3)
-    np.testing.assert_almost_equal(median_dists, np.nan, decimal=3)
     np.testing.assert_almost_equal(max_widths, np.nan, decimal=3)
     np.testing.assert_almost_equal(max_heights, np.nan, decimal=3)
+
+
+# test get_chull_line_lengths with canola
+def test_get_chull_line_lengths(canola_h5):
+    plant = Series.load(
+        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
+    )
+    pts = get_all_pts_array(plant=plant, frame=0, rice=False)
+    chull_line_lengths = get_chull_line_lengths(pts)
+    assert chull_line_lengths.shape[0] == 10
+    np.testing.assert_almost_equal(chull_line_lengths[0], 227.553, decimal=3)
