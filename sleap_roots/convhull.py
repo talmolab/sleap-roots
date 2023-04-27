@@ -74,7 +74,7 @@ def get_chull_line_lengths(pts: Union[np.ndarray, ConvexHull]):
     """Get the convex hull line lengths per frame.
 
     Args:
-        pts: Root landmarks as array of shape (..., 2).
+        pts: Root landmarks as array of shape (..., 2) or ConvexHull object.
 
     Returns:
         Lengths of lines connecting any two vertices on the convex hull.

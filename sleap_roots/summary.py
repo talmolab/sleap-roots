@@ -1,16 +1,19 @@
 """Get summary of the traits."""
 
 import numpy as np
+from typing import Tuple
 
 
-def get_summary(trait: np.ndarray):
+def get_summary(
+    trait: np.ndarray,
+) -> Tuple[float, float, float, float, float, float, float, float, float]:
     """Get summary of traits.
 
     Args:
-        traits in an array.
+        traits: Vector of trait values as a numpy array of shape (n,).
 
     Returns:
-        9 statistical summary:
+        A tuple of 9 scalar statistical summary measures:
             min, max, mean, median, standard deviation
             percentiles: 5, 25, 75, 95
     """

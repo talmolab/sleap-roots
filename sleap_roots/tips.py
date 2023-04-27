@@ -19,7 +19,7 @@ def get_tips(pts):
     return tip_pts
 
 
-def get_primary_depth(pts: np.ndarray):
+def get_primary_depth(pts: np.ndarray) -> np.ndarray:
     """Get primary root tip depth.
 
     Args:
@@ -35,7 +35,7 @@ def get_primary_depth(pts: np.ndarray):
         return pts[:, -1, 1]
 
 
-def get_tip_xs(pts: np.ndarray):
+def get_tip_xs(pts: np.ndarray) -> np.ndarray:
     """Get x coordinations of tip points.
 
     Args:
@@ -49,7 +49,7 @@ def get_tip_xs(pts: np.ndarray):
     return tip_xs
 
 
-def get_tip_ys(pts: np.ndarray):
+def get_tip_ys(pts: np.ndarray) -> np.ndarray:
     """Get y coordinations of tip points.
 
     Args:

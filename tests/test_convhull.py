@@ -148,3 +148,9 @@ def test_get_chull_line_lengths(canola_h5):
     chull_line_lengths = get_chull_line_lengths(pts)
     assert chull_line_lengths.shape[0] == 10
     np.testing.assert_almost_equal(chull_line_lengths[0], 227.553, decimal=3)
+
+
+# test get_chull_line_lengths with none hull
+def test_get_chull_line_lengths_nonehull(pts_nan_5node):
+    chull_line_lengths = get_chull_line_lengths(pts_nan_5node)
+    np.testing.assert_almost_equal(chull_line_lengths, np.nan, decimal=3)

@@ -2,14 +2,16 @@
 
 import numpy as np
 from sleap_roots.bases import get_root_lengths
+from sleap_roots.series import Series
+from typing import List
 
 
-def get_pt_ind(pts: np.ndarray, proximal=True) -> np.ndarray:
+def get_pt_ind(pts: np.ndarray, proximal: bool = True) -> np.ndarray:
     """Find proximal/distal point index.
 
     Args:
         pts: Numpy array of points of shape (instances, point, 2).
-        proximal: Boolean value, where true is proximal (default), false is distal.
+        proximal: Boolean value, where True is proximal (default), False is distal.
 
     Returns:
         An array of shape (instances,) of proximal or distal point index.
@@ -25,7 +27,7 @@ def get_pt_ind(pts: np.ndarray, proximal=True) -> np.ndarray:
     return pt_ind
 
 
-def get_primary_pts(plant, frame):
+def get_primary_pts(plant: Series, frame: int):
     """Get primary root points.
 
     Args:
@@ -33,7 +35,8 @@ def get_primary_pts(plant, frame):
         frame: frame index
 
     Return:
-        An array of primary root points in shape (1, point, 2).
+        An array of primary root points of shape (1, n_points, 2).
+        If more than one primary root is present, the longest will be used.
     """
     # get the primary root points, if >1 primary roots, return the longest primary root
     pts_pr = plant.get_primary_points(frame_idx=frame)
@@ -42,11 +45,11 @@ def get_primary_pts(plant, frame):
     return pts_pr
 
 
-def get_lateral_pts(plant, frame):
+def get_lateral_pts(plant: Series, frame: int) -> np.ndarray:
     """Get lateral root points.
 
     Args:
-        plant: plant series name
+        plant: Series object representing a plant image series.
         frame: frame index
 
     Return:
@@ -56,36 +59,47 @@ def get_lateral_pts(plant, frame):
     return pts_lr
 
 
-def get_all_pts(plant, frame, rice):
+def get_all_pts(
+    plant: Series, frame: int, lateral_only: bool = False
+) -> List[np.ndarray]:
     """Get all points within a frame.
 
     Args:
-        plant: plant series name
+        plant: Series object representing a plant image series.
         frame: frame index
         rice: boolean value, where True is rice frame
+        lateral_only: If False (the default), returns primary and lateral points
+        combined. If True, only lateral root points will be returned. This is useful for
+        monocot species such as rice.
 
     Return:
-        an array of all points in shape (instance, point, 2)
+        A list of numpy arrays containing sets of points of shape
+        (n_instances, n_points, 2).
     """
     # get primary and lateral root points
     pts_pr = get_primary_pts(plant, frame).tolist()
     pts_lr = get_lateral_pts(plant, frame).tolist()
 
-    pts_all = pts_lr if rice else pts_pr + pts_lr
+    pts_all = pts_lr if lateral_only else pts_pr + pts_lr
 
     return pts_all
 
 
-def get_all_pts_array(plant, frame, rice):
-    """Get all points within a frame.
+def get_all_pts_array(
+    plant: Series, frame: int, lateral_only: bool = False
+) -> np.ndarray:
+    """Get all points within a frame as a flat array of coordinates.
 
     Args:
         plant: plant series name
         frame: frame index
-        rice: boolean value, where True is rice frame
+        lateral_only: If False (the default), returns primary and lateral points
+        combined. If True, only lateral root points will be returned. This is useful for
+        monocot species such as rice.
 
     Return:
-        an array of all points in shape (instance, point, 2)
+        An array of all points (primary and optionally lateral) as an array of shape 
+        (n_points, 2).
     """
     # get primary and lateral root points
     pts_pr = get_primary_pts(plant, frame)
@@ -93,7 +107,7 @@ def get_all_pts_array(plant, frame, rice):
 
     pts_all_array = (
         pts_lr.reshape(-1, 2)
-        if rice
+        if lateral_only
         else np.concatenate((pts_pr.reshape(-1, 2), pts_lr.reshape(-1, 2)), axis=0)
     )
 

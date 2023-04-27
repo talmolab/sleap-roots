@@ -73,14 +73,13 @@ def get_base_tip_dist(pts: np.ndarray) -> np.ndarray:
 
 
 def get_grav_index(pts: np.ndarray):
-    """Get gravity index based on primary_length_max and primary_base_tip_dist.
+    """Get gravitropism index based on primary_length_max and primary_base_tip_dist.
 
     Args:
         pts: primary root landmarks as array of shape (1, node, 2)
 
     Returns:
         Scalar of primary root gravity index.
-
     """
     # get primary root length, if predicted >1 primary roots, use the longest one
     primary_length = get_root_lengths(pts)
@@ -88,10 +87,12 @@ def get_grav_index(pts: np.ndarray):
 
     # get the distance between base and tip in y axis
     primary_base_tip_dist = get_base_tip_dist(pts)
-    # calculate gravity index
-    grav_index = (
-        np.nanmax(primary_length_max) - np.nanmax(primary_base_tip_dist)
-    ) / np.nanmax(primary_length_max)
+
+    # calculate gravitropism index
+    pl_max = np.nanmax(primary_length_max)
+    if pl_max == 0:
+        return np.nan
+    grav_index = pl_max - np.nanmax(primary_base_tip_dist) / pl_max
     return grav_index
 
 
@@ -102,7 +103,7 @@ def get_lateral_count(pts: np.ndarray):
         pts: lateral root landmarks as array of shape (instance, node, 2)
 
     Return:
-        scalar of number of lateral roots.
+        Scalar of number of lateral roots.
     """
     lateral_count = pts.shape[0]
     return lateral_count
@@ -143,7 +144,7 @@ def get_base_length(pts: np.ndarray):
         pts: lateral root landmarks as array of shape (instance, point, 2)
 
     Return:
-        top and deepest bases distance y-axis.
+        Top and deepest bases distance y-axis.
     """
     base_ys = get_base_ys(pts)
     base_length = np.nanmax(base_ys) - np.nanmin(base_ys)
