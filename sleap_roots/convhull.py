@@ -70,7 +70,7 @@ def get_convhull_features(
     )
 
 
-def get_chull_line_lengths(pts: Union[np.ndarray, ConvexHull]):
+def get_chull_line_lengths(pts: Union[np.ndarray, ConvexHull]) -> np.ndarray:
     """Get the convex hull line lengths per frame.
 
     Args:

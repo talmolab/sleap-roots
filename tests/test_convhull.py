@@ -144,7 +144,7 @@ def test_get_chull_line_lengths(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts = get_all_pts_array(plant=plant, frame=0, rice=False)
+    pts = get_all_pts_array(plant=plant, frame=0, lateral_only=False)
     chull_line_lengths = get_chull_line_lengths(pts)
     assert chull_line_lengths.shape[0] == 10
     np.testing.assert_almost_equal(chull_line_lengths[0], 227.553, decimal=3)

@@ -92,7 +92,7 @@ def get_grav_index(pts: np.ndarray):
     pl_max = np.nanmax(primary_length_max)
     if pl_max == 0:
         return np.nan
-    grav_index = pl_max - np.nanmax(primary_base_tip_dist) / pl_max
+    grav_index = (pl_max - np.nanmax(primary_base_tip_dist)) / pl_max
     return grav_index
 
 
@@ -109,7 +109,7 @@ def get_lateral_count(pts: np.ndarray):
     return lateral_count
 
 
-def get_base_xs(pts: np.ndarray):
+def get_base_xs(pts: np.ndarray) -> np.ndarray:
     """Get x coordinations of base points.
 
     Args:
@@ -123,7 +123,7 @@ def get_base_xs(pts: np.ndarray):
     return base_xs
 
 
-def get_base_ys(pts: np.ndarray):
+def get_base_ys(pts: np.ndarray) -> np.ndarray:
     """Get y coordinations of base points.
 
     Args:

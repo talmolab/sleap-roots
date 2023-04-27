@@ -27,7 +27,7 @@ def get_pt_ind(pts: np.ndarray, proximal: bool = True) -> np.ndarray:
     return pt_ind
 
 
-def get_primary_pts(plant: Series, frame: int):
+def get_primary_pts(plant: Series, frame: int) -> np.ndarray:
     """Get primary root points.
 
     Args:
@@ -98,7 +98,7 @@ def get_all_pts_array(
         monocot species such as rice.
 
     Return:
-        An array of all points (primary and optionally lateral) as an array of shape 
+        An array of all points (primary and optionally lateral) as an array of shape
         (n_points, 2).
     """
     # get primary and lateral root points
