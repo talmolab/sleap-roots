@@ -29,19 +29,16 @@ def get_convhull(pts: np.ndarray) -> Optional[ConvexHull]:
 
 def get_convhull_features(
     pts: Union[np.ndarray, ConvexHull]
-) -> Tuple[float, float, float, float, float, float, float]:
+) -> Tuple[float, float, float, float]:
     """Get the convex hull features for the points per frame.
 
     Args:
         pts: Root landmarks as array of shape (..., 2).
 
     Returns:
-        A tuple of 7 convex hull features
+        A tuple of 4 convex hull features
             perimeters, perimeter of the convex hull
             areas, area of the convex hull
-            longest_dists, longest distance between vertices
-            shortest_dists, smallest distance between vertices
-            median_dists, median distance between vertices
             max_widths, maximum width of convex hull
             max_heights, maximum height of convex hull
 
@@ -50,18 +47,12 @@ def get_convhull_features(
     hull = pts if type(pts) == ConvexHull else get_convhull(pts)
 
     if hull is None:
-        return np.full((7,), np.nan)
+        return np.full((4,), np.nan)
 
     # perimeter
     perimeter = hull.area
     # area
     area = hull.volume
-    # longest distance between vertices
-    longest_dist = np.nanmax(pdist(hull.points[hull.vertices], "euclidean"))
-    # smallest distance between vertices
-    shortest_dist = np.nanmin(pdist(hull.points[hull.vertices], "euclidean"))
-    # median distance between vertices
-    median_dist = np.nanmedian(pdist(hull.points[hull.vertices], "euclidean"))
 
     pts = pts.reshape(-1, 2)
     pts = pts[~(np.isnan(pts).any(axis=-1))]
@@ -74,9 +65,27 @@ def get_convhull_features(
     return (
         perimeter,
         area,
-        longest_dist,
-        shortest_dist,
-        median_dist,
         max_width,
         max_height,
     )
+
+
+def get_chull_line_lengths(pts: Union[np.ndarray, ConvexHull]) -> np.ndarray:
+    """Get the convex hull line lengths per frame.
+
+    Args:
+        pts: Root landmarks as array of shape (..., 2) or ConvexHull object.
+
+    Returns:
+        Lengths of lines connecting any two vertices on the convex hull.
+        If the convex hull fitting fails, NaNs are returned.
+    """
+    hull = pts if type(pts) == ConvexHull else get_convhull(pts)
+
+    if hull is None:
+        return np.nan
+
+    # Lengths of lines connecting any two vertices on the convex hull
+    chull_line_lengths = pdist(hull.points[hull.vertices], "euclidean")
+
+    return chull_line_lengths

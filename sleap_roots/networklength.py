@@ -40,7 +40,7 @@ def get_network_width_depth_ratio(pts: np.ndarray) -> float:
         pts: Root landmarks as array of shape (..., 2).
 
     Returns:
-        float of bounding box width to depth ratio of root network.
+        Float of bounding box width to depth ratio of root network.
     """
     # get the bounding box
     bbox = get_bbox(pts)
@@ -59,7 +59,7 @@ def get_network_solidity(pts: np.ndarray) -> float:
         pts: Root landmarks as array of shape (..., 2).
 
     Returns:
-        float of the total network length divided by the network convex area.
+        Float of the total network length divided by the network convex area.
     """
     # get the total network length
     network_length = get_network_length(pts)
@@ -83,7 +83,7 @@ def get_network_distribution(pts: np.ndarray, fraction: float = 2 / 3) -> float:
         fraction: the network length found in the lower fration value of the network.
 
     Returns:
-        float of the root network length in the lower fraction of the plant.
+        Float of the root network length in the lower fraction of the plant.
     """
     # get the bounding box
     bbox = get_bbox(pts)
@@ -133,7 +133,7 @@ def get_network_length(pts: np.ndarray) -> float:
         pts: Root landmarks as array of shape (..., 2).
 
     Returns:
-        float of primary or lateral root network length.
+        Float of primary or lateral root network length.
     """
     if np.sum(get_root_lengths(pts)) > 0:
         length = np.sum(get_root_lengths(pts))
@@ -150,7 +150,7 @@ def get_network_distribution_ratio(pts: np.ndarray, fraction: float = 2 / 3) -> 
         fraction: the network length found in the lower fration value of the network.
 
     Returns:
-        float of ratio of the root network length in the lower fraction of the plant
+        Float of ratio of the root network length in the lower fraction of the plant
         over all root length.
     """
     if np.sum(get_root_lengths(pts)) > 0:
