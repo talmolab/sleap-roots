@@ -31,7 +31,7 @@ def get_primary_pts(plant: Series, frame: int) -> np.ndarray:
     """Get primary root points.
 
     Args:
-        plant: plant series name
+        plant: Series object representing a plant image series.
         frame: frame index
 
     Return:
