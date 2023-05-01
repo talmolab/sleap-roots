@@ -91,7 +91,7 @@ def get_all_pts_array(
     """Get all points within a frame as a flat array of coordinates.
 
     Args:
-        plant: plant series name
+        plant: Series object representing a plant image series.
         frame: frame index
         lateral_only: If False (the default), returns primary and lateral points
         combined. If True, only lateral root points will be returned. This is useful for
