@@ -37,6 +37,17 @@ def get_traits_value_frame(
     pts_all_array: np.ndarray,
     pts_all_list: list,
 ) -> dict:
+    """Get SLEAP traits per frame based on graph.
+
+    Args:
+        primary_pts: primary points
+        lateral_pts: lateral points
+        pts_all_array: all points in array format
+        pts_all_list: all points in list format
+
+    Return:
+        A dictionary with all traits.
+    """
     trait_map = {
         # get_bases(pts: np.ndarray) -> np.ndarray
         "primary_base_pt": (get_bases, [primary_pts]),

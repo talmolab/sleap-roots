@@ -4,6 +4,14 @@ import networkx as nx
 
 
 def get_traits_graph():
+    """Get traits graph using networkx.
+
+    Args:
+        None
+
+    Return:
+        Destination nodes.
+    """
     G = nx.DiGraph()
     edge_list = [
         ("pts", "primary_pts"),

@@ -34,7 +34,7 @@ def get_scanline_intersections(
         intersection_line = []
         for j in range(len(points)):
             # filter out nan nodes
-            pts_j = points[j][~np.isnan(points[j]).any(axis=1)]
+            pts_j = np.array(points[j])[~np.isnan(points[j]).any(axis=1)]
             if pts_j.shape[0] > 1:
                 if line.intersects(LineString(pts_j)):
                     intersection_root = line.intersection(LineString(pts_j))
