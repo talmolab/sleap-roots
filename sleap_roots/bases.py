@@ -151,6 +151,70 @@ def get_base_length(pts: np.ndarray):
     return base_length
 
 
+def get_base_ct_density(primary_pts, lateral_pts):
+    """Get number of base points to maximum primary root length.
+
+    Args:
+        primary_pts: primary root points
+        lateral_pts: lateral root points
+
+    Return:
+        Scalar of base count density.
+    """
+    # get number of base points of lateral roots
+    _base_pts = get_bases(lateral_pts)
+    base_ct = len(_base_pts[~np.isnan(_base_pts[:, 0])])
+    # get primary root length
+    lengths_primary = get_root_lengths(primary_pts)
+    base_ct_density = base_ct / np.nanmax(lengths_primary)
+    return base_ct_density
+
+
+def get_primary_depth(primary_pts):
+    """Get primary root tip depth.
+
+    Args:
+        primary_pts: primary root points.
+
+    Return:
+        Scalar of primary root tip depth.
+    """
+    primary_depth = np.nanmax(primary_pts[:, :, 1])
+    return primary_depth
+
+
+def get_base_length_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray):
+    """Get ratio of top-deep base length to primary root length.
+
+    Args:
+        primary_pts: primary root points.
+        lateral_pts: lateral root points.
+
+    Return:
+        Scalar of base length ratio.
+    """
+    base_length = get_base_length(lateral_pts)
+    primary_length = get_root_lengths(primary_pts)
+    base_length_ratio = base_length / primary_length
+    return base_length_ratio
+
+
+def get_base_median_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray):
+    """Get ratio of median value in all base points to tip of primary root in y axis.
+
+    Args:
+        primary_pts: primary root points.
+        lateral_pts: lateral root points.
+
+    Return:
+        Scalar of base median ratio.
+    """
+    _base_pts = get_bases(lateral_pts)
+    pr_tip_depth = np.nanmax(primary_pts[:, :, 1])
+    base_median_ratio = np.nanmedian(_base_pts[:, 1]) / pr_tip_depth
+    return base_median_ratio
+
+
 def get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance):
     """Return estimation of stem width using bases of lateral roots.
 

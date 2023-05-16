@@ -56,4 +56,4 @@ def test_get_traits_value_frame(primary_pts, lateral_pts):
     pts_all_list = primary_pts if rice else primary_pts.tolist() + lateral_pts.tolist()
 
     data = get_traits_value_frame(primary_pts, lateral_pts, pts_all_array, pts_all_list)
-    assert len(data) == 30
+    assert len(data) == 44

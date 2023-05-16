@@ -1,8 +1,11 @@
 import pytest
 import numpy as np
 from sleap_roots import Series
+from sleap_roots.points import get_all_pts
 from sleap_roots.scanline import (
     get_scanline_intersections,
+    get_scanline_first_ind,
+    get_scanline_last_ind,
     count_scanline_intersections,
 )
 
@@ -156,3 +159,29 @@ def test_count_scanline_intersections_3roots_nan(pts_3roots_with_nan):
     n_inter = count_scanline_intersections(pts, depth, width, n_line)
     assert len(n_inter) == 50
     np.testing.assert_equal(n_inter[14], 3)
+
+
+# test get_scanline_first_ind with canola
+def test_get_scanline_first_ind(canola_h5):
+    plant = Series.load(
+        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
+    )
+    pts = get_all_pts(plant=plant, frame=0, lateral_only=False)
+    depth = 1080
+    width = 2048
+    n_line = 50
+    scanline_first_ind = get_scanline_first_ind(pts, depth, width, n_line)
+    np.testing.assert_equal(scanline_first_ind, 6)
+
+
+# test get_scanline_last_ind with canola
+def test_get_scanline_last_ind(canola_h5):
+    plant = Series.load(
+        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
+    )
+    pts = get_all_pts(plant=plant, frame=0, lateral_only=False)
+    depth = 1080
+    width = 2048
+    n_line = 50
+    scanline_last_ind = get_scanline_last_ind(pts, depth, width, n_line)
+    np.testing.assert_equal(scanline_last_ind, 43)

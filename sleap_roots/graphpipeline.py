@@ -2,33 +2,50 @@
 
 import numpy as np
 from sleap_roots.traitsgraph import get_traits_graph
-from sleap_roots.bases import get_bases, get_root_pair_widths_projections
-from sleap_roots.bases import get_lateral_count
-from sleap_roots.bases import get_bases
-from sleap_roots.bases import get_base_ys
-from sleap_roots.bases import get_base_xs
-from sleap_roots.bases import get_base_tip_dist
-from sleap_roots.angle import get_root_angle  # get_node_ind,
-from sleap_roots.bases import get_root_lengths
-from sleap_roots.bases import get_base_length
-from sleap_roots.bases import get_grav_index
-from sleap_roots.bases import get_root_lengths_max
-from sleap_roots.tips import get_tips
-from sleap_roots.tips import get_tip_ys
-from sleap_roots.tips import get_tip_xs
-from sleap_roots.ellipse import fit_ellipse
-from sleap_roots.networklength import get_bbox
-from sleap_roots.networklength import get_network_solidity
+from sleap_roots.angle import get_root_angle
+from sleap_roots.bases import (
+    get_bases,
+    get_base_ct_density,
+    get_base_length,
+    get_base_length_ratio,
+    get_base_median_ratio,
+    get_base_tip_dist,
+    get_base_xs,
+    get_base_ys,
+    get_grav_index,
+    get_lateral_count,
+    get_primary_depth,
+    get_root_lengths,
+    get_root_pair_widths_projections,
+)
+from sleap_roots.convhull import (
+    get_chull_area,
+    get_chull_line_lengths,
+    get_chull_max_width,
+    get_chull_max_height,
+    get_chull_perimeter,
+    get_convhull_features,
+)
+from sleap_roots.ellipse import (
+    fit_ellipse,
+    get_ellipse_a,
+    get_ellipse_b,
+    get_ellipse_ratio,
+)
 from sleap_roots.networklength import (
+    get_bbox,
     get_network_distribution_ratio,
     get_network_distribution,
+    get_network_solidity,
+    get_network_width_depth_ratio,
 )
-from sleap_roots.convhull import get_convhull_features
-from sleap_roots.convhull import get_chull_line_lengths
 from sleap_roots.scanline import (
     count_scanline_intersections,
+    get_scanline_first_ind,
     get_scanline_intersections,
+    get_scanline_last_ind,
 )
+from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys
 
 
 def get_traits_value_frame(
@@ -89,6 +106,8 @@ def get_traits_value_frame(
         # or just based on primary_base_pt, but the primary_base_pt trait must generate before
         # "primary_base_pt_y": (get_pt_ys, [data["primary_base_pt"]]),
         "primary_base_pt_y": (get_base_ys, [primary_pts]),
+        # get_base_ct_density(primary_pts, lateral_pts)
+        "base_ct_density": (get_base_ct_density, [primary_pts, lateral_pts]),
         # get_network_solidity(pts: np.ndarray) -> float
         "network_solidity": (get_network_solidity, [pts_all_array]),
         # get_network_distribution_ratio(pts: np.ndarray, fraction: float = 2 / 3) -> float
@@ -97,6 +116,20 @@ def get_traits_value_frame(
         "network_length_lower": (get_network_distribution, [pts_all_array, 2 / 3]),
         # get_tip_ys(pts: np.ndarray) -> np.ndarray
         "primary_tip_pt_y": (get_tip_ys, [primary_pts]),
+        # get_ellipse_a(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
+        "ellipse_a": (get_ellipse_a, [pts_all_array]),
+        # get_ellipse_b(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
+        "ellipse_b": (get_ellipse_b, [pts_all_array]),
+        # get_network_width_depth_ratio(pts: np.ndarray) -> float
+        "network_width_depth_ratio": (get_network_width_depth_ratio, [pts_all_array]),
+        # get_chull_perimeter(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
+        "chull_perimeter": (get_chull_perimeter, [pts_all_array]),
+        # get_chull_area(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
+        "chull_area": (get_chull_area, [pts_all_array]),
+        # get_chull_max_width(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
+        "chull_max_width": (get_chull_max_width, [pts_all_array]),
+        # get_chull_max_height(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
+        "chull_max_height": (get_chull_max_height, [pts_all_array]),
         # get_chull_line_lengths(pts: Union[np.ndarray, ConvexHull]) -> np.ndarray
         "chull_line_lengths": (get_chull_line_lengths, [pts_all_array]),
         # count_scanline_intersections(pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50) -> np.ndarray
@@ -114,10 +147,22 @@ def get_traits_value_frame(
         "lateral_tip_ys": (get_tip_ys, [lateral_pts]),
         # get_base_tip_dist(pts: np.ndarray) -> np.ndarray
         "primary_base_tip_dist": (get_base_tip_dist, [primary_pts]),
+        # get_primary_depth(primary_pts)
+        "primary_depth": (get_primary_depth, [primary_pts]),
+        # get_base_median_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray)
+        "base_median_ratio": (get_base_median_ratio, [primary_pts, lateral_pts]),
+        # get_ellipse_ratio(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
+        "ellipse_ratio": (get_ellipse_ratio, [pts_all_array]),
+        # get_scanline_last_ind(pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50)
+        "scanline_last_ind": (get_scanline_last_ind, [pts_all_list]),
+        # get_scanline_first_ind(pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50)
+        "scanline_first_ind": (get_scanline_first_ind, [pts_all_list]),
         # get_base_length(pts: np.ndarray)
         "base_length": (get_base_length, [lateral_pts]),
         # get_grav_index(pts: np.ndarray)
         "grav_index": (get_grav_index, [primary_pts]),
+        # get_base_length_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray)
+        "base_length_ratio": (get_base_length_ratio, [primary_pts, lateral_pts]),
     }
 
     dts = get_traits_graph()
@@ -125,18 +170,8 @@ def get_traits_value_frame(
     data = {}
     for trait_name in dts:
         print("trait name:", trait_name)
-        # outputs = ("primary_base_pt",)
         outputs = (trait_name,)
         fn, inputs = trait_map[trait_name]
         fn_outputs = fn(*[input_trait for input_trait in inputs])
-        # if type(fn_outputs) == tuple:
-        #     fn_outputs = np.array(fn_outputs).reshape((1, -1))
-        # if type(fn_outputs) == np.ndarray and fn_outputs.shape == (fn_outputs.size,):
-        #     fn_outputs = fn_outputs.reshape((1,-1))
-        # if type(fn_outputs) == int:
-        #     fn_outputs = np.array(fn_outputs).reshape((1,-1))
-        # fn_outputs = fn(*[data[input_trait] for input_trait in inputs]) works for only input of points
-        # for k, v in zip(outputs, fn_outputs):
-        #     data[k] = v
         data[trait_name] = fn_outputs
     return data

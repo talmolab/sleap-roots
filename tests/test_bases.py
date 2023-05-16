@@ -1,5 +1,6 @@
 from sleap_roots.bases import (
     get_bases,
+    get_base_ct_density,
     get_base_tip_dist,
     get_grav_index,
     get_lateral_count,
@@ -8,6 +9,8 @@ from sleap_roots.bases import (
     get_base_xs,
     get_base_ys,
     get_base_length,
+    get_base_length_ratio,
+    get_primary_depth,
     get_root_pair_widths_projections,
 )
 from sleap_roots.points import get_lateral_pts
@@ -93,6 +96,44 @@ def pts_not_contiguous():
                 [5, 6],
                 [np.nan, np.nan],
                 [7, 8],
+            ],
+        ]
+    )
+
+
+@pytest.fixture
+def primary_pts():
+    return np.array(
+        [
+            [
+                [852.17755127, 216.95648193],
+                [850.17755127, 472.83520508],
+                [844.45300293, 472.83520508],
+                [837.03405762, 588.5123291],
+                [828.87963867, 692.72009277],
+                [816.71142578, 808.12585449],
+            ]
+        ]
+    )
+
+
+@pytest.fixture
+def lateral_pts():
+    return np.array(
+        [
+            [
+                [852.17755127, 216.95648193],
+                [np.nan, np.nan],
+                [837.03405762, 588.5123291],
+                [828.87963867, 692.72009277],
+                [816.71142578, 808.12585449],
+            ],
+            [
+                [852.17755127, 216.95648193],
+                [844.45300293, 472.83520508],
+                [837.03405762, 588.5123291],
+                [828.87963867, 692.72009277],
+                [816.71142578, 808.12585449],
             ],
         ]
     )
@@ -313,6 +354,53 @@ def test_get_base_length_standard(pts_standard):
 def test_get_base_length_no_roots(pts_no_roots):
     base_length = get_base_length(pts_no_roots)
     np.testing.assert_almost_equal(base_length, np.nan, decimal=3)
+
+
+# test get_base_ct_density function with defined primary and lateral points
+def test_get_base_ct_density(primary_pts, lateral_pts):
+    base_ct_density = get_base_ct_density(primary_pts, lateral_pts)
+    np.testing.assert_almost_equal(base_ct_density, 0.00334, decimal=5)
+
+
+# test get_base_ct_density function with canola example
+def test_get_base_ct_density_canola(canola_h5):
+    series = Series.load(
+        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
+    )
+    primary, lateral = series[0]
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
+    base_ct_density = get_base_ct_density(primary_pts, lateral_pts)
+    np.testing.assert_almost_equal(base_ct_density, 0.004119, decimal=5)
+
+
+# test get_primary_depth function with defined primary_pts
+def test_get_primary_depth(primary_pts):
+    primary_depth = get_primary_depth(primary_pts)
+    np.testing.assert_almost_equal(primary_depth, 808.12585449, decimal=3)
+
+
+# test get_primary_depth function with canola
+def test_get_primary_depth(canola_h5):
+    series = Series.load(
+        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
+    )
+    primary, lateral = series[0]
+    primary_pts = primary.numpy()
+    primary_depth = get_primary_depth(primary_pts)
+    np.testing.assert_almost_equal(primary_depth, 1020.9813842773438, decimal=3)
+
+
+# test get_base_length_ratio with canola
+def test_get_base_length_ratio(canola_h5):
+    series = Series.load(
+        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
+    )
+    primary, lateral = series[0]
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
+    base_length_ratio = get_base_length_ratio(primary_pts, lateral_pts)
+    np.testing.assert_almost_equal(base_length_ratio, 0.086, decimal=3)
 
 
 def test_stem_width(canola_h5):
