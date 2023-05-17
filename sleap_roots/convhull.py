@@ -70,6 +70,100 @@ def get_convhull_features(
     )
 
 
+def get_chull_perimeter(
+    pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]]
+):
+    """Get convex hull perimeter.
+
+    Args:
+        pts: landmark points, or convex hull, or tuple of convex hull results
+
+    Return:
+        Scalar of convex hull perimeter.
+    """
+    if type(pts) == tuple:
+        return pts[0]
+    elif type(pts) == ConvexHull:
+        hull = pts
+    else:
+        hull = get_convhull(pts)
+    if hull is None:
+        return np.nan
+    return hull.area
+
+
+def get_chull_area(
+    pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]]
+):
+    """Get convex hull area.
+
+    Args:
+        pts: landmark points, or convex hull, or tuple of convex hull results
+
+    Return:
+        Scalar of convex hull area.
+    """
+    if type(pts) == tuple:
+        return pts[1]
+    elif type(pts) == ConvexHull:
+        hull = pts
+    else:
+        hull = get_convhull(pts)
+    if hull is None:
+        return np.nan
+    return hull.volume
+
+
+def get_chull_max_width(
+    pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]]
+):
+    """Get maximum width of convex hull.
+
+    Args:
+        pts: landmark points, or convex hull, or tuple of convex hull results
+
+    Return:
+        Scalar of convex hull maximum width.
+    """
+    if type(pts) == tuple:
+        return pts[2]
+    elif type(pts) == ConvexHull:
+        hull = pts
+    else:
+        hull = get_convhull(pts)
+    if hull is None:
+        return np.nan
+    pts = pts.reshape(-1, 2)
+    pts = pts[~(np.isnan(pts).any(axis=-1))]
+    max_width = np.nanmax(pts[:, 0]) - np.nanmin(pts[:, 0])
+    return max_width
+
+
+def get_chull_max_height(
+    pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]]
+):
+    """Get maximum height of convex hull.
+
+    Args:
+        pts: landmark points, or convex hull, or tuple of convex hull results
+
+    Return:
+        Scalar of convex hull maximum height.
+    """
+    if type(pts) == tuple:
+        return pts[3]
+    elif type(pts) == ConvexHull:
+        hull = pts
+    else:
+        hull = get_convhull(pts)
+    if hull is None:
+        return np.nan
+    pts = pts.reshape(-1, 2)
+    pts = pts[~(np.isnan(pts).any(axis=-1))]
+    max_height = np.nanmax(pts[:, 1]) - np.nanmin(pts[:, 1])
+    return max_height
+
+
 def get_chull_line_lengths(pts: Union[np.ndarray, ConvexHull]) -> np.ndarray:
     """Get the convex hull line lengths per frame.
 
