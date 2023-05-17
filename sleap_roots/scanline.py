@@ -34,7 +34,7 @@ def get_scanline_intersections(
         intersection_line = []
         for j in range(len(points)):
             # filter out nan nodes
-            pts_j = points[j][~np.isnan(points[j]).any(axis=1)]
+            pts_j = np.array(points[j])[~np.isnan(points[j]).any(axis=1)]
             if pts_j.shape[0] > 1:
                 if line.intersects(LineString(pts_j)):
                     intersection_root = line.intersection(LineString(pts_j))
@@ -67,3 +67,41 @@ def count_scanline_intersections(
         n_inter.append(num_inter)
     Ninter = np.array(n_inter)
     return Ninter
+
+
+def get_scanline_first_ind(
+    pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50
+):
+    """Get the index of count_scanline_interaction for the first interaction.
+
+    Args:
+        pts: Numpy array of points of shape (instances, nodes, 2).
+        depth: the depth of cylinder, or number of rows of the image.
+        width: the width of cylinder, or number of columns of the image.
+        n_line: number of scan lines, np.nan for no interaction.
+
+    Return:
+        Scalar of count_scanline_interaction index for the first interaction.
+    """
+    count_scanline_interaction = count_scanline_intersections(pts, depth, width, n_line)
+    scanline_first_ind = np.where((count_scanline_interaction > 0))[0][0]
+    return scanline_first_ind
+
+
+def get_scanline_last_ind(
+    pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50
+):
+    """Get the index of count_scanline_interaction for the last interaction.
+
+    Args:
+        pts: Numpy array of points of shape (instances, nodes, 2).
+        depth: the depth of cylinder, or number of rows of the image.
+        width: the width of cylinder, or number of columns of the image.
+        n_line: number of scan lines, np.nan for no interaction.
+
+    Return:
+        Scalar of count_scanline_interaction index for the last interaction.
+    """
+    count_scanline_interaction = count_scanline_intersections(pts, depth, width, n_line)
+    scanline_last_ind = np.where((count_scanline_interaction > 0))[0][-1]
+    return scanline_last_ind
