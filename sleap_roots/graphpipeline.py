@@ -1,6 +1,7 @@
 """Extract traits based on the networkx graph."""
 
 import numpy as np
+import pandas as pd
 from sleap_roots.traitsgraph import get_traits_graph
 from sleap_roots.angle import get_root_angle
 from sleap_roots.bases import (
@@ -39,12 +40,15 @@ from sleap_roots.networklength import (
     get_network_solidity,
     get_network_width_depth_ratio,
 )
+from sleap_roots.points import get_all_pts_array, get_all_pts
 from sleap_roots.scanline import (
     count_scanline_intersections,
     get_scanline_first_ind,
     get_scanline_intersections,
     get_scanline_last_ind,
 )
+from sleap_roots.series import Series
+from sleap_roots.summary import get_summary
 from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys
 
 
@@ -53,7 +57,7 @@ def get_traits_value_frame(
     lateral_pts: np.ndarray,
     pts_all_array: np.ndarray,
     pts_all_list: list,
-) -> dict:
+) -> pd.DataFrame:
     """Get SLEAP traits per frame based on graph.
 
     Args:
@@ -63,7 +67,7 @@ def get_traits_value_frame(
         pts_all_list: all points in list format
 
     Return:
-        A dictionary with all traits.
+        A DataFrame with all traits per frame.
     """
     trait_map = {
         # get_bases(pts: np.ndarray) -> np.ndarray
@@ -173,5 +177,269 @@ def get_traits_value_frame(
         outputs = (trait_name,)
         fn, inputs = trait_map[trait_name]
         fn_outputs = fn(*[input_trait for input_trait in inputs])
+        if type(fn_outputs) == tuple:
+            fn_outputs = np.array(fn_outputs).reshape((1, -1))
+        if type(fn_outputs) == np.ndarray and fn_outputs.shape == (fn_outputs.size,):
+            fn_outputs = fn_outputs.reshape((1, -1))
         data[trait_name] = fn_outputs
-    return data
+    data_df = pd.DataFrame.from_dict(data, orient="index").transpose()
+    return data_df
+
+
+def get_traits_value_plant(
+    h5,
+    lateral_only: bool = False,
+    write_csv: bool = False,
+) -> pd.DataFrame:
+    """Get SLEAP traits per plant based on graph.
+
+    Args:
+        h5: h5 file, plant image series.
+        lateral_only: Boolean value, where false is rice (default), true is dicot.
+        write_csv: Boolean value, where true is write csv file.
+
+    Return:
+        A DataFrame with all traits per plant.
+    """
+    if lateral_only:
+        plant = Series.load(
+            h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
+        )
+    else:
+        plant = Series.load(
+            h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
+        )
+    plant_name = plant.series_name
+    # get nymber of frames per plant
+    n_frame = len(plant)
+
+    data_plant = pd.DataFrame()
+    # get traits for each frames in a row
+    for frame in range(n_frame):
+        primary, lateral = plant[frame]
+        lateral_pts = lateral.numpy()
+        pts_all_array = get_all_pts_array(plant=plant, frame=frame, lateral_only=False)
+        pts_all_array = pts_all_array.reshape(
+            (1, pts_all_array.shape[0], pts_all_array.shape[1])
+        )
+        pts_all_list = get_all_pts(plant=plant, frame=frame, lateral_only=False)
+
+        # get longest primary root
+        primary_pts = primary.numpy()
+        max_length_idx = np.nanargmax(get_root_lengths(primary_pts))
+        long_primary_pts = primary_pts[max_length_idx]
+        primary_pts = np.reshape(
+            long_primary_pts,
+            (1, long_primary_pts.shape[0], long_primary_pts.shape[1]),
+        )
+
+        data = get_traits_value_frame(
+            primary_pts, lateral_pts, pts_all_array, pts_all_list
+        )
+        data["plant_name"] = plant_name
+        data["frame_idx"] = frame
+        data_plant = pd.concat([data_plant, data], ignore_index=True)
+
+    # reorganize the column position
+    column_names = data_plant.columns.tolist()
+    column_names = [column_names[-2]] + [column_names[-1]] + column_names[:-2]
+    data_plant = data_plant[column_names]
+
+    if write_csv:
+        data_plant.to_csv("plant_original_traits.csv", index=False)
+    return data_plant
+
+
+def get_traits_value_plant_summary(
+    h5,
+    lateral_only: bool = False,
+    write_csv: bool = False,
+) -> pd.DataFrame:
+    """Get summarized SLEAP traits per plant based on graph.
+
+    Args:
+        h5: h5 file, plant image series.
+        lateral_only: Boolean value, where false is rice (default), true is dicot.
+        write_csv: Boolean value, where true is write csv file.
+
+    Return:
+        A DataFrame with all summarized traits per plant.
+    """
+    lateral_only = False
+    write_csv = False
+    data_plant = get_traits_value_plant(h5, lateral_only, write_csv)
+
+    scalar_traits = [
+        "primary_angle_proximal",
+        "primary_angle_distal",
+        "primary_length",
+        "primary_base_tip_dist",
+        "primary_depth",
+        "lateral_count",
+        "grav_index",
+        "base_length",
+        "base_length_ratio",
+        "primary_tip_pt_y",
+        "base_median_ratio",
+        "base_ct_density",
+        "chull_perimeter",
+        "chull_area",
+        "chull_max_width",
+        "chull_max_height",
+        "ellipse_a",
+        "ellipse_b",
+        "ellipse_ratio",
+        "network_width_depth_ratio",
+        "network_solidity",
+        "network_length_lower",
+        "network_distribution_ratio",
+        "scanline_first_ind",
+        "scanline_last_ind",
+    ]
+
+    non_scalar_traits = [
+        "lateral_angles_proximal",
+        "lateral_angles_distal",
+        "lateral_lengths",
+        "stem_widths",
+        "lateral_base_xs",
+        "lateral_base_ys",
+        "lateral_tip_xs",
+        "lateral_tip_ys",
+        "chull_line_lengths",
+        "scanline_intersection_counts",
+    ]
+
+    # get summarized non-scalar traits per frame
+    data_plant_frame_summary = data_plant[["plant_name", "frame_idx"]]
+
+    for i in range(len(non_scalar_traits)):
+        print(non_scalar_traits[i])
+        trait = data_plant[non_scalar_traits[i]]
+        for j in range(len(trait)):
+            if trait[j].shape[1] > 0:
+                (
+                    trait_min,
+                    trait_max,
+                    trait_mean,
+                    trait_median,
+                    trait_std,
+                    trait_prc5,
+                    trait_prc25,
+                    trait_prc75,
+                    trait_prc95,
+                ) = get_summary(trait[j])
+
+                data_plant_frame_summary.at[
+                    j, non_scalar_traits[i] + "_fmin"
+                ] = trait_min
+                data_plant_frame_summary.at[
+                    j, non_scalar_traits[i] + "_fmax"
+                ] = trait_max
+                data_plant_frame_summary.at[
+                    j, non_scalar_traits[i] + "_fmean"
+                ] = trait_mean
+                data_plant_frame_summary.at[
+                    j, non_scalar_traits[i] + "_fmedian"
+                ] = trait_median
+                data_plant_frame_summary.at[
+                    j, non_scalar_traits[i] + "_fstd"
+                ] = trait_std
+                data_plant_frame_summary.at[
+                    j, non_scalar_traits[i] + "_fprc5"
+                ] = trait_prc5
+                data_plant_frame_summary.at[
+                    j, non_scalar_traits[i] + "_fprc25"
+                ] = trait_prc25
+                data_plant_frame_summary.at[
+                    j, non_scalar_traits[i] + "_fprc75"
+                ] = trait_prc75
+                data_plant_frame_summary.at[
+                    j, non_scalar_traits[i] + "_fprc95"
+                ] = trait_prc95
+            else:
+                data_plant_frame_summary.at[j, non_scalar_traits[i] + "_fmin"] = np.nan
+                data_plant_frame_summary.at[j, non_scalar_traits[i] + "_fmax"] = np.nan
+                data_plant_frame_summary.at[j, non_scalar_traits[i] + "_fmean"] = np.nan
+                data_plant_frame_summary.at[
+                    j, non_scalar_traits[i] + "_fmedian"
+                ] = np.nan
+                data_plant_frame_summary.at[j, non_scalar_traits[i] + "_fstd"] = np.nan
+                data_plant_frame_summary.at[j, non_scalar_traits[i] + "_fprc5"] = np.nan
+                data_plant_frame_summary.at[
+                    j, non_scalar_traits[i] + "_fprc25"
+                ] = np.nan
+                data_plant_frame_summary.at[
+                    j, non_scalar_traits[i] + "_fprc75"
+                ] = np.nan
+                data_plant_frame_summary.at[
+                    j, non_scalar_traits[i] + "_fprc95"
+                ] = np.nan
+
+    # get summarized scalar traits per plant
+    data_plant_summary = pd.DataFrame([{"plant_name": data_plant["plant_name"][0]}])
+    column_names = data_plant.columns.tolist()
+    for i in range(len(scalar_traits)):
+        if scalar_traits[i] in column_names:
+            trait = data_plant[scalar_traits[i]].values
+            (
+                trait_min,
+                trait_max,
+                trait_mean,
+                trait_median,
+                trait_std,
+                trait_prc5,
+                trait_prc25,
+                trait_prc75,
+                trait_prc95,
+            ) = get_summary(trait)
+
+            data_plant_summary[scalar_traits[i] + "_min"] = trait_min
+            data_plant_summary[scalar_traits[i] + "_max"] = trait_max
+            data_plant_summary[scalar_traits[i] + "_mean"] = trait_mean
+            data_plant_summary[scalar_traits[i] + "_median"] = trait_median
+            data_plant_summary[scalar_traits[i] + "_std"] = trait_std
+            data_plant_summary[scalar_traits[i] + "_prc5"] = trait_prc5
+            data_plant_summary[scalar_traits[i] + "_prc25"] = trait_prc25
+            data_plant_summary[scalar_traits[i] + "_prc75"] = trait_prc75
+            data_plant_summary[scalar_traits[i] + "_prc95"] = trait_prc95
+
+    # append the summarized non-scalar traits per plant
+    # non-scalar traits
+    for j in range(len(data_plant_frame_summary.columns) - 2):
+        (
+            trait_min,
+            trait_max,
+            trait_mean,
+            trait_median,
+            trait_std,
+            trait_prc5,
+            trait_prc25,
+            trait_prc75,
+            trait_prc95,
+        ) = get_summary(
+            data_plant_frame_summary.loc[:, data_plant_frame_summary.columns[j + 2]]
+        )
+
+        data_plant_summary[data_plant_frame_summary.columns[j + 2] + "_min"] = trait_min
+        data_plant_summary[data_plant_frame_summary.columns[j + 2] + "_max"] = trait_max
+        data_plant_summary[
+            data_plant_frame_summary.columns[j + 2] + "_mean"
+        ] = trait_mean
+        data_plant_summary[
+            data_plant_frame_summary.columns[j + 2] + "_median"
+        ] = trait_median
+        data_plant_summary[data_plant_frame_summary.columns[j + 2] + "_std"] = trait_std
+        data_plant_summary[
+            data_plant_frame_summary.columns[j + 2] + "_prc5"
+        ] = trait_prc5
+        data_plant_summary[
+            data_plant_frame_summary.columns[j + 2] + "_prc25"
+        ] = trait_prc25
+        data_plant_summary[
+            data_plant_frame_summary.columns[j + 2] + "_prc75"
+        ] = trait_prc75
+        data_plant_summary[
+            data_plant_frame_summary.columns[j + 2] + "_prc95"
+        ] = trait_prc95
+    return data_plant_summary

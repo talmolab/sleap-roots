@@ -239,8 +239,18 @@ def get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance):
     # Must be done with instance of primary_pts with max root length in frame
     max_length_idx = np.nanargmax(get_root_lengths(primary_pts))
 
+    long_primary_pts = primary_pts[max_length_idx]  # reshape needed
+    long_primary_pts_reshape = np.reshape(
+        long_primary_pts,
+        (1, long_primary_pts.shape[0], long_primary_pts.shape[1]),
+    )
+
+    primary_pts_filtered = long_primary_pts_reshape[
+        ~np.isnan(long_primary_pts_reshape).any(axis=2)
+    ]
+
     # Make a line of the primary points
-    primary_line = LineString(primary_pts[max_length_idx])
+    primary_line = LineString(primary_pts_filtered)
 
     # Filter by whether the base node is present.
     has_base = ~np.isnan(lateral_pts[:, 0, 0])

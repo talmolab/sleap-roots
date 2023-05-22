@@ -2,7 +2,7 @@
 
 import numpy as np
 import math
-from shapely import LineString
+from shapely import LineString, Point
 
 
 def get_scanline_intersections(
@@ -38,7 +38,14 @@ def get_scanline_intersections(
             if pts_j.shape[0] > 1:
                 if line.intersects(LineString(pts_j)):
                     intersection_root = line.intersection(LineString(pts_j))
-                    intersection_line.append([intersection_root.x, intersection_root.y])
+                    # Get the coordinates of points within the MultiPoint object
+                    if type(intersection_root) == Point:
+                        intersection_line.append(
+                            [intersection_root.x, intersection_root.y]
+                        )
+                    else:
+                        for point in intersection_root.geoms:
+                            intersection_line.append([point.x, point.y])
         intersection.append(intersection_line)
     return intersection
 
