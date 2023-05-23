@@ -188,7 +188,7 @@ def get_traits_value_frame(
 
     data = {}
     for trait_name in dts:
-        print("trait name:", trait_name)
+        # print("trait name:", trait_name)
         outputs = (trait_name,)
         fn, inputs = trait_map[trait_name]
         fn_outputs = fn(*[input_trait for input_trait in inputs])
@@ -292,8 +292,8 @@ def get_traits_value_plant_summary(
     Return:
         A DataFrame with all summarized traits per plant.
     """
-    lateral_only = False
-    write_csv = False
+    # lateral_only = False
+    # write_csv = False
     data_plant = get_traits_value_plant(h5, lateral_only, write_csv)
 
     scalar_traits = [
@@ -344,6 +344,8 @@ def get_traits_value_plant_summary(
         print(non_scalar_traits[i])
         trait = data_plant[non_scalar_traits[i]]
         for j in range(len(trait)):
+            if type(trait[j]) == np.ndarray and trait[j].shape == (trait[j].size,):
+                trait[j] = trait[j].reshape((1, -1))
             if trait[j].shape[1] > 0:
                 (
                     trait_min,
