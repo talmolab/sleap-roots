@@ -220,7 +220,7 @@ def get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance):
 
     Args:
         lateral_pts: Lateral roots as arrays of shape (n, nodes, 2).
-        primary_pts: Lateral roots as arrays of shape (n, nodes, 2).
+        primary_pts: longest primary root as arrays of shape (n, nodes, 2).
         tolerance: difference in projection norm between the right and left side (~0.02).
 
     Returns:
@@ -236,84 +236,79 @@ def get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance):
         If all the lateral roots are on one side of the primary root, 3 empty arrays of
         shape 0 are returned.
     """
-    # Must be done with instance of primary_pts with max root length in frame
-    max_length_idx = np.nanargmax(get_root_lengths(primary_pts))
+    if np.isnan(primary_pts).all():
+        return []
+    else:
+        primary_pts_filtered = primary_pts[~np.isnan(primary_pts).any(axis=2)]
+        primary_line = LineString(primary_pts_filtered)
 
-    long_primary_pts = primary_pts[max_length_idx]  # reshape needed
-    long_primary_pts_reshape = np.reshape(
-        long_primary_pts,
-        (1, long_primary_pts.shape[0], long_primary_pts.shape[1]),
-    )
+        # Make a line of the primary points
+        primary_line = LineString(primary_pts_filtered)
 
-    primary_pts_filtered = long_primary_pts_reshape[
-        ~np.isnan(long_primary_pts_reshape).any(axis=2)
-    ]
+        # Filter by whether the base node is present.
+        has_base = ~np.isnan(lateral_pts[:, 0, 0])
+        valid_inds = np.argwhere(has_base).squeeze()
+        lateral_pts = lateral_pts[has_base]
 
-    # Make a line of the primary points
-    primary_line = LineString(primary_pts_filtered)
+        # Find roots facing left based on whether the base x-coord
+        # is larger than the tip x-coord.
+        is_left = lateral_pts[:, 0, 0] > np.nanmin(lateral_pts[:, 1:, 0], axis=1)
 
-    # Filter by whether the base node is present.
-    has_base = ~np.isnan(lateral_pts[:, 0, 0])
-    valid_inds = np.argwhere(has_base).squeeze()
-    lateral_pts = lateral_pts[has_base]
+        # Edge Case: Only found roots on one side.
+        if is_left.all() or (~is_left).all():
+            return np.array([]), np.array([]), np.array([])
 
-    # Find roots facing left based on whether the base x-coord
-    # is larger than the tip x-coord.
-    is_left = lateral_pts[:, 0, 0] > np.nanmin(lateral_pts[:, 1:, 0], axis=1)
+        # Get left and right base points.
+        left_bases, right_bases = lateral_pts[is_left, 0], lateral_pts[~is_left, 0]
 
-    # Edge Case: Only found roots on one side.
-    if is_left.all() or (~is_left).all():
-        return np.array([]), np.array([]), np.array([])
+        # Find the nearest point to each right lateral base on the primary root line
+        nearest_primary_right = [
+            nearest_points(primary_line, Point(right_base))[0]
+            for right_base in right_bases
+        ]
 
-    # Get left and right base points.
-    left_bases, right_bases = lateral_pts[is_left, 0], lateral_pts[~is_left, 0]
+        # Find the nearest point to each left lateral base on the primary root line
+        nearest_primary_left = [
+            nearest_points(primary_line, Point(left_base))[0]
+            for left_base in left_bases
+        ]
 
-    # Find the nearest point to each right lateral base on the primary root line
-    nearest_primary_right = [
-        nearest_points(primary_line, Point(right_base))[0] for right_base in right_bases
-    ]
+        # Returns the distance along the primary line of point in nearest_primary_right, normalized to the length of the object.
+        nearest_primary_norm_right = np.array(
+            [primary_line.project(pt, normalized=True) for pt in nearest_primary_right]
+        )
+        # Returns the distance along the primary line of point in nearest_primary_left, normalized to the length of the object.
+        nearest_primary_norm_left = np.array(
+            [primary_line.project(pt, normalized=True) for pt in nearest_primary_left]
+        )
 
-    # Find the nearest point to each left lateral base on the primary root line
-    nearest_primary_left = [
-        nearest_points(primary_line, Point(left_base))[0] for left_base in left_bases
-    ]
+        # get all possible differences in projections from all base pairs
+        projection_diffs = np.abs(
+            nearest_primary_norm_left.reshape(-1, 1)
+            - nearest_primary_norm_right.reshape(1, -1)
+        )
 
-    # Returns the distance along the primary line of point in nearest_primary_right, normalized to the length of the object.
-    nearest_primary_norm_right = np.array(
-        [primary_line.project(pt, normalized=True) for pt in nearest_primary_right]
-    )
-    # Returns the distance along the primary line of point in nearest_primary_left, normalized to the length of the object.
-    nearest_primary_norm_left = np.array(
-        [primary_line.project(pt, normalized=True) for pt in nearest_primary_left]
-    )
+        # shape is [# of valid base pairs, 2 [left right]]
+        indices = np.argwhere(projection_diffs <= tolerance)
 
-    # get all possible differences in projections from all base pairs
-    projection_diffs = np.abs(
-        nearest_primary_norm_left.reshape(-1, 1)
-        - nearest_primary_norm_right.reshape(1, -1)
-    )
+        left_inds = indices[:, 0]
+        right_inds = indices[:, 1]
 
-    # shape is [# of valid base pairs, 2 [left right]]
-    indices = np.argwhere(projection_diffs <= tolerance)
+        # Find pairwise distances. (shape is (# of left bases, # of right bases))
+        dists = np.linalg.norm(
+            np.expand_dims(left_bases, axis=1) - np.expand_dims(right_bases, axis=0),
+            axis=-1,
+        )
 
-    left_inds = indices[:, 0]
-    right_inds = indices[:, 1]
+        # Pull out match distances.
+        match_dists = np.array([dists[l, r] for l, r in zip(left_inds, right_inds)])
 
-    # Find pairwise distances. (shape is (# of left bases, # of right bases))
-    dists = np.linalg.norm(
-        np.expand_dims(left_bases, axis=1) - np.expand_dims(right_bases, axis=0),
-        axis=-1,
-    )
+        # Convert matches to indices before splitting by side.
+        left_inds = np.argwhere(is_left).reshape(-1)[left_inds]
+        right_inds = np.argwhere(~is_left).reshape(-1)[right_inds]
 
-    # Pull out match distances.
-    match_dists = np.array([dists[l, r] for l, r in zip(left_inds, right_inds)])
-
-    # Convert matches to indices before splitting by side.
-    left_inds = np.argwhere(is_left).reshape(-1)[left_inds]
-    right_inds = np.argwhere(~is_left).reshape(-1)[right_inds]
-
-    # Convert matches to indices before filtering.
-    left_inds = valid_inds[left_inds]
-    right_inds = valid_inds[right_inds]
+        # Convert matches to indices before filtering.
+        left_inds = valid_inds[left_inds]
+        right_inds = valid_inds[right_inds]
 
     return match_dists, left_inds, right_inds

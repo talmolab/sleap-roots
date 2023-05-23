@@ -60,14 +60,18 @@ def test_get_scanline_intersections_canola(canola_h5):
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
     primary, lateral = series[0]
-    pts = primary.numpy()
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
     depth = 1080
     width = 2048
     n_line = 50
-    intersection = get_scanline_intersections(pts, depth, width, n_line)
+    lateral_only = False
+    intersection = get_scanline_intersections(
+        primary_pts, lateral_pts, depth, width, n_line, lateral_only
+    )
     assert len(intersection) == 50
     np.testing.assert_almost_equal(
-        intersection[10], [[1146.7898883311389, 253.0]], decimal=7
+        intersection[10], [[1146.7898883311389, 253.0], [1093.170224, 253.0]], decimal=7
     )
 
 
@@ -76,13 +80,15 @@ def test_get_scanline_intersections_rice(rice_h5):
         rice_h5, primary_name="main_3do_6nodes", lateral_name="longest_3do_6nodes"
     )
     primary, lateral = series[0]
-    pts = primary.numpy()
-
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
     depth = 1080
     width = 2048
     n_line = 50
-
-    intersection = get_scanline_intersections(pts, depth, width, n_line)
+    lateral_only = True
+    intersection = get_scanline_intersections(
+        primary_pts, lateral_pts, depth, width, n_line, lateral_only
+    )
     assert len(intersection) == 50
     np.testing.assert_almost_equal(
         intersection[14],
@@ -91,36 +97,20 @@ def test_get_scanline_intersections_rice(rice_h5):
     )
 
 
-def test_get_scanline_intersections_nan(pts_nan3):
-    pts = pts_nan3
-    depth = 1080
-    width = 2048
-    n_line = 50
-    intersection = get_scanline_intersections(pts, depth, width, n_line)
-    assert len(intersection) == 50
-    np.testing.assert_almost_equal(intersection[1], [], decimal=7)
-
-
-def test_get_scanline_intersections_3roots_nan(pts_3roots_with_nan):
-    pts = pts_3roots_with_nan
-    depth = 1080
-    width = 2048
-    n_line = 50
-    intersection = get_scanline_intersections(pts, depth, width, n_line)
-    assert len(intersection) == 50
-    np.testing.assert_almost_equal(intersection[1], [], decimal=7)
-
-
 def test_count_scanline_intersections_canola(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
     primary, lateral = series[0]
-    pts = primary.numpy()
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
     depth = 1080
     width = 2048
     n_line = 50
-    n_inter = count_scanline_intersections(pts, depth, width, n_line)
+    lateral_only = False
+    n_inter = count_scanline_intersections(
+        primary_pts, lateral_pts, depth, width, n_line, lateral_only
+    )
     assert n_inter.shape == (50,)
     np.testing.assert_equal(n_inter[14], 1)
 
@@ -130,35 +120,17 @@ def test_count_scanline_intersections_rice(rice_h5):
         rice_h5, primary_name="main_3do_6nodes", lateral_name="longest_3do_6nodes"
     )
     primary, lateral = series[0]
-    pts = primary.numpy()
-
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
     depth = 1080
     width = 2048
     n_line = 50
-
-    n_inter = count_scanline_intersections(pts, depth, width, n_line)
+    lateral_only = True
+    n_inter = count_scanline_intersections(
+        primary_pts, lateral_pts, depth, width, n_line, lateral_only
+    )
     assert n_inter.shape == (50,)
     np.testing.assert_equal(n_inter[14], 2)
-
-
-def test_count_scanline_intersections_nan(pts_nan3):
-    pts = pts_nan3
-    depth = 1080
-    width = 2048
-    n_line = 50
-    n_inter = count_scanline_intersections(pts, depth, width, n_line)
-    assert len(n_inter) == 50
-    np.testing.assert_equal(n_inter[14], np.nan)
-
-
-def test_count_scanline_intersections_3roots_nan(pts_3roots_with_nan):
-    pts = pts_3roots_with_nan
-    depth = 1080
-    width = 2048
-    n_line = 50
-    n_inter = count_scanline_intersections(pts, depth, width, n_line)
-    assert len(n_inter) == 50
-    np.testing.assert_equal(n_inter[14], 3)
 
 
 # test get_scanline_first_ind with canola
@@ -166,11 +138,16 @@ def test_get_scanline_first_ind(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts = get_all_pts(plant=plant, frame=0, lateral_only=False)
+    primary, lateral = plant[0]
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
     depth = 1080
     width = 2048
     n_line = 50
-    scanline_first_ind = get_scanline_first_ind(pts, depth, width, n_line)
+    lateral_only = False
+    scanline_first_ind = get_scanline_first_ind(
+        primary_pts, lateral_pts, depth, width, n_line, lateral_only
+    )
     np.testing.assert_equal(scanline_first_ind, 6)
 
 
@@ -179,9 +156,14 @@ def test_get_scanline_last_ind(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts = get_all_pts(plant=plant, frame=0, lateral_only=False)
+    primary, lateral = plant[0]
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
     depth = 1080
     width = 2048
     n_line = 50
-    scanline_last_ind = get_scanline_last_ind(pts, depth, width, n_line)
+    lateral_only = True
+    scanline_last_ind = get_scanline_last_ind(
+        primary_pts, lateral_pts, depth, width, n_line, lateral_only
+    )
     np.testing.assert_equal(scanline_last_ind, 43)

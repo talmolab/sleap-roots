@@ -90,10 +90,10 @@ def get_traits_value_frame(
         ),
         # get_convhull_features(pts: Union[np.ndarray, ConvexHull]) -> Tuple[float, float, float, float]
         "convex_hull": (get_convhull_features, [pts_all_array]),
-        # get_scanline_intersections(pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50) -> list
+        # get_scanline_intersections(primary_pts: np.ndarray,lateral_pts: np.ndarray,depth: int = 1080,width: int = 2048,n_line: int = 50,lateral_only: bool = False,) -> list
         "scanline_intersections": (
             get_scanline_intersections,
-            [pts_all_list, 1080, 2048, 50],
+            [primary_pts, lateral_pts, 1080, 2048, 50, False],
         ),
         # get_lateral_count(pts: np.ndarray)
         "lateral_count": (get_lateral_count, [lateral_pts]),
@@ -112,12 +112,21 @@ def get_traits_value_frame(
         "primary_base_pt_y": (get_base_ys, [primary_pts]),
         # get_base_ct_density(primary_pts, lateral_pts)
         "base_ct_density": (get_base_ct_density, [primary_pts, lateral_pts]),
-        # get_network_solidity(pts: np.ndarray) -> float
-        "network_solidity": (get_network_solidity, [pts_all_array]),
-        # get_network_distribution_ratio(pts: np.ndarray, fraction: float = 2 / 3) -> float
-        "network_distribution_ratio": (get_network_distribution_ratio, [pts_all_array]),
-        # get_network_distribution(pts: np.ndarray, fraction: float = 2 / 3) -> float
-        "network_length_lower": (get_network_distribution, [pts_all_array, 2 / 3]),
+        # get_network_solidity(primary_pts: np.ndarray, lateral_pts: np.ndarray, pts_all_array: np.ndarray, lateral_only: bool = False,) -> float
+        "network_solidity": (
+            get_network_solidity,
+            [primary_pts, lateral_pts, pts_all_array, False],
+        ),
+        # get_network_distribution_ratio(primary_pts: np.ndarray,lateral_pts: np.ndarray,pts_all_array: np.ndarray,fraction: float = 2 / 3, lateral_only: bool = False) -> float:
+        "network_distribution_ratio": (
+            get_network_distribution_ratio,
+            [primary_pts, lateral_pts, pts_all_array, 2 / 3, False],
+        ),
+        # get_network_distribution(primary_pts: np.ndarray,lateral_pts: np.ndarray,pts_all_array: np.ndarray,fraction: float = 2 / 3, lateral_only: bool = False) -> float:
+        "network_length_lower": (
+            get_network_distribution,
+            [primary_pts, lateral_pts, pts_all_array, 2 / 3, False],
+        ),
         # get_tip_ys(pts: np.ndarray) -> np.ndarray
         "primary_tip_pt_y": (get_tip_ys, [primary_pts]),
         # get_ellipse_a(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
@@ -136,10 +145,10 @@ def get_traits_value_frame(
         "chull_max_height": (get_chull_max_height, [pts_all_array]),
         # get_chull_line_lengths(pts: Union[np.ndarray, ConvexHull]) -> np.ndarray
         "chull_line_lengths": (get_chull_line_lengths, [pts_all_array]),
-        # count_scanline_intersections(pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50) -> np.ndarray
+        # count_scanline_intersections(primary_pts: np.ndarray,lateral_pts: np.ndarray,depth: int = 1080,width: int = 2048,n_line: int = 50,lateral_only: bool = False,) -> np.ndarray
         "scanline_intersection_counts": (
             count_scanline_intersections,
-            [pts_all_list, 1080, 2048, 50],
+            [primary_pts, lateral_pts, 1080, 2048, 50, False],
         ),
         # get_base_xs(pts: np.ndarray) -> np.ndarray
         "lateral_base_xs": (get_base_xs, [lateral_pts]),
@@ -157,10 +166,16 @@ def get_traits_value_frame(
         "base_median_ratio": (get_base_median_ratio, [primary_pts, lateral_pts]),
         # get_ellipse_ratio(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
         "ellipse_ratio": (get_ellipse_ratio, [pts_all_array]),
-        # get_scanline_last_ind(pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50)
-        "scanline_last_ind": (get_scanline_last_ind, [pts_all_list]),
-        # get_scanline_first_ind(pts: np.ndarray, depth: int = 1080, width: int = 2048, n_line: int = 50)
-        "scanline_first_ind": (get_scanline_first_ind, [pts_all_list]),
+        # get_scanline_last_ind(primary_pts: np.ndarray,lateral_pts: np.ndarray,depth: int = 1080, width: int = 2048, n_line: int = 50, lateral_only: bool = False)
+        "scanline_last_ind": (
+            get_scanline_last_ind,
+            [primary_pts, lateral_pts, 1080, 2048, 50, False],
+        ),
+        # get_scanline_first_ind(primary_pts: np.ndarray,lateral_pts: np.ndarray,depth: int = 1080, width: int = 2048, n_line: int = 50, lateral_only: bool = False)
+        "scanline_first_ind": (
+            get_scanline_first_ind,
+            [primary_pts, lateral_pts, 1080, 2048, 50, False],
+        ),
         # get_base_length(pts: np.ndarray)
         "base_length": (get_base_length, [lateral_pts]),
         # get_grav_index(pts: np.ndarray)
@@ -218,20 +233,32 @@ def get_traits_value_plant(
     for frame in range(n_frame):
         primary, lateral = plant[frame]
         lateral_pts = lateral.numpy()
-        pts_all_array = get_all_pts_array(plant=plant, frame=frame, lateral_only=False)
-        pts_all_array = pts_all_array.reshape(
-            (1, pts_all_array.shape[0], pts_all_array.shape[1])
-        )
-        pts_all_list = get_all_pts(plant=plant, frame=frame, lateral_only=False)
 
         # get longest primary root
         primary_pts = primary.numpy()
-        max_length_idx = np.nanargmax(get_root_lengths(primary_pts))
-        long_primary_pts = primary_pts[max_length_idx]
-        primary_pts = np.reshape(
-            long_primary_pts,
-            (1, long_primary_pts.shape[0], long_primary_pts.shape[1]),
-        )
+        if get_root_lengths(primary_pts).shape[0] > 0:
+            pts_all_array = get_all_pts_array(
+                plant=plant, frame=frame, lateral_only=False
+            )
+            pts_all_array = pts_all_array.reshape(
+                (1, pts_all_array.shape[0], pts_all_array.shape[1])
+            )
+            pts_all_list = get_all_pts(plant=plant, frame=frame, lateral_only=False)
+
+            max_length_idx = np.nanargmax(get_root_lengths(primary_pts))
+            long_primary_pts = primary_pts[max_length_idx]
+            primary_pts = np.reshape(
+                long_primary_pts,
+                (1, long_primary_pts.shape[0], long_primary_pts.shape[1]),
+            )
+        else:
+            # if no primary root, just give two nan points
+            primary_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
+            pts_all_array = lateral_pts
+            pts_all_list = list(lateral_pts)
+        # if no lateral root, just give two nan points
+        if get_root_lengths(lateral_pts).shape[0] == 0:
+            lateral_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
 
         data = get_traits_value_frame(
             primary_pts, lateral_pts, pts_all_array, pts_all_list
