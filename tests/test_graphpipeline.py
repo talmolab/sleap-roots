@@ -70,7 +70,7 @@ def test_get_traits_value_frame(primary_pts, lateral_pts):
 
 def test_get_traits_value_plant(canola_h5):
     lateral_only = False
-    
+
     data_plant = get_traits_value_plant(
         canola_h5,
         lateral_only,
@@ -89,7 +89,8 @@ def test_get_traits_value_plant(canola_h5):
 def test_get_traits_value_plant_summary(canola_h5):
     lateral_only = False
     data_plant_summary = get_traits_value_plant_summary(
-        canola_h5, lateral_only,
+        canola_h5,
+        lateral_only,
         primary_name="primary_multi_day",
         lateral_name="lateral_3_nodes",
         stem_width_tolerance=0.02,
@@ -97,8 +98,8 @@ def test_get_traits_value_plant_summary(canola_h5):
         network_fraction=2 / 3,
         write_csv=False,
         csv_name="plant_original_traits.csv",
-        write_summary_csv = False,
-        summary_csv_name = "plant_summary_traits.csv"
+        write_summary_csv=False,
+        summary_csv_name="plant_summary_traits.csv",
     )
     assert data_plant_summary.shape[0] == 1
     assert data_plant_summary.shape[1] == 1036
