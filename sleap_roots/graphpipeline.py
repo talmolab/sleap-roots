@@ -355,8 +355,16 @@ def get_traits_value_plant_summary(
 
     Args:
         h5: h5 file, plant image series.
-        lateral_only: Boolean value, where false is rice (default), true is dicot.
+        lateral_only: Boolean value, where false is dicot (default), true is rice.
+        primary_name: primary model name.
+        lateral_name: lateral model name.
+        stem_width_tolerance: difference in projection norm between right and left side.
+        n_line: number of scan lines, np.nan for no interaction.
+        network_fraction: length found in the lower fration value of the network.
         write_csv: Boolean value, where true is write csv file.
+        csv_name: saved csv file name.
+        write_summary_csv: Boolean value, where true is write summarized csv file.
+        summary_csv_name: saved summarized csv file name.
 
     Return:
         A DataFrame with all summarized traits per plant.
