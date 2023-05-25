@@ -62,7 +62,7 @@ def test_get_traits_value_frame(primary_pts, lateral_pts):
     )
 
     data_df = get_traits_value_frame(
-        primary_pts, lateral_pts, pts_all_array, pts_all_list
+        primary_pts, lateral_pts, pts_all_array, pts_all_list, lateral_only
     )
     assert len(data_df) == 1
     assert data_df.shape[1] == 44
@@ -70,17 +70,35 @@ def test_get_traits_value_frame(primary_pts, lateral_pts):
 
 def test_get_traits_value_plant(canola_h5):
     lateral_only = False
-    write_csv = False
-    data_plant = get_traits_value_plant(canola_h5, lateral_only, write_csv)
+    
+    data_plant = get_traits_value_plant(
+        canola_h5,
+        lateral_only,
+        primary_name="primary_multi_day",
+        lateral_name="lateral_3_nodes",
+        stem_width_tolerance=0.02,
+        n_line=50,
+        network_fraction=2 / 3,
+        write_csv=False,
+        csv_name="plant_original_traits.csv",
+    )
     assert data_plant.shape[0] == 72
     assert data_plant.shape[1] == 46
 
 
 def test_get_traits_value_plant_summary(canola_h5):
     lateral_only = False
-    write_csv = False
     data_plant_summary = get_traits_value_plant_summary(
-        canola_h5, lateral_only, write_csv
+        canola_h5, lateral_only,
+        primary_name="primary_multi_day",
+        lateral_name="lateral_3_nodes",
+        stem_width_tolerance=0.02,
+        n_line=50,
+        network_fraction=2 / 3,
+        write_csv=False,
+        csv_name="plant_original_traits.csv",
+        write_summary_csv = False,
+        summary_csv_name = "plant_summary_traits.csv"
     )
     assert data_plant_summary.shape[0] == 1
     assert data_plant_summary.shape[1] == 1036
