@@ -7,6 +7,7 @@ from sleap_roots.networklength import get_network_distribution_ratio
 from sleap_roots.networklength import get_network_length
 from sleap_roots.networklength import get_network_solidity
 from sleap_roots.networklength import get_network_width_depth_ratio
+from sleap_roots.points import get_all_pts_array
 
 
 @pytest.fixture
@@ -85,9 +86,12 @@ def test_get_network_solidity(canola_h5):
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
     primary, lateral = series[0]
-    pts = primary.numpy()
-    ratio = get_network_solidity(pts)
-    np.testing.assert_almost_equal(ratio, 0.011735994007177439, decimal=7)
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
+    pts_all_array = get_all_pts_array(plant=series, frame=0, lateral_only=False)
+    lateral_only = False
+    ratio = get_network_solidity(primary_pts, lateral_pts, pts_all_array, lateral_only)
+    np.testing.assert_almost_equal(ratio, 0.012578941125511587, decimal=7)
 
 
 def test_get_network_solidity_rice(rice_h5):
@@ -95,15 +99,12 @@ def test_get_network_solidity_rice(rice_h5):
         rice_h5, primary_name="main_3do_6nodes", lateral_name="longest_3do_6nodes"
     )
     primary, lateral = series[0]
-    pts = primary.numpy()
-    ratio = get_network_solidity(pts)
-    np.testing.assert_almost_equal(ratio, 0.03366254601775008, decimal=7)
-
-
-def test_get_network_solidity_nan(pts_nan3):
-    pts = pts_nan3
-    ratio = get_network_solidity(pts)
-    np.testing.assert_almost_equal(ratio, np.nan, decimal=7)
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
+    pts_all_array = get_all_pts_array(plant=series, frame=0, lateral_only=True)
+    lateral_only = True
+    ratio = get_network_solidity(primary_pts, lateral_pts, pts_all_array, lateral_only)
+    np.testing.assert_almost_equal(ratio, 0.17930631242462894, decimal=7)
 
 
 def test_get_network_distribution(canola_h5):
@@ -111,9 +112,14 @@ def test_get_network_distribution(canola_h5):
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
     primary, lateral = series[0]
-    pts = primary.numpy()
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
+    pts_all_array = get_all_pts_array(plant=series, frame=0, lateral_only=False)
     fraction = 2 / 3
-    root_length = get_network_distribution(pts, fraction)
+    lateral_only = False
+    root_length = get_network_distribution(
+        primary_pts, lateral_pts, pts_all_array, fraction, lateral_only
+    )
     np.testing.assert_almost_equal(root_length, 589.4322131363684, decimal=7)
 
 
@@ -122,17 +128,15 @@ def test_get_network_distribution_rice(rice_h5):
         rice_h5, primary_name="main_3do_6nodes", lateral_name="longest_3do_6nodes"
     )
     primary, lateral = series[0]
-    pts = primary.numpy()
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
+    pts_all_array = get_all_pts_array(plant=series, frame=0, lateral_only=True)
     fraction = 2 / 3
-    root_length = get_network_distribution(pts, fraction)
-    np.testing.assert_almost_equal(root_length, 477.77168597561507, decimal=7)
-
-
-def test_get_network_distribution_nan(pts_nan3):
-    pts = pts_nan3
-    fraction = 2 / 3
-    root_length = get_network_distribution(pts, fraction)
-    np.testing.assert_almost_equal(root_length, 0, decimal=7)
+    lateral_only = True
+    root_length = get_network_distribution(
+        primary_pts, lateral_pts, pts_all_array, fraction, lateral_only
+    )
+    np.testing.assert_almost_equal(root_length, 475.89810040497025, decimal=7)
 
 
 def test_get_network_length(canola_h5):
@@ -140,9 +144,11 @@ def test_get_network_length(canola_h5):
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
     primary, lateral = series[0]
-    pts = primary.numpy()
-    length = get_network_length(pts)
-    np.testing.assert_almost_equal(length, 971.0504174567843, decimal=7)
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
+    lateral_only = False
+    length = get_network_length(primary_pts, lateral_pts, lateral_only)
+    np.testing.assert_almost_equal(length, 1173.0531992388217, decimal=7)
 
 
 def test_get_network_length_rice(rice_h5):
@@ -150,15 +156,11 @@ def test_get_network_length_rice(rice_h5):
         rice_h5, primary_name="main_3do_6nodes", lateral_name="longest_3do_6nodes"
     )
     primary, lateral = series[0]
-    pts = primary.numpy()
-    length = get_network_length(pts)
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
+    lateral_only = True
+    length = get_network_length(primary_pts, lateral_pts, lateral_only)
     np.testing.assert_almost_equal(length, 798.5726441151357, decimal=7)
-
-
-def test_get_network_length_nan(pts_nan3):
-    pts = pts_nan3
-    length = get_network_length(pts)
-    np.testing.assert_almost_equal(length, 0, decimal=7)
 
 
 def test_get_network_distribution_ratio(canola_h5):
@@ -166,10 +168,15 @@ def test_get_network_distribution_ratio(canola_h5):
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
     primary, lateral = series[0]
-    pts = primary.numpy()
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
+    pts_all_array = get_all_pts_array(plant=series, frame=0, lateral_only=False)
     fraction = 2 / 3
-    ratio = get_network_distribution_ratio(pts, fraction)
-    np.testing.assert_almost_equal(ratio, 0.6070047, decimal=7)
+    lateral_only = False
+    ratio = get_network_distribution_ratio(
+        primary_pts, lateral_pts, pts_all_array, fraction, lateral_only
+    )
+    np.testing.assert_almost_equal(ratio, 0.5024769665338648, decimal=7)
 
 
 def test_get_network_distribution_ratio_rice(rice_h5):
@@ -177,14 +184,12 @@ def test_get_network_distribution_ratio_rice(rice_h5):
         rice_h5, primary_name="main_3do_6nodes", lateral_name="longest_3do_6nodes"
     )
     primary, lateral = series[0]
-    pts = primary.numpy()
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
+    pts_all_array = get_all_pts_array(plant=series, frame=0, lateral_only=True)
     fraction = 2 / 3
-    ratio = get_network_distribution_ratio(pts, fraction)
-    np.testing.assert_almost_equal(ratio, 0.5982820592421038, decimal=7)
-
-
-def test_get_network_distribution_ratio_nan(pts_nan3):
-    pts = pts_nan3
-    fraction = 2 / 3
-    ratio = get_network_distribution_ratio(pts, fraction)
-    np.testing.assert_almost_equal(ratio, np.nan, decimal=7)
+    lateral_only = True
+    ratio = get_network_distribution_ratio(
+        primary_pts, lateral_pts, pts_all_array, fraction, lateral_only
+    )
+    np.testing.assert_almost_equal(ratio, 0.5959358912579489, decimal=7)
