@@ -25,11 +25,14 @@ def get_bbox(pts: np.ndarray) -> Tuple[float, float, float, float]:
     pts2 = pts2[~(np.isnan(pts2).any(axis=-1))]
 
     # get the bounding box
-    left_x, top_y = np.min(pts2[:, 0]), np.min(pts2[:, 1])
-    width, height = np.max(pts2[:, 0]) - np.min(pts2[:, 0]), np.max(
-        pts2[:, 1]
-    ) - np.min(pts2[:, 1])
-    bbox = (left_x, top_y, width, height)
+    if pts2.shape[0] == 0:
+        return (np.nan, np.nan, np.nan, np.nan)
+    else:
+        left_x, top_y = np.min(pts2[:, 0]), np.min(pts2[:, 1])
+        width, height = np.max(pts2[:, 0]) - np.min(pts2[:, 0]), np.max(
+            pts2[:, 1]
+        ) - np.min(pts2[:, 1])
+        bbox = (left_x, top_y, width, height)
     return bbox
 
 
@@ -108,6 +111,8 @@ def get_network_distribution(
 
     # get the bounding box of the lower fraction
     lower_height = bbox[3] * fraction
+    if np.isnan(lower_height):
+        return np.nan
     lower_bbox = (bbox[0], bbox[1] + (bbox[3] - lower_height), bbox[2], lower_height)
 
     # convert bounding box to polygon

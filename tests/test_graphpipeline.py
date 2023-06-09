@@ -61,17 +61,16 @@ def test_get_traits_value_frame(primary_pts, lateral_pts):
         primary_pts if lateral_only else primary_pts.tolist() + lateral_pts.tolist()
     )
 
-    data_df = get_traits_value_frame(
+    data = get_traits_value_frame(
         primary_pts, lateral_pts, pts_all_array, pts_all_list, lateral_only
     )
-    assert len(data_df) == 1
-    assert data_df.shape[1] == 44
+    assert len(data) == 43
 
 
 def test_get_traits_value_plant(canola_h5):
     lateral_only = False
 
-    data_plant = get_traits_value_plant(
+    data_plant, data_plant_df = get_traits_value_plant(
         canola_h5,
         lateral_only,
         primary_name="primary_multi_day",
@@ -82,8 +81,8 @@ def test_get_traits_value_plant(canola_h5):
         write_csv=False,
         csv_name="plant_original_traits.csv",
     )
-    assert data_plant.shape[0] == 72
-    assert data_plant.shape[1] == 46
+    assert len(data_plant) == 72
+    assert data_plant_df.shape[1] == 45
 
 
 def test_get_traits_value_plant_summary(canola_h5):
@@ -103,3 +102,4 @@ def test_get_traits_value_plant_summary(canola_h5):
     )
     assert data_plant_summary.shape[0] == 1
     assert data_plant_summary.shape[1] == 1036
+    np.testing.assert_almost_equal(data_plant_summary.iloc[0, 5], 16.643764612148875)

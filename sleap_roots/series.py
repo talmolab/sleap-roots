@@ -114,7 +114,12 @@ class Series:
             # node, 2)
         """
         primary_lf, lateral_lf = self.get_frame(frame_idx)
-        return primary_lf.numpy()
+        gt_instances_pr = primary_lf.user_instances + primary_lf.unused_predictions
+        if len(gt_instances_pr) == 0:
+            return []
+        else:
+            primary_pts = np.stack([inst.numpy() for inst in gt_instances_pr], axis=0)
+        return primary_pts
 
     def get_lateral_points(self, frame_idx: int) -> np.ndarray:
         """Get lateral root points.
@@ -124,7 +129,12 @@ class Series:
             # node, 2)
         """
         primary_lf, lateral_lf = self.get_frame(frame_idx)
-        return lateral_lf.numpy()
+        gt_instances_lr = lateral_lf.user_instances + lateral_lf.unused_predictions
+        if len(gt_instances_lr) == 0:
+            return []
+        else:
+            lateral_pts = np.stack([inst.numpy() for inst in gt_instances_lr], axis=0)
+        return lateral_pts
 
 
 def find_all_series(data_folders: Union[str, List[str]]) -> List[str]:

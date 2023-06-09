@@ -414,4 +414,4 @@ def test_stem_width(canola_h5):
     assert lateral_pts.shape == (5, 3, 2)
 
     stem_widths = get_root_pair_widths_projections(lateral_pts, primary_pts, 0.02)
-    np.testing.assert_array_almost_equal(stem_widths, [[31.603239], [1], [0]])
+    np.testing.assert_array_almost_equal(stem_widths, [31.603239])

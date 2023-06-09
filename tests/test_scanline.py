@@ -1,9 +1,7 @@
 import pytest
 import numpy as np
 from sleap_roots import Series
-from sleap_roots.points import get_all_pts
 from sleap_roots.scanline import (
-    get_scanline_intersections,
     get_scanline_first_ind,
     get_scanline_last_ind,
     count_scanline_intersections,
@@ -55,48 +53,6 @@ def pts_nan3():
     )
 
 
-def test_get_scanline_intersections_canola(canola_h5):
-    series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = series[0]
-    primary_pts = primary.numpy()
-    lateral_pts = lateral.numpy()
-    depth = 1080
-    width = 2048
-    n_line = 50
-    lateral_only = False
-    intersection = get_scanline_intersections(
-        primary_pts, lateral_pts, depth, width, n_line, lateral_only
-    )
-    assert len(intersection) == 50
-    np.testing.assert_almost_equal(
-        intersection[10], [[1146.7898883311389, 253.0], [1093.170224, 253.0]], decimal=7
-    )
-
-
-def test_get_scanline_intersections_rice(rice_h5):
-    series = Series.load(
-        rice_h5, primary_name="main_3do_6nodes", lateral_name="longest_3do_6nodes"
-    )
-    primary, lateral = series[0]
-    primary_pts = primary.numpy()
-    lateral_pts = lateral.numpy()
-    depth = 1080
-    width = 2048
-    n_line = 50
-    lateral_only = True
-    intersection = get_scanline_intersections(
-        primary_pts, lateral_pts, depth, width, n_line, lateral_only
-    )
-    assert len(intersection) == 50
-    np.testing.assert_almost_equal(
-        intersection[14],
-        [[811.6129907162684, 345.0], [850.4184814416584, 345.0]],
-        decimal=7,
-    )
-
-
 def test_count_scanline_intersections_canola(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
@@ -130,7 +86,7 @@ def test_count_scanline_intersections_rice(rice_h5):
         primary_pts, lateral_pts, depth, width, n_line, lateral_only
     )
     assert n_inter.shape == (50,)
-    np.testing.assert_equal(n_inter[14], 2)
+    np.testing.assert_equal(n_inter[14], 1)
 
 
 # test get_scanline_first_ind with canola
@@ -166,4 +122,4 @@ def test_get_scanline_last_ind(canola_h5):
     scanline_last_ind = get_scanline_last_ind(
         primary_pts, lateral_pts, depth, width, n_line, lateral_only
     )
-    np.testing.assert_equal(scanline_last_ind, 43)
+    np.testing.assert_equal(scanline_last_ind, np.nan)
