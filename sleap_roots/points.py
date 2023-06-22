@@ -111,7 +111,9 @@ def get_all_pts_array(
     pts_all_array = (
         pts_lr.reshape(-1, 2)
         if lateral_only
-        else np.concatenate((pts_pr.reshape(-1, 2), pts_lr.reshape(-1, 2)), axis=0)
+        else np.concatenate(
+            (np.array(pts_pr).reshape(-1, 2), np.array(pts_lr).reshape(-1, 2)), axis=0
+        )
     )
 
     return pts_all_array
