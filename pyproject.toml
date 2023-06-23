@@ -24,7 +24,7 @@ dependencies = [
     "pandas",
     "matplotlib",
     "seaborn",
-    "sleap-io>=0.0.4",
+    "sleap-io>=0.0.5",
     "scikit-image",
     "shapely"
 ]
