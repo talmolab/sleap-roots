@@ -10,6 +10,8 @@ on:
       - ".github/workflows/ci.yml"
       - "environment.yml"
   push:
+    branches:
+      - main
     paths:
       - "sleap_roots/**"
       - "tests/**"
