@@ -1,7 +1,18 @@
 name: sleap-roots
 
+channels:
+  - conda-forge
+  - defaults
+
 dependencies:
-  - python=3.8
+  - python=3.9
+  - numpy
+  - matplotlib
+  - seaborn
+  - pandas
+  - shapely
+  - attrs
+  - scikit-image
   - pip
   - pip:
     - "--editable=.[dev]"

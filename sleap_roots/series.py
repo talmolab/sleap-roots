@@ -3,8 +3,12 @@
 import attrs
 import numpy as np
 from pathlib import Path
-import sleap
+import sleap_io as sio
 from typing import Optional, Tuple, List, Union
+
+import matplotlib
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 @attrs.define
@@ -18,8 +22,8 @@ class Series:
     """
 
     h5_path: Optional[str] = None
-    primary_labels: Optional[sleap.Labels] = None
-    lateral_labels: Optional[sleap.Labels] = None
+    primary_labels: Optional[sio.Labels] = None
+    lateral_labels: Optional[sio.Labels] = None
 
     @classmethod
     def load(
@@ -46,8 +50,8 @@ class Series:
 
         return cls(
             h5_path,
-            primary_labels=sleap.load_file(primary_path),
-            lateral_labels=sleap.load_file(lateral_path),
+            primary_labels=sio.load_slp(primary_path),
+            lateral_labels=sio.load_slp(lateral_path),
         )
 
     @property
@@ -56,7 +60,7 @@ class Series:
         return Path(self.h5_path).stem
 
     @property
-    def video(self) -> sleap.Video:
+    def video(self) -> sio.Video:
         """The `sleap.Video` corresponding to the image series."""
         return self.primary_labels.video
 
@@ -64,7 +68,7 @@ class Series:
         """Length of the series (number of images)."""
         return len(self.video)
 
-    def __getitem__(self, idx: int) -> Tuple[sleap.LabeledFrame, sleap.LabeledFrame]:
+    def __getitem__(self, idx: int) -> Tuple[sio.LabeledFrame, sio.LabeledFrame]:
         """Return labeled frames for primary and lateral predictions."""
         return self.get_frame(idx)
 
@@ -73,9 +77,7 @@ class Series:
         for i in range(len(self)):
             yield self[i]
 
-    def get_frame(
-        self, frame_idx: int
-    ) -> Tuple[sleap.LabeledFrame, sleap.LabeledFrame]:
+    def get_frame(self, frame_idx: int) -> Tuple[sio.LabeledFrame, sio.LabeledFrame]:
         """Return labeled frames for primary and lateral predictions.
 
         Args:
@@ -102,9 +104,9 @@ class Series:
                 images within notebooks.
         """
         primary_lf, lateral_lf = self.get_frame(frame_idx)
-        sleap.nn.viz.plot_img(primary_lf.image, scale=scale)
-        sleap.nn.viz.plot_instances(primary_lf.instances, cmap=["r"], **kwargs)
-        sleap.nn.viz.plot_instances(lateral_lf.instances, cmap=["g"], **kwargs)
+        plot_img(primary_lf.image, scale=scale)
+        plot_instances(primary_lf.instances, cmap=["r"], **kwargs)
+        plot_instances(lateral_lf.instances, cmap=["g"], **kwargs)
 
     def get_primary_points(self, frame_idx: int) -> np.ndarray:
         """Get primary root points.
@@ -143,3 +145,201 @@ def find_all_series(data_folders: Union[str, List[str]]) -> List[str]:
     for data_folder in data_folders:
         h5_series.extend([Path(p).as_posix() for p in Path(data_folder).glob("*.h5")])
     return h5_series
+
+
+def imgfig(
+    size: Union[float, Tuple] = 6, dpi: int = 72, scale: float = 1.0
+) -> matplotlib.figure.Figure:
+    """Create a tight figure for image plotting.
+
+    Args:
+        size: Scalar or 2-tuple specifying the (width, height) of the figure in inches.
+            If scalar, will assume equal width and height.
+        dpi: Dots per inch, controlling the resolution of the image.
+        scale: Factor to scale the size of the figure by. This is a convenience for
+            increasing the size of the plot at the same DPI.
+
+    Returns:
+        A matplotlib.figure.Figure to use for plotting.
+    """
+    if not isinstance(size, (tuple, list)):
+        size = (size, size)
+    fig = plt.figure(figsize=(scale * size[0], scale * size[1]), dpi=dpi)
+    ax = fig.add_axes([0, 0, 1, 1], frameon=False)
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+    plt.autoscale(tight=True)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.grid(False)
+    return fig
+
+
+def plot_img(
+    img: np.ndarray, dpi: int = 72, scale: float = 1.0
+) -> matplotlib.figure.Figure:
+    """Plot an image in a tight figure.
+
+    Args:
+        img: Image to plot. Can be a numpy array or a `tf.Tensor`.
+        dpi: Dots per inch, controlling the resolution of the image.
+        scale: Factor to scale the size of the figure by. This is a convenience for
+            increasing the size of the plot at the same DPI.
+
+    Returns:
+        A matplotlib.figure.Figure containing the image.
+    """
+    if hasattr(img, "numpy"):
+        img = img.numpy()
+
+    if img.shape[0] == 1:
+        # Squeeze out batch singleton dimension.
+        img = img.squeeze(axis=0)
+
+    # Check if image is grayscale (single channel).
+    grayscale = img.shape[-1] == 1
+    if grayscale:
+        # Squeeze out singleton channel.
+        img = img.squeeze(axis=-1)
+
+    # Normalize the range of pixel values.
+    img_min = img.min()
+    img_max = img.max()
+    if img_min < 0.0 or img_max > 1.0:
+        img = (img - img_min) / (img_max - img_min)
+
+    fig = imgfig(
+        size=(float(img.shape[1]) / dpi, float(img.shape[0]) / dpi),
+        dpi=dpi,
+        scale=scale,
+    )
+
+    ax = fig.gca()
+    ax.imshow(
+        img,
+        cmap="gray" if grayscale else None,
+        origin="upper",
+        extent=[-0.5, img.shape[1] - 0.5, img.shape[0] - 0.5, -0.5],
+    )
+    return fig
+
+
+def plot_instance(
+    instance,
+    skeleton=None,
+    cmap=None,
+    color_by_node=False,
+    lw=2,
+    ms=10,
+    bbox=None,
+    scale=1.0,
+    **kwargs,
+):
+    """Plot a single instance with edge coloring."""
+    if cmap is None:
+        cmap = sns.color_palette("tab20")
+
+    if skeleton is None and hasattr(instance, "skeleton"):
+        skeleton = instance.skeleton
+
+    if skeleton is None:
+        color_by_node = True
+    else:
+        if len(skeleton.edges) == 0:
+            color_by_node = True
+
+    if hasattr(instance, "numpy"):
+        inst_pts = instance.numpy()
+    else:
+        inst_pts = instance
+
+    h_lines = []
+    if color_by_node:
+        for k, (x, y) in enumerate(inst_pts):
+            if bbox is not None:
+                x -= bbox[1]
+                y -= bbox[0]
+
+            x *= scale
+            y *= scale
+
+            h_lines_k = plt.plot(x, y, ".", ms=ms, c=cmap[k % len(cmap)], **kwargs)
+            h_lines.append(h_lines_k)
+
+    else:
+        for k, (src_node, dst_node) in enumerate(skeleton.edges):
+            src_pt = instance.points_array[instance.skeleton.node_to_index(src_node)]
+            dst_pt = instance.points_array[instance.skeleton.node_to_index(dst_node)]
+
+            x = np.array([src_pt[0], dst_pt[0]])
+            y = np.array([src_pt[1], dst_pt[1]])
+
+            if bbox is not None:
+                x -= bbox[1]
+                y -= bbox[0]
+
+            x *= scale
+            y *= scale
+
+            h_lines_k = plt.plot(
+                x, y, ".-", ms=ms, lw=lw, c=cmap[k % len(cmap)], **kwargs
+            )
+
+            h_lines.append(h_lines_k)
+
+    return h_lines
+
+
+def plot_instances(
+    instances, skeleton=None, cmap=None, color_by_track=False, tracks=None, **kwargs
+):
+    """Plot a list of instances with identity coloring.
+
+    Args:
+        instances: List of instances to plot.
+        skeleton: Skeleton to use for edge coloring. If not provided, will use node
+            coloring.
+        cmap: Color map to use for coloring. If not provided, will use the default
+            seaborn tab10 color palette.
+        color_by_track: If True, will color instances by their track. If False, will
+            color instances by their identity in the list.
+        tracks: List of tracks to use for coloring. If not provided, will infer tracks
+            from the instances.
+        **kwargs: Additional keyword arguments to pass to `plot_instance`.
+
+    Returns:
+        A list of handles to the plotted lines.
+    """
+    if cmap is None:
+        cmap = sns.color_palette("tab10")
+
+    if color_by_track and tracks is None:
+        # Infer tracks for ordering if not provided.
+        tracks = set()
+        for instance in instances:
+            tracks.add(instance.track)
+
+        # Sort by spawned frame.
+        tracks = sorted(list(tracks), key=lambda track: track.name)
+
+    h_lines = []
+    for i, instance in enumerate(instances):
+        if color_by_track:
+            if instance.track is None:
+                raise ValueError(
+                    "Instances must have a set track when coloring by track."
+                )
+
+            if instance.track not in tracks:
+                raise ValueError("Instance has a track not found in specified tracks.")
+
+            color = cmap[tracks.index(instance.track) % len(cmap)]
+
+        else:
+            # Color by identity (order in list).
+            color = cmap[i % len(cmap)]
+
+        h_lines_i = plot_instance(instance, skeleton=skeleton, cmap=[color], **kwargs)
+        h_lines.append(h_lines_i)
+
+    return h_lines
