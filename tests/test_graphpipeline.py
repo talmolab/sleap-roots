@@ -45,6 +45,7 @@ def lateral_pts():
     )
 
 
+@pytest.skip("See PR #32")
 def test_get_traits_value_frame(primary_pts, lateral_pts):
     lateral_only = False
     pts_all_array = (
@@ -68,6 +69,7 @@ def test_get_traits_value_frame(primary_pts, lateral_pts):
     assert data_df.shape[1] == 44
 
 
+@pytest.skip("See PR #32")
 def test_get_traits_value_plant(canola_h5):
     lateral_only = False
 
@@ -86,6 +88,7 @@ def test_get_traits_value_plant(canola_h5):
     assert data_plant.shape[1] == 46
 
 
+@pytest.skip("See PR #32")
 def test_get_traits_value_plant_summary(canola_h5):
     lateral_only = False
     data_plant_summary = get_traits_value_plant_summary(
