@@ -1,3 +1,57 @@
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "sleap-roots"
+authors = [
+    {name = "Elizabeth Berrigan", email = "eberrigan@salk.edu"},
+    {name = "Lin Wang", email = "linwang@salk.edu"},
+    {name = "Talmo Pereira", email = "talmo@salk.edu"}
+]
+description="Analysis tools for SLEAP-based plant root phenotyping."
+requires-python = ">=3.8"
+keywords = ["sleap", "plants", "roots", "phenotyping"]
+license = {text = "BSD-3-Clause"}
+classifiers = [
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9"
+]
+dependencies = [
+    "numpy",
+    "h5py",
+    "attrs",
+    "pandas",
+    "matplotlib",
+    "seaborn",
+    "sleap-io>=0.0.4",
+    "scikit-image",
+    "shapely"
+]
+dynamic = ["version", "readme"]
+
+[tool.setuptools.dynamic]
+version = {attr = "sleap_roots.__version__"}
+readme = {file = ["README.md"], content-type="text/markdown"}
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black",
+    "pydocstyle",
+    "toml",
+    "twine",
+    "build"
+]
+
+[project.urls]
+Homepage = "https://github.com/talmolab/sleap-roots"
+Repository = "https://github.com/talmolab/sleap-roots"
+
+[tool.black]
+line-length = 88
+
+[pydocstyle]
+convention = "google"
+match-dir = "sleap_roots"
