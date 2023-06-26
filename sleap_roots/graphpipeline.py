@@ -239,10 +239,8 @@ def get_traits_value_frame(
         if type(fn_outputs) == tuple:
             fn_outputs = np.array(fn_outputs).reshape((1, -1))
         if (
-            type(fn_outputs) == np.float64
-            or type(fn_outputs) == float
-            or type(fn_outputs) == np.int64
-            or type(fn_outputs) == int
+            isinstance(fn_outputs, (np.floating, float)) 
+            or isinstance(fn_outputs, (np.integer, int))
         ):
             fn_outputs = np.array(fn_outputs)[np.newaxis]
         data[trait_name] = fn_outputs
@@ -289,7 +287,6 @@ def get_traits_value_plant(
         gt_instances_pr = primary.user_instances + primary.unused_predictions
         gt_instances_lr = lateral.user_instances + lateral.unused_predictions
 
-        # lateral_pts = lateral.numpy()
         if len(gt_instances_lr) == 0:
             lateral_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
         else:
@@ -442,13 +439,10 @@ def get_traits_value_plant_summary(
     for i in range(len(SCALAR_TRAITS)):
         if SCALAR_TRAITS[i] in column_names:
             trait = data_plant_df[SCALAR_TRAITS[i]]
-            # LW start
             if trait.shape[0] > 0:
                 if not (
-                    type(trait[0]) == int
-                    or type(trait[0]) == np.int64
-                    or type(trait[0]) == np.float64
-                    or type(trait[0]) == float
+                    isinstance(trait[0], (np.floating, float)) 
+                    or isinstance(trait[0], (np.integer, int))
                 ):
                     values = np.array([element[0] for element in trait])
                     trait = values

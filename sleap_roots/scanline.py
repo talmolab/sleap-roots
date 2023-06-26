@@ -37,18 +37,14 @@ def count_scanline_intersections(
 
     intersection = []
 
-    for i in range(n_line):  # n_line
-        # y_loc = n_interval * (i + 1)
+    for i in range(n_line): 
         horizontal_line_y = n_interval * (i + 1)
-        # line = LineString([(0, y_loc), (width, y_loc)])
-
         intersection_line = 0
 
         for j in range(len(points) - 1):
             intersection_counts_root = 0
             # filter out nan nodes
             pts_j = np.array(points[j])[~np.isnan(points[j]).any(axis=1)]
-            # print(pts_j)
             current_root = 0
             if pts_j.shape[0] > 1:
                 for k in range(len(pts_j) - 1):
@@ -58,9 +54,7 @@ def count_scanline_intersections(
                         y1 < horizontal_line_y and y2 >= horizontal_line_y
                     ):
                         current_root += 1
-                        # is_inside_root = not is_inside_root
                 intersection_counts_root += current_root
-                # print(intersection_counts_root)
             intersection_line += intersection_counts_root
         intersection.append(intersection_line)
     return np.array(intersection)
