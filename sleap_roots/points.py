@@ -40,8 +40,11 @@ def get_primary_pts(plant: Series, frame: int) -> np.ndarray:
     """
     # get the primary root points, if >1 primary roots, return the longest primary root
     pts_pr = plant.get_primary_points(frame_idx=frame)
-    max_length_idx = np.nanargmax(get_root_lengths(pts_pr))
-    pts_pr = pts_pr[np.newaxis, max_length_idx]
+    if len(pts_pr) == 0:
+        return pts_pr
+    else:
+        max_length_idx = np.nanargmax(get_root_lengths(pts_pr))
+        pts_pr = pts_pr[np.newaxis, max_length_idx]
     return pts_pr
 
 
@@ -108,7 +111,9 @@ def get_all_pts_array(
     pts_all_array = (
         pts_lr.reshape(-1, 2)
         if lateral_only
-        else np.concatenate((pts_pr.reshape(-1, 2), pts_lr.reshape(-1, 2)), axis=0)
+        else np.concatenate(
+            (np.array(pts_pr).reshape(-1, 2), np.array(pts_lr).reshape(-1, 2)), axis=0
+        )
     )
 
     return pts_all_array
