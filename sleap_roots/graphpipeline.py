@@ -51,6 +51,7 @@ from sleap_roots.series import Series
 from sleap_roots.summary import get_summary
 from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys
 from typing import Dict, Tuple
+import warnings
 
 
 SCALAR_TRAITS = (
@@ -92,6 +93,40 @@ NON_SCALAR_TRAITS = (
     "lateral_tip_ys",
     "chull_line_lengths",
     "scanline_intersection_counts",
+)
+
+
+warnings.filterwarnings(
+    "ignore",
+    message="invalid value encountered in intersection",
+    category=RuntimeWarning,
+    module="shapely",
+)
+warnings.filterwarnings(
+    "ignore", message="All-NaN slice encountered", category=RuntimeWarning
+)
+warnings.filterwarnings(
+    "ignore", message="All-NaN axis encountered", category=RuntimeWarning
+)
+warnings.filterwarnings(
+    "ignore",
+    message="Degrees of freedom <= 0 for slice.",
+    category=RuntimeWarning,
+    module="numpy",
+)
+warnings.filterwarnings(
+    "ignore", message="Mean of empty slice", category=RuntimeWarning
+)
+warnings.filterwarnings(
+    "ignore",
+    message="invalid value encountered in sqrt",
+    category=RuntimeWarning,
+    module="skimage",
+)
+warnings.filterwarnings(
+    "ignore",
+    message="invalid value encountered in double_scalars",
+    category=RuntimeWarning,
 )
 
 
