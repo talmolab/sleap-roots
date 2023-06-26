@@ -238,9 +238,8 @@ def get_traits_value_frame(
         fn_outputs = fn(*[input_trait for input_trait in inputs])
         if type(fn_outputs) == tuple:
             fn_outputs = np.array(fn_outputs).reshape((1, -1))
-        if (
-            isinstance(fn_outputs, (np.floating, float)) 
-            or isinstance(fn_outputs, (np.integer, int))
+        if isinstance(fn_outputs, (np.floating, float)) or isinstance(
+            fn_outputs, (np.integer, int)
         ):
             fn_outputs = np.array(fn_outputs)[np.newaxis]
         data[trait_name] = fn_outputs
@@ -441,7 +440,7 @@ def get_traits_value_plant_summary(
             trait = data_plant_df[SCALAR_TRAITS[i]]
             if trait.shape[0] > 0:
                 if not (
-                    isinstance(trait[0], (np.floating, float)) 
+                    isinstance(trait[0], (np.floating, float))
                     or isinstance(trait[0], (np.integer, int))
                 ):
                     values = np.array([element[0] for element in trait])

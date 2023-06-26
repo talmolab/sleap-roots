@@ -37,7 +37,7 @@ def count_scanline_intersections(
 
     intersection = []
 
-    for i in range(n_line): 
+    for i in range(n_line):
         horizontal_line_y = n_interval * (i + 1)
         intersection_line = 0
 
