@@ -224,20 +224,12 @@ def get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance):
         tolerance: difference in projection norm between the right and left side (~0.02).
 
     Returns:
-        A tuple of (dists, left_inds, right_inds) where:
-
-        - match_dists is the distance in pixels between the bases of matched
+        A match_dists is the distance in pixels between the bases of matched
             roots as a vector of size (n_matches,).
-        - left_inds is are the indices of the left roots that were matched as
-            a vector of size (n_matches,).
-        - right_inds is are the indices of the right roots that were matched as
-            a vector of size (n_matches,).
 
-        If all the lateral roots are on one side of the primary root, 3 empty arrays of
-        shape 0 are returned.
     """
     if np.isnan(primary_pts).all():
-        return []
+        return np.nan
     else:
         primary_pts_filtered = primary_pts[~np.isnan(primary_pts).any(axis=2)]
         primary_line = LineString(primary_pts_filtered)
@@ -256,7 +248,7 @@ def get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance):
 
         # Edge Case: Only found roots on one side.
         if is_left.all() or (~is_left).all():
-            return np.array([]), np.array([]), np.array([])
+            return np.nan
 
         # Get left and right base points.
         left_bases, right_bases = lateral_pts[is_left, 0], lateral_pts[~is_left, 0]
@@ -311,4 +303,4 @@ def get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance):
         left_inds = valid_inds[left_inds]
         right_inds = valid_inds[right_inds]
 
-    return match_dists, left_inds, right_inds
+    return match_dists

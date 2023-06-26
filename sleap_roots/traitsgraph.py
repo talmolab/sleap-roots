@@ -74,9 +74,8 @@ def get_traits_graph():
         ("primary_pts", "convex_hull"),
         ("lateral_pts", "convex_hull"),
         ("convex_hull", "chull_line_lengths"),
-        ("primary_pts", "scanline_intersections"),
-        ("lateral_pts", "scanline_intersections"),
-        ("scanline_intersections", "scanline_intersection_counts"),
+        ("primary_pts", "scanline_intersection_counts"),
+        ("lateral_pts", "scanline_intersection_counts"),
     ]
 
     G.add_edges_from(edge_list)

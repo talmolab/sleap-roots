@@ -2,6 +2,7 @@
 
 import numpy as np
 import pandas as pd
+import os
 from sleap_roots.traitsgraph import get_traits_graph
 from sleap_roots.angle import get_root_angle
 from sleap_roots.bases import (
@@ -44,12 +45,13 @@ from sleap_roots.points import get_all_pts_array, get_all_pts
 from sleap_roots.scanline import (
     count_scanline_intersections,
     get_scanline_first_ind,
-    get_scanline_intersections,
     get_scanline_last_ind,
 )
 from sleap_roots.series import Series
 from sleap_roots.summary import get_summary
 from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys
+from typing import Dict, Tuple
+import warnings
 
 
 SCALAR_TRAITS = (
@@ -94,6 +96,40 @@ NON_SCALAR_TRAITS = (
 )
 
 
+warnings.filterwarnings(
+    "ignore",
+    message="invalid value encountered in intersection",
+    category=RuntimeWarning,
+    module="shapely",
+)
+warnings.filterwarnings(
+    "ignore", message="All-NaN slice encountered", category=RuntimeWarning
+)
+warnings.filterwarnings(
+    "ignore", message="All-NaN axis encountered", category=RuntimeWarning
+)
+warnings.filterwarnings(
+    "ignore",
+    message="Degrees of freedom <= 0 for slice.",
+    category=RuntimeWarning,
+    module="numpy",
+)
+warnings.filterwarnings(
+    "ignore", message="Mean of empty slice", category=RuntimeWarning
+)
+warnings.filterwarnings(
+    "ignore",
+    message="invalid value encountered in sqrt",
+    category=RuntimeWarning,
+    module="skimage",
+)
+warnings.filterwarnings(
+    "ignore",
+    message="invalid value encountered in double_scalars",
+    category=RuntimeWarning,
+)
+
+
 def get_traits_value_frame(
     primary_pts: np.ndarray,
     lateral_pts: np.ndarray,
@@ -103,7 +139,7 @@ def get_traits_value_frame(
     n_line: int = 50,
     network_fraction: float = 2 / 3,
     lateral_only: bool = False,
-) -> pd.DataFrame:
+) -> Dict:
     """Get SLEAP traits per frame based on graph.
 
     Args:
@@ -117,7 +153,7 @@ def get_traits_value_frame(
         lateral_only: Boolean value, where false is dicot (default), true is rice.
 
     Return:
-        A DataFrame with all traits per frame.
+        A dictionary with all traits per frame.
     """
     trait_map = {
         # get_bases(pts: np.ndarray) -> np.ndarray
@@ -140,11 +176,6 @@ def get_traits_value_frame(
         ),
         # get_convhull_features(pts: Union[np.ndarray, ConvexHull]) -> Tuple[float, float, float, float]
         "convex_hull": (get_convhull_features, [pts_all_array]),
-        # get_scanline_intersections(primary_pts: np.ndarray,lateral_pts: np.ndarray,depth: int = 1080,width: int = 2048,n_line: int = 50,lateral_only: bool = False,) -> list
-        "scanline_intersections": (
-            get_scanline_intersections,
-            [primary_pts, lateral_pts, 1080, 2048, n_line, lateral_only],
-        ),
         # get_lateral_count(pts: np.ndarray)
         "lateral_count": (get_lateral_count, [lateral_pts]),
         # # get_root_angle(pts: np.ndarray, proximal=True, base_ind=0) -> np.ndarray
@@ -238,16 +269,16 @@ def get_traits_value_frame(
 
     data = {}
     for trait_name in dts:
-        outputs = (trait_name,)
         fn, inputs = trait_map[trait_name]
         fn_outputs = fn(*[input_trait for input_trait in inputs])
         if type(fn_outputs) == tuple:
             fn_outputs = np.array(fn_outputs).reshape((1, -1))
-        if type(fn_outputs) == np.ndarray and fn_outputs.shape == (fn_outputs.size,):
-            fn_outputs = fn_outputs.reshape((1, -1))
+        if isinstance(fn_outputs, (np.floating, float)) or isinstance(
+            fn_outputs, (np.integer, int)
+        ):
+            fn_outputs = np.array(fn_outputs)[np.newaxis]
         data[trait_name] = fn_outputs
-    data_df = pd.DataFrame.from_dict(data, orient="index").transpose()
-    return data_df
+    return data
 
 
 def get_traits_value_plant(
@@ -260,7 +291,7 @@ def get_traits_value_plant(
     network_fraction: float = 2 / 3,
     write_csv: bool = False,
     csv_name: str = "plant_original_traits.csv",
-) -> pd.DataFrame:
+) -> Tuple[Dict, pd.DataFrame]:
     """Get SLEAP traits per plant based on graph.
 
     Args:
@@ -275,30 +306,37 @@ def get_traits_value_plant(
         csv_name: saved csv file name.
 
     Return:
-        A DataFrame with all traits per plant.
+        Tuple of a dictionary and a DataFrame with all traits per plant.
     """
     plant = Series.load(h5, primary_name=primary_name, lateral_name=lateral_name)
     plant_name = plant.series_name
     # get nymber of frames per plant
     n_frame = len(plant)
 
-    data_plant = pd.DataFrame()
+    data_plant = []
     # get traits for each frames in a row
     for frame in range(n_frame):
         primary, lateral = plant[frame]
-        lateral_pts = lateral.numpy()
 
-        # get longest primary root
-        primary_pts = primary.numpy()
-        if get_root_lengths(primary_pts).shape[0] > 0:
-            pts_all_array = get_all_pts_array(
-                plant=plant, frame=frame, lateral_only=False
-            )
-            pts_all_array = pts_all_array.reshape(
-                (1, pts_all_array.shape[0], pts_all_array.shape[1])
-            )
-            pts_all_list = get_all_pts(plant=plant, frame=frame, lateral_only=False)
+        gt_instances_pr = primary.user_instances + primary.unused_predictions
+        gt_instances_lr = lateral.user_instances + lateral.unused_predictions
 
+        if len(gt_instances_lr) == 0:
+            lateral_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
+        else:
+            lateral_pts = np.stack([inst.numpy() for inst in gt_instances_lr], axis=0)
+
+        if len(gt_instances_pr) == 0:
+            primary_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
+        else:
+            primary_pts = np.stack([inst.numpy() for inst in gt_instances_pr], axis=0)
+
+        pts_all_array = get_all_pts_array(plant=plant, frame=frame, lateral_only=False)
+        if len(pts_all_array) == 0:
+            pts_all_array = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
+        pts_all_list = []
+
+        if get_root_lengths(primary_pts).shape[0] > 0 and not len(gt_instances_pr) == 0:
             max_length_idx = np.nanargmax(get_root_lengths(primary_pts))
             long_primary_pts = primary_pts[max_length_idx]
             primary_pts = np.reshape(
@@ -308,11 +346,6 @@ def get_traits_value_plant(
         else:
             # if no primary root, just give two nan points
             primary_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
-            pts_all_array = lateral_pts
-            pts_all_list = list(lateral_pts)
-        # if no lateral root, just give two nan points
-        if get_root_lengths(lateral_pts).shape[0] == 0:
-            lateral_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
 
         data = get_traits_value_frame(
             primary_pts,
@@ -324,18 +357,20 @@ def get_traits_value_plant(
             network_fraction,
             lateral_only,
         )
+
         data["plant_name"] = plant_name
         data["frame_idx"] = frame
-        data_plant = pd.concat([data_plant, data], ignore_index=True)
+        data_plant.append(data)
+    data_plant_df = pd.DataFrame(data_plant)
 
     # reorganize the column position
-    column_names = data_plant.columns.tolist()
+    column_names = data_plant_df.columns.tolist()
     column_names = [column_names[-2]] + [column_names[-1]] + column_names[:-2]
-    data_plant = data_plant[column_names]
+    data_plant_df = data_plant_df[column_names]
 
     if write_csv:
-        data_plant.to_csv(csv_name, index=False)
-    return data_plant
+        data_plant_df.to_csv(csv_name, index=False)
+    return data_plant, data_plant_df
 
 
 def get_traits_value_plant_summary(
@@ -369,7 +404,7 @@ def get_traits_value_plant_summary(
     Return:
         A DataFrame with all summarized traits per plant.
     """
-    data_plant = get_traits_value_plant(
+    data_plant, data_plant_df = get_traits_value_plant(
         h5,
         lateral_only,
         primary_name,
@@ -382,79 +417,71 @@ def get_traits_value_plant_summary(
     )
 
     # get summarized non-scalar traits per frame
-    data_plant_frame_summary = data_plant[["plant_name", "frame_idx"]]
+    data_plant_frame_summary = []
+    data_plant_frame_summary_non_scalar = {}
 
     for i in range(len(NON_SCALAR_TRAITS)):
-        trait = data_plant[NON_SCALAR_TRAITS[i]]
-        for j in range(len(trait)):
-            # reshape array of (n,) to (n,1)
-            if type(trait[j]) == np.ndarray and trait[j].shape == (trait[j].size,):
-                trait[j] = trait[j].reshape((1, -1))
-            if trait[j].shape[1] > 0:
-                (
-                    trait_min,
-                    trait_max,
-                    trait_mean,
-                    trait_median,
-                    trait_std,
-                    trait_prc5,
-                    trait_prc25,
-                    trait_prc75,
-                    trait_prc95,
-                ) = get_summary(trait[j])
+        trait = data_plant_df[NON_SCALAR_TRAITS[i]]
 
-                data_plant_frame_summary.at[
-                    j, NON_SCALAR_TRAITS[i] + "_fmin"
-                ] = trait_min
-                data_plant_frame_summary.at[
-                    j, NON_SCALAR_TRAITS[i] + "_fmax"
-                ] = trait_max
-                data_plant_frame_summary.at[
-                    j, NON_SCALAR_TRAITS[i] + "_fmean"
-                ] = trait_mean
-                data_plant_frame_summary.at[
-                    j, NON_SCALAR_TRAITS[i] + "_fmedian"
-                ] = trait_median
-                data_plant_frame_summary.at[
-                    j, NON_SCALAR_TRAITS[i] + "_fstd"
-                ] = trait_std
-                data_plant_frame_summary.at[
-                    j, NON_SCALAR_TRAITS[i] + "_fprc5"
-                ] = trait_prc5
-                data_plant_frame_summary.at[
-                    j, NON_SCALAR_TRAITS[i] + "_fprc25"
-                ] = trait_prc25
-                data_plant_frame_summary.at[
-                    j, NON_SCALAR_TRAITS[i] + "_fprc75"
-                ] = trait_prc75
-                data_plant_frame_summary.at[
-                    j, NON_SCALAR_TRAITS[i] + "_fprc95"
-                ] = trait_prc95
-            else:
-                data_plant_frame_summary.at[j, NON_SCALAR_TRAITS[i] + "_fmin"] = np.nan
-                data_plant_frame_summary.at[j, NON_SCALAR_TRAITS[i] + "_fmax"] = np.nan
-                data_plant_frame_summary.at[j, NON_SCALAR_TRAITS[i] + "_fmean"] = np.nan
-                data_plant_frame_summary.at[
-                    j, NON_SCALAR_TRAITS[i] + "_fmedian"
-                ] = np.nan
-                data_plant_frame_summary.at[j, NON_SCALAR_TRAITS[i] + "_fstd"] = np.nan
-                data_plant_frame_summary.at[j, NON_SCALAR_TRAITS[i] + "_fprc5"] = np.nan
-                data_plant_frame_summary.at[
-                    j, NON_SCALAR_TRAITS[i] + "_fprc25"
-                ] = np.nan
-                data_plant_frame_summary.at[
-                    j, NON_SCALAR_TRAITS[i] + "_fprc75"
-                ] = np.nan
-                data_plant_frame_summary.at[
-                    j, NON_SCALAR_TRAITS[i] + "_fprc95"
-                ] = np.nan
+        data_plant_frame_summary_non_scalar[
+            NON_SCALAR_TRAITS[i] + "_fmin"
+        ] = trait.apply(lambda x: np.nanmin(x) if (len(x) > 0) else np.nan)
+        data_plant_frame_summary_non_scalar[
+            NON_SCALAR_TRAITS[i] + "_fmax"
+        ] = trait.apply(lambda x: np.nanmax(x) if len(x) > 0 else np.nan)
+        data_plant_frame_summary_non_scalar[
+            NON_SCALAR_TRAITS[i] + "_fmean"
+        ] = trait.apply(lambda x: np.nanmean(x) if len(x) > 0 else np.nan)
+        data_plant_frame_summary_non_scalar[
+            NON_SCALAR_TRAITS[i] + "_fmedian"
+        ] = trait.apply(lambda x: np.nanmedian(x) if len(x) > 0 else np.nan)
+        data_plant_frame_summary_non_scalar[
+            NON_SCALAR_TRAITS[i] + "_fstd"
+        ] = trait.apply(lambda x: np.nanstd(x) if len(x) > 0 else np.nan)
+        data_plant_frame_summary_non_scalar[
+            NON_SCALAR_TRAITS[i] + "_fprc5"
+        ] = trait.apply(
+            lambda x: np.percentile(x[~pd.isna(x)], 5)
+            if len(x[~pd.isna(x)]) > 0
+            else np.nan
+        )
+        data_plant_frame_summary_non_scalar[
+            NON_SCALAR_TRAITS[i] + "_fprc25"
+        ] = trait.apply(
+            lambda x: np.percentile(x[~pd.isna(x)], 25)
+            if len(x[~pd.isna(x)]) > 0
+            else np.nan
+        )
+        data_plant_frame_summary_non_scalar[
+            NON_SCALAR_TRAITS[i] + "_fprc75"
+        ] = trait.apply(
+            lambda x: np.percentile(x[~pd.isna(x)], 75)
+            if len(x[~pd.isna(x)]) > 0
+            else np.nan
+        )
+        data_plant_frame_summary_non_scalar[
+            NON_SCALAR_TRAITS[i] + "_fprc95"
+        ] = trait.apply(
+            lambda x: np.percentile(x[~pd.isna(x)], 95)
+            if len(x[~pd.isna(x)]) > 0
+            else np.nan
+        )
 
     # get summarized scalar traits per plant
-    data_plant_summary = pd.DataFrame([{"plant_name": data_plant["plant_name"][0]}])
-    column_names = data_plant.columns.tolist()
+    column_names = data_plant_df.columns.tolist()
+    data_plant_frame_summary = {}
     for i in range(len(SCALAR_TRAITS)):
         if SCALAR_TRAITS[i] in column_names:
-            trait = data_plant[SCALAR_TRAITS[i]].values
+            trait = data_plant_df[SCALAR_TRAITS[i]]
+            if trait.shape[0] > 0:
+                if not (
+                    isinstance(trait[0], (np.floating, float))
+                    or isinstance(trait[0], (np.integer, int))
+                ):
+                    values = np.array([element[0] for element in trait])
+                    trait = values
+            trait = trait.astype(float)
+            trait = np.reshape(trait, (len(trait), 1))
             (
                 trait_min,
                 trait_max,
@@ -467,19 +494,20 @@ def get_traits_value_plant_summary(
                 trait_prc95,
             ) = get_summary(trait)
 
-            data_plant_summary[SCALAR_TRAITS[i] + "_min"] = trait_min
-            data_plant_summary[SCALAR_TRAITS[i] + "_max"] = trait_max
-            data_plant_summary[SCALAR_TRAITS[i] + "_mean"] = trait_mean
-            data_plant_summary[SCALAR_TRAITS[i] + "_median"] = trait_median
-            data_plant_summary[SCALAR_TRAITS[i] + "_std"] = trait_std
-            data_plant_summary[SCALAR_TRAITS[i] + "_prc5"] = trait_prc5
-            data_plant_summary[SCALAR_TRAITS[i] + "_prc25"] = trait_prc25
-            data_plant_summary[SCALAR_TRAITS[i] + "_prc75"] = trait_prc75
-            data_plant_summary[SCALAR_TRAITS[i] + "_prc95"] = trait_prc95
+            data_plant_frame_summary[SCALAR_TRAITS[i] + "_min"] = trait_min
+            data_plant_frame_summary[SCALAR_TRAITS[i] + "_max"] = trait_max
+            data_plant_frame_summary[SCALAR_TRAITS[i] + "_mean"] = trait_mean
+            data_plant_frame_summary[SCALAR_TRAITS[i] + "_median"] = trait_median
+            data_plant_frame_summary[SCALAR_TRAITS[i] + "_std"] = trait_std
+            data_plant_frame_summary[SCALAR_TRAITS[i] + "_prc5"] = trait_prc5
+            data_plant_frame_summary[SCALAR_TRAITS[i] + "_prc25"] = trait_prc25
+            data_plant_frame_summary[SCALAR_TRAITS[i] + "_prc75"] = trait_prc75
+            data_plant_frame_summary[SCALAR_TRAITS[i] + "_prc95"] = trait_prc95
 
     # append the summarized non-scalar traits per plant
-    # non-scalar traits
-    for j in range(len(data_plant_frame_summary.columns) - 2):
+    data_plant_frame_summary_key = list(data_plant_frame_summary_non_scalar.keys())
+    for j in range(len(data_plant_frame_summary_non_scalar)):
+        trait = data_plant_frame_summary_non_scalar[data_plant_frame_summary_key[j]]
         (
             trait_min,
             trait_max,
@@ -490,31 +518,33 @@ def get_traits_value_plant_summary(
             trait_prc25,
             trait_prc75,
             trait_prc95,
-        ) = get_summary(
-            data_plant_frame_summary.loc[:, data_plant_frame_summary.columns[j + 2]]
-        )
+        ) = get_summary(trait)
 
-        data_plant_summary[data_plant_frame_summary.columns[j + 2] + "_min"] = trait_min
-        data_plant_summary[data_plant_frame_summary.columns[j + 2] + "_max"] = trait_max
-        data_plant_summary[
-            data_plant_frame_summary.columns[j + 2] + "_mean"
-        ] = trait_mean
-        data_plant_summary[
-            data_plant_frame_summary.columns[j + 2] + "_median"
+        data_plant_frame_summary[data_plant_frame_summary_key[j] + "_min"] = trait_min
+        data_plant_frame_summary[data_plant_frame_summary_key[j] + "_max"] = trait_max
+        data_plant_frame_summary[data_plant_frame_summary_key[j] + "_mean"] = trait_mean
+        data_plant_frame_summary[
+            data_plant_frame_summary_key[j] + "_median"
         ] = trait_median
-        data_plant_summary[data_plant_frame_summary.columns[j + 2] + "_std"] = trait_std
-        data_plant_summary[
-            data_plant_frame_summary.columns[j + 2] + "_prc5"
-        ] = trait_prc5
-        data_plant_summary[
-            data_plant_frame_summary.columns[j + 2] + "_prc25"
+        data_plant_frame_summary[data_plant_frame_summary_key[j] + "_std"] = trait_std
+        data_plant_frame_summary[data_plant_frame_summary_key[j] + "_prc5"] = trait_prc5
+        data_plant_frame_summary[
+            data_plant_frame_summary_key[j] + "_prc25"
         ] = trait_prc25
-        data_plant_summary[
-            data_plant_frame_summary.columns[j + 2] + "_prc75"
+        data_plant_frame_summary[
+            data_plant_frame_summary_key[j] + "_prc75"
         ] = trait_prc75
-        data_plant_summary[
-            data_plant_frame_summary.columns[j + 2] + "_prc95"
+        data_plant_frame_summary[
+            data_plant_frame_summary_key[j] + "_prc95"
         ] = trait_prc95
+    data_plant_frame_summary["plant_name"] = [os.path.splitext(h5)[0]]
+    data_plant_frame_summary_df = pd.DataFrame(data_plant_frame_summary)
+
+    # reorganize the column position
+    column_names = data_plant_frame_summary_df.columns.tolist()
+    column_names = [column_names[-1]] + column_names[:-1]
+    data_plant_frame_summary_df = data_plant_frame_summary_df[column_names]
+
     if write_summary_csv:
-        data_plant_summary.to_csv(summary_csv_name, index=False)
-    return data_plant_summary
+        data_plant_frame_summary_df.to_csv(summary_csv_name, index=False)
+    return data_plant_frame_summary_df
