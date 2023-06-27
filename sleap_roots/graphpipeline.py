@@ -368,7 +368,20 @@ def get_traits_value_plant(
     column_names = [column_names[-2]] + [column_names[-1]] + column_names[:-2]
     data_plant_df = data_plant_df[column_names]
 
+    # convert the data in scalar column to the value without []
+    columns_to_convert = data_plant_df.columns[
+        data_plant_df.apply(
+            lambda x: all(
+                isinstance(val, np.ndarray) and val.shape == (1,) for val in x
+            )
+        )
+    ]
+    data_plant_df[columns_to_convert] = data_plant_df[columns_to_convert].apply(
+        lambda x: x.apply(lambda val: val[0])
+    )
+
     if write_csv:
+        csv_name = "plant_original_traits_" + plant_name + ".csv"
         data_plant_df.to_csv(csv_name, index=False)
     return data_plant, data_plant_df
 
