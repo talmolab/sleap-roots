@@ -156,8 +156,8 @@ def get_traits_value_frame(
         A dictionary with all traits per frame.
     """
     trait_map = {
-        # get_bases(pts: np.ndarray) -> np.ndarray
-        "primary_base_pt": (get_bases, [primary_pts]),
+        # get_bases(pts: np.ndarray,lateral_only) -> np.ndarray
+        "primary_base_pt": (get_bases, [primary_pts, lateral_only]),
         # get_root_angle(pts: np.ndarray, proximal=True, base_ind=0) -> np.ndarray
         "primary_angle_proximal": (get_root_angle, [primary_pts, True, 0]),
         "primary_angle_distal": (get_root_angle, [primary_pts, False, 0]),
@@ -169,10 +169,10 @@ def get_traits_value_frame(
         "ellipse": (fit_ellipse, [pts_all_array]),
         # get_bbox(pts: np.ndarray) -> Tuple[float, float, float, float]
         "bounding_box": (get_bbox, [pts_all_array]),
-        # get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance)
+        # get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance,lateral_only)
         "stem_widths": (
             get_root_pair_widths_projections,
-            [lateral_pts, primary_pts, stem_width_tolerance],
+            [lateral_pts, primary_pts, stem_width_tolerance, lateral_only],
         ),
         # get_convhull_features(pts: Union[np.ndarray, ConvexHull]) -> Tuple[float, float, float, float]
         "convex_hull": (get_convhull_features, [pts_all_array]),
@@ -183,8 +183,8 @@ def get_traits_value_frame(
         "lateral_angles_distal": (get_root_angle, [lateral_pts, False, 0]),
         # get_root_lengths(pts: np.ndarray) -> np.ndarray
         "lateral_lengths": (get_root_lengths, [lateral_pts]),
-        # get_bases(pts: np.ndarray) -> np.ndarray
-        "lateral_base_pts": (get_bases, [lateral_pts]),
+        # get_bases(pts: np.ndarray,lateral_only) -> np.ndarray
+        "lateral_base_pts": (get_bases, [lateral_pts, lateral_only]),
         # get_tips(pts)
         "lateral_tip_pts": (get_tips, [lateral_pts]),
         # get_base_ys(pts: np.ndarray) -> np.ndarray
