@@ -190,7 +190,7 @@ def test_get_all_pts(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts_all = get_all_pts(plant=plant, frame=0, lateral_only=False)
+    pts_all = get_all_pts(plant=plant, frame=0, monocots=False)
     assert len(pts_all) == 6
     assert len(pts_all[0]) == 6
     assert len(pts_all[1]) == 3
@@ -201,5 +201,5 @@ def test_get_all_pts_array(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts_all_array = get_all_pts_array(plant=plant, frame=0, lateral_only=False)
+    pts_all_array = get_all_pts_array(plant=plant, frame=0, monocots=False)
     assert pts_all_array.shape[0] == 21

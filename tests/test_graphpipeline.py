@@ -46,10 +46,10 @@ def lateral_pts():
 
 
 def test_get_traits_value_frame(primary_pts, lateral_pts):
-    lateral_only = False
+    monocots = False
     pts_all_array = (
         primary_pts.reshape(-1, 2)
-        if lateral_only
+        if monocots
         else np.concatenate(
             (primary_pts.reshape(-1, 2), lateral_pts.reshape(-1, 2)), axis=0
         )
@@ -58,21 +58,21 @@ def test_get_traits_value_frame(primary_pts, lateral_pts):
         (1, pts_all_array.shape[0], pts_all_array.shape[1])
     )
     pts_all_list = (
-        primary_pts if lateral_only else primary_pts.tolist() + lateral_pts.tolist()
+        primary_pts if monocots else primary_pts.tolist() + lateral_pts.tolist()
     )
 
     data = get_traits_value_frame(
-        primary_pts, lateral_pts, pts_all_array, pts_all_list, lateral_only
+        primary_pts, lateral_pts, pts_all_array, pts_all_list, monocots
     )
     assert len(data) == 43
 
 
 def test_get_traits_value_plant(canola_h5):
-    lateral_only = False
+    monocots = False
 
     data_plant, data_plant_df = get_traits_value_plant(
         canola_h5,
-        lateral_only,
+        monocots,
         primary_name="primary_multi_day",
         lateral_name="lateral_3_nodes",
         stem_width_tolerance=0.02,
@@ -86,10 +86,10 @@ def test_get_traits_value_plant(canola_h5):
 
 
 def test_get_traits_value_plant_summary(canola_h5):
-    lateral_only = False
+    monocots = False
     data_plant_summary = get_traits_value_plant_summary(
         canola_h5,
-        lateral_only,
+        monocots,
         primary_name="primary_multi_day",
         lateral_name="lateral_3_nodes",
         stem_width_tolerance=0.02,

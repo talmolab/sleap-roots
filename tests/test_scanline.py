@@ -63,9 +63,9 @@ def test_count_scanline_intersections_canola(canola_h5):
     depth = 1080
     width = 2048
     n_line = 50
-    lateral_only = False
+    monocots = False
     n_inter = count_scanline_intersections(
-        primary_pts, lateral_pts, depth, width, n_line, lateral_only
+        primary_pts, lateral_pts, depth, width, n_line, monocots
     )
     assert n_inter.shape == (50,)
     np.testing.assert_equal(n_inter[14], 1)
@@ -81,9 +81,9 @@ def test_count_scanline_intersections_rice(rice_h5):
     depth = 1080
     width = 2048
     n_line = 50
-    lateral_only = True
+    monocots = True
     n_inter = count_scanline_intersections(
-        primary_pts, lateral_pts, depth, width, n_line, lateral_only
+        primary_pts, lateral_pts, depth, width, n_line, monocots
     )
     assert n_inter.shape == (50,)
     np.testing.assert_equal(n_inter[14], 1)
@@ -100,9 +100,9 @@ def test_get_scanline_first_ind(canola_h5):
     depth = 1080
     width = 2048
     n_line = 50
-    lateral_only = False
+    monocots = False
     scanline_first_ind = get_scanline_first_ind(
-        primary_pts, lateral_pts, depth, width, n_line, lateral_only
+        primary_pts, lateral_pts, depth, width, n_line, monocots
     )
     np.testing.assert_equal(scanline_first_ind, 6)
 
@@ -118,8 +118,8 @@ def test_get_scanline_last_ind(canola_h5):
     depth = 1080
     width = 2048
     n_line = 50
-    lateral_only = True
+    monocots = True
     scanline_last_ind = get_scanline_last_ind(
-        primary_pts, lateral_pts, depth, width, n_line, lateral_only
+        primary_pts, lateral_pts, depth, width, n_line, monocots
     )
     np.testing.assert_equal(scanline_last_ind, np.nan)

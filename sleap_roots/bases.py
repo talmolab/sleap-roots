@@ -6,18 +6,18 @@ from shapely.geometry import LineString, Point
 from shapely.ops import nearest_points
 
 
-def get_bases(pts: np.ndarray, lateral_only: bool = False) -> np.ndarray:
+def get_bases(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
     """Return bases (r1) from each lateral root.
 
     Args:
         pts: Root landmarks as array of shape (instances, nodes, 2)
-        lateral_only: Boolean value, where false is dicot (default), true is rice.
+        monocots: Boolean value, where false is dicot (default), true is rice.
 
     Returns:
         Array of bases (instances, (x, y)).
     """
     # Get the first point of each instance. Shape is (instances, 2)
-    if lateral_only:
+    if monocots:
         return np.nan
     else:
         base_pts = pts[:, 0]
@@ -233,7 +233,7 @@ def get_base_median_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray):
 
 
 def get_root_pair_widths_projections(
-    lateral_pts, primary_pts, tolerance, lateral_only: bool = False
+    lateral_pts, primary_pts, tolerance, monocots: bool = False
 ):
     """Return estimation of stem width using bases of lateral roots.
 
@@ -241,14 +241,14 @@ def get_root_pair_widths_projections(
         lateral_pts: Lateral roots as arrays of shape (n, nodes, 2).
         primary_pts: longest primary root as arrays of shape (n, nodes, 2).
         tolerance: difference in projection norm between the right and left side (~0.02).
-        lateral_only: Boolean value, where false is dicot (default), true is rice.
+        monocots: Boolean value, where false is dicot (default), true is rice.
 
     Returns:
         A match_dists is the distance in pixels between the bases of matched
             roots as a vector of size (n_matches,).
 
     """
-    if lateral_only:
+    if monocots:
         return np.nan
     else:
         if np.isnan(primary_pts).all():

@@ -62,16 +62,14 @@ def get_lateral_pts(plant: Series, frame: int) -> np.ndarray:
     return pts_lr
 
 
-def get_all_pts(
-    plant: Series, frame: int, lateral_only: bool = False
-) -> List[np.ndarray]:
+def get_all_pts(plant: Series, frame: int, monocots: bool = False) -> List[np.ndarray]:
     """Get all points within a frame.
 
     Args:
         plant: Series object representing a plant image series.
         frame: frame index
         rice: boolean value, where True is rice frame
-        lateral_only: If False (the default), returns primary and lateral points
+        monocots: If False (the default), returns primary and lateral points
         combined. If True, only lateral root points will be returned. This is useful for
         monocot species such as rice.
 
@@ -83,20 +81,18 @@ def get_all_pts(
     pts_pr = get_primary_pts(plant, frame).tolist()
     pts_lr = get_lateral_pts(plant, frame).tolist()
 
-    pts_all = pts_lr if lateral_only else pts_pr + pts_lr
+    pts_all = pts_lr if monocots else pts_pr + pts_lr
 
     return pts_all
 
 
-def get_all_pts_array(
-    plant: Series, frame: int, lateral_only: bool = False
-) -> np.ndarray:
+def get_all_pts_array(plant: Series, frame: int, monocots: bool = False) -> np.ndarray:
     """Get all points within a frame as a flat array of coordinates.
 
     Args:
         plant: Series object representing a plant image series.
         frame: frame index
-        lateral_only: If False (the default), returns primary and lateral points
+        monocots: If False (the default), returns primary and lateral points
         combined. If True, only lateral root points will be returned. This is useful for
         monocot species such as rice.
 
@@ -110,7 +106,7 @@ def get_all_pts_array(
 
     pts_all_array = (
         pts_lr.reshape(-1, 2)
-        if lateral_only
+        if monocots
         else np.concatenate(
             (np.array(pts_pr).reshape(-1, 2), np.array(pts_lr).reshape(-1, 2)), axis=0
         )
