@@ -195,8 +195,12 @@ def get_base_length_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray):
     """
     base_length = get_base_length(lateral_pts)
     primary_length = get_root_lengths(primary_pts)
-    base_length_ratio = base_length / primary_length
-    return base_length_ratio
+    primary_length_max = get_root_lengths_max(primary_length)
+    if primary_length_max == 0:
+        return np.nan
+    else:
+        base_length_ratio = base_length / primary_length_max
+        return base_length_ratio
 
 
 def get_base_median_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray):
