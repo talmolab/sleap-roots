@@ -3,6 +3,8 @@
 import numpy as np
 import pandas as pd
 import os
+from typing import List
+from fractions import Fraction
 from sleap_roots.traitsgraph import get_traits_graph
 from sleap_roots.angle import get_root_angle
 from sleap_roots.bases import (
@@ -47,7 +49,7 @@ from sleap_roots.scanline import (
     get_scanline_first_ind,
     get_scanline_last_ind,
 )
-from sleap_roots.series import Series
+from sleap_roots.series import Series, find_all_series
 from sleap_roots.summary import get_summary
 from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys
 from typing import Dict, Tuple
@@ -310,7 +312,7 @@ def get_traits_value_plant(
     """
     plant = Series.load(h5, primary_name=primary_name, lateral_name=lateral_name)
     plant_name = plant.series_name
-    # get nymber of frames per plant
+    # get number of frames per plant
     n_frame = len(plant)
 
     data_plant = []
@@ -561,3 +563,61 @@ def get_traits_value_plant_summary(
     if write_summary_csv:
         data_plant_frame_summary_df.to_csv(summary_csv_name, index=False)
     return data_plant_frame_summary_df
+
+
+def get_all_plants_traits(
+    data_folders: List[str],
+    primary_name: str,
+    lateral_name: str,
+    stem_width_tolerance: float = 0.02,
+    n_line: int = 50,
+    network_fraction: Fraction = Fraction(2, 3),
+    overwrite: bool = False,
+    monocots: bool = False,
+    all_plants_csv_name: str = "all_plants_traits.csv",
+) -> pd.DataFrame:
+    """Get a DataFrame with summary traits from all plants in the given data folders.
+
+    Args:
+        data_folders: A list of directories containing .h5 files and .slp predictions.
+        primary_name: The primary model name.
+        lateral_name: The lateral model name.
+        stem_width_tolerance: The tolerance for the difference in projection norm between the right and left side.
+        n_line: The number of scan lines. Use np.nan for no interaction.
+        monocots: A boolean value where False represents dicots (default) and True represents rice (monocots).
+        network_fraction: The length found in the lower fraction value of the network.
+        overwrite: A boolean value. If True, it overwrites per plant CSVs; if False, skips existing CSV files.
+        all_plants_csv_name: The name of the output CSV file containing all plants' summary traits.
+
+    Returns:
+        A pandas DataFrame with summary root traits for all plants in the data folders.
+        Each row is a sample.
+    """
+    h5_series = find_all_series(data_folders)
+
+    all_traits = []
+    for h5 in h5_series:
+        csv_path = Path(h5).with_suffix(".traits.csv")
+
+        # Check if the CSV file already exists and overwrite is False
+        if not overwrite and csv_path.exists():
+            continue
+
+        plant_traits = get_traits_value_plant_summary(
+            h5,
+            monocots=monocots,
+            primary_name=primary_name,
+            lateral_name=lateral_name,
+            stem_width_tolerance=stem_width_tolerance,
+            n_line=n_line,
+            network_fraction=network_fraction,
+            write_csv=overwrite,
+            csv_name=csv_path.as_posix(),
+        )
+        plant_traits["path"] = h5
+        all_traits.append(plant_traits)
+
+    all_traits_df = pd.concat(all_traits, ignore_index=True)
+
+    all_traits_df.to_csv(all_plants_csv_name, index=False)
+    return all_traits_df
