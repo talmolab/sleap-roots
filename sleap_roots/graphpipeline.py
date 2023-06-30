@@ -573,7 +573,7 @@ def get_all_plants_traits(
     stem_width_tolerance: float = 0.02,
     n_line: int = 50,
     network_fraction: Fraction = Fraction(2, 3),
-    overwrite: bool = False,
+    write_per_plant: bool = False,
     monocots: bool = False,
     all_plants_csv_name: str = "all_plants_traits.csv",
 ) -> pd.DataFrame:
@@ -587,7 +587,7 @@ def get_all_plants_traits(
         n_line: The number of scan lines. Use np.nan for no interaction.
         monocots: A boolean value where False represents dicots (default) and True represents rice (monocots).
         network_fraction: The length found in the lower fraction value of the network.
-        overwrite: A boolean value. If True, it overwrites per plant CSVs; if False, skips existing CSV files.
+        write_per_plant: A boolean value. If True, it writes per plant CSVs.
         all_plants_csv_name: The name of the output CSV file containing all plants' summary traits.
 
     Returns:
@@ -600,10 +600,6 @@ def get_all_plants_traits(
     for h5 in h5_series:
         csv_path = Path(h5).with_suffix(".traits.csv")
 
-        # Check if the CSV file already exists and overwrite is False
-        if not overwrite and csv_path.exists():
-            continue
-
         plant_traits = get_traits_value_plant_summary(
             h5,
             monocots=monocots,
@@ -612,7 +608,7 @@ def get_all_plants_traits(
             stem_width_tolerance=stem_width_tolerance,
             n_line=n_line,
             network_fraction=network_fraction,
-            write_csv=overwrite,
+            write_csv=write_per_plant,
             csv_name=csv_path.as_posix(),
         )
         plant_traits["path"] = h5
