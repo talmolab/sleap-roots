@@ -2,9 +2,11 @@ from sleap_roots.graphpipeline import (
     get_traits_value_frame,
     get_traits_value_plant,
     get_traits_value_plant_summary,
+    get_all_plants_traits,
 )
 import pytest
 import numpy as np
+import pandas as pd
 
 
 @pytest.fixture
@@ -103,3 +105,30 @@ def test_get_traits_value_plant_summary(canola_h5):
     assert data_plant_summary.shape[0] == 1
     assert data_plant_summary.shape[1] == 1036
     np.testing.assert_almost_equal(data_plant_summary.iloc[0, 5], 16.643764612148875)
+
+
+def test_get_all_plants_traits(
+    data_folders=[r"E:\repositories\sleap-roots\tests\data\canola_7do"],
+    primary_name="primary_multi_day",
+    lateral_name="lateral_3_nodes",
+):
+    all_traits_df = get_all_plants_traits(
+        data_folders=data_folders, primary_name=primary_name, lateral_name=lateral_name
+    )
+    assert all_traits_df.shape == (1, 1037)
+    np.testing.assert_almost_equal(all_traits_df.iloc[0, 5], 16.643764612148875)
+
+
+def test_get_all_plants_traits_monocot(
+    data_folders=[r"E:\repositories\sleap-roots\tests\data\rice_3do"],
+    primary_name="longest_3do_6nodes",
+    lateral_name="main_3do_6nodes",
+):
+    all_traits_df = get_all_plants_traits(
+        data_folders=data_folders,
+        primary_name=primary_name,
+        lateral_name=lateral_name,
+        monocots=True,
+    )
+    assert all_traits_df.shape == (1, 1037)
+    # np.testing.assert_almost_equal(all_traits_df.iloc[0, 5], 16.643764612148875)
