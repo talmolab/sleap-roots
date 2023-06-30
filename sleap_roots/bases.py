@@ -235,7 +235,7 @@ def get_base_median_ratio(
     """
     _base_pts = get_bases(lateral_pts, monocots)
     pr_tip_depth = np.nanmax(primary_pts[:, :, 1])
-    if np.isnan(_base_pts):
+    if np.isnan(_base_pts).all():
         return np.nan
     else:
         base_median_ratio = np.nanmedian(_base_pts[:, 1]) / pr_tip_depth
