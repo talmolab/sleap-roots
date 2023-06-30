@@ -111,13 +111,15 @@ def test_get_all_plants_traits_dicot(
     data_folders=[r"E:\repositories\sleap-roots\tests\data\canola_7do"],
     primary_name="primary_multi_day",
     lateral_name="lateral_3_nodes",
-    write_per_plant=True,
+    write_per_plant_details=True,
+    write_per_plant_summary=True,
 ):
     all_traits_df = get_all_plants_traits(
         data_folders=data_folders,
         primary_name=primary_name,
         lateral_name=lateral_name,
-        write_per_plant=write_per_plant,
+        write_per_plant_details=write_per_plant_details,
+        write_per_plant_summary=write_per_plant_summary,
     )
     assert all_traits_df.shape == (1, 1037)
     np.testing.assert_almost_equal(all_traits_df.iloc[0, 5], 16.643764612148875)

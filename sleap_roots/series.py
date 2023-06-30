@@ -57,7 +57,7 @@ class Series:
     @property
     def series_name(self) -> str:
         """Name of the series derived from the HDF5 filename."""
-        return Path(self.h5_path).stem
+        return Path(self.h5_path).name.split(".")[0]
 
     @property
     def video(self) -> sio.Video:

@@ -293,8 +293,7 @@ def get_traits_value_plant(
     n_line: int = 50,
     network_fraction: float = 2 / 3,
     write_csv: bool = False,
-    csv_name: str = "plant_original_traits.csv",
-) -> Tuple[Dict, pd.DataFrame]:
+) -> Tuple[Dict, pd.DataFrame, str]:
     """Get SLEAP traits per plant based on graph.
 
     Args:
@@ -306,10 +305,9 @@ def get_traits_value_plant(
         n_line: number of scan lines, np.nan for no interaction.
         network_fraction: length found in the lower fration value of the network.
         write_csv: Boolean value, where true is write csv file.
-        csv_name: saved csv file name.
 
     Return:
-        Tuple of a dictionary and a DataFrame with all traits per plant.
+        Tuple of a dictionary and DataFrame with all traits per plant and the plant name.
     """
     plant = Series.load(h5, primary_name=primary_name, lateral_name=lateral_name)
     plant_name = plant.series_name
@@ -384,9 +382,9 @@ def get_traits_value_plant(
     )
 
     if write_csv:
-        csv_name = "plant_original_traits_" + plant_name + ".csv"
+        csv_name = Path(h5).with_suffix(".traits.csv")
         data_plant_df.to_csv(csv_name, index=False)
-    return data_plant, data_plant_df
+    return data_plant, data_plant_df, plant_name
 
 
 def get_traits_value_plant_summary(
@@ -398,9 +396,7 @@ def get_traits_value_plant_summary(
     n_line: int = 50,
     network_fraction: float = 2 / 3,
     write_csv: bool = False,
-    csv_name: str = "plant_original_traits.csv",
     write_summary_csv: bool = False,
-    summary_csv_name: str = "plant_summary_traits.csv",
 ) -> pd.DataFrame:
     """Get summarized SLEAP traits per plant based on graph.
 
@@ -413,14 +409,12 @@ def get_traits_value_plant_summary(
         n_line: number of scan lines, np.nan for no interaction.
         network_fraction: length found in the lower fration value of the network.
         write_csv: Boolean value, where true is write csv file.
-        csv_name: saved csv file name.
         write_summary_csv: Boolean value, where true is write summarized csv file.
-        summary_csv_name: saved summarized csv file name.
 
     Return:
         A DataFrame with all summarized traits per plant.
     """
-    data_plant, data_plant_df = get_traits_value_plant(
+    data_plant, data_plant_df, plant_name = get_traits_value_plant(
         h5,
         monocots,
         primary_name,
@@ -429,7 +423,6 @@ def get_traits_value_plant_summary(
         n_line,
         network_fraction,
         write_csv,
-        csv_name,
     )
 
     # get summarized non-scalar traits per frame
@@ -553,7 +546,7 @@ def get_traits_value_plant_summary(
         data_plant_frame_summary[
             data_plant_frame_summary_key[j] + "_prc95"
         ] = trait_prc95
-    data_plant_frame_summary["plant_name"] = [os.path.splitext(h5)[0]]
+    data_plant_frame_summary["plant_name"] = [plant_name]
     data_plant_frame_summary_df = pd.DataFrame(data_plant_frame_summary)
 
     # reorganize the column position
@@ -562,6 +555,7 @@ def get_traits_value_plant_summary(
     data_plant_frame_summary_df = data_plant_frame_summary_df[column_names]
 
     if write_summary_csv:
+        summary_csv_name = Path(h5).with_suffix(".summary_traits.csv")
         data_plant_frame_summary_df.to_csv(summary_csv_name, index=False)
     return data_plant_frame_summary_df
 
@@ -573,7 +567,8 @@ def get_all_plants_traits(
     stem_width_tolerance: float = 0.02,
     n_line: int = 50,
     network_fraction: Fraction = Fraction(2, 3),
-    write_per_plant: bool = False,
+    write_per_plant_details: bool = False,
+    write_per_plant_summary: bool = False,
     monocots: bool = False,
     all_plants_csv_name: str = "all_plants_traits.csv",
 ) -> pd.DataFrame:
@@ -587,7 +582,8 @@ def get_all_plants_traits(
         n_line: The number of scan lines. Use np.nan for no interaction.
         monocots: A boolean value where False represents dicots (default) and True represents rice (monocots).
         network_fraction: The length found in the lower fraction value of the network.
-        write_per_plant: A boolean value. If True, it writes per plant CSVs.
+        write_per_plant_details: A boolean value. If True, it writes per plant detailed CSVs with traits for every instance.
+        write_per_plant_summary: A boolean value. If True, it writes per plant summary CSVs.
         all_plants_csv_name: The name of the output CSV file containing all plants' summary traits.
 
     Returns:
@@ -598,8 +594,6 @@ def get_all_plants_traits(
 
     all_traits = []
     for h5 in h5_series:
-        csv_path = Path(h5).with_suffix(".traits.csv")
-
         plant_traits = get_traits_value_plant_summary(
             h5,
             monocots=monocots,
@@ -608,8 +602,8 @@ def get_all_plants_traits(
             stem_width_tolerance=stem_width_tolerance,
             n_line=n_line,
             network_fraction=network_fraction,
-            write_csv=write_per_plant,
-            csv_name=csv_path.as_posix(),
+            write_csv=write_per_plant_details,
+            write_summary_csv=write_per_plant_summary,
         )
         plant_traits["path"] = h5
         all_traits.append(plant_traits)
