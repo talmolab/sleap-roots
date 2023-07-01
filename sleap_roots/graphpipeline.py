@@ -442,19 +442,39 @@ def get_traits_value_plant_summary(
         if not trait.isna().all():
             data_plant_frame_summary_non_scalar[
                 NON_SCALAR_TRAITS[i] + "_fmin"
-            ] = trait.apply(lambda x: np.nanmin(x))
+            ] = trait.apply(
+                lambda x: x
+                if isinstance(x, (np.floating, float, np.integer, int))
+                else (np.nanmin(x) if len(x) > 0 else np.nan)
+            )
             data_plant_frame_summary_non_scalar[
                 NON_SCALAR_TRAITS[i] + "_fmax"
-            ] = trait.apply(lambda x: np.nanmax(x))
+            ] = trait.apply(
+                lambda x: x
+                if isinstance(x, (np.floating, float, np.integer, int))
+                else (np.nanmax(x) if len(x) > 0 else np.nan)
+            )
             data_plant_frame_summary_non_scalar[
                 NON_SCALAR_TRAITS[i] + "_fmean"
-            ] = trait.apply(lambda x: np.nanmean(x))
+            ] = trait.apply(
+                lambda x: x
+                if isinstance(x, (np.floating, float, np.integer, int))
+                else (np.nanmean(x) if len(x) > 0 else np.nan)
+            )
             data_plant_frame_summary_non_scalar[
                 NON_SCALAR_TRAITS[i] + "_fmedian"
-            ] = trait.apply(lambda x: np.nanmedian(x))
+            ] = trait.apply(
+                lambda x: x
+                if isinstance(x, (np.floating, float, np.integer, int))
+                else (np.nanmedian(x) if len(x) > 0 else np.nan)
+            )
             data_plant_frame_summary_non_scalar[
                 NON_SCALAR_TRAITS[i] + "_fstd"
-            ] = trait.apply(lambda x: np.nanstd(x))
+            ] = trait.apply(
+                lambda x: x
+                if isinstance(x, (np.floating, float, np.integer, int))
+                else (np.nanstd(x) if len(x) > 0 else np.nan)
+            )
             data_plant_frame_summary_non_scalar[
                 NON_SCALAR_TRAITS[i] + "_fprc5"
             ] = trait.apply(
