@@ -113,16 +113,17 @@ def get_lateral_count(pts: np.ndarray):
     return lateral_count
 
 
-def get_base_xs(pts: np.ndarray) -> np.ndarray:
+def get_base_xs(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
     """Get x coordinations of base points.
 
     Args:
         pts: root landmarks as array of shape (instance, point, 2)
+        monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
         An array of bases in x axis (instance,).
     """
-    _base_pts = get_bases(pts)
+    _base_pts = get_bases(pts, monocots)
     if isinstance(_base_pts, (np.floating, float, np.integer, int)):
         return np.nan
     else:
@@ -130,16 +131,17 @@ def get_base_xs(pts: np.ndarray) -> np.ndarray:
         return base_xs
 
 
-def get_base_ys(pts: np.ndarray) -> np.ndarray:
+def get_base_ys(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
     """Get y coordinations of base points.
 
     Args:
         pts: root landmarks as array of shape (instance, point, 2)
+        monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
         An array of bases in y axis (instance,).
     """
-    _base_pts = get_bases(pts)
+    _base_pts = get_bases(pts, monocots)
     if isinstance(_base_pts, (np.floating, float, np.integer, int)):
         return np.nan
     else:
@@ -147,32 +149,34 @@ def get_base_ys(pts: np.ndarray) -> np.ndarray:
         return base_ys
 
 
-def get_base_length(pts: np.ndarray):
+def get_base_length(pts: np.ndarray, monocots: bool = False):
     """Get lateral roots top and deepest bases distance in y axis.
 
     Args:
         pts: lateral root landmarks as array of shape (instance, point, 2)
+        monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
         Top and deepest bases distance y-axis.
     """
-    base_ys = get_base_ys(pts)
+    base_ys = get_base_ys(pts, monocots)
     base_length = np.nanmax(base_ys) - np.nanmin(base_ys)
     return base_length
 
 
-def get_base_ct_density(primary_pts, lateral_pts):
+def get_base_ct_density(primary_pts, lateral_pts, monocots: bool = False):
     """Get number of base points to maximum primary root length.
 
     Args:
         primary_pts: primary root points
         lateral_pts: lateral root points
+        monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
         Scalar of base count density.
     """
     # get number of base points of lateral roots
-    _base_pts = get_bases(lateral_pts)
+    _base_pts = get_bases(lateral_pts, monocots)
     if isinstance(_base_pts, (np.floating, float, np.integer, int)):
         return np.nan
     else:
@@ -216,20 +220,26 @@ def get_base_length_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray):
         return base_length_ratio
 
 
-def get_base_median_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray):
+def get_base_median_ratio(
+    primary_pts: np.ndarray, lateral_pts: np.ndarray, monocots: bool = False
+):
     """Get ratio of median value in all base points to tip of primary root in y axis.
 
     Args:
         primary_pts: primary root points.
         lateral_pts: lateral root points.
+        monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
         Scalar of base median ratio.
     """
-    _base_pts = get_bases(lateral_pts)
+    _base_pts = get_bases(lateral_pts, monocots)
     pr_tip_depth = np.nanmax(primary_pts[:, :, 1])
-    base_median_ratio = np.nanmedian(_base_pts[:, 1]) / pr_tip_depth
-    return base_median_ratio
+    if np.isnan(_base_pts).all():
+        return np.nan
+    else:
+        base_median_ratio = np.nanmedian(_base_pts[:, 1]) / pr_tip_depth
+        return base_median_ratio
 
 
 def get_root_pair_widths_projections(

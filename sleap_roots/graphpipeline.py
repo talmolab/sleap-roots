@@ -195,7 +195,7 @@ def get_traits_value_frame(
         # "primary_base_pt_y": (get_pt_ys, [data["primary_base_pt"]]),
         "primary_base_pt_y": (get_base_ys, [primary_pts]),
         # get_base_ct_density(primary_pts, lateral_pts)
-        "base_ct_density": (get_base_ct_density, [primary_pts, lateral_pts]),
+        "base_ct_density": (get_base_ct_density, [primary_pts, lateral_pts, monocots]),
         # get_network_solidity(primary_pts: np.ndarray, lateral_pts: np.ndarray, pts_all_array: np.ndarray, monocots: bool = False,) -> float
         "network_solidity": (
             get_network_solidity,
@@ -235,9 +235,9 @@ def get_traits_value_frame(
             [primary_pts, lateral_pts, 1080, 2048, 50, monocots],
         ),
         # get_base_xs(pts: np.ndarray) -> np.ndarray
-        "lateral_base_xs": (get_base_xs, [lateral_pts]),
+        "lateral_base_xs": (get_base_xs, [lateral_pts, monocots]),
         # get_base_ys(pts: np.ndarray) -> np.ndarray
-        "lateral_base_ys": (get_base_ys, [lateral_pts]),
+        "lateral_base_ys": (get_base_ys, [lateral_pts, monocots]),
         # get_tip_xs(pts: np.ndarray) -> np.ndarray
         "lateral_tip_xs": (get_tip_xs, [lateral_pts]),
         # get_tip_ys(pts: np.ndarray) -> np.ndarray
@@ -247,7 +247,10 @@ def get_traits_value_frame(
         # get_primary_depth(primary_pts)
         "primary_depth": (get_primary_depth, [primary_pts]),
         # get_base_median_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray)
-        "base_median_ratio": (get_base_median_ratio, [primary_pts, lateral_pts]),
+        "base_median_ratio": (
+            get_base_median_ratio,
+            [primary_pts, lateral_pts, monocots],
+        ),
         # get_ellipse_ratio(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
         "ellipse_ratio": (get_ellipse_ratio, [pts_all_array]),
         # get_scanline_last_ind(primary_pts: np.ndarray,lateral_pts: np.ndarray,depth: int = 1080, width: int = 2048, n_line: int = 50, monocots: bool = False)
@@ -261,7 +264,7 @@ def get_traits_value_frame(
             [primary_pts, lateral_pts, 1080, 2048, n_line, monocots],
         ),
         # get_base_length(pts: np.ndarray)
-        "base_length": (get_base_length, [lateral_pts]),
+        "base_length": (get_base_length, [lateral_pts, monocots]),
         # get_grav_index(pts: np.ndarray)
         "grav_index": (get_grav_index, [primary_pts]),
         # get_base_length_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray)
@@ -432,49 +435,98 @@ def get_traits_value_plant_summary(
     for i in range(len(NON_SCALAR_TRAITS)):
         trait = data_plant_df[NON_SCALAR_TRAITS[i]]
 
-        data_plant_frame_summary_non_scalar[
-            NON_SCALAR_TRAITS[i] + "_fmin"
-        ] = trait.apply(lambda x: np.nanmin(x) if (len(x) > 0) else np.nan)
-        data_plant_frame_summary_non_scalar[
-            NON_SCALAR_TRAITS[i] + "_fmax"
-        ] = trait.apply(lambda x: np.nanmax(x) if len(x) > 0 else np.nan)
-        data_plant_frame_summary_non_scalar[
-            NON_SCALAR_TRAITS[i] + "_fmean"
-        ] = trait.apply(lambda x: np.nanmean(x) if len(x) > 0 else np.nan)
-        data_plant_frame_summary_non_scalar[
-            NON_SCALAR_TRAITS[i] + "_fmedian"
-        ] = trait.apply(lambda x: np.nanmedian(x) if len(x) > 0 else np.nan)
-        data_plant_frame_summary_non_scalar[
-            NON_SCALAR_TRAITS[i] + "_fstd"
-        ] = trait.apply(lambda x: np.nanstd(x) if len(x) > 0 else np.nan)
-        data_plant_frame_summary_non_scalar[
-            NON_SCALAR_TRAITS[i] + "_fprc5"
-        ] = trait.apply(
-            lambda x: np.percentile(x[~pd.isna(x)], 5)
-            if len(x[~pd.isna(x)]) > 0
-            else np.nan
-        )
-        data_plant_frame_summary_non_scalar[
-            NON_SCALAR_TRAITS[i] + "_fprc25"
-        ] = trait.apply(
-            lambda x: np.percentile(x[~pd.isna(x)], 25)
-            if len(x[~pd.isna(x)]) > 0
-            else np.nan
-        )
-        data_plant_frame_summary_non_scalar[
-            NON_SCALAR_TRAITS[i] + "_fprc75"
-        ] = trait.apply(
-            lambda x: np.percentile(x[~pd.isna(x)], 75)
-            if len(x[~pd.isna(x)]) > 0
-            else np.nan
-        )
-        data_plant_frame_summary_non_scalar[
-            NON_SCALAR_TRAITS[i] + "_fprc95"
-        ] = trait.apply(
-            lambda x: np.percentile(x[~pd.isna(x)], 95)
-            if len(x[~pd.isna(x)]) > 0
-            else np.nan
-        )
+        if not trait.isna().all():
+            data_plant_frame_summary_non_scalar[
+                NON_SCALAR_TRAITS[i] + "_fmin"
+            ] = trait.apply(
+                lambda x: x
+                if isinstance(x, (np.floating, float, np.integer, int))
+                else (np.nanmin(x) if len(x) > 0 else np.nan)
+            )
+            data_plant_frame_summary_non_scalar[
+                NON_SCALAR_TRAITS[i] + "_fmax"
+            ] = trait.apply(
+                lambda x: x
+                if isinstance(x, (np.floating, float, np.integer, int))
+                else (np.nanmax(x) if len(x) > 0 else np.nan)
+            )
+            data_plant_frame_summary_non_scalar[
+                NON_SCALAR_TRAITS[i] + "_fmean"
+            ] = trait.apply(
+                lambda x: x
+                if isinstance(x, (np.floating, float, np.integer, int))
+                else (np.nanmean(x) if len(x) > 0 else np.nan)
+            )
+            data_plant_frame_summary_non_scalar[
+                NON_SCALAR_TRAITS[i] + "_fmedian"
+            ] = trait.apply(
+                lambda x: x
+                if isinstance(x, (np.floating, float, np.integer, int))
+                else (np.nanmedian(x) if len(x) > 0 else np.nan)
+            )
+            data_plant_frame_summary_non_scalar[
+                NON_SCALAR_TRAITS[i] + "_fstd"
+            ] = trait.apply(
+                lambda x: x
+                if isinstance(x, (np.floating, float, np.integer, int))
+                else (np.nanstd(x) if len(x) > 0 else np.nan)
+            )
+            data_plant_frame_summary_non_scalar[
+                NON_SCALAR_TRAITS[i] + "_fprc5"
+            ] = trait.apply(
+                lambda x: x
+                if isinstance(x, (np.floating, float, np.integer, int))
+                else (np.nan if np.isnan(x).all() else np.percentile(x[~pd.isna(x)], 5))
+            )
+            data_plant_frame_summary_non_scalar[
+                NON_SCALAR_TRAITS[i] + "_fprc25"
+            ] = trait.apply(
+                lambda x: x
+                if isinstance(x, (np.floating, float, np.integer, int))
+                else (
+                    np.nan if np.isnan(x).all() else np.percentile(x[~pd.isna(x)], 25)
+                )
+            )
+            data_plant_frame_summary_non_scalar[
+                NON_SCALAR_TRAITS[i] + "_fprc75"
+            ] = trait.apply(
+                lambda x: x
+                if isinstance(x, (np.floating, float, np.integer, int))
+                else (
+                    np.nan if np.isnan(x).all() else np.percentile(x[~pd.isna(x)], 75)
+                )
+            )
+            data_plant_frame_summary_non_scalar[
+                NON_SCALAR_TRAITS[i] + "_fprc95"
+            ] = trait.apply(
+                lambda x: x
+                if isinstance(x, (np.floating, float, np.integer, int))
+                else (
+                    np.nan if np.isnan(x).all() else np.percentile(x[~pd.isna(x)], 95)
+                )
+            )
+        else:
+            data_plant_frame_summary_non_scalar[NON_SCALAR_TRAITS[i] + "_fmin"] = np.nan
+            data_plant_frame_summary_non_scalar[NON_SCALAR_TRAITS[i] + "_fmax"] = np.nan
+            data_plant_frame_summary_non_scalar[
+                NON_SCALAR_TRAITS[i] + "_fmean"
+            ] = np.nan
+            data_plant_frame_summary_non_scalar[
+                NON_SCALAR_TRAITS[i] + "_fmedian"
+            ] = np.nan
+            data_plant_frame_summary_non_scalar[NON_SCALAR_TRAITS[i] + "_fstd"] = np.nan
+            data_plant_frame_summary_non_scalar[
+                NON_SCALAR_TRAITS[i] + "_fprc5"
+            ] = np.nan
+            data_plant_frame_summary_non_scalar[
+                NON_SCALAR_TRAITS[i] + "_fprc25"
+            ] = np.nan
+            data_plant_frame_summary_non_scalar[
+                NON_SCALAR_TRAITS[i] + "_fprc75"
+            ] = np.nan
+            data_plant_frame_summary_non_scalar[
+                NON_SCALAR_TRAITS[i] + "_fprc95"
+            ] = np.nan
 
     # get summarized scalar traits per plant
     column_names = data_plant_df.columns.tolist()

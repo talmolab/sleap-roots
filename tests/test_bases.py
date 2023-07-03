@@ -284,11 +284,12 @@ def test_get_lateral_count(canola_h5):
 
 # test get_base_xs with canola
 def test_get_base_xs_canola(canola_h5):
+    monocots = False
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
     pts_lr = get_lateral_pts(plant=plant, frame=0)
-    base_xs = get_base_xs(pts_lr)
+    base_xs = get_base_xs(pts_lr, monocots)
     assert base_xs.shape[0] == 5
     np.testing.assert_almost_equal(base_xs[1], 1112.5506591796875, decimal=3)
 
@@ -310,11 +311,12 @@ def test_get_base_xs_no_roots(pts_no_roots):
 
 # test get_base_ys with canola
 def test_get_base_ys_canola(canola_h5):
+    monocots = False
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
     pts_lr = get_lateral_pts(plant=plant, frame=0)
-    base_ys = get_base_ys(pts_lr)
+    base_ys = get_base_ys(pts_lr, monocots)
     assert base_ys.shape[0] == 5
     np.testing.assert_almost_equal(base_ys[1], 228.0966796875, decimal=3)
 
@@ -364,13 +366,14 @@ def test_get_base_ct_density(primary_pts, lateral_pts):
 
 # test get_base_ct_density function with canola example
 def test_get_base_ct_density_canola(canola_h5):
+    monocots = False
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
     primary, lateral = series[0]
     primary_pts = primary.numpy()
     lateral_pts = lateral.numpy()
-    base_ct_density = get_base_ct_density(primary_pts, lateral_pts)
+    base_ct_density = get_base_ct_density(primary_pts, lateral_pts, monocots)
     np.testing.assert_almost_equal(base_ct_density, 0.004119, decimal=5)
 
 
