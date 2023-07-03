@@ -578,13 +578,18 @@ def get_all_plants_traits(
         data_folders: A list of directories containing .h5 files and .slp predictions.
         primary_name: The primary model name.
         lateral_name: The lateral model name.
-        stem_width_tolerance: The tolerance for the difference in projection norm between the right and left side.
+        stem_width_tolerance: The tolerance for the difference in projection norm
+            between the right and left side.
         n_line: The number of scan lines. Use np.nan for no interaction.
-        monocots: A boolean value where False represents dicots (default) and True represents rice (monocots).
+        monocots: A boolean value where False represents dicots (default)
+            and True represents rice (monocots).
         network_fraction: The length found in the lower fraction value of the network.
-        write_per_plant_details: A boolean value. If True, it writes per plant detailed CSVs with traits for every instance.
-        write_per_plant_summary: A boolean value. If True, it writes per plant summary CSVs.
-        all_plants_csv_name: The name of the output CSV file containing all plants' summary traits.
+        write_per_plant_details: A boolean value. If True, it writes per plant detailed
+            CSVs with traits for every instance.
+        write_per_plant_summary: A boolean value. If True, it writes per plant summary
+            CSVs.
+        all_plants_csv_name: The name of the output CSV file containing all plants'
+            summary traits.
 
     Returns:
         A pandas DataFrame with summary root traits for all plants in the data folders.
