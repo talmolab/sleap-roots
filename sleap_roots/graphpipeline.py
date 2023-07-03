@@ -131,6 +131,12 @@ warnings.filterwarnings(
     message="invalid value encountered in double_scalars",
     category=RuntimeWarning,
 )
+warnings.filterwarnings(
+    "ignore",
+    message="invalid value encountered in scalar divide",
+    category=RuntimeWarning,
+    module="ellipse",
+)
 
 
 def get_traits_value_frame(
