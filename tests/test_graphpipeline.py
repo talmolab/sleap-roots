@@ -120,3 +120,20 @@ def test_get_all_plants_traits_dicot(canola_folder):
     )
     assert all_traits_df.shape == (1, 1037)
     np.testing.assert_almost_equal(all_traits_df.iloc[0, 5], 16.643764612148875)
+
+
+def tests_get_all_plants_traits_monocot(rice_folder):
+    data_folders = [rice_folder]
+    primary_name = "longest_3do_6nodes"
+    lateral_name = "main_3do_6nodes"
+    write_per_plant_details = True
+    write_per_plant_summary = True
+    all_traits_df = get_all_plants_traits(
+        data_folders=data_folders,
+        primary_name=primary_name,
+        lateral_name=lateral_name,
+        write_per_plant_details=write_per_plant_details,
+        write_per_plant_summary=write_per_plant_summary,
+    )
+    assert all_traits_df.shape == (1, 1037)
+    np.testing.assert_almost_equal(all_traits_df.iloc[0, 5], 3.716619501198254)
