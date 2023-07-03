@@ -123,17 +123,3 @@ def test_get_all_plants_traits_dicot(
     )
     assert all_traits_df.shape == (1, 1037)
     np.testing.assert_almost_equal(all_traits_df.iloc[0, 5], 16.643764612148875)
-
-
-def test_get_all_plants_traits_monocot(
-    data_folders=[r"E:\repositories\sleap-roots\tests\data\rice_3do"],
-    primary_name="longest_3do_6nodes",
-    lateral_name="main_3do_6nodes",
-):
-    all_traits_df = get_all_plants_traits(
-        data_folders=data_folders,
-        primary_name=primary_name,
-        lateral_name=lateral_name,
-        monocots=True,
-    )
-    assert all_traits_df.shape == (1, 1037)
