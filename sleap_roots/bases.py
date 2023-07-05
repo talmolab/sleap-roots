@@ -6,18 +6,22 @@ from shapely.geometry import LineString, Point
 from shapely.ops import nearest_points
 
 
-def get_bases(pts: np.ndarray) -> np.ndarray:
+def get_bases(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
     """Return bases (r1) from each lateral root.
 
     Args:
         pts: Root landmarks as array of shape (instances, nodes, 2)
+        monocots: Boolean value, where false is dicot (default), true is rice.
 
     Returns:
         Array of bases (instances, (x, y)).
     """
     # Get the first point of each instance. Shape is (instances, 2)
-    base_pts = pts[:, 0]
-    return base_pts
+    if monocots:
+        return np.nan
+    else:
+        base_pts = pts[:, 0]
+        return base_pts
 
 
 def get_root_lengths(pts: np.ndarray) -> np.ndarray:
@@ -109,65 +113,78 @@ def get_lateral_count(pts: np.ndarray):
     return lateral_count
 
 
-def get_base_xs(pts: np.ndarray) -> np.ndarray:
+def get_base_xs(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
     """Get x coordinations of base points.
 
     Args:
         pts: root landmarks as array of shape (instance, point, 2)
+        monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
         An array of bases in x axis (instance,).
     """
-    _base_pts = get_bases(pts)
-    base_xs = _base_pts[:, 0]
-    return base_xs
+    _base_pts = get_bases(pts, monocots)
+    if isinstance(_base_pts, (np.floating, float, np.integer, int)):
+        return np.nan
+    else:
+        base_xs = _base_pts[:, 0]
+        return base_xs
 
 
-def get_base_ys(pts: np.ndarray) -> np.ndarray:
+def get_base_ys(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
     """Get y coordinations of base points.
 
     Args:
         pts: root landmarks as array of shape (instance, point, 2)
+        monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
         An array of bases in y axis (instance,).
     """
-    _base_pts = get_bases(pts)
-    base_ys = _base_pts[:, 1]
-    return base_ys
+    _base_pts = get_bases(pts, monocots)
+    if isinstance(_base_pts, (np.floating, float, np.integer, int)):
+        return np.nan
+    else:
+        base_ys = _base_pts[:, 1]
+        return base_ys
 
 
-def get_base_length(pts: np.ndarray):
+def get_base_length(pts: np.ndarray, monocots: bool = False):
     """Get lateral roots top and deepest bases distance in y axis.
 
     Args:
         pts: lateral root landmarks as array of shape (instance, point, 2)
+        monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
         Top and deepest bases distance y-axis.
     """
-    base_ys = get_base_ys(pts)
+    base_ys = get_base_ys(pts, monocots)
     base_length = np.nanmax(base_ys) - np.nanmin(base_ys)
     return base_length
 
 
-def get_base_ct_density(primary_pts, lateral_pts):
+def get_base_ct_density(primary_pts, lateral_pts, monocots: bool = False):
     """Get number of base points to maximum primary root length.
 
     Args:
         primary_pts: primary root points
         lateral_pts: lateral root points
+        monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
         Scalar of base count density.
     """
     # get number of base points of lateral roots
-    _base_pts = get_bases(lateral_pts)
-    base_ct = len(_base_pts[~np.isnan(_base_pts[:, 0])])
-    # get primary root length
-    lengths_primary = get_root_lengths(primary_pts)
-    base_ct_density = base_ct / np.nanmax(lengths_primary)
-    return base_ct_density
+    _base_pts = get_bases(lateral_pts, monocots)
+    if isinstance(_base_pts, (np.floating, float, np.integer, int)):
+        return np.nan
+    else:
+        base_ct = len(_base_pts[~np.isnan(_base_pts[:, 0])])
+        # get primary root length
+        lengths_primary = get_root_lengths(primary_pts)
+        base_ct_density = base_ct / np.nanmax(lengths_primary)
+        return base_ct_density
 
 
 def get_primary_depth(primary_pts):
@@ -195,112 +212,135 @@ def get_base_length_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray):
     """
     base_length = get_base_length(lateral_pts)
     primary_length = get_root_lengths(primary_pts)
-    base_length_ratio = base_length / primary_length
-    return base_length_ratio
+    primary_length_max = get_root_lengths_max(primary_length)
+    if primary_length_max == 0:
+        return np.nan
+    else:
+        base_length_ratio = base_length / primary_length_max
+        return base_length_ratio
 
 
-def get_base_median_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray):
+def get_base_median_ratio(
+    primary_pts: np.ndarray, lateral_pts: np.ndarray, monocots: bool = False
+):
     """Get ratio of median value in all base points to tip of primary root in y axis.
 
     Args:
         primary_pts: primary root points.
         lateral_pts: lateral root points.
+        monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
         Scalar of base median ratio.
     """
-    _base_pts = get_bases(lateral_pts)
+    _base_pts = get_bases(lateral_pts, monocots)
     pr_tip_depth = np.nanmax(primary_pts[:, :, 1])
-    base_median_ratio = np.nanmedian(_base_pts[:, 1]) / pr_tip_depth
-    return base_median_ratio
+    if np.isnan(_base_pts).all():
+        return np.nan
+    else:
+        base_median_ratio = np.nanmedian(_base_pts[:, 1]) / pr_tip_depth
+        return base_median_ratio
 
 
-def get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance):
+def get_root_pair_widths_projections(
+    lateral_pts, primary_pts, tolerance, monocots: bool = False
+):
     """Return estimation of stem width using bases of lateral roots.
 
     Args:
         lateral_pts: Lateral roots as arrays of shape (n, nodes, 2).
         primary_pts: longest primary root as arrays of shape (n, nodes, 2).
         tolerance: difference in projection norm between the right and left side (~0.02).
+        monocots: Boolean value, where false is dicot (default), true is rice.
 
     Returns:
         A match_dists is the distance in pixels between the bases of matched
             roots as a vector of size (n_matches,).
 
     """
-    if np.isnan(primary_pts).all():
+    if monocots:
         return np.nan
     else:
-        primary_pts_filtered = primary_pts[~np.isnan(primary_pts).any(axis=2)]
-        primary_line = LineString(primary_pts_filtered)
-
-        # Make a line of the primary points
-        primary_line = LineString(primary_pts_filtered)
-
-        # Filter by whether the base node is present.
-        has_base = ~np.isnan(lateral_pts[:, 0, 0])
-        valid_inds = np.argwhere(has_base).squeeze()
-        lateral_pts = lateral_pts[has_base]
-
-        # Find roots facing left based on whether the base x-coord
-        # is larger than the tip x-coord.
-        is_left = lateral_pts[:, 0, 0] > np.nanmin(lateral_pts[:, 1:, 0], axis=1)
-
-        # Edge Case: Only found roots on one side.
-        if is_left.all() or (~is_left).all():
+        if np.isnan(primary_pts).all():
             return np.nan
+        else:
+            primary_pts_filtered = primary_pts[~np.isnan(primary_pts).any(axis=2)]
+            primary_line = LineString(primary_pts_filtered)
 
-        # Get left and right base points.
-        left_bases, right_bases = lateral_pts[is_left, 0], lateral_pts[~is_left, 0]
+            # Make a line of the primary points
+            primary_line = LineString(primary_pts_filtered)
 
-        # Find the nearest point to each right lateral base on the primary root line
-        nearest_primary_right = [
-            nearest_points(primary_line, Point(right_base))[0]
-            for right_base in right_bases
-        ]
+            # Filter by whether the base node is present.
+            has_base = ~np.isnan(lateral_pts[:, 0, 0])
+            valid_inds = np.argwhere(has_base).squeeze()
+            lateral_pts = lateral_pts[has_base]
 
-        # Find the nearest point to each left lateral base on the primary root line
-        nearest_primary_left = [
-            nearest_points(primary_line, Point(left_base))[0]
-            for left_base in left_bases
-        ]
+            # Find roots facing left based on whether the base x-coord
+            # is larger than the tip x-coord.
+            is_left = lateral_pts[:, 0, 0] > np.nanmin(lateral_pts[:, 1:, 0], axis=1)
 
-        # Returns the distance along the primary line of point in nearest_primary_right, normalized to the length of the object.
-        nearest_primary_norm_right = np.array(
-            [primary_line.project(pt, normalized=True) for pt in nearest_primary_right]
-        )
-        # Returns the distance along the primary line of point in nearest_primary_left, normalized to the length of the object.
-        nearest_primary_norm_left = np.array(
-            [primary_line.project(pt, normalized=True) for pt in nearest_primary_left]
-        )
+            # Edge Case: Only found roots on one side.
+            if is_left.all() or (~is_left).all():
+                return np.nan
 
-        # get all possible differences in projections from all base pairs
-        projection_diffs = np.abs(
-            nearest_primary_norm_left.reshape(-1, 1)
-            - nearest_primary_norm_right.reshape(1, -1)
-        )
+            # Get left and right base points.
+            left_bases, right_bases = lateral_pts[is_left, 0], lateral_pts[~is_left, 0]
 
-        # shape is [# of valid base pairs, 2 [left right]]
-        indices = np.argwhere(projection_diffs <= tolerance)
+            # Find the nearest point to each right lateral base on the primary root line
+            nearest_primary_right = [
+                nearest_points(primary_line, Point(right_base))[0]
+                for right_base in right_bases
+            ]
 
-        left_inds = indices[:, 0]
-        right_inds = indices[:, 1]
+            # Find the nearest point to each left lateral base on the primary root line
+            nearest_primary_left = [
+                nearest_points(primary_line, Point(left_base))[0]
+                for left_base in left_bases
+            ]
 
-        # Find pairwise distances. (shape is (# of left bases, # of right bases))
-        dists = np.linalg.norm(
-            np.expand_dims(left_bases, axis=1) - np.expand_dims(right_bases, axis=0),
-            axis=-1,
-        )
+            # Returns the distance along the primary line of point in nearest_primary_right, normalized to the length of the object.
+            nearest_primary_norm_right = np.array(
+                [
+                    primary_line.project(pt, normalized=True)
+                    for pt in nearest_primary_right
+                ]
+            )
+            # Returns the distance along the primary line of point in nearest_primary_left, normalized to the length of the object.
+            nearest_primary_norm_left = np.array(
+                [
+                    primary_line.project(pt, normalized=True)
+                    for pt in nearest_primary_left
+                ]
+            )
 
-        # Pull out match distances.
-        match_dists = np.array([dists[l, r] for l, r in zip(left_inds, right_inds)])
+            # get all possible differences in projections from all base pairs
+            projection_diffs = np.abs(
+                nearest_primary_norm_left.reshape(-1, 1)
+                - nearest_primary_norm_right.reshape(1, -1)
+            )
 
-        # Convert matches to indices before splitting by side.
-        left_inds = np.argwhere(is_left).reshape(-1)[left_inds]
-        right_inds = np.argwhere(~is_left).reshape(-1)[right_inds]
+            # shape is [# of valid base pairs, 2 [left right]]
+            indices = np.argwhere(projection_diffs <= tolerance)
 
-        # Convert matches to indices before filtering.
-        left_inds = valid_inds[left_inds]
-        right_inds = valid_inds[right_inds]
+            left_inds = indices[:, 0]
+            right_inds = indices[:, 1]
 
-    return match_dists
+            # Find pairwise distances. (shape is (# of left bases, # of right bases))
+            dists = np.linalg.norm(
+                np.expand_dims(left_bases, axis=1)
+                - np.expand_dims(right_bases, axis=0),
+                axis=-1,
+            )
+
+            # Pull out match distances.
+            match_dists = np.array([dists[l, r] for l, r in zip(left_inds, right_inds)])
+
+            # Convert matches to indices before splitting by side.
+            left_inds = np.argwhere(is_left).reshape(-1)[left_inds]
+            right_inds = np.argwhere(~is_left).reshape(-1)[right_inds]
+
+            # Convert matches to indices before filtering.
+            left_inds = valid_inds[left_inds]
+            right_inds = valid_inds[right_inds]
+
+        return match_dists

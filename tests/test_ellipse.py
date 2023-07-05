@@ -36,7 +36,7 @@ def test_get_ellipse_a(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts_all_array = get_all_pts_array(plant=plant, frame=0, lateral_only=False)
+    pts_all_array = get_all_pts_array(plant=plant, frame=0, monocots=False)
     ellipse_a = get_ellipse_a(pts_all_array)
     np.testing.assert_almost_equal(ellipse_a, 398.1275346610801, decimal=3)
 
@@ -45,7 +45,7 @@ def test_get_ellipse_b(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts_all_array = get_all_pts_array(plant=plant, frame=0, lateral_only=False)
+    pts_all_array = get_all_pts_array(plant=plant, frame=0, monocots=False)
     ellipse_b = get_ellipse_b(pts_all_array)
     np.testing.assert_almost_equal(ellipse_b, 115.03734180292595, decimal=3)
 
@@ -54,6 +54,6 @@ def test_get_ellipse_ratio(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts_all_array = get_all_pts_array(plant=plant, frame=0, lateral_only=False)
+    pts_all_array = get_all_pts_array(plant=plant, frame=0, monocots=False)
     ellipse_ratio = get_ellipse_ratio(pts_all_array)
     np.testing.assert_almost_equal(ellipse_ratio, 3.460854783511295, decimal=3)

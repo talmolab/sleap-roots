@@ -176,7 +176,7 @@ def test_get_root_angle_distal(canola_h5):
 
 
 # test rice get_root_angle function (base node to proximal node angle)
-def test_get_root_angle_priximal_rice(rice_h5):
+def test_get_root_angle_proximal_rice(rice_h5):
     series = Series.load(
         rice_h5, primary_name="main_3do_6nodes", lateral_name="longest_3do_6nodes"
     )

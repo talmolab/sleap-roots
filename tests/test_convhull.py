@@ -176,7 +176,7 @@ def test_get_chull_perimeter_canola(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts = get_all_pts_array(plant=plant, frame=0, lateral_only=False)
+    pts = get_all_pts_array(plant=plant, frame=0, monocots=False)
     perimeter = get_chull_perimeter(pts)
     np.testing.assert_almost_equal(perimeter, 1910.0476127930017, decimal=3)
 
@@ -186,7 +186,7 @@ def test_get_chull_area_canola(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts = get_all_pts_array(plant=plant, frame=0, lateral_only=False)
+    pts = get_all_pts_array(plant=plant, frame=0, monocots=False)
     area = get_chull_area(pts)
     np.testing.assert_almost_equal(area, 93255.32153574759, decimal=3)
 
@@ -196,7 +196,7 @@ def test_get_chull_max_width(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts = get_all_pts_array(plant=plant, frame=0, lateral_only=False)
+    pts = get_all_pts_array(plant=plant, frame=0, monocots=False)
     max_width = get_chull_max_width(pts)
     np.testing.assert_almost_equal(max_width, 211.279296875, decimal=3)
 
@@ -205,7 +205,7 @@ def test_get_chull_max_height(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts = get_all_pts_array(plant=plant, frame=0, lateral_only=False)
+    pts = get_all_pts_array(plant=plant, frame=0, monocots=False)
     max_height = get_chull_max_height(pts)
     np.testing.assert_almost_equal(max_height, 876.5622253417969, decimal=3)
 
@@ -215,7 +215,7 @@ def test_get_chull_line_lengths(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts = get_all_pts_array(plant=plant, frame=0, lateral_only=False)
+    pts = get_all_pts_array(plant=plant, frame=0, monocots=False)
     chull_line_lengths = get_chull_line_lengths(pts)
     assert chull_line_lengths.shape[0] == 10
     np.testing.assert_almost_equal(chull_line_lengths[0], 227.553, decimal=3)
