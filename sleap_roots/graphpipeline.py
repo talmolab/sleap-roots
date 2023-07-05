@@ -681,6 +681,7 @@ def get_all_plants_traits(
             h5 path + summary_csv_suffix.
         all_plants_csv_name: The name of the output CSV file containing all plants'
             summary traits.
+
     Returns:
         A pandas DataFrame with summary root traits for all plants in the data folders.
         Each row is a sample.
