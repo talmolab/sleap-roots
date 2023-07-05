@@ -3,6 +3,9 @@
 import numpy as np
 import pandas as pd
 import os
+from typing import List
+from fractions import Fraction
+from pathlib import Path
 from sleap_roots.traitsgraph import get_traits_graph
 from sleap_roots.angle import get_root_angle
 from sleap_roots.bases import (
@@ -47,7 +50,7 @@ from sleap_roots.scanline import (
     get_scanline_first_ind,
     get_scanline_last_ind,
 )
-from sleap_roots.series import Series
+from sleap_roots.series import Series, find_all_series
 from sleap_roots.summary import get_summary
 from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys
 from typing import Dict, Tuple
@@ -127,6 +130,12 @@ warnings.filterwarnings(
     "ignore",
     message="invalid value encountered in double_scalars",
     category=RuntimeWarning,
+)
+warnings.filterwarnings(
+    "ignore",
+    message="invalid value encountered in scalar divide",
+    category=RuntimeWarning,
+    module="ellipse",
 )
 
 
@@ -293,27 +302,36 @@ def get_traits_value_plant(
     n_line: int = 50,
     network_fraction: float = 2 / 3,
     write_csv: bool = False,
-    csv_name: str = "plant_original_traits.csv",
-) -> Tuple[Dict, pd.DataFrame]:
-    """Get SLEAP traits per plant based on graph.
+    csv_suffix: str = ".traits.csv",
+) -> Tuple[Dict, pd.DataFrame, str]:
+    """Get detailed SLEAP traits for every frame of a plant, based on the graph.
 
     Args:
-        h5: h5 file, plant image series.
-        monocots: Boolean value, where false is dicot (default), true is rice.
-        primary_name: primary model name.
-        lateral_name: lateral model name.
-        stem_width_tolerance: difference in projection norm between right and left side.
-        n_line: number of scan lines, np.nan for no interaction.
-        network_fraction: length found in the lower fration value of the network.
-        write_csv: Boolean value, where true is write csv file.
-        csv_name: saved csv file name.
+        h5: The h5 file representing the plant image series.
+        monocots: A boolean value indicating whether the plant is a monocot (True)
+            or a dicot (False) (default).
+        primary_name: Name of the primary root predictions. The predictions file is
+            expected to be named `"{h5_path}.{primary_name}.predictions.slp"`.
+        lateral_name: Name of the lateral root predictions. The predictions file is
+            expected to be named `"{h5_path}.{lateral_name}.predictions.slp"`.
+        stem_width_tolerance: The difference in the projection norm between
+            the right and left side of the stem.
+        n_line: The number of scan lines. Use np.nan for no interaction.
+        network_fraction: The length found in the lower fraction value of the network.
+        write_csv: A boolean value. If True, it writes per plant detailed
+            CSVs with traits for every instance on every frame.
+        csv_suffix: If write_csv=True, the CSV file will be saved with the
+            h5 path + csv_suffix.
 
-    Return:
-        Tuple of a dictionary and a DataFrame with all traits per plant.
+    Returns:
+        A tuple containing a dictionary and a DataFrame with all traits per plant,
+            and the plant name. The Dataframe has root traits per instance and frame
+            where each row corresponds to a frame in the H5 file. The plant_name is
+            given by the h5 file.
     """
     plant = Series.load(h5, primary_name=primary_name, lateral_name=lateral_name)
     plant_name = plant.series_name
-    # get nymber of frames per plant
+    # get number of frames per plant
     n_frame = len(plant)
 
     data_plant = []
@@ -384,9 +402,9 @@ def get_traits_value_plant(
     )
 
     if write_csv:
-        csv_name = "plant_original_traits_" + plant_name + ".csv"
+        csv_name = Path(h5).with_suffix(f"{csv_suffix}")
         data_plant_df.to_csv(csv_name, index=False)
-    return data_plant, data_plant_df
+    return data_plant, data_plant_df, plant_name
 
 
 def get_traits_value_plant_summary(
@@ -398,29 +416,37 @@ def get_traits_value_plant_summary(
     n_line: int = 50,
     network_fraction: float = 2 / 3,
     write_csv: bool = False,
-    csv_name: str = "plant_original_traits.csv",
+    csv_suffix: str = ".traits.csv",
     write_summary_csv: bool = False,
-    summary_csv_name: str = "plant_summary_traits.csv",
+    summary_csv_suffix: str = ".summary_traits.csv",
 ) -> pd.DataFrame:
-    """Get summarized SLEAP traits per plant based on graph.
+    """Get summary statistics of SLEAP traits per plant based on graph.
 
     Args:
-        h5: h5 file, plant image series.
-        monocots: Boolean value, where false is dicot (default), true is rice.
-        primary_name: primary model name.
-        lateral_name: lateral model name.
-        stem_width_tolerance: difference in projection norm between right and left side.
-        n_line: number of scan lines, np.nan for no interaction.
-        network_fraction: length found in the lower fration value of the network.
-        write_csv: Boolean value, where true is write csv file.
-        csv_name: saved csv file name.
+        h5: The h5 file representing the plant image series.
+        monocots: A boolean value indicating whether the plant is a monocot (True)
+            or a dicot (False) (default).
+        primary_name: Name of the primary root predictions. The predictions file is
+            expected to be named `"{h5_path}.{primary_name}.predictions.slp"`.
+        lateral_name: Name of the lateral root predictions. The predictions file is
+            expected to be named `"{h5_path}.{lateral_name}.predictions.slp"`.
+        stem_width_tolerance: The difference in the projection norm between
+            the right and left side of the stem.
+        n_line: The number of scan lines. Use np.nan for no interaction.
+        network_fraction: The length found in the lower fraction value of the network.
+        write_csv: A boolean value. If True, it writes per plant detailed
+            CSVs with traits for every instance on every frame.
+        csv_suffix: If write_csv=True, the CSV file will be saved with the name
+            h5 path + csv_suffix.
         write_summary_csv: Boolean value, where true is write summarized csv file.
-        summary_csv_name: saved summarized csv file name.
+        summary_csv_suffix: If write_summary_csv=True, the CSV file with the summary
+            statistics per plant will be saved with the name
+            h5 path + summary_csv_suffix.
 
     Return:
-        A DataFrame with all summarized traits per plant.
+        A DataFrame with summary statistics of all traits per plant.
     """
-    data_plant, data_plant_df = get_traits_value_plant(
+    data_plant, data_plant_df, plant_name = get_traits_value_plant(
         h5,
         monocots,
         primary_name,
@@ -429,7 +455,7 @@ def get_traits_value_plant_summary(
         n_line,
         network_fraction,
         write_csv,
-        csv_name,
+        csv_suffix,
     )
 
     # get summarized non-scalar traits per frame
@@ -602,7 +628,7 @@ def get_traits_value_plant_summary(
         data_plant_frame_summary[
             data_plant_frame_summary_key[j] + "_prc95"
         ] = trait_prc95
-    data_plant_frame_summary["plant_name"] = [os.path.splitext(h5)[0]]
+    data_plant_frame_summary["plant_name"] = [plant_name]
     data_plant_frame_summary_df = pd.DataFrame(data_plant_frame_summary)
 
     # reorganize the column position
@@ -611,5 +637,76 @@ def get_traits_value_plant_summary(
     data_plant_frame_summary_df = data_plant_frame_summary_df[column_names]
 
     if write_summary_csv:
+        summary_csv_name = Path(h5).with_suffix(f"{summary_csv_suffix}")
         data_plant_frame_summary_df.to_csv(summary_csv_name, index=False)
     return data_plant_frame_summary_df
+
+
+def get_all_plants_traits(
+    data_folders: List[str],
+    primary_name: str,
+    lateral_name: str,
+    stem_width_tolerance: float = 0.02,
+    n_line: int = 50,
+    network_fraction: Fraction = Fraction(2, 3),
+    write_per_plant_details: bool = False,
+    per_plant_details_csv_suffix: str = ".traits.csv",
+    write_per_plant_summary: bool = False,
+    per_plant_summary_csv_suffix: str = ".summary_traits.csv",
+    monocots: bool = False,
+    all_plants_csv_name: str = "all_plants_traits.csv",
+) -> pd.DataFrame:
+    """Get a DataFrame with summary traits from all plants in the given data folders.
+
+    Args:
+        h5: The h5 file representing the plant image series.
+        monocots: A boolean value indicating whether the plant is a monocot (True)
+            or a dicot (False) (default).
+        primary_name: Name of the primary root predictions. The predictions file is
+            expected to be named `"{h5_path}.{primary_name}.predictions.slp"`.
+        lateral_name: Name of the lateral root predictions. The predictions file is
+            expected to be named `"{h5_path}.{lateral_name}.predictions.slp"`.
+        stem_width_tolerance: The difference in the projection norm between
+            the right and left side of the stem.
+        n_line: The number of scan lines. Use np.nan for no interaction.
+        network_fraction: The length found in the lower fraction value of the network.
+        write_per_plant_details: A boolean value. If True, it writes per plant detailed
+            CSVs with traits for every instance.
+        per_plant_details_csv_suffix: If write_csv=True, the CSV file will be saved
+            with the name h5 path + csv_suffix.
+        write_per_plant_summary: A boolean value. If True, it writes per plant summary
+            CSVs.
+        per_plant_summary_csv_suffix: If write_summary_csv=True, the CSV file with the
+            summary statistics per plant will be saved with the name
+            h5 path + summary_csv_suffix.
+        all_plants_csv_name: The name of the output CSV file containing all plants'
+            summary traits.
+
+    Returns:
+        A pandas DataFrame with summary root traits for all plants in the data folders.
+        Each row is a sample.
+    """
+    h5_series = find_all_series(data_folders)
+
+    all_traits = []
+    for h5 in h5_series:
+        plant_traits = get_traits_value_plant_summary(
+            h5,
+            monocots=monocots,
+            primary_name=primary_name,
+            lateral_name=lateral_name,
+            stem_width_tolerance=stem_width_tolerance,
+            n_line=n_line,
+            network_fraction=network_fraction,
+            write_csv=write_per_plant_details,
+            csv_suffix=per_plant_details_csv_suffix,
+            write_summary_csv=write_per_plant_summary,
+            summary_csv_suffix=per_plant_summary_csv_suffix,
+        )
+        plant_traits["path"] = h5
+        all_traits.append(plant_traits)
+
+    all_traits_df = pd.concat(all_traits, ignore_index=True)
+
+    all_traits_df.to_csv(all_plants_csv_name, index=False)
+    return all_traits_df
