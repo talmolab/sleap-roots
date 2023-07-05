@@ -59,7 +59,7 @@ def get_network_solidity(
     primary_pts: np.ndarray,
     lateral_pts: np.ndarray,
     pts_all_array: np.ndarray,
-    lateral_only: bool = False,
+    monocots: bool = False,
 ) -> float:
     """Return the total network length divided by the network convex area.
 
@@ -67,13 +67,13 @@ def get_network_solidity(
         primary_pts: primary root landmarks as array of shape (..., 2).
         lateral_pts: lateral root landmarks as array of shape (..., 2).
         pts_all_array: primary and lateral root landmarks.
-        lateral_only: a boolean value, where True is rice.
+        monocots: a boolean value, where True is rice.
 
     Returns:
         Float of the total network length divided by the network convex area.
     """
     # get the total network length
-    network_length = get_network_length(primary_pts, lateral_pts, lateral_only)
+    network_length = get_network_length(primary_pts, lateral_pts, monocots)
 
     # get the convex hull area
     convhull_features = get_convhull_features(pts_all_array)
@@ -91,7 +91,7 @@ def get_network_distribution(
     lateral_pts: np.ndarray,
     pts_all_array: np.ndarray,
     fraction: float = 2 / 3,
-    lateral_only: bool = False,
+    monocots: bool = False,
 ) -> float:
     """Return the root length in the lower fraction of the plant.
 
@@ -100,7 +100,7 @@ def get_network_distribution(
         lateral_pts: lateral root landmarks as array of shape (..., 2).
         pts_all_array: primary and lateral root landmarks.
         fraction: the network length found in the lower fration value of the network.
-        lateral_only: a boolean value, where True is rice.
+        monocots: a boolean value, where True is rice.
 
     Returns:
         Float of the root network length in the lower fraction of the plant.
@@ -126,7 +126,7 @@ def get_network_distribution(
     )
 
     # filter out the nan nodes
-    if lateral_only:
+    if monocots:
         points = list(primary_pts)
     else:
         points = list(primary_pts) + list(lateral_pts)
@@ -154,14 +154,14 @@ def get_network_distribution(
 def get_network_length(
     primary_pts: np.ndarray,
     lateral_pts: np.ndarray,
-    lateral_only: bool = False,
+    monocots: bool = False,
 ) -> float:
     """Return all primary or lateral root length one frame.
 
     Args:
         primary_pts: primary root landmarks as array of shape (..., 2).
         lateral_pts: lateral root landmarks as array of shape (..., 2).
-        lateral_only: a boolean value, where True is rice.
+        monocots: a boolean value, where True is rice.
 
     Returns:
         Float of primary or lateral root network length.
@@ -170,7 +170,7 @@ def get_network_length(
         np.sum(get_root_lengths(primary_pts)) > 0
         or np.sum(get_root_lengths(lateral_pts)) > 0
     ):
-        if lateral_only:
+        if monocots:
             length = np.nansum(get_root_lengths(primary_pts))
         else:
             length = np.nansum(get_root_lengths(primary_pts)) + np.nansum(
@@ -186,7 +186,7 @@ def get_network_distribution_ratio(
     lateral_pts: np.ndarray,
     pts_all_array: np.ndarray,
     fraction: float = 2 / 3,
-    lateral_only: bool = False,
+    monocots: bool = False,
 ) -> float:
     """Return ratio of the root length in the lower fraction over all root length.
 
@@ -195,7 +195,7 @@ def get_network_distribution_ratio(
         lateral_pts: lateral root landmarks as array of shape (..., 2).
         pts_all_array: primary and lateral root landmarks.
         fraction: the network length found in the lower fration value of the network.
-        lateral_only: a boolean value, where True is rice.
+        monocots: a boolean value, where True is rice.
 
     Returns:
         Float of ratio of the root network length in the lower fraction of the plant
@@ -205,9 +205,9 @@ def get_network_distribution_ratio(
         np.sum(get_root_lengths(primary_pts)) + np.sum(get_root_lengths(lateral_pts))
         > 0
     ):
-        if lateral_only:
+        if monocots:
             ratio = get_network_distribution(
-                primary_pts, lateral_pts, pts_all_array, fraction, lateral_only
+                primary_pts, lateral_pts, pts_all_array, fraction, monocots
             ) / (np.sum(get_root_lengths(primary_pts)))
         else:
             ratio = get_network_distribution(
