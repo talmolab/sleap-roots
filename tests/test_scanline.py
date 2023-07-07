@@ -122,4 +122,4 @@ def test_get_scanline_last_ind(canola_h5):
     scanline_last_ind = get_scanline_last_ind(
         primary_pts, lateral_pts, depth, width, n_line, monocots
     )
-    np.testing.assert_equal(scanline_last_ind, np.nan)
+    np.testing.assert_equal(scanline_last_ind, 15)

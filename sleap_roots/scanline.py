@@ -28,7 +28,7 @@ def count_scanline_intersections(
     """
     # connect the points to lines using shapely
     if monocots:
-        points = list(primary_pts)
+        points = list(lateral_pts)
     else:
         points = list(primary_pts) + list(lateral_pts)
 
@@ -41,7 +41,7 @@ def count_scanline_intersections(
         horizontal_line_y = n_interval * (i + 1)
         intersection_line = 0
 
-        for j in range(len(points) - 1):
+        for j in range(len(points)):
             intersection_counts_root = 0
             # filter out nan nodes
             pts_j = np.array(points[j])[~np.isnan(points[j]).any(axis=1)]
