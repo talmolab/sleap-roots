@@ -3,7 +3,7 @@
 import numpy as np
 from shapely import LineString, Polygon
 from sleap_roots.bases import get_root_lengths
-from sleap_roots.convhull import get_convhull_features
+from sleap_roots.convhull import get_chull_area
 from typing import Tuple
 
 
@@ -76,8 +76,7 @@ def get_network_solidity(
     network_length = get_network_length(primary_pts, lateral_pts, monocots)
 
     # get the convex hull area
-    convhull_features = get_convhull_features(pts_all_array)
-    conv_area = convhull_features[1]
+    conv_area = get_chull_area(pts_all_array)
 
     if network_length > 0 and conv_area > 0:
         ratio = network_length / conv_area

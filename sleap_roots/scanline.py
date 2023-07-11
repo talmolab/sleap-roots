@@ -4,6 +4,8 @@ import numpy as np
 import math
 from shapely import LineString, Point
 
+cache = {}
+
 
 def count_scanline_intersections(
     primary_pts: np.ndarray,
@@ -57,6 +59,7 @@ def count_scanline_intersections(
                 intersection_counts_root += current_root
             intersection_line += intersection_counts_root
         intersection.append(intersection_line)
+    cache["count_scanline_interaction"] = np.array(intersection)
     return np.array(intersection)
 
 
@@ -81,9 +84,12 @@ def get_scanline_first_ind(
     Return:
         Scalar of count_scanline_interaction index for the first interaction.
     """
-    count_scanline_interaction = count_scanline_intersections(
-        primary_pts, lateral_pts, depth, width, n_line, monocots
-    )
+    if "count_scanline_interaction" in cache:
+        count_scanline_interaction = cache["count_scanline_interaction"]
+    else:
+        count_scanline_interaction = count_scanline_intersections(
+            primary_pts, lateral_pts, depth, width, n_line, monocots
+        )
     if np.where((count_scanline_interaction > 0))[0].shape[0] > 0:
         scanline_first_ind = np.where((count_scanline_interaction > 0))[0][0]
         return scanline_first_ind
@@ -112,9 +118,13 @@ def get_scanline_last_ind(
     Return:
         Scalar of count_scanline_interaction index for the last interaction.
     """
-    count_scanline_interaction = count_scanline_intersections(
-        primary_pts, lateral_pts, depth, width, n_line, monocots
-    )
+    # LW
+    if "count_scanline_interaction" in cache:
+        count_scanline_interaction = cache["count_scanline_interaction"]
+    else:
+        count_scanline_interaction = count_scanline_intersections(
+            primary_pts, lateral_pts, depth, width, n_line, monocots
+        )
     if np.where((count_scanline_interaction > 0))[0].shape[0] > 0:
         scanline_last_ind = np.where((count_scanline_interaction > 0))[0][-1]
         return scanline_last_ind

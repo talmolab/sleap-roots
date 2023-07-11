@@ -5,6 +5,9 @@ from skimage.measure import EllipseModel
 from typing import Tuple, Union
 
 
+cache = {}
+
+
 def fit_ellipse(pts: np.ndarray) -> Tuple[float, float, float]:
     """Find a best fit ellipse for the points per frame.
 
@@ -31,6 +34,7 @@ def fit_ellipse(pts: np.ndarray) -> Tuple[float, float, float]:
         xc, yc, a_f, b_f, theta = ell.params
         a_f, b_f = np.maximum(a_f, b_f), np.minimum(a_f, b_f)
         ratio_ba_f = a_f / b_f
+        cache["ellipse_features"] = [a_f, b_f, ratio_ba_f]
         return a_f, b_f, ratio_ba_f
     else:
         return np.nan, np.nan, np.nan
@@ -47,9 +51,11 @@ def get_ellipse_a(pts_all_array: Union[np.ndarray, Tuple[float, float, float]]):
     """
     if type(pts_all_array) == tuple:
         ellipse_a = pts_all_array[0]
+    elif "ellipse_features" in cache:
+        ellipse_features = cache["ellipse_features"]
     else:
         ellipse_features = fit_ellipse(pts_all_array)
-        ellipse_a = ellipse_features[0]
+    ellipse_a = ellipse_features[0]
     return ellipse_a
 
 
@@ -64,9 +70,11 @@ def get_ellipse_b(pts_all_array: Union[np.ndarray, Tuple[float, float, float]]):
     """
     if type(pts_all_array) == tuple:
         ellipse_b = pts_all_array[1]
+    elif "ellipse_features" in cache:
+        ellipse_features = cache["ellipse_features"]
     else:
         ellipse_features = fit_ellipse(pts_all_array)
-        ellipse_b = ellipse_features[1]
+    ellipse_b = ellipse_features[1]
     return ellipse_b
 
 
@@ -81,7 +89,9 @@ def get_ellipse_ratio(pts_all_array: Union[np.ndarray, Tuple[float, float, float
     """
     if type(pts_all_array) == tuple:
         ellipse_ratio = pts_all_array[2]
+    elif "ellipse_features" in cache:
+        ellipse_features = cache["ellipse_features"]
     else:
         ellipse_features = fit_ellipse(pts_all_array)
-        ellipse_ratio = ellipse_features[2]
+    ellipse_ratio = ellipse_features[2]
     return ellipse_ratio

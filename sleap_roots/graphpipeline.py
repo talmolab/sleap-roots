@@ -690,6 +690,7 @@ def get_all_plants_traits(
 
     all_traits = []
     for h5 in h5_series:
+        cache = {}
         plant_traits = get_traits_value_plant_summary(
             h5,
             monocots=monocots,
