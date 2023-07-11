@@ -5,6 +5,8 @@ from scipy.spatial import ConvexHull, convex_hull_plot_2d
 from scipy.spatial.distance import pdist
 from typing import Tuple, Optional, Union
 
+cache = {}
+
 
 def get_convhull(pts: np.ndarray) -> Optional[ConvexHull]:
     """Get the convex hull for the points per frame.
@@ -23,7 +25,7 @@ def get_convhull(pts: np.ndarray) -> Optional[ConvexHull]:
 
     # Get convex hull
     hull = ConvexHull(pts)
-
+    cache["hull"] = hull
     return hull
 
 
@@ -44,7 +46,12 @@ def get_convhull_features(
 
         If the convex hull fitting fails, NaNs are returned.
     """
-    hull = pts if type(pts) == ConvexHull else get_convhull(pts)
+    if type(pts) == ConvexHull:
+        hull = pts
+    elif "hull" in cache:
+        hull = cache["hull"]
+    else:
+        hull = get_convhull(pts)
 
     if hull is None:
         return np.full((4,), np.nan)
@@ -85,8 +92,11 @@ def get_chull_perimeter(
         return pts[0]
     elif type(pts) == ConvexHull:
         hull = pts
+    elif "hull" in cache:
+        hull = cache["hull"]
     else:
         hull = get_convhull(pts)
+
     if hull is None:
         return np.nan
     return hull.area
@@ -107,8 +117,11 @@ def get_chull_area(
         return pts[1]
     elif type(pts) == ConvexHull:
         hull = pts
+    elif "hull" in cache:
+        hull = cache["hull"]
     else:
         hull = get_convhull(pts)
+
     if hull is None:
         return np.nan
     return hull.volume
@@ -129,8 +142,11 @@ def get_chull_max_width(
         return pts[2]
     elif type(pts) == ConvexHull:
         hull = pts
+    elif "hull" in cache:
+        hull = cache["hull"]
     else:
         hull = get_convhull(pts)
+
     if hull is None:
         return np.nan
     pts = pts.reshape(-1, 2)
@@ -154,8 +170,11 @@ def get_chull_max_height(
         return pts[3]
     elif type(pts) == ConvexHull:
         hull = pts
+    elif "hull" in cache:
+        hull = cache["hull"]
     else:
         hull = get_convhull(pts)
+
     if hull is None:
         return np.nan
     pts = pts.reshape(-1, 2)
@@ -174,7 +193,12 @@ def get_chull_line_lengths(pts: Union[np.ndarray, ConvexHull]) -> np.ndarray:
         Lengths of lines connecting any two vertices on the convex hull.
         If the convex hull fitting fails, NaNs are returned.
     """
-    hull = pts if type(pts) == ConvexHull else get_convhull(pts)
+    if type(pts) == ConvexHull:
+        hull = pts
+    elif "hull" in cache:
+        hull = cache["hull"]
+    else:
+        hull = get_convhull(pts)
 
     if hull is None:
         return np.nan

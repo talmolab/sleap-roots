@@ -103,7 +103,6 @@ def test_get_network_solidity_rice(rice_h5):
     lateral_pts = lateral.numpy()
     pts_all_array = get_all_pts_array(plant=series, frame=0, monocots=True)
     monocots = True
-    cache = {}
     ratio = get_network_solidity(primary_pts, lateral_pts, pts_all_array, monocots)
     np.testing.assert_almost_equal(ratio, 0.17930631242462894, decimal=7)
 
