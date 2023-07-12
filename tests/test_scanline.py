@@ -101,6 +101,9 @@ def test_get_scanline_first_ind(canola_h5):
     width = 2048
     n_line = 50
     monocots = False
+    n_inter = count_scanline_intersections(
+        primary_pts, lateral_pts, depth, width, n_line, monocots
+    )
     scanline_first_ind = get_scanline_first_ind(
         primary_pts, lateral_pts, depth, width, n_line, monocots
     )
@@ -118,8 +121,11 @@ def test_get_scanline_last_ind(canola_h5):
     depth = 1080
     width = 2048
     n_line = 50
-    monocots = True
+    monocots = False
+    n_inter = count_scanline_intersections(
+        primary_pts, lateral_pts, depth, width, n_line, monocots
+    )
     scanline_last_ind = get_scanline_last_ind(
         primary_pts, lateral_pts, depth, width, n_line, monocots
     )
-    np.testing.assert_equal(scanline_last_ind, 15)
+    np.testing.assert_equal(scanline_last_ind, 43)

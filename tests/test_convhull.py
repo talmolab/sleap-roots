@@ -121,6 +121,7 @@ def test_get_convhull_features_rice(rice_h5):
     primary_points = primary.numpy().reshape(-1, 2)
     lateral_points = lateral.numpy().reshape(-1, 2)
     convex_hull_points = np.concatenate((primary_points, lateral_points), axis=0)
+    convex_hull = get_convhull(convex_hull_points)
 
     (
         perimeters,
@@ -137,6 +138,7 @@ def test_get_convhull_features_rice(rice_h5):
 
 # test plant with 2 roots/instances with nan nodes
 def test_get_convhull_features_nan(pts_nan31_5node):
+    convex_hull = get_convhull(pts_nan31_5node)
     (
         perimeters,
         areas,
@@ -152,6 +154,7 @@ def test_get_convhull_features_nan(pts_nan31_5node):
 
 # test plant with 1 root/instance with only 2 non-nan nodes
 def test_get_convhull_features_nanall(pts_nan_5node):
+    convex_hull = get_convhull(pts_nan_5node)
     (
         perimeters,
         areas,
@@ -167,6 +170,7 @@ def test_get_convhull_features_nanall(pts_nan_5node):
 
 # test get_chull_perimeter with defined lateral_pts
 def test_get_chull_perimeter(lateral_pts):
+    convex_hull = get_convhull(lateral_pts)
     perimeter = get_chull_perimeter(lateral_pts)
     np.testing.assert_almost_equal(perimeter, 1184.7141710619985, decimal=3)
 
@@ -177,6 +181,7 @@ def test_get_chull_perimeter_canola(canola_h5):
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
     pts = get_all_pts_array(plant=plant, frame=0, monocots=False)
+    convex_hull = get_convhull(pts)
     perimeter = get_chull_perimeter(pts)
     np.testing.assert_almost_equal(perimeter, 1910.0476127930017, decimal=3)
 
@@ -187,6 +192,7 @@ def test_get_chull_area_canola(canola_h5):
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
     pts = get_all_pts_array(plant=plant, frame=0, monocots=False)
+    convex_hull = get_convhull(pts)
     area = get_chull_area(pts)
     np.testing.assert_almost_equal(area, 93255.32153574759, decimal=3)
 
@@ -216,6 +222,7 @@ def test_get_chull_line_lengths(canola_h5):
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
     pts = get_all_pts_array(plant=plant, frame=0, monocots=False)
+    convex_hull = get_convhull(pts)
     chull_line_lengths = get_chull_line_lengths(pts)
     assert chull_line_lengths.shape[0] == 10
     np.testing.assert_almost_equal(chull_line_lengths[0], 227.553, decimal=3)
@@ -223,5 +230,6 @@ def test_get_chull_line_lengths(canola_h5):
 
 # test get_chull_line_lengths with none hull
 def test_get_chull_line_lengths_nonehull(pts_nan_5node):
+    convex_hull = get_convhull(pts_nan_5node)
     chull_line_lengths = get_chull_line_lengths(pts_nan_5node)
     np.testing.assert_almost_equal(chull_line_lengths, np.nan, decimal=3)

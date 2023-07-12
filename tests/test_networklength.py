@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 from sleap_roots import Series
+from sleap_roots.convhull import get_convhull
 from sleap_roots.networklength import get_bbox
 from sleap_roots.networklength import get_network_distribution
 from sleap_roots.networklength import get_network_distribution_ratio
@@ -81,7 +82,7 @@ def test_get_network_width_depth_ratio_nan(pts_nan3):
     np.testing.assert_almost_equal(ratio, np.nan, decimal=7)
 
 
-def test_get_network_solidity(canola_h5):
+def test_get_network_solidity_canola(canola_h5, cache):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
@@ -90,6 +91,7 @@ def test_get_network_solidity(canola_h5):
     lateral_pts = lateral.numpy()
     pts_all_array = get_all_pts_array(plant=series, frame=0, monocots=False)
     monocots = False
+    convex_hull = get_convhull(pts_all_array)
     ratio = get_network_solidity(primary_pts, lateral_pts, pts_all_array, monocots)
     np.testing.assert_almost_equal(ratio, 0.012578941125511587, decimal=7)
 
@@ -103,6 +105,7 @@ def test_get_network_solidity_rice(rice_h5):
     lateral_pts = lateral.numpy()
     pts_all_array = get_all_pts_array(plant=series, frame=0, monocots=True)
     monocots = True
+    convex_hull = get_convhull(pts_all_array)
     ratio = get_network_solidity(primary_pts, lateral_pts, pts_all_array, monocots)
     np.testing.assert_almost_equal(ratio, 0.17930631242462894, decimal=7)
 

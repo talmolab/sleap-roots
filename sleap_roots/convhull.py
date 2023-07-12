@@ -21,12 +21,13 @@ def get_convhull(pts: np.ndarray) -> Optional[ConvexHull]:
     pts = pts[~(np.isnan(pts).any(axis=-1))]
 
     if len(pts) <= 2:
+        cache["hull"] = None
         return None
-
-    # Get convex hull
-    hull = ConvexHull(pts)
-    cache["hull"] = hull
-    return hull
+    else:
+        # Get convex hull
+        hull = ConvexHull(pts)
+        cache["hull"] = hull
+        return hull
 
 
 def get_convhull_features(

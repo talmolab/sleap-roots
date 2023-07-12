@@ -29,7 +29,7 @@ from sleap_roots.convhull import (
     get_chull_max_width,
     get_chull_max_height,
     get_chull_perimeter,
-    get_convhull_features,
+    get_convhull,
 )
 from sleap_roots.ellipse import (
     fit_ellipse,
@@ -184,7 +184,7 @@ def get_traits_value_frame(
             [lateral_pts, primary_pts, stem_width_tolerance, monocots],
         ),
         # get_convhull_features(pts: Union[np.ndarray, ConvexHull]) -> Tuple[float, float, float, float]
-        "convex_hull": (get_convhull_features, [pts_all_array]),
+        "convex_hull": (get_convhull, [pts_all_array]),
         # get_lateral_count(pts: np.ndarray)
         "lateral_count": (get_lateral_count, [lateral_pts]),
         # # get_root_angle(pts: np.ndarray, proximal=True, base_ind=0) -> np.ndarray
@@ -279,6 +279,7 @@ def get_traits_value_frame(
 
     dts = get_traits_graph()
 
+    cache = {}
     data = {}
     for trait_name in dts:
         fn, inputs = trait_map[trait_name]

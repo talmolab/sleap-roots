@@ -134,6 +134,11 @@ def tests_get_all_plants_traits_monocot(rice_folder):
         lateral_name=lateral_name,
         write_per_plant_details=write_per_plant_details,
         write_per_plant_summary=write_per_plant_summary,
+        monocots=True,
     )
     assert all_traits_df.shape == (1, 1037)
     np.testing.assert_almost_equal(all_traits_df.iloc[0, 5], 3.716619501198254)
+    np.testing.assert_almost_equal(all_traits_df["ellipse_a_max"][0], 373.4706668836014)
+    np.testing.assert_almost_equal(
+        all_traits_df["chull_area_max"][0], 34719.249469074435
+    )

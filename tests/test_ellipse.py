@@ -37,6 +37,7 @@ def test_get_ellipse_a(canola_h5):
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
     pts_all_array = get_all_pts_array(plant=plant, frame=0, monocots=False)
+    a, b, ratio = fit_ellipse(pts_all_array)
     ellipse_a = get_ellipse_a(pts_all_array)
     np.testing.assert_almost_equal(ellipse_a, 398.1275346610801, decimal=3)
 
