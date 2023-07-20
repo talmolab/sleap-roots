@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 from sleap_roots import Series
+from sleap_roots.convhull import get_chull_area
 from sleap_roots.networklength import get_bbox
 from sleap_roots.networklength import get_network_distribution
 from sleap_roots.networklength import get_network_distribution_ratio
@@ -89,8 +90,27 @@ def test_get_network_solidity(canola_h5):
     primary_pts = primary.numpy()
     lateral_pts = lateral.numpy()
     pts_all_array = get_all_pts_array(plant=series, frame=0, monocots=False)
+    chull_area = None
     monocots = False
-    ratio = get_network_solidity(primary_pts, lateral_pts, pts_all_array, monocots)
+    ratio = get_network_solidity(
+        primary_pts, lateral_pts, pts_all_array, chull_area, monocots
+    )
+    np.testing.assert_almost_equal(ratio, 0.012578941125511587, decimal=7)
+
+
+def test_get_network_solidity_withchullarea(canola_h5):
+    series = Series.load(
+        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
+    )
+    primary, lateral = series[0]
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
+    pts_all_array = get_all_pts_array(plant=series, frame=0, monocots=False)
+    chull_area = get_chull_area(pts_all_array)
+    monocots = False
+    ratio = get_network_solidity(
+        primary_pts, lateral_pts, pts_all_array, chull_area, monocots
+    )
     np.testing.assert_almost_equal(ratio, 0.012578941125511587, decimal=7)
 
 
@@ -102,8 +122,11 @@ def test_get_network_solidity_rice(rice_h5):
     primary_pts = primary.numpy()
     lateral_pts = lateral.numpy()
     pts_all_array = get_all_pts_array(plant=series, frame=0, monocots=True)
+    chull_area = None
     monocots = True
-    ratio = get_network_solidity(primary_pts, lateral_pts, pts_all_array, monocots)
+    ratio = get_network_solidity(
+        primary_pts, lateral_pts, pts_all_array, chull_area, monocots
+    )
     np.testing.assert_almost_equal(ratio, 0.17930631242462894, decimal=7)
 
 
@@ -115,10 +138,11 @@ def test_get_network_distribution(canola_h5):
     primary_pts = primary.numpy()
     lateral_pts = lateral.numpy()
     pts_all_array = get_all_pts_array(plant=series, frame=0, monocots=False)
+    bbox = None
     fraction = 2 / 3
     monocots = False
     root_length = get_network_distribution(
-        primary_pts, lateral_pts, pts_all_array, fraction, monocots
+        primary_pts, lateral_pts, pts_all_array, bbox, fraction, monocots
     )
     np.testing.assert_almost_equal(root_length, 589.4322131363684, decimal=7)
 
@@ -131,10 +155,11 @@ def test_get_network_distribution_rice(rice_h5):
     primary_pts = primary.numpy()
     lateral_pts = lateral.numpy()
     pts_all_array = get_all_pts_array(plant=series, frame=0, monocots=True)
+    bbox = None
     fraction = 2 / 3
     monocots = True
     root_length = get_network_distribution(
-        primary_pts, lateral_pts, pts_all_array, fraction, monocots
+        primary_pts, lateral_pts, pts_all_array, bbox, fraction, monocots
     )
     np.testing.assert_almost_equal(root_length, 475.89810040497025, decimal=7)
 
@@ -171,10 +196,22 @@ def test_get_network_distribution_ratio(canola_h5):
     primary_pts = primary.numpy()
     lateral_pts = lateral.numpy()
     pts_all_array = get_all_pts_array(plant=series, frame=0, monocots=False)
+    primary_length = None
+    lateral_lengths = None
+    bbox = None
+    network_length_lower = None
     fraction = 2 / 3
     monocots = False
     ratio = get_network_distribution_ratio(
-        primary_pts, lateral_pts, pts_all_array, fraction, monocots
+        primary_pts,
+        lateral_pts,
+        pts_all_array,
+        primary_length,
+        lateral_lengths,
+        bbox,
+        network_length_lower,
+        fraction,
+        monocots,
     )
     np.testing.assert_almost_equal(ratio, 0.5024769665338648, decimal=7)
 
@@ -187,9 +224,21 @@ def test_get_network_distribution_ratio_rice(rice_h5):
     primary_pts = primary.numpy()
     lateral_pts = lateral.numpy()
     pts_all_array = get_all_pts_array(plant=series, frame=0, monocots=True)
+    primary_length = None
+    lateral_lengths = None
+    bbox = None
+    network_length_lower = None
     fraction = 2 / 3
     monocots = True
     ratio = get_network_distribution_ratio(
-        primary_pts, lateral_pts, pts_all_array, fraction, monocots
+        primary_pts,
+        lateral_pts,
+        pts_all_array,
+        primary_length,
+        lateral_lengths,
+        bbox,
+        network_length_lower,
+        fraction,
+        monocots,
     )
     np.testing.assert_almost_equal(ratio, 0.5959358912579489, decimal=7)

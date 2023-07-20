@@ -5,6 +5,7 @@ import pandas as pd
 import os
 from typing import List
 from fractions import Fraction
+import networkx as nx
 from pathlib import Path
 from sleap_roots.traitsgraph import get_traits_graph
 from sleap_roots.angle import get_root_angle
@@ -166,65 +167,103 @@ def get_traits_value_frame(
     """
     trait_map = {
         # get_bases(pts: np.ndarray,monocots) -> np.ndarray
-        "primary_base_pt": (get_bases, [primary_pts, monocots]),
+        "primary_base_pt": (get_bases, ["primary_pts"], {"monocots": monocots}),
         # get_root_angle(pts: np.ndarray, proximal=True, base_ind=0) -> np.ndarray
-        "primary_angle_proximal": (get_root_angle, [primary_pts, True, 0]),
-        "primary_angle_distal": (get_root_angle, [primary_pts, False, 0]),
+        "primary_angle_proximal": (
+            get_root_angle,
+            ["primary_pts"],
+            {"proximal": True, "base_ind": 0},
+        ),
+        "primary_angle_distal": (
+            get_root_angle,
+            ["primary_pts"],
+            {"proximal": False, "base_ind": 0},
+        ),
         # get_root_lengths(pts: np.ndarray) -> np.ndarray
-        "primary_length": (get_root_lengths, [primary_pts]),
+        "primary_length": (get_root_lengths, ["primary_pts"], {}),
         # get_tips(pts)
-        "primary_tip_pt": (get_tips, [primary_pts]),
+        "primary_tip_pt": (get_tips, ["primary_pts"], {}),
         # fit_ellipse(pts: np.ndarray) -> Tuple[float, float, float]
-        "ellipse": (fit_ellipse, [pts_all_array]),
+        "ellipse": (fit_ellipse, ["pts_all_array"], {}),
         # get_bbox(pts: np.ndarray) -> Tuple[float, float, float, float]
-        "bounding_box": (get_bbox, [pts_all_array]),
+        "bounding_box": (get_bbox, ["pts_all_array"], {}),
         # get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance,monocots)
-        "stem_widths": (
+        "root_widths": (
             get_root_pair_widths_projections,
-            [lateral_pts, primary_pts, stem_width_tolerance, monocots],
+            ["lateral_pts", "primary_pts"],
+            {"stem_width_tolerance": stem_width_tolerance, "monocots": monocots},
         ),
         # get_convhull_features(pts: Union[np.ndarray, ConvexHull]) -> Tuple[float, float, float, float]
-        "convex_hull": (get_convhull_features, [pts_all_array]),
+        "convex_hull": (get_convhull_features, ["pts_all_array"]),
         # get_lateral_count(pts: np.ndarray)
-        "lateral_count": (get_lateral_count, [lateral_pts]),
+        "lateral_count": (get_lateral_count, ["lateral_pts"]),
         # # get_root_angle(pts: np.ndarray, proximal=True, base_ind=0) -> np.ndarray
-        "lateral_angles_proximal": (get_root_angle, [lateral_pts, True, 0]),
-        "lateral_angles_distal": (get_root_angle, [lateral_pts, False, 0]),
+        "lateral_angles_proximal": (
+            get_root_angle,
+            ["lateral_pts"],
+            {"proximal": True, "base_ind": 0},
+        ),
+        "lateral_angles_distal": (
+            get_root_angle,
+            ["lateral_pts"],
+            {"proximal": False, "base_ind": 0},
+        ),
         # get_root_lengths(pts: np.ndarray) -> np.ndarray
-        "lateral_lengths": (get_root_lengths, [lateral_pts]),
+        "lateral_lengths": (get_root_lengths, ["lateral_pts"]),
         # get_bases(pts: np.ndarray,monocots) -> np.ndarray
-        "lateral_base_pts": (get_bases, [lateral_pts, monocots]),
+        "lateral_base_pts": (get_bases, ["lateral_pts"], {"monocots": monocots}),
         # get_tips(pts)
-        "lateral_tip_pts": (get_tips, [lateral_pts]),
+        "lateral_tip_pts": (get_tips, ["lateral_pts"], {}),
         # get_base_ys(pts: np.ndarray) -> np.ndarray
         # or just based on primary_base_pt, but the primary_base_pt trait must generate before
         # "primary_base_pt_y": (get_pt_ys, [data["primary_base_pt"]]),
-        "primary_base_pt_y": (get_base_ys, [primary_pts]),
+        "primary_base_pt_y": (get_base_ys, ["primary_pts"], {}),
         # get_base_ct_density(primary_pts, lateral_pts)
-        "base_ct_density": (get_base_ct_density, [primary_pts, lateral_pts, monocots]),
+        "base_ct_density": (
+            get_base_ct_density,
+            [
+                "primary_pts",
+                "lateral_pts",
+            ],
+            {"monocots": monocots},
+        ),
         # get_network_solidity(primary_pts: np.ndarray, lateral_pts: np.ndarray, pts_all_array: np.ndarray, monocots: bool = False,) -> float
         "network_solidity": (
             get_network_solidity,
-            [primary_pts, lateral_pts, pts_all_array, monocots],
+            ["primary_pts", "lateral_pts", "pts_all_array", "chull_area"],
+            {"monocots": monocots},
         ),
         # get_network_distribution_ratio(primary_pts: np.ndarray,lateral_pts: np.ndarray,pts_all_array: np.ndarray,fraction: float = 2 / 3, monocots: bool = False) -> float:
         "network_distribution_ratio": (
             get_network_distribution_ratio,
-            [primary_pts, lateral_pts, pts_all_array, network_fraction, monocots],
+            [
+                "primary_pts",
+                "lateral_pts",
+                "pts_all_array",
+                "primary_length",
+                "lateral_lengths",
+                "bbox",
+            ],
+            {"network_fraction": network_fraction, "monocots": monocots},
         ),
         # get_network_distribution(primary_pts: np.ndarray,lateral_pts: np.ndarray,pts_all_array: np.ndarray,fraction: float = 2 / 3, monocots: bool = False) -> float:
         "network_length_lower": (
             get_network_distribution,
-            [primary_pts, lateral_pts, pts_all_array, network_fraction, monocots],
+            ["primary_pts", "lateral_pts", "pts_all_array", "bbox"],
+            {"network_fraction": network_fraction, "monocots": monocots},
         ),
         # get_tip_ys(pts: np.ndarray) -> np.ndarray
-        "primary_tip_pt_y": (get_tip_ys, [primary_pts]),
+        "primary_tip_pt_y": (get_tip_ys, ["primary_pts"], {}),
         # get_ellipse_a(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
-        "ellipse_a": (get_ellipse_a, [pts_all_array]),
+        "ellipse_a": (get_ellipse_a, ["pts_all_array", "ellipse"], {}),
         # get_ellipse_b(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
-        "ellipse_b": (get_ellipse_b, [pts_all_array]),
+        "ellipse_b": (get_ellipse_b, ["pts_all_array", "ellipse"], {}),
         # get_network_width_depth_ratio(pts: np.ndarray) -> float
-        "network_width_depth_ratio": (get_network_width_depth_ratio, [pts_all_array]),
+        "network_width_depth_ratio": (
+            get_network_width_depth_ratio,
+            ["pts_all_array", "bbox"],
+            {},
+        ),
         # get_chull_perimeter(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
         "chull_perimeter": (get_chull_perimeter, [pts_all_array]),
         # get_chull_area(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
@@ -277,20 +316,37 @@ def get_traits_value_frame(
         "base_length_ratio": (get_base_length_ratio, [primary_pts, lateral_pts]),
     }
 
-    dts = get_traits_graph()
+    # Initialize edges with precomputed top-level traits.
+    edges = [("pts", "primary_pts"), ("pts", "lateral_pts")]
 
-    data = {}
-    for trait_name in dts:
-        fn, inputs = trait_map[trait_name]
-        fn_outputs = fn(*[input_trait for input_trait in inputs])
-        if type(fn_outputs) == tuple:
-            fn_outputs = np.array(fn_outputs).reshape((1, -1))
-        if isinstance(fn_outputs, (np.floating, float)) or isinstance(
-            fn_outputs, (np.integer, int)
-        ):
-            fn_outputs = np.array(fn_outputs)[np.newaxis]
-        data[trait_name] = fn_outputs
-    return data
+    # Infer edges from trait map.
+    for output_trait, (_, input_traits, _) in trait_map.items():
+        for input_trait in input_traits:
+            edges.append((input_trait, output_trait))
+
+    # Compute breadth-first ordering.
+    G = nx.DiGraph()
+    G.add_edges_from(edges)
+    trait_computation_order = [
+        dst for (src, dst) in list(nx.bfs_tree(G, "pts").edges())[2:]
+    ]
+
+    # Initialize traits container with initial points.
+    traits = {"primary_pts": primary_pts, "lateral_pts": lateral_pts}
+    for trait_name in trait_computation_order:
+        fn, input_traits, kwargs = trait_map[trait_name]
+        fn_outputs = fn(
+            *[traits[input_trait] for input_trait in input_traits], **kwargs
+        )
+
+        # if type(fn_outputs) == tuple:
+        #     fn_outputs = np.array(fn_outputs).reshape((1, -1))
+        # if isinstance(fn_outputs, (np.floating, float)) or isinstance(
+        #     fn_outputs, (np.integer, int)
+        # ):
+        #     fn_outputs = np.array(fn_outputs)[np.newaxis]
+        traits[trait_name] = fn_outputs
+    return traits
 
 
 def get_traits_value_plant(

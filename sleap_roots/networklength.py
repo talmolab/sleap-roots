@@ -4,7 +4,7 @@ import numpy as np
 from shapely import LineString, Polygon
 from sleap_roots.bases import get_root_lengths
 from sleap_roots.convhull import get_convhull_features
-from typing import Tuple
+from typing import Optional, Tuple
 
 
 def get_bbox(pts: np.ndarray) -> Tuple[float, float, float, float]:
@@ -36,17 +36,20 @@ def get_bbox(pts: np.ndarray) -> Tuple[float, float, float, float]:
     return bbox
 
 
-def get_network_width_depth_ratio(pts: np.ndarray) -> float:
+def get_network_width_depth_ratio(
+    pts: np.ndarray, bbox: Optional[Tuple[float, float, float, float]] = None
+) -> float:
     """Return width to depth ratio of bounding box for root network.
 
     Args:
         pts: Root landmarks as array of shape (..., 2).
+        bbox: Optional, the bounding box of all root landmarks.
 
     Returns:
         Float of bounding box width to depth ratio of root network.
     """
     # get the bounding box
-    bbox = get_bbox(pts)
+    bbox = bbox if bbox else get_bbox(pts)
     width, height = bbox[2], bbox[3]
     if width > 0 and height > 0:
         ratio = width / height
@@ -59,6 +62,7 @@ def get_network_solidity(
     primary_pts: np.ndarray,
     lateral_pts: np.ndarray,
     pts_all_array: np.ndarray,
+    chull_area: Optional[float] = None,
     monocots: bool = False,
 ) -> float:
     """Return the total network length divided by the network convex area.
@@ -67,6 +71,7 @@ def get_network_solidity(
         primary_pts: primary root landmarks as array of shape (..., 2).
         lateral_pts: lateral root landmarks as array of shape (..., 2).
         pts_all_array: primary and lateral root landmarks.
+        chull_area: an optional argument of convex hull area.
         monocots: a boolean value, where True is rice.
 
     Returns:
@@ -76,8 +81,11 @@ def get_network_solidity(
     network_length = get_network_length(primary_pts, lateral_pts, monocots)
 
     # get the convex hull area
-    convhull_features = get_convhull_features(pts_all_array)
-    conv_area = convhull_features[1]
+    if chull_area:
+        conv_area = chull_area
+    else:
+        convhull_features = get_convhull_features(pts_all_array)
+        conv_area = convhull_features[1]
 
     if network_length > 0 and conv_area > 0:
         ratio = network_length / conv_area
@@ -90,6 +98,7 @@ def get_network_distribution(
     primary_pts: np.ndarray,
     lateral_pts: np.ndarray,
     pts_all_array: np.ndarray,
+    bbox: Optional[Tuple[float, float, float, float]] = None,
     fraction: float = 2 / 3,
     monocots: bool = False,
 ) -> float:
@@ -99,6 +108,7 @@ def get_network_distribution(
         primary_pts: primary root landmarks as array of shape (..., 2).
         lateral_pts: lateral root landmarks as array of shape (..., 2).
         pts_all_array: primary and lateral root landmarks.
+        bbox: Optional, the bounding box of all root landmarks.
         fraction: the network length found in the lower fration value of the network.
         monocots: a boolean value, where True is rice.
 
@@ -106,7 +116,7 @@ def get_network_distribution(
         Float of the root network length in the lower fraction of the plant.
     """
     # get the bounding box
-    bbox = get_bbox(pts_all_array)
+    bbox = bbox if bbox else get_bbox(pts_all_array)
     left_x, top_y, width, height = bbox[0], bbox[1], bbox[2], bbox[3]
 
     # get the bounding box of the lower fraction
@@ -185,6 +195,10 @@ def get_network_distribution_ratio(
     primary_pts: np.ndarray,
     lateral_pts: np.ndarray,
     pts_all_array: np.ndarray,
+    primary_length: Optional[np.ndarray] = None,
+    lateral_lengths: Optional[np.ndarray] = None,
+    bbox: Optional[Tuple[float, float, float, float]] = None,
+    network_length_lower: Optional[float] = None,
     fraction: float = 2 / 3,
     monocots: bool = False,
 ) -> float:
@@ -194,6 +208,10 @@ def get_network_distribution_ratio(
         primary_pts: primary root landmarks as array of shape (..., 2).
         lateral_pts: lateral root landmarks as array of shape (..., 2).
         pts_all_array: primary and lateral root landmarks.
+        primary_length: Optional, primary root length array.
+        lateral_lengths: Optional, lateral root length array.
+        bbox: Optional, the bounding box of all root landmarks.
+        network_length_lower: Optional, the root length in lower network.
         fraction: the network length found in the lower fration value of the network.
         monocots: a boolean value, where True is rice.
 
@@ -201,21 +219,29 @@ def get_network_distribution_ratio(
         Float of ratio of the root network length in the lower fraction of the plant
         over all root length.
     """
-    if (
-        np.sum(get_root_lengths(primary_pts)) + np.sum(get_root_lengths(lateral_pts))
-        > 0
-    ):
+    primary_root_length = (
+        np.sum(primary_length)
+        if primary_length
+        else np.sum(get_root_lengths(primary_pts))
+    )
+    lateral_root_length = (
+        np.sum(lateral_lengths)
+        if lateral_lengths
+        else np.sum(get_root_lengths(lateral_pts))
+    )
+    network_length_lower = (
+        network_length_lower
+        if network_length_lower
+        else get_network_distribution(
+            primary_pts, lateral_pts, pts_all_array, bbox, fraction, monocots
+        )
+    )
+
+    if primary_root_length + lateral_root_length > 0:
         if monocots:
-            ratio = get_network_distribution(
-                primary_pts, lateral_pts, pts_all_array, fraction, monocots
-            ) / (np.sum(get_root_lengths(primary_pts)))
+            ratio = network_length_lower / primary_root_length
         else:
-            ratio = get_network_distribution(
-                primary_pts, lateral_pts, pts_all_array, fraction
-            ) / (
-                np.sum(get_root_lengths(primary_pts))
-                + np.sum(get_root_lengths(lateral_pts))
-            )
+            ratio = network_length_lower / (primary_root_length + lateral_root_length)
         return ratio
     else:
         return np.nan

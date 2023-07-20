@@ -135,7 +135,7 @@ def get_base_ys(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
     """Get y coordinations of base points.
 
     Args:
-        pts: root landmarks as array of shape (instance, point, 2)
+        pts: root landmarks as array of shape (instance, point, 2).
         monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:

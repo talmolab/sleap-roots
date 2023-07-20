@@ -37,7 +37,8 @@ def test_get_ellipse_a(canola_h5):
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
     pts_all_array = get_all_pts_array(plant=plant, frame=0, monocots=False)
-    ellipse_a = get_ellipse_a(pts_all_array)
+    ellipse = None
+    ellipse_a = get_ellipse_a(pts_all_array, ellipse)
     np.testing.assert_almost_equal(ellipse_a, 398.1275346610801, decimal=3)
 
 
@@ -46,7 +47,8 @@ def test_get_ellipse_b(canola_h5):
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
     pts_all_array = get_all_pts_array(plant=plant, frame=0, monocots=False)
-    ellipse_b = get_ellipse_b(pts_all_array)
+    ellipse = None
+    ellipse_b = get_ellipse_b(pts_all_array, ellipse)
     np.testing.assert_almost_equal(ellipse_b, 115.03734180292595, decimal=3)
 
 
