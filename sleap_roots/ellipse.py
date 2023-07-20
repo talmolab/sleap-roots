@@ -38,7 +38,7 @@ def fit_ellipse(pts: np.ndarray) -> Tuple[float, float, float]:
 
 def get_ellipse_a(
     pts_all_array: np.ndarray,
-    ellipse: Optional[Tuple[float, float, float, float]],
+    ellipse: Optional[Tuple[float, float, float]],
 ):
     """Get semi-major axis length of the fitted ellipse.
 
@@ -59,7 +59,7 @@ def get_ellipse_a(
 
 def get_ellipse_b(
     pts_all_array: np.ndarray,
-    ellipse: Optional[Tuple[float, float, float, float]],
+    ellipse: Optional[Tuple[float, float, float]],
 ):
     """Get semi-minor axis length of the fitted ellipse.
 
