@@ -36,42 +36,34 @@ def fit_ellipse(pts: np.ndarray) -> Tuple[float, float, float]:
         return np.nan, np.nan, np.nan
 
 
-def get_ellipse_a(
-    pts_all_array: np.ndarray,
-    ellipse: Optional[Tuple[float, float, float]],
-):
+def get_ellipse_a(pts_all_array: Union[np.ndarray, Tuple[float, float, float]]):
     """Get semi-major axis length of the fitted ellipse.
 
     Args:
-        pts_all_array: landmark points.
-        ellipse: Optional, the fitted ellipse features.
+        pts_all_array: landmark points or tuple of ellipse restults.
 
     Return:
         Scalar of semi-major axis length.
     """
-    if ellipse:
-        ellipse_a = ellipse[0]
+    if type(pts_all_array) == tuple:
+        ellipse_a = pts_all_array[0]
     else:
         ellipse_features = fit_ellipse(pts_all_array)
         ellipse_a = ellipse_features[0]
     return ellipse_a
 
 
-def get_ellipse_b(
-    pts_all_array: np.ndarray,
-    ellipse: Optional[Tuple[float, float, float]],
-):
+def get_ellipse_b(pts_all_array: Union[np.ndarray, Tuple[float, float, float]]):
     """Get semi-minor axis length of the fitted ellipse.
 
     Args:
         pts_all_array: landmark points or tuple of ellipse restults.
-        ellipse: Optional, the fitted ellipse features.
 
     Return:
         Scalar of semi-minor axis length.
     """
-    if ellipse:
-        ellipse_b = ellipse[1]
+    if type(pts_all_array) == tuple:
+        ellipse_b = pts_all_array[1]
     else:
         ellipse_features = fit_ellipse(pts_all_array)
         ellipse_b = ellipse_features[1]

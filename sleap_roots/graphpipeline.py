@@ -194,9 +194,9 @@ def get_traits_value_frame(
             {"stem_width_tolerance": stem_width_tolerance, "monocots": monocots},
         ),
         # get_convhull_features(pts: Union[np.ndarray, ConvexHull]) -> Tuple[float, float, float, float]
-        "convex_hull": (get_convhull_features, ["pts_all_array"]),
+        "convex_hull": (get_convhull_features, ["pts_all_array"], {}),
         # get_lateral_count(pts: np.ndarray)
-        "lateral_count": (get_lateral_count, ["lateral_pts"]),
+        "lateral_count": (get_lateral_count, ["lateral_pts"], {}),
         # # get_root_angle(pts: np.ndarray, proximal=True, base_ind=0) -> np.ndarray
         "lateral_angles_proximal": (
             get_root_angle,
@@ -209,7 +209,7 @@ def get_traits_value_frame(
             {"proximal": False, "base_ind": 0},
         ),
         # get_root_lengths(pts: np.ndarray) -> np.ndarray
-        "lateral_lengths": (get_root_lengths, ["lateral_pts"]),
+        "lateral_lengths": (get_root_lengths, ["lateral_pts"], {}),
         # get_bases(pts: np.ndarray,monocots) -> np.ndarray
         "lateral_base_pts": (get_bases, ["lateral_pts"], {"monocots": monocots}),
         # get_tips(pts)
@@ -230,34 +230,31 @@ def get_traits_value_frame(
         # get_network_solidity(primary_pts: np.ndarray, lateral_pts: np.ndarray, pts_all_array: np.ndarray, monocots: bool = False,) -> float
         "network_solidity": (
             get_network_solidity,
-            ["primary_pts", "lateral_pts", "pts_all_array", "chull_area"],
+            ["primary_pts", "lateral_pts", "chull_area"],
             {"monocots": monocots},
         ),
         # get_network_distribution_ratio(primary_pts: np.ndarray,lateral_pts: np.ndarray,pts_all_array: np.ndarray,fraction: float = 2 / 3, monocots: bool = False) -> float:
         "network_distribution_ratio": (
             get_network_distribution_ratio,
             [
-                "primary_pts",
-                "lateral_pts",
-                "pts_all_array",
                 "primary_length",
                 "lateral_lengths",
-                "bbox",
+                "network_length_lower",
             ],
             {"network_fraction": network_fraction, "monocots": monocots},
         ),
         # get_network_distribution(primary_pts: np.ndarray,lateral_pts: np.ndarray,pts_all_array: np.ndarray,fraction: float = 2 / 3, monocots: bool = False) -> float:
         "network_length_lower": (
             get_network_distribution,
-            ["primary_pts", "lateral_pts", "pts_all_array", "bbox"],
+            ["primary_pts", "lateral_pts", "bbox"],
             {"network_fraction": network_fraction, "monocots": monocots},
         ),
         # get_tip_ys(pts: np.ndarray) -> np.ndarray
         "primary_tip_pt_y": (get_tip_ys, ["primary_pts"], {}),
         # get_ellipse_a(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
-        "ellipse_a": (get_ellipse_a, ["pts_all_array", "ellipse"], {}),
+        "ellipse_a": (get_ellipse_a, ["ellipse"], {}),
         # get_ellipse_b(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
-        "ellipse_b": (get_ellipse_b, ["pts_all_array", "ellipse"], {}),
+        "ellipse_b": (get_ellipse_b, ["ellipse"], {}),
         # get_network_width_depth_ratio(pts: np.ndarray) -> float
         "network_width_depth_ratio": (
             get_network_width_depth_ratio,
