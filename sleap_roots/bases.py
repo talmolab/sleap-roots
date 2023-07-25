@@ -245,7 +245,7 @@ def get_base_median_ratio(
 def get_root_pair_widths_projections(
     lateral_pts, primary_pts, tolerance, monocots: bool = False
 ):
-    """Return estimation of stem width using bases of lateral roots.
+    """Return estimation of root width using bases of lateral roots.
 
     Args:
         lateral_pts: Lateral roots as arrays of shape (n, nodes, 2).
@@ -264,6 +264,25 @@ def get_root_pair_widths_projections(
         if np.isnan(primary_pts).all():
             return np.nan
         else:
+            if lateral_pts.ndim not in (2, 3):
+                raise ValueError(
+                    "Input array must be 2-dimensional (n_bases, 2) or "
+                    "3-dimensional (n_roots, n_nodes, 2)."
+                )
+
+            if lateral_pts.ndim == 3:
+                _tip_pts = get_tips(
+                    pts
+                )  # Assuming get_tips returns an array of shape (instance, 2)
+            else:
+                _tip_pts = pts
+
+            if _tip_pts.ndim != 2 or _tip_pts.shape[1] != 2:
+                raise ValueError(
+                    "Array of tip points must be 2-dimensional with shape (instance, 2)."
+                )
+
+            tip_xs = _tip_pts[:, 0]
             primary_pts_filtered = primary_pts[~np.isnan(primary_pts).any(axis=2)]
             primary_line = LineString(primary_pts_filtered)
 

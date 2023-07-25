@@ -90,7 +90,7 @@ NON_SCALAR_TRAITS = (
     "lateral_angles_proximal",
     "lateral_angles_distal",
     "lateral_lengths",
-    "stem_widths",
+    "root_widths",
     "lateral_base_xs",
     "lateral_base_ys",
     "lateral_tip_xs",
@@ -145,7 +145,7 @@ def get_traits_value_frame(
     lateral_pts: np.ndarray,
     pts_all_array: np.ndarray,
     pts_all_list: list,
-    stem_width_tolerance: float = 0.02,
+    root_width_tolerance: float = 0.02,
     n_line: int = 50,
     network_fraction: float = 2 / 3,
     monocots: bool = False,
@@ -157,7 +157,7 @@ def get_traits_value_frame(
         lateral_pts: lateral points
         pts_all_array: all points in array format
         pts_all_list: all points in list format
-        stem_width_tolerance: difference in projection norm between right and left side.
+        root_width_tolerance: difference in projection norm between right and left side.
         n_line: number of scan lines, np.nan for no interaction.
         network_fraction: length found in the lower fration value of the network.
         monocots: Boolean value, where false is dicot (default), true is rice.
@@ -191,7 +191,7 @@ def get_traits_value_frame(
         "root_widths": (
             get_root_pair_widths_projections,
             ["lateral_pts", "primary_pts"],
-            {"stem_width_tolerance": stem_width_tolerance, "monocots": monocots},
+            {"root_width_tolerance": root_width_tolerance, "monocots": monocots},
         ),
         # get_convhull_features(pts: Union[np.ndarray, ConvexHull]) -> Tuple[float, float, float, float]
         "convex_hull": (get_convhull_features, ["pts_all_array"], {}),
@@ -351,7 +351,7 @@ def get_traits_value_plant(
     monocots: bool = False,
     primary_name: str = "primary_multi_day",
     lateral_name: str = "lateral_3_nodes",
-    stem_width_tolerance: float = 0.02,
+    root_width_tolerance: float = 0.02,
     n_line: int = 50,
     network_fraction: float = 2 / 3,
     write_csv: bool = False,
@@ -367,8 +367,8 @@ def get_traits_value_plant(
             expected to be named `"{h5_path}.{primary_name}.predictions.slp"`.
         lateral_name: Name of the lateral root predictions. The predictions file is
             expected to be named `"{h5_path}.{lateral_name}.predictions.slp"`.
-        stem_width_tolerance: The difference in the projection norm between
-            the right and left side of the stem.
+        root_width_tolerance: The difference in the projection norm between
+            the right and left side of the root.
         n_line: The number of scan lines. Use np.nan for no interaction.
         network_fraction: The length found in the lower fraction value of the network.
         write_csv: A boolean value. If True, it writes per plant detailed
@@ -426,7 +426,7 @@ def get_traits_value_plant(
             lateral_pts,
             pts_all_array,
             pts_all_list,
-            stem_width_tolerance,
+            root_width_tolerance,
             n_line,
             network_fraction,
             monocots,
@@ -465,7 +465,7 @@ def get_traits_value_plant_summary(
     monocots: bool = False,
     primary_name: str = "longest_3do_6nodes",
     lateral_name: str = "main_3do_6nodes",
-    stem_width_tolerance: float = 0.02,
+    root_width_tolerance: float = 0.02,
     n_line: int = 50,
     network_fraction: float = 2 / 3,
     write_csv: bool = False,
@@ -483,8 +483,8 @@ def get_traits_value_plant_summary(
             expected to be named `"{h5_path}.{primary_name}.predictions.slp"`.
         lateral_name: Name of the lateral root predictions. The predictions file is
             expected to be named `"{h5_path}.{lateral_name}.predictions.slp"`.
-        stem_width_tolerance: The difference in the projection norm between
-            the right and left side of the stem.
+        root_width_tolerance: The difference in the projection norm between
+            the right and left side of the root.
         n_line: The number of scan lines. Use np.nan for no interaction.
         network_fraction: The length found in the lower fraction value of the network.
         write_csv: A boolean value. If True, it writes per plant detailed
@@ -504,7 +504,7 @@ def get_traits_value_plant_summary(
         monocots,
         primary_name,
         lateral_name,
-        stem_width_tolerance,
+        root_width_tolerance,
         n_line,
         network_fraction,
         write_csv,
@@ -699,7 +699,7 @@ def get_all_plants_traits(
     data_folders: List[str],
     primary_name: str,
     lateral_name: str,
-    stem_width_tolerance: float = 0.02,
+    root_width_tolerance: float = 0.02,
     n_line: int = 50,
     network_fraction: Fraction = Fraction(2, 3),
     write_per_plant_details: bool = False,
@@ -719,8 +719,8 @@ def get_all_plants_traits(
             expected to be named `"{h5_path}.{primary_name}.predictions.slp"`.
         lateral_name: Name of the lateral root predictions. The predictions file is
             expected to be named `"{h5_path}.{lateral_name}.predictions.slp"`.
-        stem_width_tolerance: The difference in the projection norm between
-            the right and left side of the stem.
+        root_width_tolerance: The difference in the projection norm between
+            the right and left side of the root.
         n_line: The number of scan lines. Use np.nan for no interaction.
         network_fraction: The length found in the lower fraction value of the network.
         write_per_plant_details: A boolean value. If True, it writes per plant detailed
@@ -748,7 +748,7 @@ def get_all_plants_traits(
             monocots=monocots,
             primary_name=primary_name,
             lateral_name=lateral_name,
-            stem_width_tolerance=stem_width_tolerance,
+            root_width_tolerance=root_width_tolerance,
             n_line=n_line,
             network_fraction=network_fraction,
             write_csv=write_per_plant_details,
