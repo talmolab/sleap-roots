@@ -246,8 +246,14 @@ def get_traits_value_frame(
         # get_network_distribution(primary_pts: np.ndarray,lateral_pts: np.ndarray,pts_all_array: np.ndarray,fraction: float = 2 / 3, monocots: bool = False) -> float:
         "network_length_lower": (
             get_network_distribution,
-            ["primary_pts", "lateral_pts", "bbox"],
+            ["primary_pts", "lateral_pts", "bounding_box"],
             {"network_fraction": network_fraction, "monocots": monocots},
+        ),
+        # get_network_width_depth_ratio(pts: np.ndarray) -> float
+        "network_width_depth_ratio": (
+            get_network_width_depth_ratio,
+            ["bounding_box"],
+            {},
         ),
         # get_tip_ys(pts: np.ndarray) -> np.ndarray
         "primary_tip_pt_y": (get_tip_ys, ["primary_pts"], {}),
@@ -255,22 +261,18 @@ def get_traits_value_frame(
         "ellipse_a": (get_ellipse_a, ["ellipse"], {}),
         # get_ellipse_b(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
         "ellipse_b": (get_ellipse_b, ["ellipse"], {}),
-        # get_network_width_depth_ratio(pts: np.ndarray) -> float
-        "network_width_depth_ratio": (
-            get_network_width_depth_ratio,
-            ["pts_all_array", "bbox"],
-            {},
-        ),
+        # get_ellipse_ratio(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
+        "ellipse_ratio": (get_ellipse_ratio, ["ellipse"], {}),
         # get_chull_perimeter(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
-        "chull_perimeter": (get_chull_perimeter, [pts_all_array]),
+        "chull_perimeter": (get_chull_perimeter, ["convex_hull"], {}),
         # get_chull_area(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
-        "chull_area": (get_chull_area, [pts_all_array]),
+        "chull_area": (get_chull_area, ["convex_hull"], {}),
         # get_chull_max_width(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
-        "chull_max_width": (get_chull_max_width, [pts_all_array]),
+        "chull_max_width": (get_chull_max_width, ["convex_hull"], {}),
         # get_chull_max_height(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
-        "chull_max_height": (get_chull_max_height, [pts_all_array]),
+        "chull_max_height": (get_chull_max_height, ["convex_hull"], {}),
         # get_chull_line_lengths(pts: Union[np.ndarray, ConvexHull]) -> np.ndarray
-        "chull_line_lengths": (get_chull_line_lengths, [pts_all_array]),
+        "chull_line_lengths": (get_chull_line_lengths, ["convex_hull"], {}),
         # count_scanline_intersections(primary_pts: np.ndarray,lateral_pts: np.ndarray,depth: int = 1080,width: int = 2048,n_line: int = 50,monocots: bool = False,) -> np.ndarray
         "scanline_intersection_counts": (
             count_scanline_intersections,
@@ -293,8 +295,6 @@ def get_traits_value_frame(
             get_base_median_ratio,
             [primary_pts, lateral_pts, monocots],
         ),
-        # get_ellipse_ratio(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
-        "ellipse_ratio": (get_ellipse_ratio, [pts_all_array]),
         # get_scanline_last_ind(primary_pts: np.ndarray,lateral_pts: np.ndarray,depth: int = 1080, width: int = 2048, n_line: int = 50, monocots: bool = False)
         "scanline_last_ind": (
             get_scanline_last_ind,
