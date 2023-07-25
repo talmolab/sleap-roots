@@ -256,7 +256,7 @@ def get_traits_value_frame(
             {},
         ),
         # get_tip_ys(pts: np.ndarray) -> np.ndarray
-        "primary_tip_pt_y": (get_tip_ys, ["primary_pts"], {}),
+        "primary_tip_pt_y": (get_tip_ys, ["primary_tip_pt"], {}),
         # get_ellipse_a(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
         "ellipse_a": (get_ellipse_a, ["ellipse"], {}),
         # get_ellipse_b(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
