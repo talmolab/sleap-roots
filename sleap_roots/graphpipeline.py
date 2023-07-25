@@ -190,7 +190,7 @@ def get_traits_value_frame(
         # get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance,monocots)
         "root_widths": (
             get_root_pair_widths_projections,
-            ["lateral_pts", "primary_pts"],
+            ["primary_pts", "lateral_pts"],
             {"root_width_tolerance": root_width_tolerance, "monocots": monocots},
         ),
         # get_convhull_features(pts: Union[np.ndarray, ConvexHull]) -> Tuple[float, float, float, float]
