@@ -39,12 +39,29 @@ def get_tip_xs(pts: np.ndarray) -> np.ndarray:
     """Get x coordinations of tip points.
 
     Args:
-        pts: root landmarks as array of shape (instance, point, 2)
+        pts: root landmarks as array of shape (instance, point, 2) or tips (instance, 2)
 
     Return:
-        An array of tips in x axis (instance,).
+        An array tip x-coordinates (instance,).
     """
-    _tip_pts = get_tips(pts)
+    if pts.ndim not in (2, 3):
+        raise ValueError(
+            "Input array must be 2-dimensional (n_tips, 2) or "
+            "3-dimensional (n_roots, n_nodes, 2)."
+        )
+
+    if pts.ndim == 3:
+        _tip_pts = get_tips(
+            pts
+        )  # Assuming get_tips returns an array of shape (instance, 2)
+    else:
+        _tip_pts = pts
+
+    if _tip_pts.ndim != 2 or _tip_pts.shape[1] != 2:
+        raise ValueError(
+            "Array of tip points must be 2-dimensional with shape (instance, 2)."
+        )
+
     tip_xs = _tip_pts[:, 0]
     return tip_xs
 
@@ -53,11 +70,28 @@ def get_tip_ys(pts: np.ndarray) -> np.ndarray:
     """Get y coordinations of tip points.
 
     Args:
-        pts: root landmarks as array of shape (instance, point, 2)
+        pts: root landmarks as array of shape (instance, point, 2) or tips (instance, 2)
 
     Return:
-        An array of tips in y axis (instance,)
+        An array tip y-coordinates (instance,).
     """
-    _tip_pts = get_tips(pts)
-    tip_ys = _tip_pts[:, 1]
+    if pts.ndim not in (2, 3):
+        raise ValueError(
+            "Input array must be 2-dimensional (n_tips, 2) or "
+            "3-dimensional (n_roots, n_nodes, 2)."
+        )
+
+    if pts.ndim == 3:
+        _tip_pts = get_tips(
+            pts
+        )  # Assuming get_tips returns an array of shape (instance, 2)
+    else:
+        _tip_pts = pts
+
+    if _tip_pts.ndim != 2 or _tip_pts.shape[1] != 2:
+        raise ValueError(
+            "Array of tip points must be 2-dimensional with shape (instance, 2)."
+        )
+
+    tip_ys = _tip_pts[:, 0]
     return tip_ys
