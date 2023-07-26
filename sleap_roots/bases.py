@@ -123,7 +123,24 @@ def get_base_xs(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
     Return:
         An array of bases in x axis (instance,).
     """
-    _base_pts = get_bases(pts, monocots)
+    if pts.ndim not in (2, 3):
+        raise ValueError(
+            "Input array must be 2-dimensional (n_bases, 2) or "
+            "3-dimensional (n_roots, n_nodes, 2)."
+        )
+
+    if pts.ndim == 3:
+        _base_pts = get_bases(
+            pts, monocots
+        )  # Assuming get_tips returns an array of shape (instance, 2)
+    else:
+        _base_pts = pts
+
+    if _base_pts.ndim != 2 or _base_pts.shape[1] != 2:
+        raise ValueError(
+            "Array of base points must be 2-dimensional with shape (instance, 2)."
+        )
+
     if isinstance(_base_pts, (np.floating, float, np.integer, int)):
         return np.nan
     else:
