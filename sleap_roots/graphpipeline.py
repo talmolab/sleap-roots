@@ -276,7 +276,8 @@ def get_traits_value_frame(
         # count_scanline_intersections(primary_pts: np.ndarray,lateral_pts: np.ndarray,depth: int = 1080,width: int = 2048,n_line: int = 50,monocots: bool = False,) -> np.ndarray
         "scanline_intersection_counts": (
             count_scanline_intersections,
-            [primary_pts, lateral_pts, 1080, 2048, 50, monocots],
+            [primary_pts, lateral_pts],
+            {"depth": 1080, "width": 2048, "n_line": 50, "monocots": monocots},
         ),
         # get_base_xs(pts: np.ndarray) -> np.ndarray
         "lateral_base_xs": (get_base_xs, [lateral_pts, monocots]),
