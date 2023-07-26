@@ -243,13 +243,13 @@ def get_base_median_ratio(
 
 
 def get_root_pair_widths_projections(
-    lateral_pts, primary_pts, tolerance, monocots: bool = False
+    primary_pts, lateral_pts, tolerance, monocots: bool = False
 ):
     """Return estimation of root width using bases of lateral roots.
 
     Args:
-        lateral_pts: Lateral roots as arrays of shape (n, nodes, 2).
         primary_pts: longest primary root as arrays of shape (n, nodes, 2).
+        lateral_pts: Lateral roots as arrays of shape (n, nodes, 2).
         tolerance: difference in projection norm between the right and left side (~0.02).
         monocots: Boolean value, where false is dicot (default), true is rice.
 
