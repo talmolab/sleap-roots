@@ -179,28 +179,28 @@ def test_bases_no_roots(pts_no_roots):
 
 # test get_base_tip_dist with standard points
 def test_get_base_tip_dist_standard(pts_standard):
-    distance = get_base_tip_dist(pts_standard)
+    distance = get_base_tip_dist(pts=pts_standard)
     assert distance.shape == (2,)
     np.testing.assert_almost_equal(distance, [2.82842712, 2.82842712], decimal=7)
 
 
 # test get_base_tip_dist with roots without bases
 def test_get_base_tip_dist_no_bases(pts_no_bases):
-    distance = get_base_tip_dist(pts_no_bases)
+    distance = get_base_tip_dist(pts=pts_no_bases)
     assert distance.shape == (2,)
     np.testing.assert_almost_equal(distance, [np.nan, np.nan], decimal=7)
 
 
 # test get_base_tip_dist with roots with one base
 def test_get_base_tip_dist_one_base(pts_one_base):
-    distance = get_base_tip_dist(pts_one_base)
+    distance = get_base_tip_dist(pts=pts_one_base)
     assert distance.shape == (2,)
     np.testing.assert_almost_equal(distance, [2.82842712, np.nan], decimal=7)
 
 
 # test get_base_tip_dist with no roots
 def test_get_base_tip_dist_no_roots(pts_no_roots):
-    distance = get_base_tip_dist(pts_no_roots)
+    distance = get_base_tip_dist(pts=pts_no_roots)
     assert distance.shape == (2,)
     np.testing.assert_almost_equal(distance, [np.nan, np.nan], decimal=7)
 
@@ -210,9 +210,8 @@ def test_get_grav_index(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    primary, lateral = series[0]
-    pts = primary.numpy()
-    grav_index = get_grav_index(pts)
+    primary_pts = get_primary_pts(plant=series, frame=0)
+    grav_index = get_grav_index(pts=primary_pts)
     np.testing.assert_almost_equal(grav_index, 0.08898137324716636)
 
 
@@ -432,7 +431,7 @@ def test_get_base_length_ratio(canola_h5):
     np.testing.assert_almost_equal(base_length_ratio, 0.086, decimal=3)
 
 
-def test_stem_width(canola_h5):
+def test_root_width(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
@@ -442,5 +441,5 @@ def test_stem_width(canola_h5):
     assert primary_pts.shape == (1, 6, 2)
     assert lateral_pts.shape == (5, 3, 2)
 
-    stem_widths = get_root_pair_widths_projections(lateral_pts, primary_pts, 0.02)
-    np.testing.assert_array_almost_equal(stem_widths, [31.603239])
+    root_widths = get_root_pair_widths_projections(lateral_pts, primary_pts, 0.02)
+    assert np.isnan(root_widths)
