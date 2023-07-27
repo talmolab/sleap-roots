@@ -20,10 +20,10 @@ from sleap_roots.bases import (
     get_base_ys,
     get_grav_index,
     get_lateral_count,
-    get_primary_depth,
     get_root_lengths,
     get_root_pair_widths_projections,
 )
+from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys, get_primary_depth
 from sleap_roots.convhull import (
     get_chull_area,
     get_chull_line_lengths,
@@ -53,7 +53,6 @@ from sleap_roots.scanline import (
 )
 from sleap_roots.series import Series, find_all_series
 from sleap_roots.summary import get_summary
-from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys
 from typing import Dict, Tuple
 import warnings
 

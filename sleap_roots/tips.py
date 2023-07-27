@@ -93,5 +93,5 @@ def get_tip_ys(pts: np.ndarray) -> np.ndarray:
             "Array of tip points must be 2-dimensional with shape (instance, 2)."
         )
 
-    tip_ys = _tip_pts[:, 0]
+    tip_ys = _tip_pts[:, 1]
     return tip_ys

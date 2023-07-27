@@ -1,7 +1,6 @@
 """Trait calculations that rely on bases (i.e., dicot-only)."""
 
 import numpy as np
-import shapely
 from shapely.geometry import LineString, Point
 from shapely.ops import nearest_points
 
