@@ -81,19 +81,38 @@ def get_root_lengths_max(pts: np.ndarray) -> np.ndarray:
     return max_length
 
 
-def get_base_tip_dist(pts: np.ndarray) -> np.ndarray:
+def get_base_tip_dist(
+    base_pts: np.ndarray = None, tip_pts: np.ndarray = None, pts: np.ndarray = None
+) -> np.ndarray:
     """Return distance from root base to tip.
 
     Args:
+        base_pts: bases of roots (instances, 2)
+        tip_pts: tips of roots (instances, 2)
+        OR
         pts: Root landmarks as array of shape (instances, nodes, 2)
 
     Returns:
         Array of distances from base to tip of shape (instances,).
     """
-    # If the pts are NaNs, return NaN
-    base_pt = pts[:, 0]
-    tip_pt = pts[:, -1]
-    distance = np.linalg.norm(base_pt - tip_pt, axis=-1)
+    if base_pts is not None and tip_pts is not None:
+        # If base_pts and tip_pts are provided, but they are NaN, return NaN
+        if np.isnan(base_pts).all() or np.isnan(tip_pts).all():
+            return np.nan
+        # Calculate distance based on them
+        distance = np.linalg.norm(base_pts - tip_pts, axis=-1)
+    elif pts is not None:
+        # If pts is provided, but it is NaN, return NaN
+        if np.isnan(pts).all():
+            return np.nan
+        # Calculate distance based on it
+        base_pt = pts[:, 0]
+        tip_pt = pts[:, -1]
+        distance = np.linalg.norm(base_pt - tip_pt, axis=-1)
+    else:
+        # If neither base_pts and tip_pts nor pts is provided, raise an exception
+        raise ValueError("Either both base_pts and tip_pts, or pts must be provided.")
+
     return distance
 
 
