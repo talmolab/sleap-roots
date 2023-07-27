@@ -7,7 +7,6 @@ from typing import List
 from fractions import Fraction
 import networkx as nx
 from pathlib import Path
-from sleap_roots.traitsgraph import get_traits_graph
 from sleap_roots.angle import get_root_angle
 from sleap_roots.bases import (
     get_bases,
