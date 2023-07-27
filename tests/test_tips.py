@@ -1,5 +1,5 @@
 from sleap_roots.points import get_lateral_pts
-from sleap_roots.tips import get_tips, get_primary_depth, get_tip_xs, get_tip_ys
+from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys
 from sleap_roots import Series
 import numpy as np
 import pytest
@@ -79,18 +79,6 @@ def test_tips_one_tip(pts_one_tip):
     tips = get_tips(pts_one_tip)
     assert tips.shape == (2, 2)
     np.testing.assert_array_equal(tips, [[3, 4], [np.nan, np.nan]])
-
-
-# test get_primary_depth with standard points
-def test_get_primary_depth_standard(pt_standard):
-    primary_depth = get_primary_depth(pt_standard)
-    np.testing.assert_array_almost_equal(primary_depth, 4)
-
-
-# test get_primary_depth with nan tip points
-def test_get_primary_depth_nan(pt_nan_tip):
-    primary_depth = get_primary_depth(pt_nan_tip)
-    np.testing.assert_array_almost_equal(primary_depth, np.nan)
 
 
 # test get_tip_xs with canola
