@@ -96,15 +96,15 @@ def get_base_tip_dist(
         Array of distances from base to tip of shape (instances,).
     """
     if base_pts is not None and tip_pts is not None:
-        # If base_pts and tip_pts are provided, but they are NaN, return NaN
+        # If base_pts and tip_pts are provided, but they are NaN, return NaN array of same shape
         if np.isnan(base_pts).all() or np.isnan(tip_pts).all():
-            return np.nan
+            return np.full(base_pts.shape, np.nan)
         # Calculate distance based on them
         distance = np.linalg.norm(base_pts - tip_pts, axis=-1)
     elif pts is not None:
-        # If pts is provided, but it is NaN, return NaN
+        # If pts is provided, but it is NaN, return NaN array of same shape
         if np.isnan(pts).all():
-            return np.nan
+            return np.full((pts.shape[0],), np.nan)
         # Calculate distance based on it
         base_pt = pts[:, 0]
         tip_pt = pts[:, -1]
@@ -116,27 +116,51 @@ def get_base_tip_dist(
     return distance
 
 
-def get_grav_index(pts: np.ndarray):
-    """Get gravitropism index based on primary_length_max and primary_base_tip_dist.
+def get_grav_index(
+    primary_length: float = None,
+    primary_base_tip_dist: float = None,
+    pts: np.ndarray = None,
+):
+    """Get gravitropism index based on primary_length_max and primary_base_tip_dist
+      or primary root points.
 
     Args:
-        pts: primary root landmarks as array of shape (1, node, 2)
+        primary_base_tip_dist: scalar of distance from base to tip of primary root
+        (longest primary root prediction used if there is more than one)
+        primary_length: scalar of length of primary root
+        (longest primary root prediction used if there is more than one)
+        OR
+        pts: primary root landmarks as array of shape (instances, nodes, 2)
 
     Returns:
         Scalar of primary root gravity index.
     """
-    # get primary root length, if predicted >1 primary roots, use the longest one
-    primary_length = get_root_lengths(pts)
-    primary_length_max = get_root_lengths_max(primary_length)
-
-    # get the distance between base and tip in y axis
-    primary_base_tip_dist = get_base_tip_dist(pts)
-
+    if primary_length is not None and primary_base_tip_dist is not None:
+        # If primary_length and primary_base_tip_dist are provided, use them
+        if np.isnan(primary_length) or np.isnan(primary_base_tip_dist):
+            return np.nan
+        pl_max = primary_length
+        primary_base_tip_dist_max = primary_base_tip_dist
+    elif pts is not None:
+        # If pts is provided, calculate lengths and base-tip distances based on it
+        if np.isnan(pts).all():
+            return np.nan
+        primary_length_max = get_root_lengths_max(pts=pts)
+        primary_base_tip_dist = get_base_tip_dist(pts=pts)
+        pl_max = np.nanmax(primary_length_max)
+        primary_base_tip_dist_max = np.nanmax(primary_base_tip_dist)
+    else:
+        # If neither primary_length and primary_base_tip_dist nor pts is provided, raise an exception
+        raise ValueError(
+            "Either both primary_length and primary_base_tip_dist, or pts must be provided."
+        )
+    # Check if pl_max or primary_base_tip_dist_max is NaN, if so, return NaN
+    if np.isnan(pl_max) or np.isnan(primary_base_tip_dist_max):
+        return np.nan
     # calculate gravitropism index
-    pl_max = np.nanmax(primary_length_max)
     if pl_max == 0:
         return np.nan
-    grav_index = (pl_max - np.nanmax(primary_base_tip_dist)) / pl_max
+    grav_index = (pl_max - primary_base_tip_dist_max) / pl_max
     return grav_index
 
 
@@ -425,104 +449,77 @@ def get_base_median_ratio(
 
 
 def get_root_pair_widths_projections(
-    primary_pts, lateral_pts, tolerance, monocots: bool = False
-):
-    """Return estimation of root width using bases of lateral roots.
+    primary_pts: np.ndarray,
+    lateral_pts: np.ndarray,
+    tolerance: float,
+    monocots: bool = False,
+) -> float:
+    """
+    Return estimation of root width using bases of lateral roots.
 
     Args:
-        primary_pts: longest primary root as arrays of shape (n, nodes, 2).
-        lateral_pts: Lateral roots as arrays of shape (n, nodes, 2).
-        tolerance: difference in projection norm between the right and left side (~0.02).
-        monocots: Boolean value, where false is dicot (default), true is rice.
+        primary_pts: Longest primary root as an array of shape (n, nodes, 2).
+        lateral_pts: Lateral roots as an array of shape (n, nodes, 2).
+        tolerance: Difference in projection norm between the right and left side (~0.02).
+        monocots: Boolean value, where False is dicot (default), True is rice.
 
     Returns:
-        A match_dists is the distance in pixels between the bases of matched
-            roots as a vector of size (n_matches,).
+        float: The distance in pixels between the bases of matched roots, or NaN
+        if no matches were found or all input points were NaN.
 
+    Raises:
+        ValueError: If the input arrays are of incorrect shape.
     """
-    if monocots:
+
+    if primary_pts.ndim != 3 or lateral_pts.ndim != 3:
+        raise ValueError("Input arrays should be 3-dimensional")
+
+    if monocots or np.isnan(primary_pts).all() or np.isnan(lateral_pts).all():
         return np.nan
-    else:
-        if np.isnan(primary_pts).all():
-            return np.nan
-        else:
-            primary_pts_filtered = primary_pts[~np.isnan(primary_pts).any(axis=2)]
-            primary_line = LineString(primary_pts_filtered)
 
-            # Make a line of the primary points
-            primary_line = LineString(primary_pts_filtered)
+    primary_pts_filtered = primary_pts[~np.isnan(primary_pts).any(axis=2)]
+    primary_line = LineString(primary_pts_filtered)
 
-            # Filter by whether the base node is present.
-            has_base = ~np.isnan(lateral_pts[:, 0, 0])
-            valid_inds = np.argwhere(has_base).squeeze()
-            lateral_pts = lateral_pts[has_base]
+    has_base = ~np.isnan(lateral_pts[:, 0, 0])
+    valid_inds = np.argwhere(has_base).squeeze()
+    lateral_pts = lateral_pts[has_base]
 
-            # Find roots facing left based on whether the base x-coord
-            # is larger than the tip x-coord.
-            is_left = lateral_pts[:, 0, 0] > np.nanmin(lateral_pts[:, 1:, 0], axis=1)
+    is_left = lateral_pts[:, 0, 0] > np.nanmin(lateral_pts[:, 1:, 0], axis=1)
 
-            # Edge Case: Only found roots on one side.
-            if is_left.all() or (~is_left).all():
-                return np.nan
+    if is_left.all() or (~is_left).all():
+        return np.nan
 
-            # Get left and right base points.
-            left_bases, right_bases = lateral_pts[is_left, 0], lateral_pts[~is_left, 0]
+    left_bases, right_bases = lateral_pts[is_left, 0], lateral_pts[~is_left, 0]
 
-            # Find the nearest point to each right lateral base on the primary root line
-            nearest_primary_right = [
-                nearest_points(primary_line, Point(right_base))[0]
-                for right_base in right_bases
-            ]
+    nearest_primary_right = [
+        nearest_points(primary_line, Point(right_base))[0] for right_base in right_bases
+    ]
 
-            # Find the nearest point to each left lateral base on the primary root line
-            nearest_primary_left = [
-                nearest_points(primary_line, Point(left_base))[0]
-                for left_base in left_bases
-            ]
+    nearest_primary_left = [
+        nearest_points(primary_line, Point(left_base))[0] for left_base in left_bases
+    ]
 
-            # Returns the distance along the primary line of point in nearest_primary_right, normalized to the length of the object.
-            nearest_primary_norm_right = np.array(
-                [
-                    primary_line.project(pt, normalized=True)
-                    for pt in nearest_primary_right
-                ]
-            )
-            # Returns the distance along the primary line of point in nearest_primary_left, normalized to the length of the object.
-            nearest_primary_norm_left = np.array(
-                [
-                    primary_line.project(pt, normalized=True)
-                    for pt in nearest_primary_left
-                ]
-            )
+    nearest_primary_norm_right = np.array(
+        [primary_line.project(pt, normalized=True) for pt in nearest_primary_right]
+    )
 
-            # get all possible differences in projections from all base pairs
-            projection_diffs = np.abs(
-                nearest_primary_norm_left.reshape(-1, 1)
-                - nearest_primary_norm_right.reshape(1, -1)
-            )
+    nearest_primary_norm_left = np.array(
+        [primary_line.project(pt, normalized=True) for pt in nearest_primary_left]
+    )
 
-            # shape is [# of valid base pairs, 2 [left right]]
-            indices = np.argwhere(projection_diffs <= tolerance)
+    projection_diffs = np.abs(
+        nearest_primary_norm_left.reshape(-1, 1)
+        - nearest_primary_norm_right.reshape(1, -1)
+    )
 
-            left_inds = indices[:, 0]
-            right_inds = indices[:, 1]
+    indices = np.argwhere(projection_diffs <= tolerance)
 
-            # Find pairwise distances. (shape is (# of left bases, # of right bases))
-            dists = np.linalg.norm(
-                np.expand_dims(left_bases, axis=1)
-                - np.expand_dims(right_bases, axis=0),
-                axis=-1,
-            )
+    left_inds = indices[:, 0]
+    right_inds = indices[:, 1]
 
-            # Pull out match distances.
-            match_dists = np.array([dists[l, r] for l, r in zip(left_inds, right_inds)])
+    match_dists = np.linalg.norm(
+        left_bases[left_inds] - right_bases[right_inds],
+        axis=-1,
+    )
 
-            # Convert matches to indices before splitting by side.
-            left_inds = np.argwhere(is_left).reshape(-1)[left_inds]
-            right_inds = np.argwhere(~is_left).reshape(-1)[right_inds]
-
-            # Convert matches to indices before filtering.
-            left_inds = valid_inds[left_inds]
-            right_inds = valid_inds[right_inds]
-
-        return match_dists
+    return match_dists
