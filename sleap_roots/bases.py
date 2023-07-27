@@ -47,16 +47,37 @@ def get_root_lengths(pts: np.ndarray) -> np.ndarray:
     return total_lengths
 
 
-def get_root_lengths_max(lengths: np.ndarray) -> np.ndarray:
-    """Return maximum root length for all roots in a frame.
+def get_root_lengths_max(pts: np.ndarray) -> np.ndarray:
+    """
+    Return maximum root length for all roots in a frame.
 
     Args:
-        lengths: root lengths with shape of (instances,).
+        pts: root landmarks as array of shape (instance, nodes, 2)
+        or lengths (instances)
 
     Returns:
         Scalar of the maximum root length.
     """
-    max_length = np.nanmax(lengths)
+    # If the pts are NaNs, return NaN
+    if np.isnan(pts).all():
+        return np.nan
+
+    if pts.ndim not in (1, 3):
+        raise ValueError(
+            "Input array must be 1-dimensional (n_lengths) or "
+            "3-dimensional (n_roots, n_nodes, 2)."
+        )
+
+    # If the input array has 3 dimensions, calculate the root lengths,
+    # otherwise, assume the input array already contains the root lengths
+    if pts.ndim == 3:
+        root_lengths = get_root_lengths(
+            pts
+        )  # Assuming get_root_lengths returns an array of shape (instances)
+        max_length = np.nanmax(root_lengths)
+    else:
+        max_length = np.nanmax(pts)
+
     return max_length
 
 
@@ -69,6 +90,7 @@ def get_base_tip_dist(pts: np.ndarray) -> np.ndarray:
     Returns:
         Array of distances from base to tip of shape (instances,).
     """
+    # If the pts are NaNs, return NaN
     base_pt = pts[:, 0]
     tip_pt = pts[:, -1]
     distance = np.linalg.norm(base_pt - tip_pt, axis=-1)
@@ -250,13 +272,13 @@ def get_base_length(pts: np.ndarray, monocots: bool = False):
     return base_length
 
 
-def get_base_ct_density(primary_pts, lateral_pts, monocots: bool = False):
+def get_base_ct_density(primary_pts, lateral_pts: np.ndarray, monocots: bool = False):
     """
     Get a ratio of the number of base points to maximum primary root length.
 
     Args:
         primary_pts: primary root points of shape (instances, nodes, 2)
-        or primary root lengths of shape (instances).
+        or scalar maximum primary root length.
         lateral_pts: lateral root points of shape (instances, nodes, 2)
         or base points of lateral roots of shape (instances, 2).
         monocots: Boolean value, where false is dicot (default), true is rice.
@@ -265,8 +287,9 @@ def get_base_ct_density(primary_pts, lateral_pts, monocots: bool = False):
         Scalar of base count density.
     """
     # If the inputs are single numbers (float or integer), return np.nan
-    if isinstance(lateral_pts, (np.floating, float, np.integer, int)) or isinstance(
-        primary_pts, (np.floating, float, np.integer, int)
+    if (
+        isinstance(lateral_pts, (np.floating, float, np.integer, int))
+        or np.isnan(primary_pts).all()
     ):
         return np.nan
 
@@ -283,46 +306,81 @@ def get_base_ct_density(primary_pts, lateral_pts, monocots: bool = False):
     if isinstance(_base_pts, (np.floating, float, np.integer, int)):
         return np.nan
 
-    # get number of base points of lateral roots
+    # Get number of base points of lateral roots
     base_ct = len(_base_pts[~np.isnan(_base_pts[:, 0])])
 
     if primary_pts.ndim == 3:
-        # get primary root length
-        lengths_primary = get_root_lengths(
+        # Get primary root length
+        primary_length_max = get_root_lengths_max(
             primary_pts
         )  # Assuming get_root_lengths returns an array of shape (instances)
     else:
-        # Assuming primary_pts is an array of shape (instances)
-        lengths_primary = primary_pts
+        # Assuming primary_pts is a scalar
+        primary_length_max = primary_pts
 
-    # Handle case where primary lengths are all NaN or empty to avoid division by zero
-    max_length = np.nanmax(lengths_primary)
-    if np.isnan(max_length):
+    # Handle case where maximum primary length is zero to avoid division by zero
+    if primary_length_max == 0:
+        return np.nan
+    # Handle case where primary lengths are all NaN or empty
+    if np.isnan(primary_length_max):
         return np.nan
 
-    # get base_ct_density
-    base_ct_density = base_ct / max_length
+    # Get base_ct_density
+    base_ct_density = base_ct / primary_length_max
     return base_ct_density
 
 
-def get_base_length_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray):
-    """Get ratio of top-deep base length to primary root length.
+def get_base_length_ratio(
+    primary_pts: np.ndarray, lateral_pts: np.ndarray, monocots: bool = False
+):
+    """
+    Get ratio of top-deep base length to primary root length.
 
     Args:
-        primary_pts: primary root points.
-        lateral_pts: lateral root points.
+        primary_pts: primary root points of shape (instances, nodes, 2)
+        or scalar maximum primary root length.
+        lateral_pts: lateral root points of shape (instances, nodes, 2)
+        or scalar of base_length.
+        monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
         Scalar of base length ratio.
     """
-    base_length = get_base_length(lateral_pts)
-    primary_length = get_root_lengths(primary_pts)
-    primary_length_max = get_root_lengths_max(primary_length)
+    # If lateral_pts is a single number (float or integer) or primary_pts is NaN, return np.nan
+    if (
+        isinstance(lateral_pts, (np.floating, float, np.integer, int))
+        or np.isnan(primary_pts).all()
+    ):
+        return np.nan
+
+    # If the input array has 3 dimensions, calculate the base length,
+    # otherwise, assume the input array already contains the base length
+    if lateral_pts.ndim == 3:
+        base_length = get_base_length(
+            lateral_pts
+        )  # Assuming get_base_length returns an array of shape (instances)
+    else:
+        base_length = lateral_pts  # Assuming lateral_pts is a scalar
+
+    if primary_pts.ndim == 3:
+        primary_length_max = get_root_lengths_max(
+            get_root_lengths(primary_pts)
+        )  # Assuming get_root_lengths returns an array of shape (instances)
+    else:
+        primary_length_max = (
+            primary_pts  # Assuming primary_pts is the maximum primary root length
+        )
+
+    # Handle case where maximum primary length is zero to avoid division by zero
     if primary_length_max == 0:
         return np.nan
-    else:
-        base_length_ratio = base_length / primary_length_max
-        return base_length_ratio
+    # Handle case where primary lengths are all NaN or empty
+    if np.isnan(primary_length_max):
+        return np.nan
+
+    # Compute and return base length ratio
+    base_length_ratio = base_length / primary_length_max
+    return base_length_ratio
 
 
 def get_base_median_ratio(
