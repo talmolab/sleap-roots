@@ -23,7 +23,7 @@ from sleap_roots.bases import (
     get_root_lengths,
     get_root_pair_widths_projections,
 )
-from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys, get_primary_depth
+from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys
 from sleap_roots.convhull import (
     get_chull_area,
     get_chull_line_lengths,
@@ -62,7 +62,6 @@ SCALAR_TRAITS = (
     "primary_angle_distal",
     "primary_length",
     "primary_base_tip_dist",
-    "primary_depth",
     "lateral_count",
     "grav_index",
     "base_length",
@@ -288,8 +287,6 @@ def get_traits_value_frame(
         "lateral_tip_ys": (get_tip_ys, [lateral_pts]),
         # get_base_tip_dist(pts: np.ndarray) -> np.ndarray
         "primary_base_tip_dist": (get_base_tip_dist, [primary_pts]),
-        # get_primary_depth(primary_pts)
-        "primary_depth": (get_primary_depth, [primary_pts]),
         # get_base_median_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray)
         "base_median_ratio": (
             get_base_median_ratio,

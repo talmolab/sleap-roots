@@ -19,22 +19,6 @@ def get_tips(pts):
     return tip_pts
 
 
-def get_primary_depth(pts: np.ndarray) -> np.ndarray:
-    """Get primary root tip depth.
-
-    Args:
-        pts: primary root landmarks as array of shape (1, point, 2)
-
-    Returns:
-        Primary root tip depth (location in y-axis).
-    """
-    # get the last point of primary root, if invisible, return nan
-    if pts[:, -1].any() == np.nan:
-        return np.nan
-    else:
-        return pts[:, -1, 1]
-
-
 def get_tip_xs(pts: np.ndarray) -> np.ndarray:
     """Get x coordinations of tip points.
 
