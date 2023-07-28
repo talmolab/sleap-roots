@@ -277,15 +277,22 @@ def get_traits_value_frame(
             {"depth": 1080, "width": 2048, "n_line": 50, "monocots": monocots},
         ),
         # get_base_xs(pts: np.ndarray) -> np.ndarray
-        "lateral_base_xs": (get_base_xs, [lateral_pts, monocots]),
+        "lateral_base_xs": (get_base_xs, ["lateral_base_pts"], {"monocots": monocots}),
         # get_base_ys(pts: np.ndarray) -> np.ndarray
-        "lateral_base_ys": (get_base_ys, [lateral_pts, monocots]),
+        "lateral_base_ys": (get_base_ys, ["lateral_base_pts"], {"monocots": monocots}),
         # get_tip_xs(pts: np.ndarray) -> np.ndarray
-        "lateral_tip_xs": (get_tip_xs, [lateral_pts]),
+        "lateral_tip_xs": (get_tip_xs, ["lateral_tip_pts"], {"monocots": monocots}),
         # get_tip_ys(pts: np.ndarray) -> np.ndarray
-        "lateral_tip_ys": (get_tip_ys, [lateral_pts]),
+        "lateral_tip_ys": (get_tip_ys, ["lateral_tip_pts"], {"monocots": monocots}),
         # get_base_tip_dist(pts: np.ndarray) -> np.ndarray
-        "primary_base_tip_dist": (get_base_tip_dist, [primary_pts]),
+        "primary_base_tip_dist": (
+            get_base_tip_dist,
+            {
+                "base_pts": "primary_base_pt",
+                "tip_pts": "primary_tip_pt",
+                "pts": "primary_pts",
+            },
+        ),
         # get_base_median_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray)
         "base_median_ratio": (
             get_base_median_ratio,
