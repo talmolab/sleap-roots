@@ -426,9 +426,7 @@ def get_base_length_ratio(
     return base_length_ratio
 
 
-def get_base_median_ratio(
-    primary_pts: np.ndarray, lateral_pts: np.ndarray, monocots: bool = False
-):
+def get_base_median_ratio(lateral_base_ys, primary_tip_pt_y, monocots: bool = False):
     """Get ratio of median value in all base points to tip of primary root in y axis.
 
     Args:
@@ -439,6 +437,7 @@ def get_base_median_ratio(
     Return:
         Scalar of base median ratio.
     """
+
     _base_pts = get_bases(lateral_pts, monocots)
     pr_tip_depth = np.nanmax(primary_pts[:, :, 1])
     if np.isnan(_base_pts).all():
