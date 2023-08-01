@@ -136,7 +136,7 @@ warnings.filterwarnings(
 )
 
 
-@attr.define
+@attrs.define
 class TraitDef:
     """
     Definition of how to compute a trait.
@@ -191,7 +191,7 @@ class TraitDef:
     input_traits: List[str]
     scalar: bool
     include_in_csv: bool
-    kwargs: Dict[str, Any] = attr.field(factory=dict)
+    kwargs: Dict[str, Any] = attrs.field(factory=dict)
     description: Optional[str] = None
 
 
