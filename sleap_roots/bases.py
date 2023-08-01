@@ -352,7 +352,7 @@ def get_base_ct_density(primary_pts, lateral_pts: np.ndarray, monocots: bool = F
         # Get primary root length
         primary_length_max = get_root_lengths_max(
             primary_pts
-        )  # Assuming get_root_lengths returns an array of shape (instances)
+        )  # Assuming get_root_lengths_max is a scalar
     else:
         # Assuming primary_pts is a scalar
         primary_length_max = primary_pts

@@ -136,23 +136,27 @@ warnings.filterwarnings(
 )
 
 
-@attrs.define
+@attr.define
 class TraitDef:
-    """Definition of how to compute a trait.
+    """
+    Definition of how to compute a trait.
 
     Attributes:
-        name: String name of the trait.
-        fn: The function that will be called to compute the trait.
-        input_traits: A list of string names of traits expected as input positional
-            arguments to `fn`. These will be reused from the traits that were
-            previously computed in the pipeline. These trait names should match the
-            `name` attribute of the other corresponding trait definitions.
-        kwargs: A dictionary of additional keyword arguments expected by the function.
-            These will be passed directly, not reused from the previously computed
-            traits. If not specified, no additional keyword arguments will be passed to
-            the function
-        description: Optional string describing the trait. This is just used for inline
-            documentation.
+        name (str): Unique identifier for the trait.
+        fn (Callable): Function used to compute the trait's value.
+        input_traits (List[str]): List of trait names that should be
+            computed before the current trait and are expected as input
+            positional arguments to `fn`.
+        scalar (bool): Indicates if the trait is scalar (has a dimension
+            of 0 per frame). If `True`, the trait is also listed in
+            `SCALAR_TRAITS`.
+        include_in_csv (bool): Indicates if the trait should be included
+            in downstream CSV files.
+        kwargs (Dict[str, Any]): Additional keyword arguments to be passed
+            to the `fn` function. These arguments are not reused from
+            previously computed traits.
+        description (Optional[str]): Optional string describing the trait.
+            This is primarily for documentation purposes.
 
     Notes:
         The `fn` specified will be called with a pattern like:
@@ -161,7 +165,9 @@ class TraitDef:
         trait_def = TraitDef(
             name="my_trait",
             fn=compute_my_trait,
-            input_traits=["input_trait_1", ["input_trait_2"]],
+            input_traits=["input_trait_1", "input_trait_2"],
+            scalar=True,
+            include_in_csv=True,
             kwargs={"kwarg1": True}
         )
         traits[trait_def.name] = trait_def.fn(
@@ -183,7 +189,9 @@ class TraitDef:
     name: str
     fn: Callable
     input_traits: List[str]
-    kwargs: Dict[str, Any] = attrs.field(factory=dict)
+    scalar: bool
+    include_in_csv: bool
+    kwargs: Dict[str, Any] = attr.field(factory=dict)
     description: Optional[str] = None
 
 
