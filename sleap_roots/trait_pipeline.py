@@ -8,7 +8,7 @@ from fractions import Fraction
 import networkx as nx
 from pathlib import Path
 from sleap_roots.angle import get_root_angle
-from sleap_roots.lengths import get_root_lengths, get_grav_index
+from sleap_roots.lengths import get_root_lengths, get_grav_index, get_max_length_pts
 from sleap_roots.bases import (
     get_bases,
     get_base_ct_density,
@@ -226,37 +226,10 @@ def get_traits_value_frame(
             name="primary_max_length_pts",
             fn=get_max_length_pts,
             input_traits=["primary_pts"],
-            scalar=False
-            include_in_csv=False
+            scalar=False,
+            include_in_csv=False,
             kwargs={"monocots": monocots},
-            description="Coordinate of the primary root base point.",
-        ),
-        TraitDef(
-            name="primary_base_pt",
-            fn=get_bases,
-            input_traits=["primary_pts"],
-            kwargs={"monocots": monocots},
-            description="Coordinate of the primary root base point.",
-        ),
-        TraitDef(
-            name="primary_angle_proximal",
-            fn=get_root_angle,
-            input_traits=["primary_pts"],
-            kwargs={"proximal": True, "base_ind": 0},
-            description=(
-                "Angle between the base and the proximal node of the primary root in "
-                "degrees."
-            ),
-        ),
-        TraitDef(
-            name="primary_angle_distal",
-            fn=get_root_angle,
-            input_traits=["primary_pts"],
-            kwargs={"proximal": False, "base_ind": 0},
-            description=(
-                "Angle between the base and the distal node of the primary root in "
-                "degrees."
-            ),
+            description="Points of the primary root with maximum length.",
         ),
     ]
 
