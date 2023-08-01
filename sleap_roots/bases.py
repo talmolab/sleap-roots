@@ -15,7 +15,6 @@ def get_bases(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
     Returns:
         Array of bases `(instances, (x, y))`.
     """
-
     if monocots:
         return np.nan
     else:
@@ -122,8 +121,7 @@ def get_grav_index(
     primary_base_tip_dist: float = None,
     pts: np.ndarray = None,
 ):
-    """Get gravitropism index based on primary_length_max and primary_base_tip_dist
-      or primary root points.
+    """Get gravitropism index based on primary_length_max and primary_base_tip_dist.
 
     Args:
         primary_base_tip_dist: scalar of distance from base to tip of primary root
@@ -273,8 +271,7 @@ def get_base_ys(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
 
 
 def get_base_length(pts: np.ndarray, monocots: bool = False):
-    """Get the distance on the y-axis from the top lateral root base to the
-        bottom lateral root base.
+    """Get the y-axis difference from the top lateral base to the bottom lateral base.
 
     Args:
         pts: root landmarks as array of shape `(instances, point, 2)` or base_ys
@@ -435,7 +432,6 @@ def get_base_median_ratio(lateral_base_ys, primary_tip_pt_y, monocots: bool = Fa
     Return:
         Scalar of base median ratio.
     """
-
     _base_pts = get_bases(lateral_pts, monocots)
     pr_tip_depth = np.nanmax(primary_pts[:, :, 1])
     if np.isnan(_base_pts).all():
