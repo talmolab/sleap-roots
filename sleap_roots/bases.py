@@ -9,17 +9,18 @@ def get_bases(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
     """Return bases (r1) from each lateral root.
 
     Args:
-        pts: Root landmarks as array of shape (instances, nodes, 2)
+        pts: Root landmarks as array of shape `(instances, nodes, 2)`.
         monocots: Boolean value, where false is dicot (default), true is rice.
 
     Returns:
-        Array of bases (instances, (x, y)).
+        Array of bases `(instances, (x, y))`.
     """
-    # Get the first point of each instance. Shape is (instances, 2)
+
     if monocots:
         return np.nan
     else:
-        base_pts = pts[:, 0]
+        # Get the first point of each instance.
+        base_pts = pts[:, 0]  # Shape is `(instances, 2)`.
         return base_pts
 
 
@@ -27,13 +28,13 @@ def get_root_lengths(pts: np.ndarray) -> np.ndarray:
     """Return root lengths for all roots in a frame.
 
     Args:
-        pts: Root landmarks as array of shape (instances, nodes, 2).
+        pts: Root landmarks as array of shape `(instances, nodes, 2)`.
 
     Returns:
-        Array of root lengths of shape (instances,).
-        If there is no root, or the roots is one point only (all of the rest of the
-        points are NaNs), an array of NaNs with shape (len(pts),) is returned.
-        This is also the case for non-contiguous points at the moment.
+        Array of root lengths of shape `(instances,)`. If there is no root, or the root
+            is one point only (all of the rest of the points are NaNs), an array of NaNs
+            with shape (len(pts),) is returned. This is also the case for non-contiguous
+            points.
     """
     # Get the (x,y) differences of segments for each instance.
     segment_diffs = np.diff(pts, axis=1)
@@ -48,12 +49,11 @@ def get_root_lengths(pts: np.ndarray) -> np.ndarray:
 
 
 def get_root_lengths_max(pts: np.ndarray) -> np.ndarray:
-    """
-    Return maximum root length for all roots in a frame.
+    """Return maximum root length for all roots in a frame.
 
     Args:
-        pts: root landmarks as array of shape (instance, nodes, 2)
-        or lengths (instances)
+        pts: root landmarks as array of shape `(instance, nodes, 2)` or lengths
+            `(instances)`.
 
     Returns:
         Scalar of the maximum root length.
@@ -87,16 +87,17 @@ def get_base_tip_dist(
     """Return distance from root base to tip.
 
     Args:
-        base_pts: bases of roots (instances, 2)
-        tip_pts: tips of roots (instances, 2)
-        OR
-        pts: Root landmarks as array of shape (instances, nodes, 2)
+        base_pts: Base coordinates of roots as an array of `(instances, 2)`. Not used if
+            `pts` is specified.
+        tip_pts: tips of roots `(instances, 2)`. Not used if `pts` is specified.
+        pts: Root landmarks as array of shape `(instances, nodes, 2)`.
 
     Returns:
-        Array of distances from base to tip of shape (instances,).
+        Array of distances from base to tip of shape `(instances,)`.
     """
     if base_pts is not None and tip_pts is not None:
-        # If base_pts and tip_pts are provided, but they are NaN, return NaN array of same shape
+        # If base_pts and tip_pts are provided, but they are NaN, return NaN array of
+        # same shape
         if np.isnan(base_pts).all() or np.isnan(tip_pts).all():
             return np.full(base_pts.shape, np.nan)
         # Calculate distance based on them
@@ -126,11 +127,11 @@ def get_grav_index(
 
     Args:
         primary_base_tip_dist: scalar of distance from base to tip of primary root
-        (longest primary root prediction used if there is more than one)
-        primary_length: scalar of length of primary root
-        (longest primary root prediction used if there is more than one)
-        OR
-        pts: primary root landmarks as array of shape (instances, nodes, 2)
+            (longest primary root prediction used if there is more than one). Not used
+            if `pts` is specified.
+        primary_length: scalar of length of primary root (longest primary root
+            prediction used if there is more than one). Not used if `pts` is specified.
+        pts: primary root landmarks as array of shape `(instances, nodes, 2)`.
 
     Returns:
         Scalar of primary root gravity index.
@@ -168,7 +169,7 @@ def get_lateral_count(pts: np.ndarray):
     """Get number of lateral roots.
 
     Args:
-        pts: lateral root landmarks as array of shape (instance, node, 2)
+        pts: lateral root landmarks as array of shape `(instance, node, 2)`.
 
     Return:
         Scalar of number of lateral roots.
@@ -178,16 +179,15 @@ def get_lateral_count(pts: np.ndarray):
 
 
 def get_base_xs(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
-    """
-    Get x coordinates of the base of each lateral root.
+    """Get x coordinates of the base of each lateral root.
 
     Args:
-        pts: root landmarks as array of shape (instances, point, 2)
-        or bases (instances, 2)
+        pts: root landmarks as array of shape `(instances, point, 2)` or bases
+            `(instances, 2)`.
         monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
-        An array of the x-coordinates of bases (instance,).
+        An array of the x-coordinates of bases `(instance,)`.
     """
     # If the input is a single number (float or integer), return np.nan
     if isinstance(pts, (np.floating, float, np.integer, int)):
@@ -230,8 +230,8 @@ def get_base_ys(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
     """Get y coordinates of the base of each lateral root.
 
     Args:
-        pts: root landmarks as array of shape (instances, point, 2)
-        or bases (instances, 2)
+        pts: root landmarks as array of shape `(instances, point, 2)` or bases
+            `(instances, 2)`.
         monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
@@ -277,13 +277,13 @@ def get_base_length(pts: np.ndarray, monocots: bool = False):
         bottom lateral root base.
 
     Args:
-        pts: root landmarks as array of shape (instances, point, 2)
-        or base_ys (instances).
+        pts: root landmarks as array of shape `(instances, point, 2)` or base_ys
+            `(instances)`.
         monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
         The distance between the top base y-coordinate and the deepest
-        base y-coordinate.
+            base y-coordinate.
     """
     # If the input is a single number (float or integer), return np.nan
     if isinstance(pts, (np.floating, float, np.integer, int)):
@@ -316,14 +316,13 @@ def get_base_length(pts: np.ndarray, monocots: bool = False):
 
 
 def get_base_ct_density(primary_pts, lateral_pts: np.ndarray, monocots: bool = False):
-    """
-    Get a ratio of the number of base points to maximum primary root length.
+    """Get a ratio of the number of base points to maximum primary root length.
 
     Args:
-        primary_pts: primary root points of shape (instances, nodes, 2)
-        or scalar maximum primary root length.
-        lateral_pts: lateral root points of shape (instances, nodes, 2)
-        or base points of lateral roots of shape (instances, 2).
+        primary_pts: primary root points of shape `(instances, nodes, 2)` or scalar
+            maximum primary root length.
+        lateral_pts: lateral root points of shape `(instances, nodes, 2)` or base points
+            of lateral roots of shape (instances, 2).
         monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
@@ -376,14 +375,13 @@ def get_base_ct_density(primary_pts, lateral_pts: np.ndarray, monocots: bool = F
 def get_base_length_ratio(
     primary_pts: np.ndarray, lateral_pts: np.ndarray, monocots: bool = False
 ):
-    """
-    Get ratio of top-deep base length to primary root length.
+    """Get ratio of top-deep base length to primary root length.
 
     Args:
-        primary_pts: primary root points of shape (instances, nodes, 2)
-        or scalar maximum primary root length.
-        lateral_pts: lateral root points of shape (instances, nodes, 2)
-        or scalar of base_length.
+        primary_pts: primary root points of shape `(instances, nodes, 2)` or scalar
+            maximum primary root length.
+        lateral_pts: lateral root points of shape `(instances, nodes, 2)`.
+            or scalar of base_length.
         monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
@@ -453,8 +451,7 @@ def get_root_pair_widths_projections(
     tolerance: float,
     monocots: bool = False,
 ) -> float:
-    """
-    Return estimation of root width using bases of lateral roots.
+    """Return estimation of root width using bases of lateral roots.
 
     Args:
         primary_pts: Longest primary root as an array of shape (n, nodes, 2).
@@ -464,7 +461,7 @@ def get_root_pair_widths_projections(
 
     Returns:
         float: The distance in pixels between the bases of matched roots, or NaN
-        if no matches were found or all input points were NaN.
+            if no matches were found or all input points were NaN.
 
     Raises:
         ValueError: If the input arrays are of incorrect shape.
