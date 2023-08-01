@@ -8,6 +8,7 @@ from fractions import Fraction
 import networkx as nx
 from pathlib import Path
 from sleap_roots.angle import get_root_angle
+from sleap_roots.lengths import get_root_lengths, get_grav_index
 from sleap_roots.bases import (
     get_bases,
     get_base_ct_density,
@@ -17,9 +18,7 @@ from sleap_roots.bases import (
     get_base_tip_dist,
     get_base_xs,
     get_base_ys,
-    get_grav_index,
     get_lateral_count,
-    get_root_lengths,
     get_root_pair_widths_projections,
 )
 from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys
@@ -223,6 +222,15 @@ def get_traits_value_frame(
     """
     # Define the trait computations.
     trait_definitions = [
+        TraitDef(
+            name="primary_max_length_pts",
+            fn=get_max_length_pts,
+            input_traits=["primary_pts"],
+            scalar=False
+            include_in_csv=False
+            kwargs={"monocots": monocots},
+            description="Coordinate of the primary root base point.",
+        ),
         TraitDef(
             name="primary_base_pt",
             fn=get_bases,
