@@ -232,6 +232,16 @@ def get_traits_value_frame(
                 "degrees."
             ),
         ),
+        TraitDef(
+            name="primary_angle_distal",
+            fn=get_root_angle,
+            input_traits=["primary_pts"],
+            kwargs={"proximal": False, "base_ind": 0},
+            description=(
+                "Angle between the base and the distal node of the primary root in "
+                "degrees."
+            ),
+        ),
     ]
 
     # Map trait names to their definitions.
