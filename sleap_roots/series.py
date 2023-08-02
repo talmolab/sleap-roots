@@ -277,9 +277,9 @@ def plot_instance(
             h_lines.append(h_lines_k)
 
     else:
-        for k, (src_node, dst_node) in enumerate(skeleton.edges):
-            src_pt = instance.points_array[instance.skeleton.node_to_index(src_node)]
-            dst_pt = instance.points_array[instance.skeleton.node_to_index(dst_node)]
+        for k, (src_ind, dst_ind) in enumerate(skeleton.edge_inds):
+            src_pt = inst_pts[src_ind]
+            dst_pt = inst_pts[dst_ind]
 
             x = np.array([src_pt[0], dst_pt[0]])
             y = np.array([src_pt[1], dst_pt[1]])
