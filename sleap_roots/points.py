@@ -86,19 +86,17 @@ def get_all_pts(plant: Series, frame: int, monocots: bool = False) -> List[np.nd
     return pts_all
 
 
-def get_all_pts_array(
-    plant: pd.Series, frame: int, monocots: bool = False
-) -> np.ndarray:
+def get_all_pts_array(plant: Series, frame: int, monocots: bool = False) -> np.ndarray:
     """Get all landmark points within a given frame as a flat array of coordinates.
 
     Args:
-        plant (pd.Series): A Pandas Series object representing a plant image series.
-        frame (int): The index of the frame from which points are to be extracted.
-        monocots (bool, optional): If False (default), returns a combined array of primary
+        plant: A Series object representing a plant image series.
+        frame: The index of the frame from which points are to be extracted.
+        monocots: If False (default), returns a combined array of primary
             and lateral root points. If True, returns only lateral root points.
 
     Returns:
-        np.ndarray: A 2D array of shape (n_points, 2), containing the coordinates of all
+        A 2D array of shape (n_points, 2), containing the coordinates of all
             extracted points.
     """
     # Get primary and lateral root points
