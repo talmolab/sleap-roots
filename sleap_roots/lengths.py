@@ -1,6 +1,7 @@
 """Get length-related traits"""
 import numpy as np
 from sleap_roots.bases import get_base_tip_dist
+from typing import Optional
 
 
 def get_max_length_pts(pts: np.ndarray) -> np.ndarray:
@@ -107,7 +108,7 @@ def get_root_lengths_max(pts: np.ndarray) -> np.ndarray:
 def get_grav_index(
     primary_length: float = None,
     primary_base_tip_dist: float = None,
-    pts: np.ndarray = None,
+    pts: Optional[np.ndarray] = None,
 ):
     """Get gravitropism index based on primary_length_max and primary_base_tip_dist.
 
