@@ -23,6 +23,7 @@ from sleap_roots.bases import (
 )
 from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys
 from sleap_roots.convhull import (
+    get_convhull,
     get_chull_area,
     get_chull_line_lengths,
     get_chull_max_width,
@@ -230,6 +231,25 @@ def get_traits_value_frame(
             include_in_csv=False,
             kwargs={"monocots": monocots},
             description="Points of the primary root with maximum length.",
+        ),
+        TraitDef(
+            name="pts_all_array",
+            fn=get_convhull,
+            input_traits=["primary_max_length_pts", "lateral_pts"],
+            scalar=False,
+            include_in_csv=False,
+            kwargs={"monocots": monocots},
+            description="Get all landmark points within a given frame as a flat array"
+            "of coordinates.",
+        ),
+        TraitDef(
+            name="convex_hull",
+            fn=get_convhull,
+            input_traits=["pts_all_array"],
+            scalar=False,
+            include_in_csv=False,
+            kwargs={"monocots": monocots},
+            description="Get the convex hull of the points.",
         ),
     ]
 

@@ -86,30 +86,33 @@ def get_all_pts(plant: Series, frame: int, monocots: bool = False) -> List[np.nd
     return pts_all
 
 
-def get_all_pts_array(plant: Series, frame: int, monocots: bool = False) -> np.ndarray:
-    """Get all points within a frame as a flat array of coordinates.
+def get_all_pts_array(
+    plant: pd.Series, frame: int, monocots: bool = False
+) -> np.ndarray:
+    """Get all landmark points within a given frame as a flat array of coordinates.
 
     Args:
-        plant: Series object representing a plant image series.
-        frame: frame index
-        monocots: If False (the default), returns primary and lateral points
-        combined. If True, only lateral root points will be returned. This is useful for
-        monocot species such as rice.
+        plant (pd.Series): A Pandas Series object representing a plant image series.
+        frame (int): The index of the frame from which points are to be extracted.
+        monocots (bool, optional): If False (default), returns a combined array of primary
+            and lateral root points. If True, returns only lateral root points.
 
-    Return:
-        An array of all points (primary and optionally lateral) as an array of shape
-        (n_points, 2).
+    Returns:
+        np.ndarray: A 2D array of shape (n_points, 2), containing the coordinates of all
+            extracted points.
     """
-    # get primary and lateral root points
+    # Get primary and lateral root points
     pts_pr = get_primary_pts(plant, frame)
     pts_lr = get_lateral_pts(plant, frame)
 
-    pts_all_array = (
-        pts_lr.reshape(-1, 2)
-        if monocots
-        else np.concatenate(
-            (np.array(pts_pr).reshape(-1, 2), np.array(pts_lr).reshape(-1, 2)), axis=0
-        )
-    )
+    # Convert to numpy arrays
+    pts_pr = np.array(pts_pr).reshape(-1, 2)
+    pts_lr = np.array(pts_lr).reshape(-1, 2)
+
+    # Combine points
+    if monocots:
+        pts_all_array = pts_lr
+    else:
+        pts_all_array = np.concatenate((pts_pr, pts_lr), axis=0)
 
     return pts_all_array
