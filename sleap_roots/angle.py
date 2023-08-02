@@ -54,11 +54,14 @@ def get_node_ind(pts: np.ndarray, proximal: bool = True) -> np.ndarray:
         return node_ind[0]
 
 
-def get_root_angle(pts: np.ndarray, proximal: bool = True, base_ind=0) -> np.ndarray:
+def get_root_angle(
+    pts: np.ndarray, node_ind: np.ndarray, proximal: bool = True, base_ind=0
+) -> np.ndarray:
     """Find angles for each root.
 
     Args:
         pts: Numpy array of points of shape (instances, nodes, 2).
+        node_ind: primary or lateral root node index.
         proximal: Boolean value, where true is proximal (default), false is distal.
         base_ind: Index of base node in the skeleton (default: 0).
 
