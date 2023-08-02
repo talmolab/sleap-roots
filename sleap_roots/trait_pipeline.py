@@ -142,21 +142,17 @@ class TraitDef:
     Definition of how to compute a trait.
 
     Attributes:
-        name (str): Unique identifier for the trait.
-        fn (Callable): Function used to compute the trait's value.
-        input_traits (List[str]): List of trait names that should be
-            computed before the current trait and are expected as input
-            positional arguments to `fn`.
-        scalar (bool): Indicates if the trait is scalar (has a dimension
-            of 0 per frame). If `True`, the trait is also listed in
-            `SCALAR_TRAITS`.
-        include_in_csv (bool): Indicates if the trait should be included
-            in downstream CSV files.
-        kwargs (Dict[str, Any]): Additional keyword arguments to be passed
-            to the `fn` function. These arguments are not reused from
-            previously computed traits.
-        description (Optional[str]): Optional string describing the trait.
-            This is primarily for documentation purposes.
+        name: Unique identifier for the trait.
+        fn: Function used to compute the trait's value.
+        input_traits: List of trait names that should be computed before the current
+            trait and are expected as input positional arguments to `fn`.
+        scalar: Indicates if the trait is scalar (has a dimension of 0 per frame). If
+            `True`, the trait is also listed in `SCALAR_TRAITS`.
+        include_in_csv: `True `indicates the trait should be included in downstream CSV
+            files.
+        kwargs: Additional keyword arguments to be passed to the `fn` function. These
+            arguments are not reused from previously computed traits.
+        description: String describing the trait for documentation purposes.
 
     Notes:
         The `fn` specified will be called with a pattern like:
@@ -198,8 +194,6 @@ class TraitDef:
 def get_traits_value_frame(
     primary_pts: np.ndarray,
     lateral_pts: np.ndarray,
-    pts_all_array: np.ndarray,
-    pts_all_list: list,
     root_width_tolerance: float = 0.02,
     n_line: int = 50,
     network_fraction: float = 2 / 3,
@@ -210,10 +204,7 @@ def get_traits_value_frame(
     Args:
         primary_pts: primary points
         lateral_pts: lateral points
-        pts_all_array: all points in array format
-        pts_all_list: all points in list format
         root_width_tolerance: Difference in projection norm between right and left side.
-            Second line.
         n_line: number of scan lines, np.nan for no interaction.
         network_fraction: length found in the lower fration value of the network.
         monocots: Boolean value, where false is dicot (default), true is rice.
@@ -234,12 +225,12 @@ def get_traits_value_frame(
         ),
         TraitDef(
             name="pts_all_array",
-            fn=get_convhull,
+            fn=get_all_pts_array,
             input_traits=["primary_max_length_pts", "lateral_pts"],
             scalar=False,
             include_in_csv=False,
             kwargs={"monocots": monocots},
-            description="Get all landmark points within a given frame as a flat array"
+            description="Landmark points within a given frame as a flat array"
             "of coordinates.",
         ),
         TraitDef(
@@ -249,7 +240,7 @@ def get_traits_value_frame(
             scalar=False,
             include_in_csv=False,
             kwargs={"monocots": monocots},
-            description="Get the convex hull of the points.",
+            description="Convex hull of the points.",
         ),
     ]
 
@@ -511,27 +502,9 @@ def get_traits_value_plant(
         else:
             primary_pts = np.stack([inst.numpy() for inst in gt_instances_pr], axis=0)
 
-        pts_all_array = get_all_pts_array(plant=plant, frame=frame, monocots=False)
-        if len(pts_all_array) == 0:
-            pts_all_array = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
-        pts_all_list = []
-
-        if get_root_lengths(primary_pts).shape[0] > 0 and not len(gt_instances_pr) == 0:
-            max_length_idx = np.nanargmax(get_root_lengths(primary_pts))
-            long_primary_pts = primary_pts[max_length_idx]
-            primary_pts = np.reshape(
-                long_primary_pts,
-                (1, long_primary_pts.shape[0], long_primary_pts.shape[1]),
-            )
-        else:
-            # if no primary root, just give two nan points
-            primary_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
-
         data = get_traits_value_frame(
             primary_pts,
             lateral_pts,
-            pts_all_array,
-            pts_all_list,
             root_width_tolerance,
             n_line,
             network_fraction,
