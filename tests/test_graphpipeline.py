@@ -1,4 +1,4 @@
-from sleap_roots.graphpipeline import (
+from sleap_roots.trait_pipeline import (
     get_traits_value_frame,
     get_traits_value_plant,
     get_traits_value_plant_summary,

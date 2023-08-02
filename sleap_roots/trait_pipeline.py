@@ -1,14 +1,14 @@
-"""Extract traits based on the networkx graph."""
+"""Extract traits in a pipeline based on the trait graph."""
 
 import numpy as np
 import pandas as pd
-import os
-from typing import List
+import attrs
+from typing import List, Dict, Tuple, Callable, Optional, Any
 from fractions import Fraction
 import networkx as nx
 from pathlib import Path
-from sleap_roots.traitsgraph import get_traits_graph
-from sleap_roots.angle import get_root_angle
+from sleap_roots.angle import get_root_angle, get_node_ind
+from sleap_roots.lengths import get_root_lengths, get_grav_index, get_max_length_pts
 from sleap_roots.bases import (
     get_bases,
     get_base_ct_density,
@@ -18,13 +18,12 @@ from sleap_roots.bases import (
     get_base_tip_dist,
     get_base_xs,
     get_base_ys,
-    get_grav_index,
     get_lateral_count,
-    get_primary_depth,
-    get_root_lengths,
     get_root_pair_widths_projections,
 )
+from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys
 from sleap_roots.convhull import (
+    get_convhull,
     get_chull_area,
     get_chull_line_lengths,
     get_chull_max_width,
@@ -53,8 +52,6 @@ from sleap_roots.scanline import (
 )
 from sleap_roots.series import Series, find_all_series
 from sleap_roots.summary import get_summary
-from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys
-from typing import Dict, Tuple
 import warnings
 
 
@@ -63,7 +60,6 @@ SCALAR_TRAITS = (
     "primary_angle_distal",
     "primary_length",
     "primary_base_tip_dist",
-    "primary_depth",
     "lateral_count",
     "grav_index",
     "base_length",
@@ -90,7 +86,7 @@ NON_SCALAR_TRAITS = (
     "lateral_angles_proximal",
     "lateral_angles_distal",
     "lateral_lengths",
-    "stem_widths",
+    "root_widths",
     "lateral_base_xs",
     "lateral_base_ys",
     "lateral_tip_xs",
@@ -140,12 +136,65 @@ warnings.filterwarnings(
 )
 
 
+@attrs.define
+class TraitDef:
+    """
+    Definition of how to compute a trait.
+
+    Attributes:
+        name: Unique identifier for the trait.
+        fn: Function used to compute the trait's value.
+        input_traits: List of trait names that should be computed before the current
+            trait and are expected as input positional arguments to `fn`.
+        scalar: Indicates if the trait is scalar (has a dimension of 0 per frame). If
+            `True`, the trait is also listed in `SCALAR_TRAITS`.
+        include_in_csv: `True `indicates the trait should be included in downstream CSV
+            files.
+        kwargs: Additional keyword arguments to be passed to the `fn` function. These
+            arguments are not reused from previously computed traits.
+        description: String describing the trait for documentation purposes.
+
+    Notes:
+        The `fn` specified will be called with a pattern like:
+
+        ```
+        trait_def = TraitDef(
+            name="my_trait",
+            fn=compute_my_trait,
+            input_traits=["input_trait_1", "input_trait_2"],
+            scalar=True,
+            include_in_csv=True,
+            kwargs={"kwarg1": True}
+        )
+        traits[trait_def.name] = trait_def.fn(
+            *[traits[input_trait] for input_trait in trait_def.input_traits],
+            **trait_def.kwargs
+        )
+        ```
+
+        For this example, the last line is equivalent to:
+
+        ```
+        traits["my_trait"] = trait_def.fn(
+            traits["input_trait_1"], traits["input_trait_2"],
+            kwarg1=True
+        )
+        ```
+    """
+
+    name: str
+    fn: Callable
+    input_traits: List[str]
+    scalar: bool
+    include_in_csv: bool
+    kwargs: Dict[str, Any] = attrs.field(factory=dict)
+    description: Optional[str] = None
+
+
 def get_traits_value_frame(
     primary_pts: np.ndarray,
     lateral_pts: np.ndarray,
-    pts_all_array: np.ndarray,
-    pts_all_list: list,
-    stem_width_tolerance: float = 0.02,
+    root_width_tolerance: float = 0.02,
     n_line: int = 50,
     network_fraction: float = 2 / 3,
     monocots: bool = False,
@@ -155,9 +204,7 @@ def get_traits_value_frame(
     Args:
         primary_pts: primary points
         lateral_pts: lateral points
-        pts_all_array: all points in array format
-        pts_all_list: all points in list format
-        stem_width_tolerance: difference in projection norm between right and left side.
+        root_width_tolerance: Difference in projection norm between right and left side.
         n_line: number of scan lines, np.nan for no interaction.
         network_fraction: length found in the lower fration value of the network.
         monocots: Boolean value, where false is dicot (default), true is rice.
@@ -165,161 +212,251 @@ def get_traits_value_frame(
     Return:
         A dictionary with all traits per frame.
     """
-    trait_map = {
-        # get_bases(pts: np.ndarray,monocots) -> np.ndarray
-        "primary_base_pt": (get_bases, ["primary_pts"], {"monocots": monocots}),
-        # get_root_angle(pts: np.ndarray, proximal=True, base_ind=0) -> np.ndarray
-        "primary_angle_proximal": (
-            get_root_angle,
-            ["primary_pts"],
-            {"proximal": True, "base_ind": 0},
+    # Define the trait computations.
+    trait_definitions = [
+        TraitDef(
+            name="primary_max_length_pts",
+            fn=get_max_length_pts,
+            input_traits=["primary_pts"],
+            scalar=False,
+            include_in_csv=False,
+            kwargs={},
+            description="Points of the primary root with maximum length.",
         ),
-        "primary_angle_distal": (
-            get_root_angle,
-            ["primary_pts"],
-            {"proximal": False, "base_ind": 0},
+        TraitDef(
+            name="pts_all_array",
+            fn=get_all_pts_array,
+            input_traits=["primary_max_length_pts", "lateral_pts"],
+            scalar=False,
+            include_in_csv=False,
+            kwargs={"monocots": monocots},
+            description="Landmark points within a given frame as a flat array"
+            "of coordinates.",
         ),
-        # get_root_lengths(pts: np.ndarray) -> np.ndarray
-        "primary_length": (get_root_lengths, ["primary_pts"], {}),
-        # get_tips(pts)
-        "primary_tip_pt": (get_tips, ["primary_pts"], {}),
-        # fit_ellipse(pts: np.ndarray) -> Tuple[float, float, float]
-        "ellipse": (fit_ellipse, ["pts_all_array"], {}),
-        # get_bbox(pts: np.ndarray) -> Tuple[float, float, float, float]
-        "bounding_box": (get_bbox, ["pts_all_array"], {}),
-        # get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance,monocots)
-        "root_widths": (
-            get_root_pair_widths_projections,
-            ["lateral_pts", "primary_pts"],
-            {"stem_width_tolerance": stem_width_tolerance, "monocots": monocots},
+        TraitDef(
+            name="root_widths",
+            fn=get_root_pair_widths_projections,
+            input_traits=["primary_max_length_pts", "lateral_pts"],
+            scalar=False,
+            include_in_csv=True,
+            kwargs={"tolerance": root_width_tolerance, "monocots": monocots},
+            description="Return estimation of root width using bases of lateral roots.",
         ),
-        # get_convhull_features(pts: Union[np.ndarray, ConvexHull]) -> Tuple[float, float, float, float]
-        "convex_hull": (get_convhull_features, ["pts_all_array"], {}),
-        # get_lateral_count(pts: np.ndarray)
-        "lateral_count": (get_lateral_count, ["lateral_pts"], {}),
-        # # get_root_angle(pts: np.ndarray, proximal=True, base_ind=0) -> np.ndarray
-        "lateral_angles_proximal": (
-            get_root_angle,
-            ["lateral_pts"],
-            {"proximal": True, "base_ind": 0},
+        TraitDef(
+            name="lateral_count",
+            fn=get_lateral_count,
+            input_traits=["lateral_pts"],
+            scalar=True,
+            include_in_csv=True,
+            kwargs={},
+            description="Get the number of lateral roots.",
         ),
-        "lateral_angles_distal": (
-            get_root_angle,
-            ["lateral_pts"],
-            {"proximal": False, "base_ind": 0},
+        TraitDef(
+            name="lateral_proximal_node_inds",
+            fn=get_node_ind,
+            input_traits=["lateral_pts"],
+            scalar=False,
+            include_in_csv=False,
+            kwargs={"proximal": True},
+            description="Get the indices of the proximal nodes of lateral roots.",
         ),
-        # get_root_lengths(pts: np.ndarray) -> np.ndarray
-        "lateral_lengths": (get_root_lengths, ["lateral_pts"], {}),
-        # get_bases(pts: np.ndarray,monocots) -> np.ndarray
-        "lateral_base_pts": (get_bases, ["lateral_pts"], {"monocots": monocots}),
-        # get_tips(pts)
-        "lateral_tip_pts": (get_tips, ["lateral_pts"], {}),
-        # get_base_ys(pts: np.ndarray) -> np.ndarray
-        # or just based on primary_base_pt, but the primary_base_pt trait must generate before
-        # "primary_base_pt_y": (get_pt_ys, [data["primary_base_pt"]]),
-        "primary_base_pt_y": (get_base_ys, ["primary_pts"], {}),
-        # get_base_ct_density(primary_pts, lateral_pts)
-        "base_ct_density": (
-            get_base_ct_density,
-            [
-                "primary_pts",
-                "lateral_pts",
-            ],
-            {"monocots": monocots},
+        TraitDef(
+            name="lateral_distal_node_inds",
+            fn=get_node_ind,
+            input_traits=["lateral_pts"],
+            scalar=False,
+            include_in_csv=False,
+            kwargs={"proximal": False},
+            description="Get the indices of the distal nodes of lateral roots.",
         ),
-        # get_network_solidity(primary_pts: np.ndarray, lateral_pts: np.ndarray, pts_all_array: np.ndarray, monocots: bool = False,) -> float
-        "network_solidity": (
-            get_network_solidity,
-            ["primary_pts", "lateral_pts", "chull_area"],
-            {"monocots": monocots},
+        TraitDef(
+            name="lateral_lengths",
+            fn=get_root_lengths,
+            input_traits=["lateral_pts"],
+            scalar=False,
+            include_in_csv=True,
+            kwargs={},
+            description="Array of root lengths of shape `(instances,)`.",
         ),
-        # get_network_distribution_ratio(primary_pts: np.ndarray,lateral_pts: np.ndarray,pts_all_array: np.ndarray,fraction: float = 2 / 3, monocots: bool = False) -> float:
-        "network_distribution_ratio": (
-            get_network_distribution_ratio,
-            [
-                "primary_length",
-                "lateral_lengths",
-                "network_length_lower",
-            ],
-            {"network_fraction": network_fraction, "monocots": monocots},
+        TraitDef(
+            name="convex_hull",
+            fn=get_convhull,
+            input_traits=["pts_all_array"],
+            scalar=False,
+            include_in_csv=False,
+            kwargs={"monocots": monocots},
+            description="Convex hull of the points.",
         ),
-        # get_network_distribution(primary_pts: np.ndarray,lateral_pts: np.ndarray,pts_all_array: np.ndarray,fraction: float = 2 / 3, monocots: bool = False) -> float:
-        "network_length_lower": (
-            get_network_distribution,
-            ["primary_pts", "lateral_pts", "bbox"],
-            {"network_fraction": network_fraction, "monocots": monocots},
-        ),
-        # get_tip_ys(pts: np.ndarray) -> np.ndarray
-        "primary_tip_pt_y": (get_tip_ys, ["primary_pts"], {}),
-        # get_ellipse_a(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
-        "ellipse_a": (get_ellipse_a, ["ellipse"], {}),
-        # get_ellipse_b(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
-        "ellipse_b": (get_ellipse_b, ["ellipse"], {}),
-        # get_network_width_depth_ratio(pts: np.ndarray) -> float
-        "network_width_depth_ratio": (
-            get_network_width_depth_ratio,
-            ["pts_all_array", "bbox"],
-            {},
-        ),
-        # get_chull_perimeter(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
-        "chull_perimeter": (get_chull_perimeter, [pts_all_array]),
-        # get_chull_area(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
-        "chull_area": (get_chull_area, [pts_all_array]),
-        # get_chull_max_width(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
-        "chull_max_width": (get_chull_max_width, [pts_all_array]),
-        # get_chull_max_height(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
-        "chull_max_height": (get_chull_max_height, [pts_all_array]),
-        # get_chull_line_lengths(pts: Union[np.ndarray, ConvexHull]) -> np.ndarray
-        "chull_line_lengths": (get_chull_line_lengths, [pts_all_array]),
-        # count_scanline_intersections(primary_pts: np.ndarray,lateral_pts: np.ndarray,depth: int = 1080,width: int = 2048,n_line: int = 50,monocots: bool = False,) -> np.ndarray
-        "scanline_intersection_counts": (
-            count_scanline_intersections,
-            [primary_pts, lateral_pts, 1080, 2048, 50, monocots],
-        ),
-        # get_base_xs(pts: np.ndarray) -> np.ndarray
-        "lateral_base_xs": (get_base_xs, [lateral_pts, monocots]),
-        # get_base_ys(pts: np.ndarray) -> np.ndarray
-        "lateral_base_ys": (get_base_ys, [lateral_pts, monocots]),
-        # get_tip_xs(pts: np.ndarray) -> np.ndarray
-        "lateral_tip_xs": (get_tip_xs, [lateral_pts]),
-        # get_tip_ys(pts: np.ndarray) -> np.ndarray
-        "lateral_tip_ys": (get_tip_ys, [lateral_pts]),
-        # get_base_tip_dist(pts: np.ndarray) -> np.ndarray
-        "primary_base_tip_dist": (get_base_tip_dist, [primary_pts]),
-        # get_primary_depth(primary_pts)
-        "primary_depth": (get_primary_depth, [primary_pts]),
-        # get_base_median_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray)
-        "base_median_ratio": (
-            get_base_median_ratio,
-            [primary_pts, lateral_pts, monocots],
-        ),
-        # get_ellipse_ratio(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
-        "ellipse_ratio": (get_ellipse_ratio, [pts_all_array]),
-        # get_scanline_last_ind(primary_pts: np.ndarray,lateral_pts: np.ndarray,depth: int = 1080, width: int = 2048, n_line: int = 50, monocots: bool = False)
-        "scanline_last_ind": (
-            get_scanline_last_ind,
-            [primary_pts, lateral_pts, 1080, 2048, n_line, monocots],
-        ),
-        # get_scanline_first_ind(primary_pts: np.ndarray,lateral_pts: np.ndarray,depth: int = 1080, width: int = 2048, n_line: int = 50, monocots: bool = False)
-        "scanline_first_ind": (
-            get_scanline_first_ind,
-            [primary_pts, lateral_pts, 1080, 2048, n_line, monocots],
-        ),
-        # get_base_length(pts: np.ndarray)
-        "base_length": (get_base_length, [lateral_pts, monocots]),
-        # get_grav_index(pts: np.ndarray)
-        "grav_index": (get_grav_index, [primary_pts]),
-        # get_base_length_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray)
-        "base_length_ratio": (get_base_length_ratio, [primary_pts, lateral_pts]),
-    }
+    ]
+
+    # Map trait names to their definitions.
+    trait_map = {trait_def.name: trait_def for trait_def in trait_definitions}
+
+    # trait_map = {
+    #     # get_bases(pts: np.ndarray,monocots) -> np.ndarray
+    #     "primary_base_pt": (get_bases, ["primary_pts"], {"monocots": monocots}),
+    #     # get_root_angle(pts: np.ndarray, proximal=True, base_ind=0) -> np.ndarray
+    #     "primary_angle_proximal": (
+    #         get_root_angle,
+    #         ["primary_pts"],
+    #         {"proximal": True, "base_ind": 0},
+    #     ),
+    #     "primary_angle_distal": (
+    #         get_root_angle,
+    #         ["primary_pts"],
+    #         {"proximal": False, "base_ind": 0},
+    #     ),
+    #     # get_root_lengths(pts: np.ndarray) -> np.ndarray
+    #     "primary_length": (get_root_lengths, ["primary_pts"], {}),
+    #     # get_tips(pts)
+    #     "primary_tip_pt": (get_tips, ["primary_pts"], {}),
+    #     # fit_ellipse(pts: np.ndarray) -> Tuple[float, float, float]
+    #     "ellipse": (fit_ellipse, ["pts_all_array"], {}),
+    #     # get_bbox(pts: np.ndarray) -> Tuple[float, float, float, float]
+    #     "bounding_box": (get_bbox, ["pts_all_array"], {}),
+    #     # get_root_pair_widths_projections(lateral_pts, primary_pts, tolerance,monocots)
+    #     "root_widths": (
+    #         get_root_pair_widths_projections,
+    #         ["primary_pts", "lateral_pts"],
+    #         {"root_width_tolerance": root_width_tolerance, "monocots": monocots},
+    #     ),
+    #     # get_convhull_features(pts: Union[np.ndarray, ConvexHull]) -> Tuple[float, float, float, float]
+    #     "convex_hull": (get_convhull_features, ["pts_all_array"], {}),
+    #     # get_lateral_count(pts: np.ndarray)
+    #     "lateral_count": (get_lateral_count, ["lateral_pts"], {}),
+    #     # # get_root_angle(pts: np.ndarray, proximal=True, base_ind=0) -> np.ndarray
+    #     "lateral_angles_proximal": (
+    #         get_root_angle,
+    #         ["lateral_pts"],
+    #         {"proximal": True, "base_ind": 0},
+    #     ),
+    #     "lateral_angles_distal": (
+    #         get_root_angle,
+    #         ["lateral_pts"],
+    #         {"proximal": False, "base_ind": 0},
+    #     ),
+    #     # get_root_lengths(pts: np.ndarray) -> np.ndarray
+    #     "lateral_lengths": (get_root_lengths, ["lateral_pts"], {}),
+    #     # get_bases(pts: np.ndarray,monocots) -> np.ndarray
+    #     "lateral_base_pts": (get_bases, ["lateral_pts"], {"monocots": monocots}),
+    #     # get_tips(pts)
+    #     "lateral_tip_pts": (get_tips, ["lateral_pts"], {}),
+    #     # get_base_ys(pts: np.ndarray) -> np.ndarray
+    #     # or just based on primary_base_pt, but the primary_base_pt trait must generate before
+    #     # "primary_base_pt_y": (get_pt_ys, [data["primary_base_pt"]]),
+    #     "primary_base_pt_y": (get_base_ys, ["primary_pts"], {}),
+    #     # get_base_ct_density(primary_pts, lateral_pts)
+    #     "base_ct_density": (
+    #         get_base_ct_density,
+    #         [
+    #             "primary_pts",
+    #             "lateral_pts",
+    #         ],
+    #         {"monocots": monocots},
+    #     ),
+    #     # get_network_solidity(primary_pts: np.ndarray, lateral_pts: np.ndarray, pts_all_array: np.ndarray, monocots: bool = False,) -> float
+    #     "network_solidity": (
+    #         get_network_solidity,
+    #         ["primary_pts", "lateral_pts", "chull_area"],
+    #         {"monocots": monocots},
+    #     ),
+    #     # get_network_distribution_ratio(primary_pts: np.ndarray,lateral_pts: np.ndarray,pts_all_array: np.ndarray,fraction: float = 2 / 3, monocots: bool = False) -> float:
+    #     "network_distribution_ratio": (
+    #         get_network_distribution_ratio,
+    #         [
+    #             "primary_length",
+    #             "lateral_lengths",
+    #             "network_length_lower",
+    #         ],
+    #         {"network_fraction": network_fraction, "monocots": monocots},
+    #     ),
+    #     # get_network_distribution(primary_pts: np.ndarray,lateral_pts: np.ndarray,pts_all_array: np.ndarray,fraction: float = 2 / 3, monocots: bool = False) -> float:
+    #     "network_length_lower": (
+    #         get_network_distribution,
+    #         ["primary_pts", "lateral_pts", "bounding_box"],
+    #         {"network_fraction": network_fraction, "monocots": monocots},
+    #     ),
+    #     # get_network_width_depth_ratio(pts: np.ndarray) -> float
+    #     "network_width_depth_ratio": (
+    #         get_network_width_depth_ratio,
+    #         ["bounding_box"],
+    #         {},
+    #     ),
+    #     # get_tip_ys(pts: np.ndarray) -> np.ndarray
+    #     "primary_tip_pt_y": (get_tip_ys, ["primary_tip_pt"], {}),
+    #     # get_ellipse_a(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
+    #     "ellipse_a": (get_ellipse_a, ["ellipse"], {}),
+    #     # get_ellipse_b(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
+    #     "ellipse_b": (get_ellipse_b, ["ellipse"], {}),
+    #     # get_ellipse_ratio(pts_all_array: Union[np.ndarray, Tuple[float, float, float]])
+    #     "ellipse_ratio": (get_ellipse_ratio, ["ellipse"], {}),
+    #     # get_chull_perimeter(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
+    #     "chull_perimeter": (get_chull_perimeter, ["convex_hull"], {}),
+    #     # get_chull_area(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
+    #     "chull_area": (get_chull_area, ["convex_hull"], {}),
+    #     # get_chull_max_width(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
+    #     "chull_max_width": (get_chull_max_width, ["convex_hull"], {}),
+    #     # get_chull_max_height(pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]])
+    #     "chull_max_height": (get_chull_max_height, ["convex_hull"], {}),
+    #     # get_chull_line_lengths(pts: Union[np.ndarray, ConvexHull]) -> np.ndarray
+    #     "chull_line_lengths": (get_chull_line_lengths, ["convex_hull"], {}),
+    #     # scanline_intersection_counts:
+    #     "scanline_intersection_counts": (
+    #         count_scanline_intersections,
+    #         [primary_pts, lateral_pts],
+    #         {"depth": 1080, "width": 2048, "n_line": 50, "monocots": monocots},
+    #     ),
+    #     # get_base_xs(pts: np.ndarray) -> np.ndarray
+    #     "lateral_base_xs": (get_base_xs, ["lateral_base_pts"], {"monocots": monocots}),
+    #     # get_base_ys(pts: np.ndarray) -> np.ndarray
+    #     "lateral_base_ys": (get_base_ys, ["lateral_base_pts"], {"monocots": monocots}),
+    #     # get_tip_xs(pts: np.ndarray) -> np.ndarray
+    #     "lateral_tip_xs": (get_tip_xs, ["lateral_tip_pts"], {"monocots": monocots}),
+    #     # get_tip_ys(pts: np.ndarray) -> np.ndarray
+    #     "lateral_tip_ys": (get_tip_ys, ["lateral_tip_pts"], {"monocots": monocots}),
+    #     # get_base_tip_dist(pts: np.ndarray) -> np.ndarray
+    #     "primary_base_tip_dist": (
+    #         get_base_tip_dist,
+    #         {
+    #             "base_pts": "primary_base_pt",
+    #             "tip_pts": "primary_tip_pt",
+    #             "pts": "primary_pts",
+    #         },
+    #     ),
+    #     # get_base_median_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray)
+    #     "base_median_ratio": (
+    #         get_base_median_ratio,
+    #         ["lateral_base_ys", "primary_tip_pt_y"],
+    #         {"monocots": monocots},
+    #     ),
+    #     # get_scanline_last_ind(primary_pts: np.ndarray,lateral_pts: np.ndarray,depth: int = 1080, width: int = 2048, n_line: int = 50, monocots: bool = False)
+    #     "scanline_last_ind": (
+    #         get_scanline_last_ind,
+    #         [primary_pts, lateral_pts, 1080, 2048, n_line, monocots],
+    #     ),
+    #     # get_scanline_first_ind(primary_pts: np.ndarray,lateral_pts: np.ndarray,depth: int = 1080, width: int = 2048, n_line: int = 50, monocots: bool = False)
+    #     "scanline_first_ind": (
+    #         get_scanline_first_ind,
+    #         [primary_pts, lateral_pts, 1080, 2048, n_line, monocots],
+    #     ),
+    #     # get_base_length(pts: np.ndarray)
+    #     "base_length": (get_base_length, [lateral_pts, monocots]),
+    #     # get_grav_index(pts: np.ndarray)
+    #     "grav_index": (get_grav_index, [primary_pts]),
+    #     # get_base_length_ratio(primary_pts: np.ndarray, lateral_pts: np.ndarray)
+    #     "base_length_ratio": (get_base_length_ratio, [primary_pts, lateral_pts]),
+    # }
 
     # Initialize edges with precomputed top-level traits.
     edges = [("pts", "primary_pts"), ("pts", "lateral_pts")]
 
     # Infer edges from trait map.
-    for output_trait, (_, input_traits, _) in trait_map.items():
-        for input_trait in input_traits:
-            edges.append((input_trait, output_trait))
+    # for output_trait, (_, input_traits, _) in trait_map.items():
+    #     for input_trait in input_traits:
+    #         edges.append((input_trait, output_trait))
+    for trait_def in trait_definitions:
+        for input_trait in trait_def.input_traits:
+            edges.append((input_trait, trait_def.name))
 
     # Compute breadth-first ordering.
     G = nx.DiGraph()
@@ -330,19 +467,17 @@ def get_traits_value_frame(
 
     # Initialize traits container with initial points.
     traits = {"primary_pts": primary_pts, "lateral_pts": lateral_pts}
+
+    # Compute traits!
     for trait_name in trait_computation_order:
-        fn, input_traits, kwargs = trait_map[trait_name]
-        fn_outputs = fn(
-            *[traits[input_trait] for input_trait in input_traits], **kwargs
+        # fn, input_traits, kwargs = trait_map[trait_name]
+        trait_def = trait_map[trait_name]
+
+        traits[trait_name] = trait_def.fn(
+            *[traits[input_trait] for input_trait in trait_def.input_traits],
+            **trait_def.kwargs,
         )
 
-        # if type(fn_outputs) == tuple:
-        #     fn_outputs = np.array(fn_outputs).reshape((1, -1))
-        # if isinstance(fn_outputs, (np.floating, float)) or isinstance(
-        #     fn_outputs, (np.integer, int)
-        # ):
-        #     fn_outputs = np.array(fn_outputs)[np.newaxis]
-        traits[trait_name] = fn_outputs
     return traits
 
 
@@ -351,7 +486,7 @@ def get_traits_value_plant(
     monocots: bool = False,
     primary_name: str = "primary_multi_day",
     lateral_name: str = "lateral_3_nodes",
-    stem_width_tolerance: float = 0.02,
+    root_width_tolerance: float = 0.02,
     n_line: int = 50,
     network_fraction: float = 2 / 3,
     write_csv: bool = False,
@@ -367,8 +502,8 @@ def get_traits_value_plant(
             expected to be named `"{h5_path}.{primary_name}.predictions.slp"`.
         lateral_name: Name of the lateral root predictions. The predictions file is
             expected to be named `"{h5_path}.{lateral_name}.predictions.slp"`.
-        stem_width_tolerance: The difference in the projection norm between
-            the right and left side of the stem.
+        root_width_tolerance: The difference in the projection norm between
+            the right and left side of the root.
         n_line: The number of scan lines. Use np.nan for no interaction.
         network_fraction: The length found in the lower fraction value of the network.
         write_csv: A boolean value. If True, it writes per plant detailed
@@ -405,28 +540,10 @@ def get_traits_value_plant(
         else:
             primary_pts = np.stack([inst.numpy() for inst in gt_instances_pr], axis=0)
 
-        pts_all_array = get_all_pts_array(plant=plant, frame=frame, monocots=False)
-        if len(pts_all_array) == 0:
-            pts_all_array = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
-        pts_all_list = []
-
-        if get_root_lengths(primary_pts).shape[0] > 0 and not len(gt_instances_pr) == 0:
-            max_length_idx = np.nanargmax(get_root_lengths(primary_pts))
-            long_primary_pts = primary_pts[max_length_idx]
-            primary_pts = np.reshape(
-                long_primary_pts,
-                (1, long_primary_pts.shape[0], long_primary_pts.shape[1]),
-            )
-        else:
-            # if no primary root, just give two nan points
-            primary_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
-
         data = get_traits_value_frame(
             primary_pts,
             lateral_pts,
-            pts_all_array,
-            pts_all_list,
-            stem_width_tolerance,
+            root_width_tolerance,
             n_line,
             network_fraction,
             monocots,
@@ -465,7 +582,7 @@ def get_traits_value_plant_summary(
     monocots: bool = False,
     primary_name: str = "longest_3do_6nodes",
     lateral_name: str = "main_3do_6nodes",
-    stem_width_tolerance: float = 0.02,
+    root_width_tolerance: float = 0.02,
     n_line: int = 50,
     network_fraction: float = 2 / 3,
     write_csv: bool = False,
@@ -483,8 +600,8 @@ def get_traits_value_plant_summary(
             expected to be named `"{h5_path}.{primary_name}.predictions.slp"`.
         lateral_name: Name of the lateral root predictions. The predictions file is
             expected to be named `"{h5_path}.{lateral_name}.predictions.slp"`.
-        stem_width_tolerance: The difference in the projection norm between
-            the right and left side of the stem.
+        root_width_tolerance: The difference in the projection norm between
+            the right and left side of the root.
         n_line: The number of scan lines. Use np.nan for no interaction.
         network_fraction: The length found in the lower fraction value of the network.
         write_csv: A boolean value. If True, it writes per plant detailed
@@ -504,7 +621,7 @@ def get_traits_value_plant_summary(
         monocots,
         primary_name,
         lateral_name,
-        stem_width_tolerance,
+        root_width_tolerance,
         n_line,
         network_fraction,
         write_csv,
@@ -699,7 +816,7 @@ def get_all_plants_traits(
     data_folders: List[str],
     primary_name: str,
     lateral_name: str,
-    stem_width_tolerance: float = 0.02,
+    root_width_tolerance: float = 0.02,
     n_line: int = 50,
     network_fraction: Fraction = Fraction(2, 3),
     write_per_plant_details: bool = False,
@@ -719,8 +836,8 @@ def get_all_plants_traits(
             expected to be named `"{h5_path}.{primary_name}.predictions.slp"`.
         lateral_name: Name of the lateral root predictions. The predictions file is
             expected to be named `"{h5_path}.{lateral_name}.predictions.slp"`.
-        stem_width_tolerance: The difference in the projection norm between
-            the right and left side of the stem.
+        root_width_tolerance: The difference in the projection norm between
+            the right and left side of the root.
         n_line: The number of scan lines. Use np.nan for no interaction.
         network_fraction: The length found in the lower fraction value of the network.
         write_per_plant_details: A boolean value. If True, it writes per plant detailed
@@ -748,7 +865,7 @@ def get_all_plants_traits(
             monocots=monocots,
             primary_name=primary_name,
             lateral_name=lateral_name,
-            stem_width_tolerance=stem_width_tolerance,
+            root_width_tolerance=root_width_tolerance,
             n_line=n_line,
             network_fraction=network_fraction,
             write_csv=write_per_plant_details,

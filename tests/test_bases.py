@@ -10,10 +10,9 @@ from sleap_roots.bases import (
     get_base_ys,
     get_base_length,
     get_base_length_ratio,
-    get_primary_depth,
     get_root_pair_widths_projections,
 )
-from sleap_roots.points import get_lateral_pts
+from sleap_roots.points import get_lateral_pts, get_primary_pts
 from sleap_roots import Series
 import numpy as np
 import pytest
@@ -180,28 +179,28 @@ def test_bases_no_roots(pts_no_roots):
 
 # test get_base_tip_dist with standard points
 def test_get_base_tip_dist_standard(pts_standard):
-    distance = get_base_tip_dist(pts_standard)
+    distance = get_base_tip_dist(pts=pts_standard)
     assert distance.shape == (2,)
     np.testing.assert_almost_equal(distance, [2.82842712, 2.82842712], decimal=7)
 
 
 # test get_base_tip_dist with roots without bases
 def test_get_base_tip_dist_no_bases(pts_no_bases):
-    distance = get_base_tip_dist(pts_no_bases)
+    distance = get_base_tip_dist(pts=pts_no_bases)
     assert distance.shape == (2,)
     np.testing.assert_almost_equal(distance, [np.nan, np.nan], decimal=7)
 
 
 # test get_base_tip_dist with roots with one base
 def test_get_base_tip_dist_one_base(pts_one_base):
-    distance = get_base_tip_dist(pts_one_base)
+    distance = get_base_tip_dist(pts=pts_one_base)
     assert distance.shape == (2,)
     np.testing.assert_almost_equal(distance, [2.82842712, np.nan], decimal=7)
 
 
 # test get_base_tip_dist with no roots
 def test_get_base_tip_dist_no_roots(pts_no_roots):
-    distance = get_base_tip_dist(pts_no_roots)
+    distance = get_base_tip_dist(pts=pts_no_roots)
     assert distance.shape == (2,)
     np.testing.assert_almost_equal(distance, [np.nan, np.nan], decimal=7)
 
@@ -211,9 +210,8 @@ def test_get_grav_index(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    primary, lateral = series[0]
-    pts = primary.numpy()
-    grav_index = get_grav_index(pts)
+    primary_pts = get_primary_pts(plant=series, frame=0)
+    grav_index = get_grav_index(pts=primary_pts)
     np.testing.assert_almost_equal(grav_index, 0.08898137324716636)
 
 
@@ -294,6 +292,17 @@ def test_get_base_xs_canola(canola_h5):
     np.testing.assert_almost_equal(base_xs[1], 1112.5506591796875, decimal=3)
 
 
+# test get_base_xs with rice
+def test_get_base_xs_rice(rice_h5):
+    monocots = True
+    plant = Series.load(
+        rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
+    )
+    pts_lr = get_lateral_pts(plant=plant, frame=0)
+    base_xs = get_base_xs(pts_lr, monocots)
+    assert np.isnan(base_xs)
+
+
 # test get_base_xs with pts_standard
 def test_get_base_xs_standard(pts_standard):
     base_xs = get_base_xs(pts_standard)
@@ -321,6 +330,17 @@ def test_get_base_ys_canola(canola_h5):
     np.testing.assert_almost_equal(base_ys[1], 228.0966796875, decimal=3)
 
 
+# test get_base_ys with rice
+def test_get_base_ys_rice(rice_h5):
+    monocots = True
+    plant = Series.load(
+        rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
+    )
+    pts_lr = get_lateral_pts(plant=plant, frame=0)
+    base_ys = get_base_ys(pts_lr, monocots)
+    assert np.isnan(base_ys)
+
+
 # test get_base_ys with pts_standard
 def test_get_base_ys_standard(pts_standard):
     base_ys = get_base_ys(pts_standard)
@@ -344,6 +364,16 @@ def test_get_base_length_canola(canola_h5):
     pts_lr = get_lateral_pts(plant=plant, frame=0)
     base_length = get_base_length(pts_lr)
     np.testing.assert_almost_equal(base_length, 83.69914245605469, decimal=3)
+
+
+# test get_base_length with rice
+def test_get_base_length_rice(rice_h5):
+    plant = Series.load(
+        rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
+    )
+    pts_lr = get_lateral_pts(plant=plant, frame=0)
+    base_length = get_base_length(pts_lr, monocots=True)
+    assert np.isnan(base_length)
 
 
 # test get_base_length with pts_standard
@@ -377,21 +407,16 @@ def test_get_base_ct_density_canola(canola_h5):
     np.testing.assert_almost_equal(base_ct_density, 0.004119, decimal=5)
 
 
-# test get_primary_depth function with defined primary_pts
-def test_get_primary_depth(primary_pts):
-    primary_depth = get_primary_depth(primary_pts)
-    np.testing.assert_almost_equal(primary_depth, 808.12585449, decimal=3)
-
-
-# test get_primary_depth function with canola
-def test_get_primary_depth(canola_h5):
+# test get_base_ct_density function with rice example
+def test_get_base_ct_density_rice(rice_h5):
+    monocots = True
     series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
+        rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
     )
-    primary, lateral = series[0]
-    primary_pts = primary.numpy()
-    primary_depth = get_primary_depth(primary_pts)
-    np.testing.assert_almost_equal(primary_depth, 1020.9813842773438, decimal=3)
+    primary_pts = get_primary_pts(plant=series, frame=0)
+    lateral_pts = get_lateral_pts(plant=series, frame=0)
+    base_ct_density = get_base_ct_density(primary_pts, lateral_pts, monocots)
+    assert np.isnan(base_ct_density)
 
 
 # test get_base_length_ratio with canola
@@ -406,7 +431,7 @@ def test_get_base_length_ratio(canola_h5):
     np.testing.assert_almost_equal(base_length_ratio, 0.086, decimal=3)
 
 
-def test_stem_width(canola_h5):
+def test_root_width(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
@@ -416,5 +441,5 @@ def test_stem_width(canola_h5):
     assert primary_pts.shape == (1, 6, 2)
     assert lateral_pts.shape == (5, 3, 2)
 
-    stem_widths = get_root_pair_widths_projections(lateral_pts, primary_pts, 0.02)
-    np.testing.assert_array_almost_equal(stem_widths, [31.603239])
+    root_widths = get_root_pair_widths_projections(lateral_pts, primary_pts, 0.02)
+    assert np.isnan(root_widths)

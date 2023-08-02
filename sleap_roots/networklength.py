@@ -141,13 +141,9 @@ def get_network_distribution(
 
     # filter out the nan nodes
     if monocots:
-        points = list(primary_pts)
+        points = list(lateral_pts)
     else:
         points = list(primary_pts) + list(lateral_pts)
-    pts_nnan = []
-    for j in range(len(points)):
-        pts_j = points[j][~np.isnan(points[j]).any(axis=1)]
-        pts_nnan.append(pts_j)
 
     # get length of lines within the lower bounding box
     root_length = 0
