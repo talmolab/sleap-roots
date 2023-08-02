@@ -478,13 +478,6 @@ def get_traits_value_frame(
             **trait_def.kwargs,
         )
 
-        # if type(fn_outputs) == tuple:
-        #     fn_outputs = np.array(fn_outputs).reshape((1, -1))
-        # if isinstance(fn_outputs, (np.floating, float)) or isinstance(
-        #     fn_outputs, (np.integer, int)
-        # ):
-        #     fn_outputs = np.array(fn_outputs)[np.newaxis]
-        # traits[trait_name] = fn_outputs
     return traits
 
 
