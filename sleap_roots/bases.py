@@ -3,6 +3,7 @@
 import numpy as np
 from shapely.geometry import LineString, Point
 from shapely.ops import nearest_points
+from typing import Optional
 
 
 def get_bases(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
@@ -24,7 +25,9 @@ def get_bases(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
 
 
 def get_base_tip_dist(
-    base_pts: np.ndarray = None, tip_pts: np.ndarray = None, pts: np.ndarray = None
+    base_pts: np.ndarray = None,
+    tip_pts: np.ndarray = None,
+    pts: Optional[np.ndarray] = None,
 ) -> np.ndarray:
     """Return distance from root base to tip.
 
@@ -32,7 +35,7 @@ def get_base_tip_dist(
         base_pts: Base coordinates of roots as an array of `(instances, 2)`. Not used if
             `pts` is specified.
         tip_pts: tips of roots `(instances, 2)`. Not used if `pts` is specified.
-        pts: Root landmarks as array of shape `(instances, nodes, 2)`.
+        pts: Optional, Root landmarks as array of shape `(instances, nodes, 2)`.
 
     Returns:
         Array of distances from base to tip of shape `(instances,)`.
