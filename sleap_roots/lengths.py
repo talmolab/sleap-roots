@@ -1,5 +1,6 @@
 """Get length-related traits"""
 import numpy as np
+from sleap_roots.bases import get_base_tip_dist
 
 
 def get_max_length_pts(pts: np.ndarray) -> np.ndarray:
