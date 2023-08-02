@@ -7,7 +7,7 @@ from typing import List, Dict, Tuple, Callable, Optional, Any
 from fractions import Fraction
 import networkx as nx
 from pathlib import Path
-from sleap_roots.angle import get_root_angle
+from sleap_roots.angle import get_root_angle, get_node_ind
 from sleap_roots.lengths import get_root_lengths, get_grav_index, get_max_length_pts
 from sleap_roots.bases import (
     get_bases,
@@ -220,7 +220,7 @@ def get_traits_value_frame(
             input_traits=["primary_pts"],
             scalar=False,
             include_in_csv=False,
-            kwargs={"monocots": monocots},
+            kwargs={},
             description="Points of the primary root with maximum length.",
         ),
         TraitDef(
@@ -232,6 +232,51 @@ def get_traits_value_frame(
             kwargs={"monocots": monocots},
             description="Landmark points within a given frame as a flat array"
             "of coordinates.",
+        ),
+        TraitDef(
+            name="root_widths",
+            fn=get_root_pair_widths_projections,
+            input_traits=["primary_max_length_pts", "lateral_pts"],
+            scalar=False,
+            include_in_csv=True,
+            kwargs={"tolerance": root_width_tolerance, "monocots": monocots},
+            description="Return estimation of root width using bases of lateral roots.",
+        ),
+        TraitDef(
+            name="lateral_count",
+            fn=get_lateral_count,
+            input_traits=["lateral_pts"],
+            scalar=True,
+            include_in_csv=True,
+            kwargs={},
+            description="Get the number of lateral roots.",
+        ),
+        TraitDef(
+            name="lateral_proximal_node_inds",
+            fn=get_node_ind,
+            input_traits=["lateral_pts"],
+            scalar=False,
+            include_in_csv=False,
+            kwargs={"proximal": True},
+            description="Get the indices of the proximal nodes of lateral roots.",
+        ),
+        TraitDef(
+            name="lateral_distal_node_inds",
+            fn=get_node_ind,
+            input_traits=["lateral_pts"],
+            scalar=False,
+            include_in_csv=False,
+            kwargs={"proximal": False},
+            description="Get the indices of the distal nodes of lateral roots.",
+        ),
+        TraitDef(
+            name="lateral_lengths",
+            fn=get_root_lengths,
+            input_traits=["lateral_pts"],
+            scalar=False,
+            include_in_csv=True,
+            kwargs={},
+            description="Array of root lengths of shape `(instances,)`.",
         ),
         TraitDef(
             name="convex_hull",
