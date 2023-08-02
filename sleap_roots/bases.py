@@ -244,14 +244,8 @@ def get_base_ct_density(primary_pts, lateral_pts: np.ndarray, monocots: bool = F
     # Get number of base points of lateral roots
     base_ct = len(_base_pts[~np.isnan(_base_pts[:, 0])])
 
-    if primary_pts.ndim == 3:
-        # Get primary root length
-        primary_length_max = get_root_lengths_max(
-            primary_pts
-        )  # Assuming get_root_lengths_max is a scalar
-    else:
-        # Assuming primary_pts is a scalar
-        primary_length_max = primary_pts
+    # Assuming primary_pts is a scalar
+    primary_length_max = primary_pts
 
     # Handle case where maximum primary length is zero to avoid division by zero
     if primary_length_max == 0:
@@ -296,14 +290,9 @@ def get_base_length_ratio(
     else:
         base_length = lateral_pts  # Assuming lateral_pts is a scalar
 
-    if primary_pts.ndim == 3:
-        primary_length_max = get_root_lengths_max(
-            get_root_lengths(primary_pts)
-        )  # Assuming get_root_lengths returns an array of shape (instances)
-    else:
-        primary_length_max = (
-            primary_pts  # Assuming primary_pts is the maximum primary root length
-        )
+    primary_length_max = (
+        primary_pts  # Assuming primary_pts is the maximum primary root length
+    )
 
     # Handle case where maximum primary length is zero to avoid division by zero
     if primary_length_max == 0:
@@ -328,12 +317,10 @@ def get_base_median_ratio(lateral_base_ys, primary_tip_pt_y, monocots: bool = Fa
     Return:
         Scalar of base median ratio.
     """
-    _base_pts = get_bases(lateral_pts, monocots)
-    pr_tip_depth = np.nanmax(primary_pts[:, :, 1])
-    if np.isnan(_base_pts).all():
+    if np.isnan(lateral_base_ys).all():
         return np.nan
     else:
-        base_median_ratio = np.nanmedian(_base_pts[:, 1]) / pr_tip_depth
+        base_median_ratio = np.nanmedian(lateral_base_ys) / primary_tip_pt_y
         return base_median_ratio
 
 
