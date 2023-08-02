@@ -16,7 +16,7 @@ def get_max_length_pts(pts: np.ndarray) -> np.ndarray:
     """
     # Return NaN points if the input array is empty
     if len(pts) == 0:
-        return np.array([[np.nan, np.nan]])
+        return np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
 
     # Check if pts has the correct shape, raise error if it does not
     if pts.ndim != 3 or pts.shape[2] != 2:
