@@ -2,7 +2,7 @@
 
 import numpy as np
 from shapely import LineString, Polygon
-from sleap_roots.bases import get_root_lengths
+from sleap_roots.lengths import get_root_lengths
 from sleap_roots.convhull import get_convhull_features
 from typing import Optional, Tuple, Union
 
