@@ -61,7 +61,7 @@ def get_root_angle(
 
     Args:
         pts: Numpy array of points of shape (instances, nodes, 2).
-        node_ind: primary or lateral root node index.
+        node_ind: Primary or lateral root node index.
         proximal: Boolean value, where true is proximal (default), false is distal.
         base_ind: Index of base node in the skeleton (default: 0).
 
