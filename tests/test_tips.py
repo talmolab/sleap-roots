@@ -1,4 +1,3 @@
-from sleap_roots.points import get_lateral_pts
 from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys
 from sleap_roots import Series
 import numpy as np

@@ -44,7 +44,7 @@ from sleap_roots.networklength import (
     get_network_solidity,
     get_network_width_depth_ratio,
 )
-from sleap_roots.points import get_all_pts_array, get_all_pts
+from sleap_roots.points import get_all_pts_array
 from sleap_roots.scanline import (
     count_scanline_intersections,
     get_scanline_first_ind,
