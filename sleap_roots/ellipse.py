@@ -2,7 +2,7 @@
 
 import numpy as np
 from skimage.measure import EllipseModel
-from typing import Optional, Tuple, Union
+from typing import Tuple, Union
 
 
 def fit_ellipse(pts: np.ndarray) -> Tuple[float, float, float]:
