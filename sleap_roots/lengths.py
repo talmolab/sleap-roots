@@ -118,7 +118,7 @@ def get_grav_index(
             if `pts` is specified.
         primary_length: scalar of length of primary root (longest primary root
             prediction used if there is more than one). Not used if `pts` is specified.
-        pts: primary root landmarks as array of shape `(instances, nodes, 2)`.
+        pts: Optional, primary root landmarks as array of shape `(instances, nodes, 2)`.
 
     Returns:
         Scalar of primary root gravity index.
