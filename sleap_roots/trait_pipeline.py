@@ -526,6 +526,15 @@ def get_traits_value_frame(
             description="Scalar of semi-minor axis length.",
         ),
         TraitDef(
+            name="network_width_depth_ratio",
+            fn=get_network_width_depth_ratio,
+            input_traits=["bounding_box"],
+            scalar=True,
+            include_in_csv=True,
+            kwargs={},
+            description="Scalar of bounding box width to depth ratio of root network.",
+        ),
+        TraitDef(
             name="chull_perimeter",
             fn=get_chull_perimeter,
             input_traits=["convex_hull"],
