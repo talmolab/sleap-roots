@@ -60,63 +60,37 @@ def count_scanline_intersections(
     return np.array(intersection)
 
 
-def get_scanline_first_ind(
-    primary_pts: np.ndarray,
-    lateral_pts: np.ndarray,
-    depth: int = 1080,
-    width: int = 2048,
-    n_line: int = 50,
-    monocots: bool = False,
-):
+def get_scanline_first_ind(scanline_intersection_counts: np.ndarray):
     """Get the index of count_scanline_interaction for the first interaction.
 
     Args:
-        primary_pts: Numpy array of primary points of shape (instances, nodes, 2).
-        lateral_pts: Numpy array of lateral points of shape (instances, nodes, 2).
-        depth: the depth of cylinder, or number of rows of the image.
-        width: the width of cylinder, or number of columns of the image.
-        n_line: number of scan lines, np.nan for no interaction.
-        monocots: whether True: only lateral roots (e.g., rice), or False: dicots.
+        scanline_intersection_counts: An array with shape of `(#Nline,)` of intersection
+            numbers of each scan line.
 
     Return:
         Scalar of count_scanline_interaction index for the first interaction.
     """
-    count_scanline_interaction = count_scanline_intersections(
-        primary_pts, lateral_pts, depth, width, n_line, monocots
-    )
-    if np.where((count_scanline_interaction > 0))[0].shape[0] > 0:
-        scanline_first_ind = np.where((count_scanline_interaction > 0))[0][0]
+    # get the first scanline index using scanline_intersection_counts
+    if np.where((scanline_intersection_counts > 0))[0].shape[0] > 0:
+        scanline_first_ind = np.where((scanline_intersection_counts > 0))[0][0]
         return scanline_first_ind
     else:
         return np.nan
 
 
-def get_scanline_last_ind(
-    primary_pts: np.ndarray,
-    lateral_pts: np.ndarray,
-    depth: int = 1080,
-    width: int = 2048,
-    n_line: int = 50,
-    monocots: bool = False,
-):
+def get_scanline_last_ind(scanline_intersection_counts: np.ndarray):
     """Get the index of count_scanline_interaction for the last interaction.
 
     Args:
-        primary_pts: Numpy array of primary points of shape (instances, nodes, 2).
-        lateral_pts: Numpy array of lateral points of shape (instances, nodes, 2).
-        depth: the depth of cylinder, or number of rows of the image.
-        width: the width of cylinder, or number of columns of the image.
-        n_line: number of scan lines, np.nan for no interaction.
-        monocots: whether True: only lateral roots (e.g., rice), or False: dicots.
+        scanline_intersection_counts: An array with shape of `(#Nline,)` of intersection
+            numbers of each scan line.
 
     Return:
         Scalar of count_scanline_interaction index for the last interaction.
     """
-    count_scanline_interaction = count_scanline_intersections(
-        primary_pts, lateral_pts, depth, width, n_line, monocots
-    )
-    if np.where((count_scanline_interaction > 0))[0].shape[0] > 0:
-        scanline_last_ind = np.where((count_scanline_interaction > 0))[0][-1]
+    # get the first scanline index using scanline_intersection_counts
+    if np.where((scanline_intersection_counts > 0))[0].shape[0] > 0:
+        scanline_last_ind = np.where((scanline_intersection_counts > 0))[0][-1]
         return scanline_last_ind
     else:
         return np.nan
