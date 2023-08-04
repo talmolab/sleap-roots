@@ -87,6 +87,10 @@ def get_root_angle(
         An array of shape (instances,) of angles in degrees, modulo 360.
     """
     angs_root = []
+    # if node_ind is a single  int value, make it as array to keep consistent
+    if not isinstance(node_ind, np.ndarray):
+        node_ind = [node_ind]
+
     for i in range(len(node_ind)):
         # filter out the cases if all nan nodes in last/first half part
         # to calculate proximal/distal angle
