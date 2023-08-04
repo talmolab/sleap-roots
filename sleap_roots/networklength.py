@@ -192,26 +192,21 @@ def get_network_length(
 
 
 def get_network_distribution_ratio(
-    primary_length: np.ndarray,
-    lateral_lengths: np.ndarray,
-    network_length_lower: float,
-    bbox: Optional[Tuple[float, float, float, float]],
-    primary_pts: Optional[np.ndarray],
-    lateral_pts: Optional[np.ndarray],
-    pts_all_array: Optional[np.ndarray],
+    primary_length: Union[float, np.ndarray],
+    lateral_lengths: Union[float, np.ndarray],
+    network_length_lower: Union[float, np.ndarray],
     fraction: float = 2 / 3,
     monocots: bool = False,
 ) -> float:
     """Return ratio of the root length in the lower fraction over all root length.
 
     Args:
-        primary_length: primary root length array.
-        lateral_lengths: lateral root length array.
-        network_length_lower: the root length in lower network.
-        bbox: Optional, the bounding box of all root landmarks.
-        primary_pts: Optional, primary root landmarks as array of shape (..., 2).
-        lateral_pts: Optional, lateral root landmarks as array of shape (..., 2).
-        pts_all_array: Optional, primary and lateral root landmarks.
+        primary_length: primary root length or maximum length primary root landmarks as
+            array of shape `(node, 2)`.
+        lateral_lengths: lateral root length or lateral root landmarks as array of shape
+             `(instance, node, 2)`.
+        network_length_lower: the root length in lower network or primary and lateral
+            root landmarks.
         fraction: the network length found in the lower fration value of the network.
         monocots: a boolean value, where True is rice.
 
@@ -219,29 +214,64 @@ def get_network_distribution_ratio(
         Float of ratio of the root network length in the lower fraction of the plant
         over all root length.
     """
-    primary_root_length = (
-        np.sum(primary_length)
-        if primary_length
-        else np.sum(get_root_lengths(primary_pts))
-    )
-    lateral_root_length = (
-        np.sum(lateral_lengths)
-        if lateral_lengths
-        else np.sum(get_root_lengths(lateral_pts))
-    )
-    network_length_lower = (
-        network_length_lower
-        if network_length_lower
-        else get_network_distribution(
-            primary_pts, lateral_pts, pts_all_array, fraction, monocots
+    # check whether primary_length is the maximum length or maximum primary root
+    if not (
+        isinstance(primary_length, (float, np.float64)) or primary_length.ndim != 2
+    ):
+        raise ValueError(
+            "Input primary_length should be the maximum primary root "
+            "length or array have shape (nodes, 2)."
         )
+    # get primary_root_length
+    primary_root_length = (
+        primary_length
+        if not isinstance(primary_length, np.ndarray)
+        else get_root_lengths(primary_length)
     )
 
-    if primary_root_length + lateral_root_length > 0:
-        if monocots:
-            ratio = network_length_lower / primary_root_length
-        else:
-            ratio = network_length_lower / (primary_root_length + lateral_root_length)
-        return ratio
+    # check whether lateral_lengths is the lengths or lateral root nodex.
+    if not (
+        isinstance(lateral_lengths, (float, np.float64))  # length with only one root
+        or lateral_lengths.ndim != 1  # lenthgs with more than one lateral roots
+        or lateral_lengths.ndim != 3  # lateral root nodes
+    ):
+        raise ValueError(
+            "Input lateral_lengths should be the lateral root lengths or array have "
+            "shape (instance, nodes, 2)."
+        )
+
+    # get lateral_root_length
+    if lateral_lengths.ndim != 3:  # lateral root nodes
+        lateral_root_length = np.sum(get_root_lengths(lateral_lengths))
+    elif lateral_lengths.ndim != 1:  # lenthgs with more than one lateral roots
+        lateral_root_length = np.sum(lateral_lengths)
+    else:  # length with only one lateral root
+        lateral_root_length = lateral_lengths
+
+    # get network_length_lower
+    if isinstance(network_length_lower, (float, np.float64)):
+        network_length_lower = network_length_lower
+    elif (
+        primary_length.ndim == 2
+        and lateral_lengths.ndim == 3
+        and network_length_lower.ndim == 3
+    ):
+        network_length_lower = get_network_distribution(
+            primary_length, lateral_lengths, network_length_lower, fraction, monocots
+        )
     else:
+        raise ValueError(
+            "Input network_length_lower should be a float value, otherwise "
+            "primary_length is maximimum length primary root in shape  `(node, 2)` and "
+            "primary_length is lateral root in shape `(instance, nodes, 2)`."
+        )
+
+    # return Nan if lengths less than 0
+    if primary_root_length + lateral_root_length < 0:
         return np.nan
+
+    if monocots:
+        ratio = network_length_lower / primary_root_length
+    else:
+        ratio = network_length_lower / (primary_root_length + lateral_root_length)
+    return ratio
