@@ -86,22 +86,27 @@ def get_root_angle(
     Returns:
         An array of shape (instances,) of angles in degrees, modulo 360.
     """
-    angs_root = []
     # if node_ind is a single  int value, make it as array to keep consistent
     if not isinstance(node_ind, np.ndarray):
         node_ind = [node_ind]
 
+    if np.isnan(node_ind).all():
+        return np.nan
+
+    angs_root = []
     for i in range(len(node_ind)):
-        # filter out the cases if all nan nodes in last/first half part
-        # to calculate proximal/distal angle
-        if (node_ind[i] < math.ceil(pts.shape[1] / 2) and proximal) or (
-            node_ind[i] >= math.floor(pts.shape[1] / 2) and not (proximal)
-        ):
+        # if the node_ind is 0, do NOT calculate angs
+        if node_ind[i] == 0:
+            angs = np.nan
+        else:
             xy = pts[i, node_ind[i], :] - pts[i, base_ind, :]  # center on base node
             # calculate the angle and convert to the start with gravity direction
             ang = np.arctan2(-xy[1], xy[0]) * 180 / np.pi
             angs = abs(ang + 90) if ang < 90 else abs(-(360 - 90 - ang))
-        else:
-            angs = np.nan
         angs_root.append(angs)
-    return np.array(angs_root)
+    angs_root = np.array(angs_root)
+
+    # If only one root, return a scalar instead of a single-element array
+    if angs_root.shape[0] == 1:
+        return angs_root[0]
+    return angs_root
