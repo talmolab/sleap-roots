@@ -334,7 +334,7 @@ def get_traits_value_frame(
             input_traits=["network_length", "chull_area"],
             scalar=True,
             include_in_csv=True,
-            kwargs={"monocots": monocots},
+            kwargs={},
             description="Scalar of the total network length divided by the network convex area.",
         ),
         TraitDef(

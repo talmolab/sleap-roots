@@ -62,36 +62,20 @@ def get_network_width_depth_ratio(
 
 
 def get_network_solidity(
-    primary_pts: np.ndarray,
-    lateral_pts: np.ndarray,
-    chull_area: float = None,
-    pts_all_array: Optional[np.ndarray] = None,
-    monocots: bool = False,
+    network_length: float,
+    chull_area: float,
 ) -> float:
     """Return the total network length divided by the network convex area.
 
     Args:
-        primary_pts: primary root landmarks as array of shape (..., 2).
-        lateral_pts: lateral root landmarks as array of shape (..., 2).
+        network_length: all root lengths.
         chull_area: an optional argument of convex hull area.
-        pts_all_array: Optional, primary and lateral root landmarks.
-        monocots: a boolean value, where True is rice.
 
     Returns:
         Float of the total network length divided by the network convex area.
     """
-    # get the total network length
-    network_length = get_network_length(primary_pts, lateral_pts, monocots)
-
-    # get the convex hull area
-    if chull_area:
-        conv_area = chull_area
-    else:
-        convhull_features = get_convhull_features(pts_all_array)
-        conv_area = convhull_features[1]
-
-    if network_length > 0 and conv_area > 0:
-        ratio = network_length / conv_area
+    if network_length > 0 and chull_area > 0:
+        ratio = network_length / chull_area
         return ratio
     else:
         return np.nan
