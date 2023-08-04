@@ -41,6 +41,7 @@ from sleap_roots.networklength import (
     get_bbox,
     get_network_distribution_ratio,
     get_network_distribution,
+    get_network_length,
     get_network_solidity,
     get_network_width_depth_ratio,
 )
@@ -330,7 +331,7 @@ def get_traits_value_frame(
         TraitDef(
             name="network_solidity",
             fn=get_network_solidity,
-            input_traits=["primary_max_length_pts", "lateral_pts", "chull_area"],
+            input_traits=["network_length", "chull_area"],
             scalar=True,
             include_in_csv=True,
             kwargs={"monocots": monocots},
@@ -488,6 +489,15 @@ def get_traits_value_frame(
             include_in_csv=True,
             kwargs={"fraction": network_fraction, "monocots": monocots},
             description="Scalar of ratio of the root network length in the lower fraction of the plant over all root length.",
+        ),
+        TraitDef(
+            name="network_length",
+            fn=get_network_length,
+            input_traits=["primary_length", "lateral_lengths"],
+            scalar=True,
+            include_in_csv=False,
+            kwargs={"monocots": monocots},
+            description="Scalar of all roots network length.",
         ),
         TraitDef(
             name="primary_base_pt_y",
