@@ -211,54 +211,38 @@ def get_base_length(pts: np.ndarray, monocots: bool = False):
     return base_length
 
 
-def get_base_ct_density(primary_pts, lateral_pts: np.ndarray, monocots: bool = False):
+def get_base_ct_density(
+    primary_length_max: float, lateral_base_pts: np.ndarray, monocots: bool = False
+):
     """Get a ratio of the number of base points to maximum primary root length.
 
     Args:
-        primary_pts: primary root points of shape `(instances, nodes, 2)` or scalar
-            maximum primary root length.
-        lateral_pts: lateral root points of shape `(instances, nodes, 2)` or base points
-            of lateral roots of shape (instances, 2).
+        primary_length_max: Scalar of maximum primary root length.
+        lateral_base_pts: Base points of lateral roots of shape (instances, 2).
         monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
         Scalar of base count density.
     """
-    # If the inputs are single numbers (float or integer), return np.nan
+
+    # Check if the input is valid for lateral_base_pts or if monocots is True
     if (
-        isinstance(lateral_pts, (np.floating, float, np.integer, int))
-        or np.isnan(primary_pts).all()
+        monocots
+        or isinstance(lateral_base_pts, (np.floating, float, np.integer, int))
+        or np.isnan(lateral_base_pts).all()
     ):
         return np.nan
 
-    # If the input array has 3 dimensions, calculate the base points,
-    # otherwise, assume the input array already contains the base points
-    if lateral_pts.ndim == 3:
-        _base_pts = get_bases(
-            lateral_pts, monocots
-        )  # Assuming get_bases returns an array of shape (instances, 2)
-    else:
-        _base_pts = lateral_pts
+    # Get the number of base points of lateral roots
+    base_ct = len(lateral_base_pts[~np.isnan(lateral_base_pts[:, 0])])
 
-    # If _base_pts is a single number (float or integer), return np.nan
-    if isinstance(_base_pts, (np.floating, float, np.integer, int)):
+    # Handle cases where maximum primary length is zero or NaN to avoid division by zero
+    if primary_length_max == 0 or np.isnan(primary_length_max):
         return np.nan
 
-    # Get number of base points of lateral roots
-    base_ct = len(_base_pts[~np.isnan(_base_pts[:, 0])])
-
-    # Assuming primary_pts is a scalar
-    primary_length_max = primary_pts
-
-    # Handle case where maximum primary length is zero to avoid division by zero
-    if primary_length_max == 0:
-        return np.nan
-    # Handle case where primary lengths are all NaN or empty
-    if np.isnan(primary_length_max):
-        return np.nan
-
-    # Get base_ct_density
+    # Calculate base_ct_density
     base_ct_density = base_ct / primary_length_max
+
     return base_ct_density
 
 
@@ -277,7 +261,8 @@ def get_base_length_ratio(
     Return:
         Scalar of base length ratio.
     """
-    # If lateral_pts is a single number (float or integer) or primary_pts is NaN, return np.nan
+    # If lateral_pts is a single number (float or integer) or primary_pts is NaN, return
+    # np.nan
     if (
         isinstance(lateral_pts, (np.floating, float, np.integer, int))
         or np.isnan(primary_pts).all()
@@ -338,7 +323,8 @@ def get_root_pair_widths_projections(
     Args:
         primary_max_length_pts: Longest primary root as an array of shape (nodes, 2).
         lateral_pts: Lateral roots as an array of shape (n, nodes, 2).
-        tolerance: Difference in projection norm between the right and left side (~0.02).
+        tolerance: Difference in projection norm between the right and left side
+            (~0.02).
         monocots: Boolean value, where False is dicot (default), True is rice.
 
     Returns:
