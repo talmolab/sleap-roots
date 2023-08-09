@@ -328,7 +328,7 @@ def get_base_median_ratio(lateral_base_ys, primary_tip_pt_y, monocots: bool = Fa
 
 
 def get_root_pair_widths_projections(
-    primary_pts: np.ndarray,
+    primary_max_length_pts: np.ndarray,
     lateral_pts: np.ndarray,
     tolerance: float,
     monocots: bool = False,
@@ -336,7 +336,7 @@ def get_root_pair_widths_projections(
     """Return estimation of root width using bases of lateral roots.
 
     Args:
-        primary_pts: Longest primary root as an array of shape (n, nodes, 2).
+        primary_max_length_pts: Longest primary root as an array of shape (nodes, 2).
         lateral_pts: Lateral roots as an array of shape (n, nodes, 2).
         tolerance: Difference in projection norm between the right and left side (~0.02).
         monocots: Boolean value, where False is dicot (default), True is rice.
@@ -349,13 +349,19 @@ def get_root_pair_widths_projections(
         ValueError: If the input arrays are of incorrect shape.
     """
 
-    if primary_pts.ndim != 3 or lateral_pts.ndim != 3:
-        raise ValueError("Input arrays should be 3-dimensional")
+    if primary_max_length_pts.ndim != 2 or lateral_pts.ndim != 3:
+        raise ValueError("Input arrays should be 2-dimensional and 3-dimensional")
 
-    if monocots or np.isnan(primary_pts).all() or np.isnan(lateral_pts).all():
+    if (
+        monocots
+        or np.isnan(primary_max_length_pts).all()
+        or np.isnan(lateral_pts).all()
+    ):
         return np.nan
 
-    primary_pts_filtered = primary_pts[~np.isnan(primary_pts).any(axis=2)]
+    primary_pts_filtered = primary_max_length_pts[
+        ~np.isnan(primary_max_length_pts).any(axis=-1)
+    ]
     primary_line = LineString(primary_pts_filtered)
 
     has_base = ~np.isnan(lateral_pts[:, 0, 0])
