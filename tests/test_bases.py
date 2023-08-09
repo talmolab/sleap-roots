@@ -9,6 +9,7 @@ from sleap_roots.bases import (
     get_base_length_ratio,
     get_root_pair_widths_projections,
 )
+from sleap_roots.lengths import get_max_length_pts
 from sleap_roots import Series
 import numpy as np
 import pytest
@@ -218,8 +219,9 @@ def test_get_base_xs_canola(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts_lr = get_lateral_pts(plant=plant, frame=0)
-    base_xs = get_base_xs(pts_lr, monocots)
+    lateral = plant[0][1]  # first frame, lateral labels
+    lateral_pts = lateral.numpy()  # lateral points as numpy array
+    base_xs = get_base_xs(lateral_pts, monocots)
     assert base_xs.shape[0] == 5
     np.testing.assert_almost_equal(base_xs[1], 1112.5506591796875, decimal=3)
 
@@ -230,8 +232,9 @@ def test_get_base_xs_rice(rice_h5):
     plant = Series.load(
         rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
     )
-    pts_lr = get_lateral_pts(plant=plant, frame=0)
-    base_xs = get_base_xs(pts_lr, monocots)
+    lateral = plant[0][1]  # first frame, lateral labels
+    lateral_pts = lateral.numpy()  # lateral points as numpy array
+    base_xs = get_base_xs(lateral_pts, monocots)
     assert np.isnan(base_xs)
 
 
@@ -256,8 +259,9 @@ def test_get_base_ys_canola(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts_lr = get_lateral_pts(plant=plant, frame=0)
-    base_ys = get_base_ys(pts_lr, monocots)
+    lateral = plant[0][1]  # first frame, lateral labels
+    lateral_pts = lateral.numpy()  # lateral points as numpy array
+    base_ys = get_base_ys(lateral_pts, monocots)
     assert base_ys.shape[0] == 5
     np.testing.assert_almost_equal(base_ys[1], 228.0966796875, decimal=3)
 
@@ -268,8 +272,9 @@ def test_get_base_ys_rice(rice_h5):
     plant = Series.load(
         rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
     )
-    pts_lr = get_lateral_pts(plant=plant, frame=0)
-    base_ys = get_base_ys(pts_lr, monocots)
+    lateral = plant[0][1]  # first frame, lateral labels
+    lateral_pts = lateral.numpy()  # lateral points as numpy array
+    base_ys = get_base_ys(lateral_pts, monocots)
     assert np.isnan(base_ys)
 
 
@@ -293,8 +298,9 @@ def test_get_base_length_canola(canola_h5):
     plant = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts_lr = get_lateral_pts(plant=plant, frame=0)
-    base_length = get_base_length(pts_lr)
+    lateral = plant[0][1]  # first frame, lateral labels
+    lateral_pts = lateral.numpy()  # lateral points as numpy array
+    base_length = get_base_length(lateral_pts)
     np.testing.assert_almost_equal(base_length, 83.69914245605469, decimal=3)
 
 
@@ -303,8 +309,9 @@ def test_get_base_length_rice(rice_h5):
     plant = Series.load(
         rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
     )
-    pts_lr = get_lateral_pts(plant=plant, frame=0)
-    base_length = get_base_length(pts_lr, monocots=True)
+    lateral = plant[0][1]  # first frame, lateral labels
+    lateral_pts = lateral.numpy()  # lateral points as numpy array
+    base_length = get_base_length(lateral_pts, monocots=True)
     assert np.isnan(base_length)
 
 
@@ -345,8 +352,9 @@ def test_get_base_ct_density_rice(rice_h5):
     series = Series.load(
         rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
     )
-    primary_pts = get_primary_pts(plant=series, frame=0)
-    lateral_pts = get_lateral_pts(plant=series, frame=0)
+    primary, lateral = series[0]
+    primary_pts = primary.numpy()
+    lateral_pts = lateral.numpy()
     base_ct_density = get_base_ct_density(primary_pts, lateral_pts, monocots)
     assert np.isnan(base_ct_density)
 
@@ -369,9 +377,12 @@ def test_root_width(canola_h5):
     )
     primary, lateral = series[0]
     primary_pts = primary.numpy()
+    primary_max_length_pts = get_max_length_pts(primary_pts)
     lateral_pts = lateral.numpy()
-    assert primary_pts.shape == (1, 6, 2)
+    assert primary_max_length_pts.shape == (6, 2)
     assert lateral_pts.shape == (5, 3, 2)
 
-    root_widths = get_root_pair_widths_projections(lateral_pts, primary_pts, 0.02)
-    assert np.isnan(root_widths)
+    root_widths = get_root_pair_widths_projections(
+        primary_max_length_pts, lateral_pts, 0.02
+    )
+    np.testing.assert_almost_equal(root_widths, np.array([31.60323909]), decimal=7)
