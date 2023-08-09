@@ -335,7 +335,8 @@ def get_traits_value_frame(
             scalar=True,
             include_in_csv=True,
             kwargs={},
-            description="Scalar of the total network length divided by the network convex area.",
+            description="Scalar of the total network length divided by the network"
+            "convex area.",
         ),
         TraitDef(
             name="ellipse",
@@ -344,7 +345,8 @@ def get_traits_value_frame(
             scalar=False,
             include_in_csv=False,
             kwargs={},
-            description="Tuple of (a, b, ratio) containing the semi-major axis length, semi-minor axis length, and the ratio of the major to minor lengths.",
+            description="Tuple of (a, b, ratio) containing the semi-major axis length,"
+            "semi-minor axis length, and the ratio of the major to minor lengths.",
         ),
         TraitDef(
             name="bounding_box",
@@ -434,7 +436,8 @@ def get_traits_value_frame(
             scalar=True,
             include_in_csv=True,
             kwargs={"fraction": network_fraction, "monocots": monocots},
-            description="Scalar of the root network length in the lower fraction of the plant.",
+            description="Scalar of the root network length in the lower fraction of the"
+            "plant.",
         ),
         TraitDef(
             name="lateral_base_xs",
