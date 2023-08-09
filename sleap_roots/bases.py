@@ -7,58 +7,56 @@ from typing import Optional
 
 
 def get_bases(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
-    """Return bases (r1) from each lateral root.
+    """Return bases (r1) from each root.
 
     Args:
-        pts: Root landmarks as array of shape `(instances, nodes, 2)`.
+        pts: Root landmarks as array of shape `(instances, nodes, 2)` or `(nodes, 2)`.
         monocots: Boolean value, where false is dicot (default), true is rice.
 
     Returns:
-        Array of bases `(instances, (x, y))`.
+        Array of bases `(instances, (x, y))`. If the input is `(nodes, 2)`, an array of
+        shape `(2,)` will be returned.
     """
+
     if monocots:
         return np.nan
-    else:
-        # Get the first point of each instance.
-        base_pts = pts[:, 0]  # Shape is `(instances, 2)`.
-        return base_pts
+
+    # If the input has shape `(nodes, 2)`, reshape it for consistency
+    if pts.ndim == 2:
+        pts = pts[np.newaxis, ...]
+
+    # Get the first point of each instance
+    base_pts = pts[:, 0]  # Shape is `(instances, 2)`
+
+    # If the input was `(nodes, 2)`, return an array of shape `(2,)` instead of `(1, 2)`
+    if base_pts.shape[0] == 1:
+        return base_pts[0]
+
+    return base_pts
 
 
-def get_base_tip_dist(
-    base_pts: np.ndarray = None,
-    tip_pts: np.ndarray = None,
-    pts: Optional[np.ndarray] = None,
-) -> np.ndarray:
-    """Return distance from root base to tip.
+def get_base_tip_dist(primary_base_pt: tuple, primary_tip_pt: tuple) -> float:
+    """
+    Calculate the straight-line distance from the base to the tip of the primary root.
 
     Args:
-        base_pts: Base coordinates of roots as an array of `(instances, 2)`. Not used if
-            `pts` is specified.
-        tip_pts: tips of roots `(instances, 2)`. Not used if `pts` is specified.
-        pts: Optional, Root landmarks as array of shape `(instances, nodes, 2)`.
+        primary_base_pt: The x and y coordinates of the base point of the primary root.
+        primary_tip_pt: The x and y coordinates of the tip point of the primary root.
 
     Returns:
-        Array of distances from base to tip of shape `(instances,)`.
+        float: Distance from the base to the tip of the primary root.
     """
-    if base_pts is not None and tip_pts is not None:
-        # If base_pts and tip_pts are provided, but they are NaN, return NaN array of
-        # same shape
-        if np.isnan(base_pts).all() or np.isnan(tip_pts).all():
-            return np.full(base_pts.shape, np.nan)
-        # Calculate distance based on them
-        distance = np.linalg.norm(base_pts - tip_pts, axis=-1)
-    elif pts is not None:
-        # If pts is provided, but it is NaN, return NaN array of same shape
-        if np.isnan(pts).all():
-            return np.full((pts.shape[0],), np.nan)
-        # Calculate distance based on it
-        base_pt = pts[:, 0]
-        tip_pt = pts[:, -1]
-        distance = np.linalg.norm(base_pt - tip_pt, axis=-1)
-    else:
-        # If neither base_pts and tip_pts nor pts is provided, raise an exception
-        raise ValueError("Either both base_pts and tip_pts, or pts must be provided.")
 
+    # Convert the tuples to numpy arrays for vectorized computation
+    base_pt_array = np.array(primary_base_pt)
+    tip_pt_array = np.array(primary_tip_pt)
+
+    # If either of the points is NaN, return NaN
+    if np.isnan(base_pt_array).all() or np.isnan(tip_pt_array).all():
+        return np.nan
+
+    # Compute and return the Euclidean distance between the two points
+    distance = np.linalg.norm(base_pt_array - tip_pt_array)
     return distance
 
 
@@ -123,50 +121,31 @@ def get_base_xs(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
         return base_xs
 
 
-def get_base_ys(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
-    """Get y coordinates of the base of each lateral root.
+def get_base_ys(base_pts: np.ndarray, monocots: bool = False) -> np.ndarray:
+    """Get y coordinates of the base of each root.
 
     Args:
-        pts: root landmarks as array of shape `(instances, point, 2)` or bases
-            `(instances, 2)`.
+        base_pts: root bases as array of shape `(instances, 2)` or `(2)`
+            when there is only one root, as is the case for primary roots.
         monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
-        An array of the y-coordinates of bases (instance,).
+        An array of the y-coordinates of bases (instances,).
     """
     # If the input is a single number (float or integer), return np.nan
-    if isinstance(pts, (np.floating, float, np.integer, int)):
+    if isinstance(base_pts, (np.floating, float, np.integer, int)):
         return np.nan
 
-    # If the input array doesn't have 2 or 3 dimensions, raise an error
-    if pts.ndim not in (2, 3):
-        raise ValueError(
-            "Input array must be 2-dimensional (n_bases, 2) or "
-            "3-dimensional (n_roots, n_nodes, 2)."
-        )
+    # Check for the 2D shape of the input array
+    if base_pts.ndim == 1:
+        # If shape is `(2,)`, then reshape it to `(1, 2)` for consistency
+        base_pts = base_pts.reshape(1, 2)
+    elif base_pts.ndim != 2:
+        raise ValueError("Input array must be of shape `(instances, 2)` or `(2, )`.")
 
-    # If the input array has 3 dimensions, calculate the base points,
-    # otherwise, assume the input array already contains the base points
-    if pts.ndim == 3:
-        _base_pts = get_bases(
-            pts, monocots
-        )  # Assuming get_bases returns an array of shape (instance, 2)
-    else:
-        _base_pts = pts
-
-    # If _base_pts is a single number (float or integer), return np.nan
-    if isinstance(_base_pts, (np.floating, float, np.integer, int)):
-        return np.nan
-
-    # If the base points array doesn't have exactly 2 dimensions or
-    # the second dimension is not of size 2, raise an error
-    if _base_pts.ndim != 2 or _base_pts.shape[1] != 2:
-        raise ValueError(
-            "Array of base points must be 2-dimensional with shape (instance, 2)."
-        )
-    else:
-        base_ys = _base_pts[:, 1]
-        return base_ys
+    # At this point, `base_pts` should be of shape `(instances, 2)`.
+    base_ys = base_pts[:, 1]
+    return base_ys
 
 
 def get_base_length(pts: np.ndarray, monocots: bool = False):
@@ -247,50 +226,32 @@ def get_base_ct_density(
 
 
 def get_base_length_ratio(
-    primary_pts: np.ndarray, lateral_pts: np.ndarray, monocots: bool = False
-):
-    """Get ratio of top-deep base length to primary root length.
+    primary_length: float, base_length: float, monocots: bool = False
+) -> float:
+    """
+    Calculate the ratio of the length of the bases along the primary root to the
+    primary root length.
 
     Args:
-        primary_pts: primary root points of shape `(instances, nodes, 2)` or scalar
-            maximum primary root length.
-        lateral_pts: lateral root points of shape `(instances, nodes, 2)`.
-            or scalar of base_length.
-        monocots: Boolean value, where false is dicot (default), true is rice.
+        primary_length (float): Length of the primary root.
+        base_length (float): Length of the bases along the primary root.
+        monocots (bool): True if the roots are monocots, False if they are dicots.
 
-    Return:
-        Scalar of base length ratio.
+    Returns:
+        Ratio of the length of the bases along the primary root to the primary root
+            length.
     """
-    # If lateral_pts is a single number (float or integer) or primary_pts is NaN, return
-    # np.nan
-    if (
-        isinstance(lateral_pts, (np.floating, float, np.integer, int))
-        or np.isnan(primary_pts).all()
-    ):
+
+    # If roots are monocots or either of the lengths are NaN, return NaN
+    if monocots or np.isnan(primary_length) or np.isnan(base_length):
         return np.nan
 
-    # If the input array has 3 dimensions, calculate the base length,
-    # otherwise, assume the input array already contains the base length
-    if lateral_pts.ndim == 3:
-        base_length = get_base_length(
-            lateral_pts
-        )  # Assuming get_base_length returns an array of shape (instances)
-    else:
-        base_length = lateral_pts  # Assuming lateral_pts is a scalar
-
-    primary_length_max = (
-        primary_pts  # Assuming primary_pts is the maximum primary root length
-    )
-
-    # Handle case where maximum primary length is zero to avoid division by zero
-    if primary_length_max == 0:
-        return np.nan
-    # Handle case where primary lengths are all NaN or empty
-    if np.isnan(primary_length_max):
+    # Handle case where primary length is zero to avoid division by zero
+    if primary_length == 0:
         return np.nan
 
-    # Compute and return base length ratio
-    base_length_ratio = base_length / primary_length_max
+    # Compute and return the base length ratio
+    base_length_ratio = base_length / primary_length
     return base_length_ratio
 
 
@@ -298,18 +259,37 @@ def get_base_median_ratio(lateral_base_ys, primary_tip_pt_y, monocots: bool = Fa
     """Get ratio of median value in all base points to tip of primary root in y axis.
 
     Args:
-        primary_pts: primary root points.
-        lateral_pts: lateral root points.
+        lateral_base_ys: y-coordinates of the base points of lateral roots of shape
+            `(instances,)`.
+        primary_tip_pt_y: y-coordinate of the tip point of the primary root of shape
+            `(1)`.
         monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
-        Scalar of base median ratio.
+        Scalar of base median ratio. If all y-coordinates of the lateral root bases are
+        NaN, the function returns NaN.
     """
+
+    # Check if the roots are monocots, if so return NaN
+    if monocots:
+        return np.nan
+
+    # Check if all y-coordinates of lateral root bases are NaN, if so return NaN
     if np.isnan(lateral_base_ys).all():
         return np.nan
-    else:
-        base_median_ratio = np.nanmedian(lateral_base_ys) / primary_tip_pt_y
-        return base_median_ratio
+
+    # Calculate the median of all y-coordinates of lateral root bases
+    median_base_y = np.nanmedian(lateral_base_ys)
+
+    # If primary_tip_pt_y is an array of shape (1), extract the scalar value
+    if isinstance(primary_tip_pt_y, np.ndarray) and primary_tip_pt_y.shape == (1,):
+        primary_tip_pt_y = primary_tip_pt_y[0]
+
+    # Compute the ratio of the median y-coordinate of lateral root bases to the
+    # y-coordinate of the primary root tip
+    base_median_ratio = median_base_y / primary_tip_pt_y
+
+    return base_median_ratio
 
 
 def get_root_pair_widths_projections(

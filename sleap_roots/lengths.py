@@ -52,23 +52,32 @@ def get_root_lengths(pts: np.ndarray) -> np.ndarray:
     """Return root lengths for all roots in a frame.
 
     Args:
-        pts: Root landmarks as array of shape `(instances, nodes, 2)`.
+        pts: Root landmarks as array of shape `(instances, nodes, 2)` or `(nodes, 2)`.
 
     Returns:
         Array of root lengths of shape `(instances,)`. If there is no root, or the root
-            is one point only (all of the rest of the points are NaNs), an array of NaNs
-            with shape (len(pts),) is returned. This is also the case for non-contiguous
-            points.
+        is one point only (all of the rest of the points are NaNs), an array of NaNs
+        with shape (len(pts),) is returned. This is also the case for non-contiguous
+        points.
     """
-    # Get the (x,y) differences of segments for each instance.
+
+    # If the input has shape `(nodes, 2)`, reshape it for consistency
+    if pts.ndim == 2:
+        pts = pts[np.newaxis, ...]
+
+    # Get the (x,y) differences of segments for each instance
     segment_diffs = np.diff(pts, axis=1)
-    # Get the lengths of each segment by taking the norm.
+    # Get the lengths of each segment by taking the norm
     segment_lengths = np.linalg.norm(segment_diffs, axis=-1)
-    # Add the segments together to get the total length using nansum.
+    # Add the segments together to get the total length using nansum
     total_lengths = np.nansum(segment_lengths, axis=-1)
-    # Find the NaN segment lengths and record NaN in place of 0 when finding the total
-    # length.
+    # Find the NaN segment lengths and record NaN in place of 0 when finding the total length
     total_lengths[np.isnan(segment_lengths).all(axis=-1)] = np.nan
+
+    # If the input was `(nodes, 2)`, return a scalar instead of an array of length 1
+    if len(total_lengths) == 1:
+        return total_lengths[0]
+
     return total_lengths
 
 
@@ -106,47 +115,58 @@ def get_root_lengths_max(pts: np.ndarray) -> np.ndarray:
 
 
 def get_grav_index(
-    primary_length: float = None,
-    primary_base_tip_dist: float = None,
+    primary_length: Optional[float] = None,
+    primary_base_tip_dist: Optional[float] = None,
     pts: Optional[np.ndarray] = None,
-):
-    """Get gravitropism index based on primary_length_max and primary_base_tip_dist.
+) -> float:
+    """Calculate the gravitropism index of a primary root.
+
+    The gravitropism index quantifies the curviness of the root's growth. A higher
+    gravitropism index indicates a curvier root (less responsive to gravity), while a
+    lower index indicates a straighter root (more responsive to gravity). The index is
+    computed as the difference between the maximum primary root length and straight-line
+    distance from the base to the tip of the primary root, normalized by the root length.
 
     Args:
-        primary_base_tip_dist: scalar of distance from base to tip of primary root
-            (longest primary root prediction used if there is more than one). Not used
-            if `pts` is specified.
-        primary_length: scalar of length of primary root (longest primary root
-            prediction used if there is more than one). Not used if `pts` is specified.
-        pts: Optional, primary root landmarks as array of shape `(instances, nodes, 2)`.
+        primary_length: Maximum length of the primary root. Used if `pts` is not
+            provided.
+        primary_base_tip_dist: The straight-line distance from the base to the tip of
+        the primary root. Used if `pts` is not provided.
+        pts: Landmarks of the primary root of shape `(instances, nodes, 2)`. If
+        provided, `primary_length` and `primary_base_tip_dist` are ignored.
 
     Returns:
-        Scalar of primary root gravity index.
+        float: Gravitropism index of the primary root, quantifying its curviness.
     """
+
+    # Use provided scalar values if available
     if primary_length is not None and primary_base_tip_dist is not None:
-        # If primary_length and primary_base_tip_dist are provided, use them
-        if np.isnan(primary_length) or np.isnan(primary_base_tip_dist):
-            return np.nan
-        pl_max = primary_length
-        primary_base_tip_dist_max = primary_base_tip_dist
+        max_primary_length = primary_length
+        max_base_tip_distance = primary_base_tip_dist
+
+    # Use provided pts array to compute required values if available
     elif pts is not None:
-        # If pts is provided, calculate lengths and base-tip distances based on it
         if np.isnan(pts).all():
             return np.nan
         primary_length_max = get_root_lengths_max(pts=pts)
         primary_base_tip_dist = get_base_tip_dist(pts=pts)
-        pl_max = np.nanmax(primary_length_max)
-        primary_base_tip_dist_max = np.nanmax(primary_base_tip_dist)
+        max_primary_length = np.nanmax(primary_length_max)
+        max_base_tip_distance = np.nanmax(primary_base_tip_dist)
+
     else:
-        # If neither primary_length and primary_base_tip_dist nor pts is provided, raise an exception
         raise ValueError(
-            "Either both primary_length and primary_base_tip_dist, or pts must be provided."
+            "Either both primary_length and primary_base_tip_dist, or pts"
+            "must be provided."
         )
-    # Check if pl_max or primary_base_tip_dist_max is NaN, if so, return NaN
-    if np.isnan(pl_max) or np.isnan(primary_base_tip_dist_max):
+
+    # Check for invalid values (NaN or zero lengths)
+    if (
+        np.isnan(max_primary_length)
+        or np.isnan(max_base_tip_distance)
+        or max_primary_length == 0
+    ):
         return np.nan
-    # calculate gravitropism index
-    if pl_max == 0:
-        return np.nan
-    grav_index = (pl_max - primary_base_tip_dist_max) / pl_max
+
+    # Calculate and return gravitropism index
+    grav_index = (max_primary_length - max_base_tip_distance) / max_primary_length
     return grav_index

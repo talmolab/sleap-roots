@@ -418,7 +418,7 @@ def get_traits_value_frame(
             scalar=False,
             include_in_csv=False,
             kwargs={"monocots": monocots},
-            description="Array of primary bases `(, (x, y))`.",
+            description="Primary root base point.",
         ),
         TraitDef(
             name="primary_tip_pt",
@@ -427,7 +427,7 @@ def get_traits_value_frame(
             scalar=False,
             include_in_csv=False,
             kwargs={"monocots": monocots},
-            description="Array of primary tips `(, (x, y))`.",
+            description="Primary root tip point.",
         ),
         TraitDef(
             name="network_length_lower",
@@ -446,7 +446,7 @@ def get_traits_value_frame(
             scalar=False,
             include_in_csv=True,
             kwargs={"monocots": monocots},
-            description="Array of the x-coordinates of lateral bases `(instance,)`.",
+            description="Array of the x-coordinates of lateral bases `(instances,)`.",
         ),
         TraitDef(
             name="lateral_base_ys",
@@ -455,7 +455,7 @@ def get_traits_value_frame(
             scalar=False,
             include_in_csv=True,
             kwargs={"monocots": monocots},
-            description="Array of the y-coordinates of lateral bases `(instance,)`.",
+            description="Array of the y-coordinates of lateral bases `(instances,)`.",
         ),
         TraitDef(
             name="base_ct_density",
@@ -509,16 +509,16 @@ def get_traits_value_frame(
             scalar=True,
             include_in_csv=False,
             kwargs={"monocots": monocots},
-            description="Scalar of the y-coordinates of primary base `(instance,)`.",
+            description="Y-coordinate of the primary root base node.",
         ),
         TraitDef(
             name="primary_tip_pt_y",
             fn=get_tip_ys,
-            input_traits=["primary_base_pt"],
+            input_traits=["primary_tip_pt"],
             scalar=True,
             include_in_csv=False,
             kwargs={"monocots": monocots},
-            description="Scalar of the y-coordinates of primary tip `(instance,)`.",
+            description="Y-coordinate of the primary root tip node.",
         ),
         TraitDef(
             name="ellipse_a",
@@ -590,7 +590,8 @@ def get_traits_value_frame(
             scalar=False,
             include_in_csv=True,
             kwargs={},
-            description="Array of line lengths connecting any two vertices on the convex hull.",
+            description="Array of line lengths connecting any two vertices on the"
+            "convex hull.",
         ),
         TraitDef(
             name="base_length",
@@ -599,7 +600,8 @@ def get_traits_value_frame(
             scalar=True,
             include_in_csv=True,
             kwargs={},
-            description="Scalar of the distance between the top and deepest base y-coordinates.",
+            description="Scalar of the distance between the top and deepest base"
+            "y-coordinates.",
         ),
         TraitDef(
             name="base_median_ratio",
@@ -631,11 +633,11 @@ def get_traits_value_frame(
         TraitDef(
             name="primary_base_tip_dist",
             fn=get_base_tip_dist,
-            input_traits=["primary_base_pt_y", "primary_tip_pt_y"],
+            input_traits=["primary_base_pt", "primary_tip_pt"],
             scalar=True,
             include_in_csv=True,
             kwargs={},
-            description="Scalar of distances from primary base to tip.",
+            description="Scalar of distance from primary root base to tip.",
         ),
         TraitDef(
             name="ellipse_ratio",
@@ -658,7 +660,8 @@ def get_traits_value_frame(
                 "n_line": n_line,
                 "monocots": monocots,
             },
-            description="Scalar of count_scanline_interaction index for the last interaction.",
+            description="Scalar of count_scanline_interaction index for the last"
+            "interaction.",
         ),
         TraitDef(
             name="scanline_first_ind",
@@ -672,7 +675,8 @@ def get_traits_value_frame(
                 "n_line": n_line,
                 "monocots": monocots,
             },
-            description="Scalar of count_scanline_interaction index for the first interaction.",
+            description="Scalar of count_scanline_interaction index for the first"
+            "interaction.",
         ),
     ]
 
