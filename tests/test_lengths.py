@@ -2,6 +2,7 @@ from sleap_roots.lengths import (
     get_grav_index,
     get_root_lengths,
     get_root_lengths_max,
+    get_max_length_pts,
 )
 from sleap_roots import Series
 import numpy as np
@@ -148,7 +149,8 @@ def test_get_grav_index(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    primary_pts = get_primary_pts(plant=series, frame=0)
+    primary = series[0][0]  # first frame, primary labels
+    primary_pts = primary.numpy()  # primary points as numpy array
     grav_index = get_grav_index(pts=primary_pts)
     np.testing.assert_almost_equal(grav_index, 0.08898137324716636)
 
@@ -205,3 +207,16 @@ def test_get_root_lengths_max_with_nan(lengths_with_nan):
 def test_get_root_lengths_max_all_nan(lengths_all_nan):
     max_length = get_root_lengths_max(lengths_all_nan)
     np.testing.assert_array_almost_equal(max_length, np.nan)
+
+
+def test_get_max_length_pts(canola_h5):
+    series = Series.load(
+        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
+    )
+    primary = series[0][0]  # first frame, primary labels
+    primary_pts = primary.numpy()  # primary points as numpy array
+    max_length_pts = get_max_length_pts(primary_pts)
+    assert max_length_pts.shape == (6, 2)
+    np.testing.assert_almost_equal(
+        max_length_pts[0], np.array([1016.7844238, 144.4191589])
+    )
