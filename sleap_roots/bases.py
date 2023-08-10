@@ -3,7 +3,7 @@
 import numpy as np
 from shapely.geometry import LineString, Point
 from shapely.ops import nearest_points
-from typing import Optional
+from typing import Union
 
 
 def get_bases(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
@@ -35,29 +35,43 @@ def get_bases(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
     return base_pts
 
 
-def get_base_tip_dist(primary_base_pt: tuple, primary_tip_pt: tuple) -> float:
-    """
-    Calculate the straight-line distance from the base to the tip of the primary root.
+def get_base_tip_dist(
+    base_pts: np.ndarray, tip_pts: np.ndarray
+) -> Union[np.ndarray, float]:
+    """Calculate the straight-line distance(s) from the base(s) to the tip(s) of the
+    root(s).
 
     Args:
-        primary_base_pt: The x and y coordinates of the base point of the primary root.
-        primary_tip_pt: The x and y coordinates of the tip point of the primary root.
+        base_pts: The x and y coordinates of the base point(s) of the root(s). Shape can
+            be either `(2,)` for a single point or `(instances, 2)` for multiple
+            instances.
+        tip_pts: The x and y coordinates of the tip point(s) of the root(s). Shape
+            should match that of `base_pts`.
 
     Returns:
-        float: Distance from the base to the tip of the primary root.
+        Distance(s) from the base(s) to the tip(s) of the root(s). If there's only one
+            distance (i.e., shape is `(1,)`), a scalar is returned. Otherwise, an array
+            matching the first dimension of the input arrays is returned.
     """
 
-    # Convert the tuples to numpy arrays for vectorized computation
-    base_pt_array = np.array(primary_base_pt)
-    tip_pt_array = np.array(primary_tip_pt)
+    # Check if the shapes of the two input arrays match
+    if base_pts.shape != tip_pts.shape:
+        raise ValueError("The shapes of base_pts and tip_pts must match.")
 
-    # If either of the points is NaN, return NaN
-    if np.isnan(base_pt_array).all() or np.isnan(tip_pt_array).all():
-        return np.nan
+    # Check if any of the points is NaN, and set corresponding distances to NaN
+    nan_mask = np.isnan(base_pts).any(axis=-1) | np.isnan(tip_pts).any(axis=-1)
 
-    # Compute and return the Euclidean distance between the two points
-    distance = np.linalg.norm(base_pt_array - tip_pt_array)
-    return distance
+    # Compute the Euclidean distance(s) between the point(s)
+    distances = np.linalg.norm(base_pts - tip_pts, axis=-1)
+
+    # Apply NaN mask
+    distances[nan_mask] = np.nan
+
+    # Return scalar if shape is (1,), otherwise return the array
+    if distances.shape == (1,):
+        return distances[0]
+    else:
+        return distances
 
 
 def get_lateral_count(pts: np.ndarray):
@@ -148,45 +162,26 @@ def get_base_ys(base_pts: np.ndarray, monocots: bool = False) -> np.ndarray:
     return base_ys
 
 
-def get_base_length(pts: np.ndarray, monocots: bool = False):
+def get_base_length(lateral_base_ys: np.ndarray, monocots: bool = False) -> float:
     """Get the y-axis difference from the top lateral base to the bottom lateral base.
 
     Args:
-        pts: root landmarks as array of shape `(instances, point, 2)` or base_ys
-            `(instances)`.
+        lateral_base_ys: y-coordinates of the base points of lateral roots of shape
+            `(instances,)`.
         monocots: Boolean value, where false is dicot (default), true is rice.
 
     Return:
         The distance between the top base y-coordinate and the deepest
-            base y-coordinate.
+        base y-coordinate.
     """
-    # If the input is a single number (float or integer), return np.nan
-    if isinstance(pts, (np.floating, float, np.integer, int)):
+
+    # If the roots are monocots, return NaN
+    if monocots:
         return np.nan
 
-    if pts.ndim not in (1, 3):
-        raise ValueError(
-            "Input array must be 1-dimensional (n_base_ys) or "
-            "3-dimensional (n_roots, n_nodes, 2)."
-        )
+    # Compute the difference between the maximum and minimum y-coordinates
+    base_length = np.nanmax(lateral_base_ys) - np.nanmin(lateral_base_ys)
 
-    if pts.ndim == 3:
-        base_ys = get_base_ys(
-            pts, monocots
-        )  # Assuming get_base_ys returns an array of shape (instances)
-    else:
-        base_ys = pts
-
-    # If base_ys is a single number (float or integer), return np.nan
-    if isinstance(base_ys, (np.floating, float, np.integer, int)):
-        return np.nan
-
-    if base_ys.ndim != 1:
-        raise ValueError(
-            "Array of base y-coordinates must be 1-dimensional with shape (instances)."
-        )
-
-    base_length = np.nanmax(base_ys) - np.nanmin(base_ys)
     return base_length
 
 

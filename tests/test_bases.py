@@ -9,7 +9,8 @@ from sleap_roots.bases import (
     get_base_length_ratio,
     get_root_pair_widths_projections,
 )
-from sleap_roots.lengths import get_max_length_pts
+from sleap_roots.lengths import get_max_length_pts, get_root_lengths_max
+from sleap_roots.tips import get_tips
 from sleap_roots import Series
 import numpy as np
 import pytest
@@ -176,28 +177,40 @@ def test_bases_no_roots(pts_no_roots):
 
 # test get_base_tip_dist with standard points
 def test_get_base_tip_dist_standard(pts_standard):
-    distance = get_base_tip_dist(pts=pts_standard)
+    primary_pts = pts_standard
+    primary_base_pt = get_bases(primary_pts)
+    primary_tip_pt = get_tips(primary_pts)
+    distance = get_base_tip_dist(primary_base_pt, primary_tip_pt)
     assert distance.shape == (2,)
     np.testing.assert_almost_equal(distance, [2.82842712, 2.82842712], decimal=7)
 
 
 # test get_base_tip_dist with roots without bases
 def test_get_base_tip_dist_no_bases(pts_no_bases):
-    distance = get_base_tip_dist(pts=pts_no_bases)
+    primary_pts = pts_no_bases
+    primary_base_pt = get_bases(primary_pts)
+    primary_tip_pt = get_tips(primary_pts)
+    distance = get_base_tip_dist(primary_base_pt, primary_tip_pt)
     assert distance.shape == (2,)
     np.testing.assert_almost_equal(distance, [np.nan, np.nan], decimal=7)
 
 
 # test get_base_tip_dist with roots with one base
 def test_get_base_tip_dist_one_base(pts_one_base):
-    distance = get_base_tip_dist(pts=pts_one_base)
+    primary_pts = pts_one_base
+    primary_base_pt = get_bases(primary_pts)
+    primary_tip_pt = get_tips(primary_pts)
+    distance = get_base_tip_dist(primary_base_pt, primary_tip_pt)
     assert distance.shape == (2,)
     np.testing.assert_almost_equal(distance, [2.82842712, np.nan], decimal=7)
 
 
 # test get_base_tip_dist with no roots
 def test_get_base_tip_dist_no_roots(pts_no_roots):
-    distance = get_base_tip_dist(pts=pts_no_roots)
+    primary_pts = pts_no_roots
+    primary_base_pt = get_bases(primary_pts)
+    primary_tip_pt = get_tips(primary_pts)
+    distance = get_base_tip_dist(primary_base_pt, primary_tip_pt)
     assert distance.shape == (2,)
     np.testing.assert_almost_equal(distance, [np.nan, np.nan], decimal=7)
 
@@ -261,7 +274,8 @@ def test_get_base_ys_canola(canola_h5):
     )
     lateral = plant[0][1]  # first frame, lateral labels
     lateral_pts = lateral.numpy()  # lateral points as numpy array
-    base_ys = get_base_ys(lateral_pts, monocots)
+    base_pts = get_bases(lateral_pts)  # get the bases of the lateral roots
+    base_ys = get_base_ys(base_pts, monocots)
     assert base_ys.shape[0] == 5
     np.testing.assert_almost_equal(base_ys[1], 228.0966796875, decimal=3)
 
@@ -274,13 +288,15 @@ def test_get_base_ys_rice(rice_h5):
     )
     lateral = plant[0][1]  # first frame, lateral labels
     lateral_pts = lateral.numpy()  # lateral points as numpy array
-    base_ys = get_base_ys(lateral_pts, monocots)
+    base_pts = get_bases(lateral_pts, monocots)  # get the bases of the lateral roots
+    base_ys = get_base_ys(base_pts, monocots)
     assert np.isnan(base_ys)
 
 
 # test get_base_ys with pts_standard
 def test_get_base_ys_standard(pts_standard):
-    base_ys = get_base_ys(pts_standard)
+    bases = get_bases(pts_standard)
+    base_ys = get_base_ys(bases)
     assert base_ys.shape[0] == 2
     np.testing.assert_almost_equal(base_ys[0], 2, decimal=3)
     np.testing.assert_almost_equal(base_ys[1], 6, decimal=3)
@@ -288,7 +304,8 @@ def test_get_base_ys_standard(pts_standard):
 
 # test get_base_ys with pts_no_roots
 def test_get_base_ys_no_roots(pts_no_roots):
-    base_ys = get_base_ys(pts_no_roots)
+    bases = get_bases(pts_no_roots)
+    base_ys = get_base_ys(bases)
     assert base_ys.shape[0] == 2
     np.testing.assert_almost_equal(base_ys[0], np.nan, decimal=3)
 
@@ -300,7 +317,9 @@ def test_get_base_length_canola(canola_h5):
     )
     lateral = plant[0][1]  # first frame, lateral labels
     lateral_pts = lateral.numpy()  # lateral points as numpy array
-    base_length = get_base_length(lateral_pts)
+    bases = get_bases(lateral_pts)  # get bases of lateral roots
+    base_ys = get_base_ys(bases)  # get y-coordinates of bases
+    base_length = get_base_length(base_ys)
     np.testing.assert_almost_equal(base_length, 83.69914245605469, decimal=3)
 
 
@@ -317,19 +336,23 @@ def test_get_base_length_rice(rice_h5):
 
 # test get_base_length with pts_standard
 def test_get_base_length_standard(pts_standard):
-    base_length = get_base_length(pts_standard)
+    bases = get_bases(pts_standard)  # get bases of lateral roots
+    base_ys = get_base_ys(bases)  # get y-coordinates of bases
+    base_length = get_base_length(base_ys)
     np.testing.assert_almost_equal(base_length, 4, decimal=3)
 
 
 # test get_base_length with pts_no_roots
 def test_get_base_length_no_roots(pts_no_roots):
     base_length = get_base_length(pts_no_roots)
-    np.testing.assert_almost_equal(base_length, np.nan, decimal=3)
+    assert np.isnan(base_length)
 
 
 # test get_base_ct_density function with defined primary and lateral points
 def test_get_base_ct_density(primary_pts, lateral_pts):
-    base_ct_density = get_base_ct_density(primary_pts, lateral_pts)
+    primary_length_max = get_root_lengths_max(primary_pts)
+    lateral_base_pts = get_bases(lateral_pts)
+    base_ct_density = get_base_ct_density(primary_length_max, lateral_base_pts)
     np.testing.assert_almost_equal(base_ct_density, 0.00334, decimal=5)
 
 
@@ -342,7 +365,9 @@ def test_get_base_ct_density_canola(canola_h5):
     primary, lateral = series[0]
     primary_pts = primary.numpy()
     lateral_pts = lateral.numpy()
-    base_ct_density = get_base_ct_density(primary_pts, lateral_pts, monocots)
+    primary_length_max = get_root_lengths_max(primary_pts)
+    lateral_base_pts = get_bases(lateral_pts)
+    base_ct_density = get_base_ct_density(primary_length_max, lateral_base_pts)
     np.testing.assert_almost_equal(base_ct_density, 0.004119, decimal=5)
 
 
@@ -367,7 +392,11 @@ def test_get_base_length_ratio(canola_h5):
     primary, lateral = series[0]
     primary_pts = primary.numpy()
     lateral_pts = lateral.numpy()
-    base_length_ratio = get_base_length_ratio(primary_pts, lateral_pts)
+    primary_length_max = get_root_lengths_max(primary_pts)
+    bases = get_bases(lateral_pts)
+    lateral_base_ys = get_base_ys(bases)
+    base_length = get_base_length(lateral_base_ys)
+    base_length_ratio = get_base_length_ratio(primary_length_max, base_length)
     np.testing.assert_almost_equal(base_length_ratio, 0.086, decimal=3)
 
 
