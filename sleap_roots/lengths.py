@@ -60,7 +60,6 @@ def get_root_lengths(pts: np.ndarray) -> np.ndarray:
         with shape (len(pts),) is returned. This is also the case for non-contiguous
         points.
     """
-
     # If the input has shape `(nodes, 2)`, reshape it for consistency
     if pts.ndim == 2:
         pts = pts[np.newaxis, ...]
