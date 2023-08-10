@@ -82,11 +82,12 @@ def test_tips_one_tip(pts_one_tip):
 
 # test get_tip_xs with canola
 def test_get_tip_xs_canola(canola_h5):
-    plant = Series.load(
+    series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts_lr = get_lateral_pts(plant=plant, frame=0)
-    tip_xs = get_tip_xs(pts_lr)
+    lateral = series[0][1]  # LabeledFrame
+    lateral_pts = lateral.numpy()  # Lateral roots as a numpy array
+    tip_xs = get_tip_xs(lateral_pts)
     assert tip_xs.shape[0] == 5
     np.testing.assert_almost_equal(tip_xs[1], 1072.6610107421875, decimal=3)
 
@@ -108,18 +109,21 @@ def test_get_tip_xs_no_tip(pts_no_tips):
 
 # test get_tip_ys with canola
 def test_get_tip_ys_canola(canola_h5):
-    plant = Series.load(
+    series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
-    pts_lr = get_lateral_pts(plant=plant, frame=0)
-    tip_ys = get_tip_ys(pts_lr)
+    lateral = series[0][1]  # LabeledFrame
+    lateral_pts = lateral.numpy()  # Lateral roots as a numpy array
+    tips = get_tips(lateral_pts)
+    tip_ys = get_tip_ys(tips)
     assert tip_ys.shape[0] == 5
     np.testing.assert_almost_equal(tip_ys[1], 276.51275634765625, decimal=3)
 
 
 # test get_tip_ys with standard points
 def test_get_tip_ys_standard(pts_standard):
-    tip_ys = get_tip_ys(pts_standard)
+    tips = get_tips(pts_standard)
+    tip_ys = get_tip_ys(tips)
     assert tip_ys.shape[0] == 2
     np.testing.assert_almost_equal(tip_ys[0], 4, decimal=3)
     np.testing.assert_almost_equal(tip_ys[1], 8, decimal=3)
@@ -127,6 +131,7 @@ def test_get_tip_ys_standard(pts_standard):
 
 # test get_tip_ys with no tips
 def test_get_tip_ys_no_tip(pts_no_tips):
-    tip_ys = get_tip_ys(pts_no_tips)
+    tips = get_tips(pts_no_tips)
+    tip_ys = get_tip_ys(tips)
     assert tip_ys.shape[0] == 2
     np.testing.assert_almost_equal(tip_ys[1], np.nan, decimal=3)
