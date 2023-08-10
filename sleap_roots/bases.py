@@ -17,7 +17,6 @@ def get_bases(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
         Array of bases `(instances, (x, y))`. If the input is `(nodes, 2)`, an array of
         shape `(2,)` will be returned.
     """
-
     if monocots:
         return np.nan
 
@@ -53,7 +52,6 @@ def get_base_tip_dist(
             distance (i.e., shape is `(1,)`), a scalar is returned. Otherwise, an array
             matching the first dimension of the input arrays is returned.
     """
-
     # Check if the shapes of the two input arrays match
     if base_pts.shape != tip_pts.shape:
         raise ValueError("The shapes of base_pts and tip_pts must match.")
@@ -175,7 +173,6 @@ def get_base_length(lateral_base_ys: np.ndarray, monocots: bool = False) -> floa
         The distance between the top base y-coordinate and the deepest
         base y-coordinate.
     """
-
     # If the roots are monocots, return NaN
     if monocots:
         return np.nan
@@ -199,7 +196,6 @@ def get_base_ct_density(
     Return:
         Scalar of base count density.
     """
-
     # Check if the input is valid for lateral_base_pts or if monocots is True
     if (
         monocots
@@ -237,7 +233,6 @@ def get_base_length_ratio(
         Ratio of the length of the bases along the primary root to the primary root
             length.
     """
-
     # If roots are monocots or either of the lengths are NaN, return NaN
     if monocots or np.isnan(primary_length) or np.isnan(base_length):
         return np.nan
@@ -265,7 +260,6 @@ def get_base_median_ratio(lateral_base_ys, primary_tip_pt_y, monocots: bool = Fa
         Scalar of base median ratio. If all y-coordinates of the lateral root bases are
         NaN, the function returns NaN.
     """
-
     # Check if the roots are monocots, if so return NaN
     if monocots:
         return np.nan
@@ -310,7 +304,6 @@ def get_root_pair_widths_projections(
     Raises:
         ValueError: If the input arrays are of incorrect shape.
     """
-
     if primary_max_length_pts.ndim != 2 or lateral_pts.ndim != 3:
         raise ValueError("Input arrays should be 2-dimensional and 3-dimensional")
 

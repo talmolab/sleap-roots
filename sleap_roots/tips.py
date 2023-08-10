@@ -15,7 +15,6 @@ def get_tips(pts: np.ndarray) -> np.ndarray:
         `(instances, 2)` will be returned. If there is no root, or the roots don't have
         tips, an array of shape `(instances, 2)` of NaNs will be returned.
     """
-
     # If the input has shape `(nodes, 2)`, reshape it for consistency
     if pts.ndim == 2:
         pts = pts[np.newaxis, ...]

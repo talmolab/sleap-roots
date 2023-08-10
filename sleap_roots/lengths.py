@@ -1,4 +1,4 @@
-"""Get length-related traits"""
+"""Get length-related traits."""
 import numpy as np
 from sleap_roots.bases import get_base_tip_dist
 from typing import Optional

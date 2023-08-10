@@ -15,7 +15,6 @@ def get_convhull(pts: np.ndarray) -> Optional[ConvexHull]:
     Returns:
         An object representing the convex hull or None if a hull can't be formed.
     """
-
     # Ensure the input is an array of shape (n, 2)
     if pts.ndim < 2 or pts.shape[-1] != 2:
         raise ValueError("Input points should be of shape (..., 2).")
@@ -46,7 +45,6 @@ def get_chull_perimeter(hull: Union[np.ndarray, ConvexHull, None]) -> float:
         Scalar value representing the perimeter of the convex hull. Returns NaN if
         unable to compute the convex hull or if the input is None.
     """
-
     # If the input hull is None, return NaN
     if hull is None:
         return np.nan
@@ -78,7 +76,6 @@ def get_chull_area(hull: Union[np.ndarray, ConvexHull]) -> float:
         Scalar value representing the area of the convex hull. Returns NaN if unable
         to compute the convex hull.
     """
-
     # If the input hull is None, return NaN
     if hull is None:
         return np.nan
@@ -114,7 +111,6 @@ def get_chull_max_width(hull: Union[np.ndarray, ConvexHull]) -> float:
         Scalar value representing the maximum width of the convex hull. Returns NaN if
             unable to compute the convex hull.
     """
-
     # If hull is None, return NaN
     if hull is None:
         return np.nan
@@ -149,7 +145,6 @@ def get_chull_max_height(hull: Union[np.ndarray, ConvexHull]) -> float:
         Scalar of convex hull maximum height. If the hull cannot be computed (e.g.,
         insufficient valid points), NaN is returned.
     """
-
     # If hull is None, return NaN
     if hull is None:
         return np.nan
