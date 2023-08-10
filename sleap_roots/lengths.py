@@ -138,7 +138,6 @@ def get_grav_index(
     Returns:
         float: Gravitropism index of the primary root, quantifying its curviness.
     """
-
     # Use provided scalar values if available
     if primary_length is not None and primary_base_tip_dist is not None:
         max_primary_length = primary_length
