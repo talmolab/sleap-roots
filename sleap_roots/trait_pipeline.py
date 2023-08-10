@@ -29,7 +29,6 @@ from sleap_roots.convhull import (
     get_chull_max_width,
     get_chull_max_height,
     get_chull_perimeter,
-    get_convhull_features,
 )
 from sleap_roots.ellipse import (
     fit_ellipse,

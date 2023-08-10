@@ -2,7 +2,6 @@
 
 import numpy as np
 import math
-from shapely import LineString, Point
 
 
 def count_scanline_intersections(
