@@ -66,8 +66,7 @@ def get_chull_perimeter(hull: Union[np.ndarray, ConvexHull, None]) -> float:
 
 
 def get_chull_area(hull: Union[np.ndarray, ConvexHull]) -> float:
-    """
-    Calculate the area of the convex hull formed by the given points.
+    """Calculate the area of the convex hull formed by the given points.
 
     Args:
         hull: Either an array of landmark points or a pre-computed convex hull.
@@ -101,8 +100,7 @@ def get_chull_area(hull: Union[np.ndarray, ConvexHull]) -> float:
 
 
 def get_chull_max_width(hull: Union[np.ndarray, ConvexHull]) -> float:
-    """Calculate the maximum width (in the x-axis direction) of the convex hull formed
-    by the given points.
+    """Calculate the maximum width (in the x-axis direction) of the convex hull.
 
     Args:
         hull: Either an array of landmark points or a pre-computed convex hull.

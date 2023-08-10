@@ -37,8 +37,7 @@ def get_bases(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
 def get_base_tip_dist(
     base_pts: np.ndarray, tip_pts: np.ndarray
 ) -> Union[np.ndarray, float]:
-    """Calculate the straight-line distance(s) from the base(s) to the tip(s) of the
-    root(s).
+    """Calculate the straight-line distance(s) from the base(s) to the tip(s).
 
     Args:
         base_pts: The x and y coordinates of the base point(s) of the root(s). Shape can
@@ -220,9 +219,7 @@ def get_base_ct_density(
 def get_base_length_ratio(
     primary_length: float, base_length: float, monocots: bool = False
 ) -> float:
-    """
-    Calculate the ratio of the length of the bases along the primary root to the
-    primary root length.
+    """Calculate the ratio of the length of the bases to the primary root length.
 
     Args:
         primary_length (float): Length of the primary root.
