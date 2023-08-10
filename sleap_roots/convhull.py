@@ -1,185 +1,199 @@
 """Convex hull fitting and derived trait calculation."""
 
 import numpy as np
-from scipy.spatial import ConvexHull, convex_hull_plot_2d
+from scipy.spatial import ConvexHull
 from scipy.spatial.distance import pdist
 from typing import Tuple, Optional, Union
 
 
 def get_convhull(pts: np.ndarray) -> Optional[ConvexHull]:
-    """Get the convex hull for the points per frame.
+    """Compute the convex hull for the points per frame.
 
     Args:
-        pts: Root landmarks as array of shape (..., 2).
+        pts: Root landmarks as an array of shape (..., 2).
 
     Returns:
-        An object of convex hull.
+        An object representing the convex hull or None if a hull can't be formed.
     """
-    pts = pts.reshape(-1, 2)
-    pts = pts[~(np.isnan(pts).any(axis=-1))]
 
-    if len(pts) <= 2:
+    # Ensure the input is an array of shape (n, 2)
+    if pts.ndim < 2 or pts.shape[-1] != 2:
+        raise ValueError("Input points should be of shape (..., 2).")
+
+    # Reshape and filter out NaN values
+    pts = pts.reshape(-1, 2)
+    pts = pts[~np.isnan(pts).any(axis=-1)]
+
+    # Check for NaNs or infinite values
+    if np.isnan(pts).any() or np.isinf(pts).any():
         return None
 
-    # Get convex hull
-    hull = ConvexHull(pts)
+    # Ensure there are at least 3 unique non-collinear points
+    if len(np.unique(pts, axis=0)) < 3:
+        return None
 
-    return hull
+    # Compute and return the convex hull
+    return ConvexHull(pts)
 
 
-def get_convhull_features(
-    pts: Union[np.ndarray, ConvexHull]
-) -> Tuple[float, float, float, float]:
-    """Get the convex hull features for the points per frame.
+def get_chull_perimeter(hull: Union[np.ndarray, ConvexHull, None]) -> float:
+    """Calculate the perimeter of the convex hull formed by the given points.
 
     Args:
-        pts: Root landmarks as array of shape (..., 2).
+        hull: Either an array of landmark points, a pre-computed convex hull, or None.
 
     Returns:
-        A tuple of 4 convex hull features
-            perimeters, perimeter of the convex hull
-            areas, area of the convex hull
-            max_widths, maximum width of convex hull
-            max_heights, maximum height of convex hull
-
-        If the convex hull fitting fails, NaNs are returned.
+        Scalar value representing the perimeter of the convex hull. Returns NaN if
+        unable to compute the convex hull or if the input is None.
     """
-    hull = pts if type(pts) == ConvexHull else get_convhull(pts)
 
-    if hull is None:
-        return np.full((4,), np.nan)
-
-    # perimeter
-    perimeter = hull.area
-    # area
-    area = hull.volume
-
-    pts = pts.reshape(-1, 2)
-    pts = pts[~(np.isnan(pts).any(axis=-1))]
-
-    # max 'width'
-    max_width = np.nanmax(pts[:, 0]) - np.nanmin(pts[:, 0])
-    # max 'height'
-    max_height = np.nanmax(pts[:, 1]) - np.nanmin(pts[:, 1])
-
-    return (
-        perimeter,
-        area,
-        max_width,
-        max_height,
-    )
-
-
-def get_chull_perimeter(
-    pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]]
-):
-    """Get convex hull perimeter.
-
-    Args:
-        pts: landmark points, or convex hull, or tuple of convex hull results
-
-    Return:
-        Scalar of convex hull perimeter.
-    """
-    if type(pts) == tuple:
-        return pts[0]
-    elif type(pts) == ConvexHull:
-        hull = pts
-    else:
-        hull = get_convhull(pts)
+    # If the input hull is None, return NaN
     if hull is None:
         return np.nan
+
+    # If the input is an array, compute its convex hull
+    if isinstance(hull, np.ndarray):
+        hull = get_convhull(hull)
+
+    # If hull becomes None after attempting to compute the convex hull, return NaN
+    if hull is None:
+        return np.nan
+
+    # Ensure that the hull is of type ConvexHull
+    if not isinstance(hull, ConvexHull):
+        raise TypeError("After processing, the input must be a ConvexHull object.")
+
+    # Compute the perimeter of the convex hull
     return hull.area
 
 
-def get_chull_area(
-    pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]]
-):
-    """Get convex hull area.
+def get_chull_area(hull: Union[np.ndarray, ConvexHull]) -> float:
+    """
+    Calculate the area of the convex hull formed by the given points.
 
     Args:
-        pts: landmark points, or convex hull, or tuple of convex hull results
+        hull: Either an array of landmark points or a pre-computed convex hull.
 
-    Return:
-        Scalar of convex hull area.
+    Returns:
+        Scalar value representing the area of the convex hull. Returns NaN if unable
+        to compute the convex hull.
     """
-    if type(pts) == tuple:
-        return pts[1]
-    elif type(pts) == ConvexHull:
-        hull = pts
-    else:
-        hull = get_convhull(pts)
+
+    # If the input hull is None, return NaN
     if hull is None:
         return np.nan
+
+    # If the input is an array, compute its convex hull
+    if isinstance(hull, np.ndarray):
+        hull = get_convhull(hull)
+
+    # If hull becomes None after attempting to compute the convex hull, return NaN
+    if hull is None:
+        return np.nan
+
+    # Ensure that the hull is of type ConvexHull
+    if not isinstance(hull, ConvexHull):
+        raise TypeError("After processing, the input must be a ConvexHull object.")
+
+    # If hull couldn't be formed, return NaN
+    if hull is None:
+        return np.nan
+
+    # Return the area of the convex hull
     return hull.volume
 
 
-def get_chull_max_width(
-    pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]]
-):
-    """Get maximum width of convex hull.
+def get_chull_max_width(hull: Union[np.ndarray, ConvexHull]) -> float:
+    """Calculate the maximum width (in the x-axis direction) of the convex hull formed
+    by the given points.
 
     Args:
-        pts: landmark points, or convex hull, or tuple of convex hull results
+        hull: Either an array of landmark points or a pre-computed convex hull.
 
-    Return:
-        Scalar of convex hull maximum width.
+    Returns:
+        Scalar value representing the maximum width of the convex hull. Returns NaN if
+            unable to compute the convex hull.
     """
-    if type(pts) == tuple:
-        return pts[2]
-    elif type(pts) == ConvexHull:
-        hull = pts
-    else:
-        hull = get_convhull(pts)
+
+    # If hull is None, return NaN
     if hull is None:
         return np.nan
-    pts = pts.reshape(-1, 2)
-    pts = pts[~(np.isnan(pts).any(axis=-1))]
-    max_width = np.nanmax(pts[:, 0]) - np.nanmin(pts[:, 0])
+
+    # If the input is an array, compute its convex hull
+    if isinstance(hull, np.ndarray):
+        hull = get_convhull(hull)
+        if hull is None:
+            return np.nan
+        # Extract the convex hull points
+        hull_pts = hull.points[hull.vertices]
+    elif isinstance(hull, ConvexHull):
+        hull_pts = hull.points[hull.vertices]
+    else:
+        raise TypeError(
+            "Input must be either an array of points or a ConvexHull object."
+        )
+
+    # Calculate the maximum width (difference in x-coordinates)
+    max_width = np.nanmax(hull_pts[:, 0]) - np.nanmin(hull_pts[:, 0])
+
     return max_width
 
 
-def get_chull_max_height(
-    pts: Union[np.ndarray, ConvexHull, Tuple[float, float, float, float]]
-):
+def get_chull_max_height(hull: Union[np.ndarray, ConvexHull]) -> float:
     """Get maximum height of convex hull.
 
     Args:
-        pts: landmark points, or convex hull, or tuple of convex hull results
+        hull: landmark points or a precomputed convex hull.
 
     Return:
-        Scalar of convex hull maximum height.
+        Scalar of convex hull maximum height. If the hull cannot be computed (e.g.,
+        insufficient valid points), NaN is returned.
     """
-    if type(pts) == tuple:
-        return pts[3]
-    elif type(pts) == ConvexHull:
-        hull = pts
-    else:
-        hull = get_convhull(pts)
+
+    # If hull is None, return NaN
     if hull is None:
         return np.nan
-    pts = pts.reshape(-1, 2)
-    pts = pts[~(np.isnan(pts).any(axis=-1))]
-    max_height = np.nanmax(pts[:, 1]) - np.nanmin(pts[:, 1])
+
+    # If the input is a ConvexHull object, use it directly
+    if isinstance(hull, ConvexHull):
+        hull = hull
+    else:
+        # Otherwise, compute the convex hull
+        hull = get_convhull(hull)
+
+    # If no valid convex hull could be computed, return NaN
+    if hull is None:
+        return np.nan
+
+    # Use the convex hull's vertices to compute the maximum height
+    max_height = np.nanmax(hull.points[hull.vertices, 1]) - np.nanmin(
+        hull.points[hull.vertices, 1]
+    )
+
     return max_height
 
 
-def get_chull_line_lengths(pts: Union[np.ndarray, ConvexHull]) -> np.ndarray:
-    """Get the convex hull line lengths per frame.
+def get_chull_line_lengths(hull: Union[np.ndarray, ConvexHull]) -> np.ndarray:
+    """Get the pairwise distances between all vertices of the convex hull.
 
     Args:
-        pts: Root landmarks as array of shape (..., 2) or ConvexHull object.
+        hull: Root landmarks as array of shape (..., 2) or a ConvexHull object.
 
     Returns:
-        Lengths of lines connecting any two vertices on the convex hull.
-        If the convex hull fitting fails, NaNs are returned.
+        An array containing the pairwise distances between all vertices of the convex
+            hull. If the convex hull fitting fails, an empty array is returned.
     """
-    hull = pts if type(pts) == ConvexHull else get_convhull(pts)
-
+    # If hull is None, return NaN
     if hull is None:
         return np.nan
 
-    # Lengths of lines connecting any two vertices on the convex hull
+    # Ensure pts is a ConvexHull object, otherwise get the convex hull
+    hull = hull if isinstance(hull, ConvexHull) else get_convhull(hull)
+
+    if hull is None:
+        return np.array([])
+
+    # Compute the pairwise distances between all vertices of the convex hull
     chull_line_lengths = pdist(hull.points[hull.vertices], "euclidean")
 
     return chull_line_lengths
