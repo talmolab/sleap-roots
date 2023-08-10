@@ -4,6 +4,8 @@ from sleap_roots.lengths import (
     get_root_lengths_max,
     get_max_length_pts,
 )
+from sleap_roots.bases import get_base_tip_dist, get_bases
+from sleap_roots.tips import get_tips
 from sleap_roots import Series
 import numpy as np
 import pytest
@@ -151,7 +153,12 @@ def test_get_grav_index(canola_h5):
     )
     primary = series[0][0]  # first frame, primary labels
     primary_pts = primary.numpy()  # primary points as numpy array
-    grav_index = get_grav_index(pts=primary_pts)
+    primary_length = get_root_lengths_max(primary_pts)
+    max_length_pts = get_max_length_pts(primary_pts)
+    bases = get_bases(max_length_pts)
+    tips = get_tips(max_length_pts)
+    base_tip_dist = get_base_tip_dist(bases, tips)
+    grav_index = get_grav_index(primary_length, base_tip_dist)
     np.testing.assert_almost_equal(grav_index, 0.08898137324716636)
 
 
@@ -164,7 +171,7 @@ def test_get_root_lengths(canola_h5):
     assert pts.shape == (1, 6, 2)
 
     root_lengths = get_root_lengths(pts)
-    assert root_lengths.shape == (1,)
+    assert np.isscalar(root_lengths)
     np.testing.assert_array_almost_equal(root_lengths, [971.050417])
 
     pts = lateral.numpy()

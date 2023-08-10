@@ -74,7 +74,7 @@ def get_root_lengths(pts: np.ndarray) -> np.ndarray:
     # Find the NaN segment lengths and record NaN in place of 0 when finding the total length
     total_lengths[np.isnan(segment_lengths).all(axis=-1)] = np.nan
 
-    # If the input was `(nodes, 2)`, return a scalar instead of an array of length 1
+    # If there is 1 instance, return a scalar instead of an array of length 1
     if len(total_lengths) == 1:
         return total_lengths[0]
 

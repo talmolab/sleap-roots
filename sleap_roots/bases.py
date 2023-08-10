@@ -58,20 +58,21 @@ def get_base_tip_dist(
     if base_pts.shape != tip_pts.shape:
         raise ValueError("The shapes of base_pts and tip_pts must match.")
 
-    # Check if any of the points is NaN, and set corresponding distances to NaN
-    nan_mask = np.isnan(base_pts).any(axis=-1) | np.isnan(tip_pts).any(axis=-1)
-
     # Compute the Euclidean distance(s) between the point(s)
     distances = np.linalg.norm(base_pts - tip_pts, axis=-1)
 
-    # Apply NaN mask
+    # If distances is a scalar, check if either base_pts or tip_pts is NaN, and
+    # return NaN if true
+    if np.isscalar(distances):
+        if np.isnan(base_pts).any() or np.isnan(tip_pts).any():
+            return np.nan
+        return distances
+
+    # If distances is an array, create and apply the nan_mask
+    nan_mask = np.isnan(base_pts).any(axis=-1) | np.isnan(tip_pts).any(axis=-1)
     distances[nan_mask] = np.nan
 
-    # Return scalar if shape is (1,), otherwise return the array
-    if distances.shape == (1,):
-        return distances[0]
-    else:
-        return distances
+    return distances
 
 
 def get_lateral_count(pts: np.ndarray):
