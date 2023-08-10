@@ -5,8 +5,7 @@ from typing import Optional
 
 
 def get_max_length_pts(pts: np.ndarray) -> np.ndarray:
-    """
-    Points of the root with maximum length (intended for primary root traits).
+    """Points of the root with maximum length (intended for primary root traits).
 
     Args:
         pts (np.ndarray): Root landmarks as array of shape `(instances, nodes, 2)`.
