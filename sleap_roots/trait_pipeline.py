@@ -292,7 +292,7 @@ def get_traits_value_frame(
             input_traits=["lateral_pts"],
             scalar=False,
             include_in_csv=False,
-            kwargs={"monocots": monocots},
+            kwargs={},
             description="Array of lateral tips `(instances, (x, y))`.",
         ),
         TraitDef(
@@ -425,7 +425,7 @@ def get_traits_value_frame(
             input_traits=["primary_max_length_pts"],
             scalar=False,
             include_in_csv=False,
-            kwargs={"monocots": monocots},
+            kwargs={},
             description="Primary root tip point.",
         ),
         TraitDef(
