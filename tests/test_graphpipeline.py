@@ -49,7 +49,7 @@ def lateral_pts():
 
 def test_get_traits_value_frame(primary_pts, lateral_pts):
     data = get_traits_value_frame(primary_pts, lateral_pts, monocots=False)
-    assert len(data) == 43
+    assert len(data) == 51
 
 
 def test_get_traits_value_plant(canola_h5):
@@ -66,7 +66,7 @@ def test_get_traits_value_plant(canola_h5):
         write_csv=False,
     )
     assert len(data_plant) == 72
-    assert data_plant_df.shape[1] == 45
+    assert data_plant_df.shape[1] == 53
     assert plant_name == "919QDUH"
 
 

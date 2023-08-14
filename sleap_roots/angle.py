@@ -93,6 +93,9 @@ def get_root_angle(
     if np.isnan(node_ind).all():
         return np.nan
 
+    if pts.ndim == 2:
+        pts = np.expand_dims(pts, axis=0)
+
     angs_root = []
     for i in range(len(node_ind)):
         # if the node_ind is 0, do NOT calculate angs

@@ -362,7 +362,7 @@ def get_traits_value_frame(
             input_traits=["pts_all_array"],
             scalar=False,
             include_in_csv=False,
-            kwargs={"monocots": monocots},
+            kwargs={},
             description="Convex hull of the points.",
         ),
         TraitDef(
@@ -471,7 +471,7 @@ def get_traits_value_frame(
             input_traits=["lateral_tip_pts"],
             scalar=False,
             include_in_csv=True,
-            kwargs={"monocots": monocots},
+            kwargs={},
             description="Array of the x-coordinates of lateral tips `(instance,)`.",
         ),
         TraitDef(
@@ -480,7 +480,7 @@ def get_traits_value_frame(
             input_traits=["lateral_tip_pts"],
             scalar=False,
             include_in_csv=True,
-            kwargs={"monocots": monocots},
+            kwargs={},
             description="Array of the y-coordinates of lateral tips `(instance,)`.",
         ),
         TraitDef(
@@ -516,7 +516,7 @@ def get_traits_value_frame(
             input_traits=["primary_tip_pt"],
             scalar=True,
             include_in_csv=False,
-            kwargs={"monocots": monocots},
+            kwargs={},
             description="Y-coordinate of the primary root tip node.",
         ),
         TraitDef(
@@ -617,7 +617,7 @@ def get_traits_value_frame(
             input_traits=["primary_length", "primary_base_tip_dist"],
             scalar=True,
             include_in_csv=True,
-            kwargs={"monocots": monocots},
+            kwargs={},
             description="Scalar of primary root gravity index.",
         ),
         TraitDef(
@@ -653,12 +653,7 @@ def get_traits_value_frame(
             input_traits=["scanline_intersection_counts"],
             scalar=True,
             include_in_csv=True,
-            kwargs={
-                "depth": 1080,
-                "width": 2048,
-                "n_line": n_line,
-                "monocots": monocots,
-            },
+            kwargs={},
             description="Scalar of count_scanline_interaction index for the last"
             "interaction.",
         ),
@@ -668,12 +663,7 @@ def get_traits_value_frame(
             input_traits=["scanline_intersection_counts"],
             scalar=True,
             include_in_csv=True,
-            kwargs={
-                "depth": 1080,
-                "width": 2048,
-                "n_line": n_line,
-                "monocots": monocots,
-            },
+            kwargs={},
             description="Scalar of count_scanline_interaction index for the first"
             "interaction.",
         ),
@@ -682,29 +672,42 @@ def get_traits_value_frame(
     # Map trait names to their definitions.
     trait_map = {trait_def.name: trait_def for trait_def in trait_definitions}
 
-    # Initialize edges with precomputed top-level traits.
-    edges = [("pts", "primary_pts"), ("pts", "lateral_pts")]
-
     # Infer edges from trait map.
+    edges = []
     for trait_def in trait_definitions:
         for input_trait in trait_def.input_traits:
             edges.append((input_trait, trait_def.name))
 
-    # Compute breadth-first ordering.
+    # Build networkx graph from inferred edges.
     G = nx.DiGraph()
     G.add_edges_from(edges)
-    trait_computation_order = [
-        dst for (src, dst) in list(nx.bfs_tree(G, "pts").edges())[2:]
+
+    # Determine computation order by topologically sorting the nodes.
+    trait_computation_order = list(nx.topological_sort(G))
+
+    missing_traits = [
+        trait for trait in trait_map.keys() if trait not in trait_computation_order
     ]
+    if len(missing_traits) > 0:
+        print(
+            f"Missing traits in computation order: {', '.join(missing_traits)}. "
+            "Double check that trait pipeline is defined correctly."
+        )
 
     # Initialize traits container with initial points.
     traits = {"primary_pts": primary_pts, "lateral_pts": lateral_pts}
 
     # Compute traits!
     for trait_name in trait_computation_order:
-        # fn, input_traits, kwargs = trait_map[trait_name]
-        trait_def = trait_map[trait_name]
+        if trait_name in traits:
+            # Skip traits already computed.
+            continue
 
+        # Get trait definition.
+        trait_def = trait_map[trait_name]
+        # print(f"({', '.join(trait_def.input_traits)}) -> {trait_def.name}")
+
+        # Compute trait based on trait definition.
         traits[trait_name] = trait_def.fn(
             *[traits[input_trait] for input_trait in trait_def.input_traits],
             **trait_def.kwargs,

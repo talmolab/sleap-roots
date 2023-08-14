@@ -27,7 +27,8 @@ def get_all_pts_array(
             "3-dimensional."
         )
 
-    # Check if the last dimension of the input arrays has size 2 (representing x and y coordinates)
+    # Check if the last dimension of the input arrays has size 2
+    # (representing x and y coordinates)
     if primary_max_length_pts.shape[-1] != 2 or lateral_pts.shape[-1] != 2:
         raise ValueError(
             "The last dimension of the input arrays should have size 2, representing x"
