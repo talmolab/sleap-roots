@@ -2,7 +2,7 @@
 
 import numpy as np
 from shapely import LineString, Polygon
-from sleap_roots.lengths import get_root_lengths
+from sleap_roots.lengths import get_root_lengths, get_max_length_pts
 from typing import Optional, Tuple, Union
 
 
@@ -42,7 +42,6 @@ def get_network_width_depth_ratio(
 
     Args:
         pts: Root landmarks as array of shape (..., 2) or boundary box.
-        bbox: Optional, the bounding box of all root landmarks.
 
     Returns:
         Float of bounding box width to depth ratio of root network.
@@ -61,64 +60,43 @@ def get_network_width_depth_ratio(
 
 
 def get_network_length(
-    primary_length: Union[float, np.ndarray],
+    primary_length: float,
     lateral_lengths: Union[float, np.ndarray],
     monocots: bool = False,
 ) -> float:
-    """Return all primary or lateral root length one frame.
+    """Return the total root network length given primary and lateral root lengths.
 
     Args:
-        primary_length: primary root length or maximum length primary root landmarks as
-            array of shape `(node, 2)`.
-        lateral_lengths: lateral root length or lateral root landmarks as array of shape
-             `(instance, node, 2)`.
-        monocots: a boolean value, where True is rice.
+        primary_length: Primary root length.
+        lateral_lengths: Either a float representing the length of a single lateral
+          root or an array of lateral root lengths with shape `(instances,)`.
+        monocots: A boolean value, where True is rice.
 
     Returns:
-        Float of all roots network length.
+        Total length of root network.
     """
-    # check whether primary_length is the maximum length or maximum primary root
+
+    # Ensure primary_length is a scalar
+    if not isinstance(primary_length, (float, np.float64)):
+        raise ValueError("Input primary_length must be a scalar value.")
+
+    # Ensure lateral_lengths is either a scalar or has the correct shape
     if not (
-        isinstance(primary_length, (float, np.float64)) or primary_length.ndim != 2
+        isinstance(lateral_lengths, (float, np.float64)) or lateral_lengths.ndim == 1
     ):
         raise ValueError(
-            "Input primary_length should be the maximum primary root "
-            "length or array have shape (nodes, 2)."
-        )
-    # get primary_root_length
-    primary_root_length = (
-        primary_length
-        if not isinstance(primary_length, np.ndarray)
-        else get_root_lengths(primary_length)
-    )
-
-    # check whether lateral_lengths is the lengths or lateral root nodex.
-    if not (
-        isinstance(lateral_lengths, (float, np.float64))  # length with only one root
-        or lateral_lengths.ndim != 1  # lenthgs with more than one lateral roots
-        or lateral_lengths.ndim != 3  # lateral root nodes
-    ):
-        raise ValueError(
-            "Input lateral_lengths should be the lateral root lengths or array have "
-            "shape (instance, nodes, 2)."
+            "Input lateral_lengths must be a scalar or have shape (instances,)."
         )
 
-    # get lateral_root_length
-    if lateral_lengths.ndim != 3:  # lateral root nodes
-        lateral_root_length = np.sum(get_root_lengths(lateral_lengths))
-    elif lateral_lengths.ndim != 1:  # lenthgs with more than one lateral roots
-        lateral_root_length = np.sum(lateral_lengths)
-    else:  # length with only one lateral root
-        lateral_root_length = lateral_lengths
-
-    # return Nan if lengths less than 0
-    if primary_root_length + lateral_root_length < 0:
-        return np.nan
+    # Calculate the total lateral root length using np.nansum
+    total_lateral_length = np.nansum(lateral_lengths)
 
     if monocots:
-        length = lateral_root_length
+        length = total_lateral_length
     else:
-        length = primary_root_length + lateral_root_length
+        # Calculate the total root network length using np.nansum so the total length
+        # will not be NaN if one of primary or lateral lengths are NaN
+        length = np.nansum([primary_length, total_lateral_length])
 
     return length
 
@@ -130,8 +108,8 @@ def get_network_solidity(
     """Return the total network length divided by the network convex area.
 
     Args:
-        network_length: all root lengths.
-        chull_area: an optional argument of convex hull area.
+        network_length: Total root length of network.
+        chull_area: Convex hull area.
 
     Returns:
         Float of the total network length divided by the network convex area.
@@ -146,148 +124,139 @@ def get_network_solidity(
 def get_network_distribution(
     primary_pts: np.ndarray,
     lateral_pts: np.ndarray,
-    pts_all_array: Union[np.ndarray, Tuple[float, float, float, float]],
+    bounding_box: Tuple[float, float, float, float],
     fraction: float = 2 / 3,
     monocots: bool = False,
 ) -> float:
     """Return the root length in the lower fraction of the plant.
 
     Args:
-        primary_pts: primary root landmarks as array of shape (..., 2).
-        lateral_pts: lateral root landmarks as array of shape (..., 2).
-        pts_all_array: primary and lateral root landmarks or the boundary box.
-        fraction: the network length found in the lower fration value of the network.
-        monocots: a boolean value, where True is rice.
+        primary_pts: Array of primary root landmarks. Can have shape `(nodes, 2)` or
+            `(1, nodes, 2)`.
+        lateral_pts: Array of lateral root landmarks with shape `(instances, nodes, 2)`.
+        bounding_box: Tuple in the form `(left_x, top_y, width, height)`.
+        fraction: Lower fraction value. Defaults to 2/3.
+        monocots: A boolean value, where True indicates rice. Defaults to False.
 
     Returns:
-        Float of the root network length in the lower fraction of the plant.
+        Root network length in the lower fraction of the plant.
     """
-    # get the bounding box
-    if type(pts_all_array) == tuple:
-        bbox = pts_all_array
-    else:
-        bbox = get_bbox(pts_all_array)
-    left_x, top_y, width, height = bbox[0], bbox[1], bbox[2], bbox[3]
 
-    # get the bounding box of the lower fraction
-    lower_height = bbox[3] * fraction
+    # Input validation
+    if primary_pts.ndim not in [2, 3]:
+        raise ValueError(
+            "primary_pts should have a shape of `(nodes, 2)` or `(1, nodes, 2)`."
+        )
+
+    if primary_pts.ndim == 2 and primary_pts.shape[-1] != 2:
+        raise ValueError("primary_pts should have a shape of `(nodes, 2)`.")
+
+    if primary_pts.ndim == 3 and primary_pts.shape[-1] != 2:
+        raise ValueError("primary_pts should have a shape of `(1, nodes, 2)`.")
+
+    if lateral_pts.ndim != 3 or lateral_pts.shape[-1] != 2:
+        raise ValueError("lateral_pts should have a shape of `(instances, nodes, 2)`.")
+
+    if len(bounding_box) != 4:
+        raise ValueError(
+            "bounding_box should be in the form `(left_x, top_y, width, height)`."
+        )
+
+    # Make sure the longest primary root is used
+    if primary_pts.ndim == 3:
+        primary_pts = get_max_length_pts(primary_pts)  # shape is (nodes, 2)
+
+    # Make primary_pts and lateral_pts have the same dimension of 3
+    primary_pts = (
+        primary_pts[np.newaxis, :, :] if primary_pts.ndim == 2 else primary_pts
+    )
+
+    # Filter out NaN values
+    primary_pts = [root[~np.isnan(root).any(axis=1)] for root in primary_pts]
+    lateral_pts = [root[~np.isnan(root).any(axis=1)] for root in lateral_pts]
+
+    # Collate root points.
+    all_roots = primary_pts + lateral_pts if not monocots else lateral_pts
+
+    # Get the vertices of the bounding box
+    left_x, top_y, width, height = bounding_box
+
+    # Calculate the bounding box of the lower fraction
+    lower_height = height * fraction
     if np.isnan(lower_height):
         return np.nan
-    lower_bbox = (bbox[0], bbox[1] + (bbox[3] - lower_height), bbox[2], lower_height)
 
-    # convert lower bounding box to polygon
-    polygon = Polygon(
+    # Convert lower bounding box to polygon
+    # Vertices are in counter-clockwise order
+    lower_box = Polygon(
         [
-            [bbox[0], bbox[1] + (bbox[3] - lower_height)],
-            [bbox[0], bbox[1] + height],
-            [bbox[0] + width, bbox[1] + height],
-            [bbox[0] + width, bbox[1] + (bbox[3] - lower_height)],
+            [left_x, top_y + (height - lower_height)],
+            [left_x, top_y + height],
+            [left_x + width, top_y + height],
+            [left_x + width, top_y + (height - lower_height)],
         ]
     )
 
-    # filter out the nan nodes
-    if monocots:
-        points = list(lateral_pts)
-    else:
-        points = list(primary_pts) + list(lateral_pts)
+    # Calculate length of roots within the lower bounding box
+    network_length = 0
+    for root in all_roots:
+        root_poly = LineString(root)
+        lower_intersection = root_poly.intersection(lower_box)
+        root_length = lower_intersection.length
+        network_length += root_length if ~np.isnan(root_length) else 0
 
-    # get length of lines within the lower bounding box
-    root_length = 0
-    for j in range(len(points)):
-        # filter out nan nodes
-        pts_j = points[j][~np.isnan(points[j]).any(axis=1)]
-        if pts_j.shape[0] > 1:
-            linestring = LineString(pts_j)
-            if linestring.intersection(polygon):
-                intersection = linestring.intersection(polygon)
-                root_length += (
-                    intersection.length if ~np.isnan(intersection.length) else 0
-                )
-
-    return root_length
+    return network_length
 
 
 def get_network_distribution_ratio(
-    primary_length: Union[float, np.ndarray],
+    primary_length: float,
     lateral_lengths: Union[float, np.ndarray],
-    network_length_lower: Union[float, np.ndarray],
+    network_length_lower: float,
     fraction: float = 2 / 3,
     monocots: bool = False,
 ) -> float:
     """Return ratio of the root length in the lower fraction over all root length.
 
     Args:
-        primary_length: primary root length or maximum length primary root landmarks as
-            array of shape `(node, 2)`.
-        lateral_lengths: lateral root length or lateral root landmarks as array of shape
-             `(instance, node, 2)`.
-        network_length_lower: the root length in lower network or primary and lateral
-            root landmarks.
-        fraction: the network length found in the lower fration value of the network.
-        monocots: a boolean value, where True is rice.
+        primary_length: Primary root length.
+        lateral_lengths: Lateral root lengths. Can be a single float (for one root)
+            or an array of floats (for multiple roots).
+        network_length_lower: The root length in the lower network.
+        fraction: The fraction of the network considered as 'lower'. Defaults to 2/3.
+        monocots: A boolean value, where True indicates rice. Defaults to False.
 
     Returns:
         Float of ratio of the root network length in the lower fraction of the plant
         over all root length.
     """
-    # check whether primary_length is the maximum length or maximum primary root
-    if not (
-        isinstance(primary_length, (float, np.float64)) or primary_length.ndim != 2
-    ):
+
+    # Ensure primary_length is a scalar
+    if not isinstance(primary_length, (float, np.float64)):
+        raise ValueError("Input primary_length must be a scalar value.")
+
+    # Ensure lateral_lengths is either a scalar or a 1-dimensional array
+    if not isinstance(lateral_lengths, (float, np.float64, np.ndarray)):
         raise ValueError(
-            "Input primary_length should be the maximum primary root "
-            "length or array have shape (nodes, 2)."
-        )
-    # get primary_root_length
-    primary_root_length = (
-        primary_length
-        if not isinstance(primary_length, np.ndarray)
-        else get_root_lengths(primary_length)
-    )
-
-    # check whether lateral_lengths is the lengths or lateral root nodex.
-    if not (
-        isinstance(lateral_lengths, (float, np.float64))  # length with only one root
-        or lateral_lengths.ndim != 1  # lenthgs with more than one lateral roots
-        or lateral_lengths.ndim != 3  # lateral root nodes
-    ):
-        raise ValueError(
-            "Input lateral_lengths should be the lateral root lengths or array have "
-            "shape (instance, nodes, 2)."
+            "Input lateral_lengths must be a scalar or a 1-dimensional array."
         )
 
-    # get lateral_root_length
-    if lateral_lengths.ndim != 3:  # lateral root nodes
-        lateral_root_length = np.sum(get_root_lengths(lateral_lengths))
-    elif lateral_lengths.ndim != 1:  # lenthgs with more than one lateral roots
-        lateral_root_length = np.sum(lateral_lengths)
-    else:  # length with only one lateral root
-        lateral_root_length = lateral_lengths
+    # If lateral_lengths is an ndarray, it must be one-dimensional
+    if isinstance(lateral_lengths, np.ndarray) and lateral_lengths.ndim != 1:
+        raise ValueError("Input lateral_lengths array must have shape (instances,).")
 
-    # get network_length_lower
-    if isinstance(network_length_lower, (float, np.float64)):
-        network_length_lower = network_length_lower
-    elif (
-        primary_length.ndim == 2
-        and lateral_lengths.ndim == 3
-        and network_length_lower.ndim == 3
-    ):
-        network_length_lower = get_network_distribution(
-            primary_length, lateral_lengths, network_length_lower, fraction, monocots
-        )
-    else:
-        raise ValueError(
-            "Input network_length_lower should be a float value, otherwise "
-            "primary_length is maximimum length primary root in shape  `(node, 2)` and "
-            "primary_length is lateral root in shape `(instance, nodes, 2)`."
-        )
+    # Ensure network_length_lower is a scalar
+    if not isinstance(network_length_lower, (float, np.float64)):
+        raise ValueError("Input network_length_lower must be a scalar value.")
 
-    # return Nan if lengths less than 0
-    if primary_root_length + lateral_root_length < 0:
-        return np.nan
+    # Calculate the total lateral root length
+    total_lateral_length = np.nansum(lateral_lengths)
 
+    # Determine total root length based on monocots flag
     if monocots:
-        ratio = network_length_lower / primary_root_length
+        total_root_length = total_lateral_length
     else:
-        ratio = network_length_lower / (primary_root_length + lateral_root_length)
+        total_root_length = np.nansum([primary_length, total_lateral_length])
+
+    # Calculate the ratio
+    ratio = network_length_lower / total_root_length
     return ratio
