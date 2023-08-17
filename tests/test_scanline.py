@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 from sleap_roots import Series
+from sleap_roots.lengths import get_max_length_pts
 from sleap_roots.scanline import (
     get_scanline_first_ind,
     get_scanline_last_ind,
@@ -60,6 +61,7 @@ def test_count_scanline_intersections_canola(canola_h5):
     primary, lateral = series[0]
     primary_pts = primary.numpy()
     lateral_pts = lateral.numpy()
+    primary_pts = get_max_length_pts(primary_pts)
     depth = 1080
     width = 2048
     n_line = 50
@@ -73,11 +75,12 @@ def test_count_scanline_intersections_canola(canola_h5):
 
 def test_count_scanline_intersections_rice(rice_h5):
     series = Series.load(
-        rice_h5, primary_name="main_3do_6nodes", lateral_name="longest_3do_6nodes"
+        rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
     )
     primary, lateral = series[0]
     primary_pts = primary.numpy()
     lateral_pts = lateral.numpy()
+    primary_pts = get_max_length_pts(primary_pts)
     depth = 1080
     width = 2048
     n_line = 50
@@ -86,7 +89,7 @@ def test_count_scanline_intersections_rice(rice_h5):
         primary_pts, lateral_pts, depth, width, n_line, monocots
     )
     assert n_inter.shape == (50,)
-    np.testing.assert_equal(n_inter[14], 1)
+    np.testing.assert_equal(n_inter[14], 2)
 
 
 # test get_scanline_first_ind with canola
@@ -97,14 +100,16 @@ def test_get_scanline_first_ind(canola_h5):
     primary, lateral = plant[0]
     primary_pts = primary.numpy()
     lateral_pts = lateral.numpy()
+    primary_pts = get_max_length_pts(primary_pts)
     depth = 1080
     width = 2048
     n_line = 50
     monocots = False
-    scanline_first_ind = get_scanline_first_ind(
+    scanline_intersection_counts = count_scanline_intersections(
         primary_pts, lateral_pts, depth, width, n_line, monocots
     )
-    np.testing.assert_equal(scanline_first_ind, 6)
+    scanline_first_ind = get_scanline_first_ind(scanline_intersection_counts)
+    np.testing.assert_equal(scanline_first_ind, 7)
 
 
 # test get_scanline_last_ind with canola
@@ -115,11 +120,13 @@ def test_get_scanline_last_ind(canola_h5):
     primary, lateral = plant[0]
     primary_pts = primary.numpy()
     lateral_pts = lateral.numpy()
+    primary_pts = get_max_length_pts(primary_pts)
     depth = 1080
     width = 2048
     n_line = 50
     monocots = True
-    scanline_last_ind = get_scanline_last_ind(
+    scanline_intersection_counts = count_scanline_intersections(
         primary_pts, lateral_pts, depth, width, n_line, monocots
     )
-    np.testing.assert_equal(scanline_last_ind, 15)
+    scanline_last_ind = get_scanline_last_ind(scanline_intersection_counts)
+    np.testing.assert_equal(scanline_last_ind, 12)
