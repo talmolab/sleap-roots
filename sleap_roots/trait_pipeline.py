@@ -228,7 +228,7 @@ class Pipeline:
                     )
         return csv_traits
 
-    def compute_traits(self, traits: Dict[str, Any]) -> Dict[str, Any]:
+    def compute_frame_traits(self, traits: Dict[str, Any]) -> Dict[str, Any]:
         """Compute traits based on the pipeline.
 
         Args:
@@ -249,7 +249,6 @@ class Pipeline:
 
             # Get trait definition.
             trait_def = self.trait_map[trait_name]
-            # print(f"({', '.join(trait_def.input_traits)}) -> {trait_def.name}")
 
             # Compute trait based on trait definition.
             traits[trait_name] = trait_def.fn(
@@ -259,9 +258,81 @@ class Pipeline:
 
         return traits
 
-    def compute_plant_traits(self, plant: Series) -> pd.DataFrame:
-        """Compute traits for a plant."""
+    def get_initial_frame_traits(self, plant: Series, frame_idx: int) -> Dict[str, Any]:
+        """Return initial traits for a plant frame.
+
+        Args:
+            plant: The plant `Series` object.
+            frame_idx: The index of the current frame.
+
+        Returns:
+            A dictionary of initial traits.
+
+            This is defined on a per-pipeline basis as different plant species will have
+            different initial points to be used as starting traits.
+
+            Most commonly, this will be the primary and lateral root points for the
+            current frame.
+        """
         raise NotImplementedError
+
+    def compute_plant_traits(
+        self,
+        plant: Series,
+        write_csv: bool = False,
+        csv_suffix: str = ".traits.csv",
+        return_non_scalar: bool = False,
+    ) -> pd.DataFrame:
+        """Compute traits for a plant.
+
+        Args:
+            plant: The plant image series as a `Series` object.
+            write_csv: A boolean value. If True, it writes per plant detailed
+                CSVs with traits for every instance on every frame.
+            csv_suffix: If `write_csv` is `True`, a CSV file will be saved with the same
+                name as the plant's `{plant.series_name}{csv_suffix}`.
+            return_non_scalar: If `True`, return all non-scalar traits as well as the
+                summarized traits.
+
+        Returns:
+            The computed traits as a pandas DataFrame.
+        """
+        traits = []
+        for frame in range(len(plant)):
+            # Get initial traits for the frame.
+            initial_traits = self.get_initial_frame_traits(plant, frame)
+
+            # Compute traits via the frame-level pipeline.
+            frame_traits = self.compute_frame_traits(initial_traits)
+
+            # Compute trait summaries.
+            for trait_name in self.summary_traits:
+                trait_summary = get_summary(
+                    frame_traits[trait_name], prefix=f"{trait_name}_"
+                )
+                frame_traits.update(trait_summary)
+
+            # Add metadata.
+            frame_traits["plant_name"] = plant.series_name
+            frame_traits["frame_idx"] = frame
+            traits.append(frame_traits)
+        traits = pd.DataFrame(traits)
+
+        # Move metadata columns to the front.
+        plant_name = traits.pop("plant_name")
+        frame_idx = traits.pop("frame_idx")
+        traits = pd.concat([plant_name, frame_idx, traits], axis=1)
+
+        if write_csv:
+            csv_name = Path(plant.h5_path).with_suffix(csv_suffix)
+            traits[["plant_name", "frame_idx"] + self.csv_traits].to_csv(
+                csv_name, index=False
+            )
+
+        if return_non_scalar:
+            return traits
+        else:
+            return traits[["plant_name", "frame_idx"] + self.csv_traits]
 
     def compute_batch_traits(
         self,
@@ -797,79 +868,32 @@ class DicotPipeline(Pipeline):
 
         return trait_definitions
 
-    def compute_plant_traits(
-        self,
-        plant: Series,
-        write_csv: bool = False,
-        csv_suffix: str = ".traits.csv",
-        return_non_scalar: bool = False,
-    ) -> pd.DataFrame:
-        """Compute traits for a plant.
+    def get_initial_frame_traits(self, plant: Series, frame_idx: int) -> Dict[str, Any]:
+        """Return initial traits for a plant frame.
 
         Args:
-            plant: The plant image series as a `Series` object.
-            write_csv: A boolean value. If True, it writes per plant detailed
-                CSVs with traits for every instance on every frame.
-            csv_suffix: If `write_csv` is `True`, a CSV file will be saved with the same
-                name as the plant's `{plant.series_name}{csv_suffix}`.
-            return_non_scalar: If `True`, return all non-scalar traits as well as the
-                summarized traits.
+            plant: The plant `Series` object.
+            frame_idx: The index of the current frame.
 
         Returns:
-            The computed traits as a pandas DataFrame.
+            A dictionary of initial traits with keys:
+                - "primary_pts": Array of primary root points.
+                - "lateral_pts": Array of lateral root points.
         """
-        traits = []
-        for frame in range(len(plant)):
-            # Get the root instances.
-            primary, lateral = plant[frame]
-            gt_instances_pr = primary.user_instances + primary.unused_predictions
-            gt_instances_lr = lateral.user_instances + lateral.unused_predictions
+        # Get the root instances.
+        primary, lateral = plant[frame_idx]
+        gt_instances_pr = primary.user_instances + primary.unused_predictions
+        gt_instances_lr = lateral.user_instances + lateral.unused_predictions
 
-            # Convert the instances to numpy arrays.
-            if len(gt_instances_lr) == 0:
-                lateral_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
-            else:
-                lateral_pts = np.stack(
-                    [inst.numpy() for inst in gt_instances_lr], axis=0
-                )
-
-            if len(gt_instances_pr) == 0:
-                primary_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
-            else:
-                primary_pts = np.stack(
-                    [inst.numpy() for inst in gt_instances_pr], axis=0
-                )
-
-            # Compute traits via the frame-level pipeline.
-            frame_traits = self.compute_traits(
-                {"primary_pts": primary_pts, "lateral_pts": lateral_pts}
-            )
-
-            # Compute trait summaries.
-            for trait_name in self.summary_traits:
-                trait_summary = get_summary(
-                    frame_traits[trait_name], prefix=f"{trait_name}_"
-                )
-                frame_traits.update(trait_summary)
-
-            # Add metadata.
-            frame_traits["plant_name"] = plant.series_name
-            frame_traits["frame_idx"] = frame
-            traits.append(frame_traits)
-        traits = pd.DataFrame(traits)
-
-        # Move metadata columns to the front.
-        plant_name = traits.pop("plant_name")
-        frame_idx = traits.pop("frame_idx")
-        traits = pd.concat([plant_name, frame_idx, traits], axis=1)
-
-        if write_csv:
-            csv_name = Path(plant.h5_path).with_suffix(csv_suffix)
-            traits[["plant_name", "frame_idx"] + self.csv_traits].to_csv(
-                csv_name, index=False
-            )
-
-        if return_non_scalar:
-            return traits
+        # Convert the instances to numpy arrays.
+        if len(gt_instances_lr) == 0:
+            lateral_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
         else:
-            return traits[["plant_name", "frame_idx"] + self.csv_traits]
+            lateral_pts = np.stack([inst.numpy() for inst in gt_instances_lr], axis=0)
+
+        if len(gt_instances_pr) == 0:
+            primary_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
+        else:
+            primary_pts = np.stack([inst.numpy() for inst in gt_instances_pr], axis=0)
+
+        return {"primary_pts": primary_pts, "lateral_pts": lateral_pts}
