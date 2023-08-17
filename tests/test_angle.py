@@ -123,42 +123,56 @@ def test_get_node_ind(canola_h5):
     pts = primary.numpy()
     proximal = True
     node_ind = get_node_ind(pts, proximal)
-    np.testing.assert_array_equal(node_ind, [1])
+    np.testing.assert_array_equal(node_ind, 1)
 
 
 # test get_node_ind function using root that without second node
 def test_get_node_ind_nan2(pts_nan2):
     proximal = True
     node_ind = get_node_ind(pts_nan2, proximal)
-    np.testing.assert_array_equal(node_ind, [2])
+    np.testing.assert_array_equal(node_ind, 2)
 
 
 # test get_node_ind function using root that without second and third nodes
 def test_get_node_ind_nan3(pts_nan3):
     proximal = True
     node_ind = get_node_ind(pts_nan3, proximal)
-    np.testing.assert_array_equal(node_ind, [3])
+    np.testing.assert_array_equal(node_ind, 0)
 
 
 # test get_node_ind function using two roots/instances
 def test_get_node_ind_nan32(pts_nan32):
     proximal = True
     node_ind = get_node_ind(pts_nan32, proximal)
-    np.testing.assert_array_equal(node_ind, [3, 2])
+    np.testing.assert_array_equal(node_ind, [0, 2])
 
 
 # test get_node_ind function using root that without last node
 def test_get_node_ind_nan6(pts_nan6):
     proximal = False
     node_ind = get_node_ind(pts_nan6, proximal)
-    np.testing.assert_array_equal(node_ind, [4])
+    np.testing.assert_array_equal(node_ind, 4)
 
 
 # test get_node_ind function using root with all nan node
 def test_get_node_ind_nanall(pts_nanall):
     proximal = False
     node_ind = get_node_ind(pts_nanall, proximal)
-    np.testing.assert_array_equal(node_ind, [0])
+    np.testing.assert_array_equal(node_ind, np.nan)
+
+
+# test get_node_ind function using root with pts_nan32_5node
+def test_get_node_ind_5node(pts_nan32_5node):
+    proximal = False
+    node_ind = get_node_ind(pts_nan32_5node, proximal)
+    np.testing.assert_array_equal(node_ind, [4, 4])
+
+
+# test get_node_ind function (proximal) using root with pts_nan32_5node
+def test_get_node_ind_5node_proximal(pts_nan32_5node):
+    proximal = True
+    node_ind = get_node_ind(pts_nan32_5node, proximal)
+    np.testing.assert_array_equal(node_ind, [0, 2])
 
 
 # test canola get_root_angle function (base node to distal node angle)
@@ -169,8 +183,8 @@ def test_get_root_angle_distal(canola_h5):
     primary, lateral = series[0]
     pts = primary.numpy()
     proximal = False
-    angs = get_root_angle(pts, proximal)
-    assert angs.shape == (1,)
+    node_ind = get_node_ind(pts, proximal)
+    angs = get_root_angle(pts, node_ind, proximal)
     assert pts.shape == (1, 6, 2)
     np.testing.assert_almost_equal(angs, 7.7511306, decimal=3)
 
@@ -183,7 +197,8 @@ def test_get_root_angle_proximal_rice(rice_h5):
     primary, lateral = series[0]
     pts = primary.numpy()
     proximal = True
-    angs = get_root_angle(pts, proximal)
+    node_ind = get_node_ind(pts, proximal)
+    angs = get_root_angle(pts, node_ind, proximal)
     assert angs.shape == (2,)
     assert pts.shape == (2, 6, 2)
     np.testing.assert_almost_equal(angs, [17.3180819, 3.2692877], decimal=3)
@@ -192,7 +207,8 @@ def test_get_root_angle_proximal_rice(rice_h5):
 # test get_root_angle function using two roots/instances (base node to proximal node angle)
 def test_get_root_angle_proximal(pts_nan32):
     proximal = True
-    angs = get_root_angle(pts_nan32, proximal)
+    node_ind = get_node_ind(pts_nan32, proximal)
+    angs = get_root_angle(pts_nan32, node_ind, proximal)
     assert angs.shape == (2,)
     np.testing.assert_almost_equal(angs, [np.nan, 1.7291381], decimal=3)
 
@@ -200,14 +216,15 @@ def test_get_root_angle_proximal(pts_nan32):
 # test get_root_angle function using two roots/instances (base node to proximal node angle)
 def test_get_root_angle_proximal_5node(pts_nan32_5node):
     proximal = True
-    angs = get_root_angle(pts_nan32_5node, proximal)
+    node_ind = get_node_ind(pts_nan32_5node, proximal)
+    angs = get_root_angle(pts_nan32_5node, node_ind, proximal)
     assert angs.shape == (2,)
     np.testing.assert_almost_equal(angs, [np.nan, 2.3339111], decimal=3)
 
 
 # test get_root_angle function using root/instance with all nan value
-def test_get_root_angle_proximal_5node(pts_nanall):
+def test_get_root_angle_proximal_allnan(pts_nanall):
     proximal = True
-    angs = get_root_angle(pts_nanall, proximal)
-    assert angs.shape == (1,)
+    node_ind = get_node_ind(pts_nanall, proximal)
+    angs = get_root_angle(pts_nanall, node_ind, proximal)
     np.testing.assert_almost_equal(angs, np.nan, decimal=3)

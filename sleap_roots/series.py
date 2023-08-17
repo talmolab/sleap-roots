@@ -17,13 +17,15 @@ class Series:
 
     Attributes:
         h5_path: Path to the HDF5-formatted image series.
-        primary_labels: A `sleap.Labels` corresponding to the primary root predictions.
-        lateral_labels: A `sleap.Labels` corresponding to the lateral root predictions.
+        primary_labels: A `sio.Labels` corresponding to the primary root predictions.
+        lateral_labels: A `sio.Labels` corresponding to the lateral root predictions.
+        video: A `sio.Video` corresponding to the image series.
     """
 
     h5_path: Optional[str] = None
     primary_labels: Optional[sio.Labels] = None
     lateral_labels: Optional[sio.Labels] = None
+    video: Optional[sio.Video] = None
 
     @classmethod
     def load(
@@ -52,17 +54,13 @@ class Series:
             h5_path,
             primary_labels=sio.load_slp(primary_path),
             lateral_labels=sio.load_slp(lateral_path),
+            video=sio.Video.from_filename(h5_path),
         )
 
     @property
     def series_name(self) -> str:
         """Name of the series derived from the HDF5 filename."""
         return Path(self.h5_path).name.split(".")[0]
-
-    @property
-    def video(self) -> sio.Video:
-        """The `sleap.Video` corresponding to the image series."""
-        return self.primary_labels.video
 
     def __len__(self) -> int:
         """Length of the series (number of images)."""
@@ -84,8 +82,8 @@ class Series:
             frame_idx: Integer frame number.
 
         Returns:
-            Tuple of (primary_lf, lateral_lf) corresponding to the
-            `sleap.LabeledFrame` from each set of predictions on the same frame.
+            Tuple of (primary_lf, lateral_lf) corresponding to the `sio.LabeledFrame`
+            from each set of predictions on the same frame.
         """
         lf_primary = self.primary_labels.find(
             self.primary_labels.video, frame_idx, return_new=True
@@ -112,8 +110,10 @@ class Series:
         """Get primary root points.
 
         Args:
-            frame_idx: frame index to get primary root points in shape (# instance,
-            # node, 2)
+            frame_idx: Frame index.
+
+        Returns:
+            Primary root points as array of shape `(n_instances, n_nodes, 2)`.
         """
         primary_lf, lateral_lf = self.get_frame(frame_idx)
         gt_instances_pr = primary_lf.user_instances + primary_lf.unused_predictions
@@ -127,8 +127,10 @@ class Series:
         """Get lateral root points.
 
         Args:
-            frame_idx: frame index to get lateral root points in shape (# instance,
-            # node, 2)
+            frame_idx: Frame index.
+
+        Returns:
+            Lateral root points as array of shape `(n_instances, n_nodes, 2)`.
         """
         primary_lf, lateral_lf = self.get_frame(frame_idx)
         gt_instances_lr = lateral_lf.user_instances + lateral_lf.unused_predictions
