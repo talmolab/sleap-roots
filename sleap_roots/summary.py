@@ -26,6 +26,8 @@ def get_summary(
     if prefix is None:
         prefix = ""
 
+    X = np.atleast_1d(X)
+
     if len(X) == 0:
         return {
             f"{prefix}min": np.nan,

@@ -10,8 +10,8 @@ import sleap_roots.points
 import sleap_roots.scanline
 import sleap_roots.series
 import sleap_roots.summary
-import sleap_roots.trait_pipeline
-from sleap_roots.trait_pipeline import DicotPipeline, TraitDef
+import sleap_roots.trait_pipelines
+from sleap_roots.trait_pipelines import DicotPipeline, TraitDef
 from sleap_roots.series import Series
 
 # Define package version.
