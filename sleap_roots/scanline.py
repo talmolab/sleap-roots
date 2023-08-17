@@ -7,7 +7,7 @@ import math
 def count_scanline_intersections(
     primary_pts: np.ndarray,
     lateral_pts: np.ndarray,
-    depth: int = 1080,
+    height: int = 1080,
     width: int = 2048,
     n_line: int = 50,
     monocots: bool = False,
@@ -16,14 +16,14 @@ def count_scanline_intersections(
 
     This function calculates the number of intersections between the provided
     primary and lateral root points and a set of horizontal scanlines. The scanlines
-    are equally spaced across the specified depth.
+    are equally spaced across the specified height.
 
     Args:
         primary_pts: Array of primary root landmarks of shape `(nodes, 2)`.
             Will be reshaped internally to `(1, nodes, 2)`.
         lateral_pts: Array of lateral root landmarks with shape
             `(instances, nodes, 2)`.
-        depth: The depth of the image or cylinder. Defaults to 1080.
+        height: The height of the image or cylinder. Defaults to 1080.
         width: The width of the image or cylinder. Defaults to 2048.
         n_line: Number of scanlines to use. Defaults to 50.
         monocots: If `True`, only uses lateral roots (e.g., for rice).
@@ -49,7 +49,7 @@ def count_scanline_intersections(
     all_roots = list(primary_pts) + list(lateral_pts) if not monocots else lateral_pts
 
     # Calculate the interval between two scanlines
-    interval = depth / (n_line - 1)
+    interval = height / (n_line - 1)
 
     intersections = []
 

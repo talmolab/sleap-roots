@@ -190,626 +190,639 @@ class TraitDef:
     description: Optional[str] = None
 
 
-def get_traits_value_frame(
-    primary_pts: np.ndarray,
-    lateral_pts: np.ndarray,
-    root_width_tolerance: float = 0.02,
-    n_line: int = 50,
-    network_fraction: float = 2 / 3,
-    monocots: bool = False,
-) -> Dict:
-    """Get SLEAP traits per frame based on graph.
+@attrs.define
+class Pipeline:
+    """Pipeline for computing traits.
 
-    Args:
-        primary_pts: primary points
-        lateral_pts: lateral points
-        root_width_tolerance: Difference in projection norm between right and left side.
-        n_line: number of scan lines, np.nan for no interaction.
-        network_fraction: length found in the lower fration value of the network.
-        monocots: Boolean value, where false is dicot (default), true is rice.
-
-    Return:
-        A dictionary with all traits per frame.
+    Attributes:
+        traits: List of `TraitDef` objects.
+        trait_map: Dictionary mapping trait names to their definitions.
+        trait_computation_order: List of trait names in the order they should be
+            computed.
     """
-    # Define the trait computations.
-    trait_definitions = [
-        TraitDef(
-            name="primary_max_length_pts",
-            fn=get_max_length_pts,
-            input_traits=["primary_pts"],
-            scalar=False,
-            include_in_csv=False,
-            kwargs={},
-            description="Points of the primary root with maximum length.",
-        ),
-        TraitDef(
-            name="pts_all_array",
-            fn=get_all_pts_array,
-            input_traits=["primary_max_length_pts", "lateral_pts"],
-            scalar=False,
-            include_in_csv=False,
-            kwargs={"monocots": monocots},
-            description="Landmark points within a given frame as a flat array"
-            "of coordinates.",
-        ),
-        TraitDef(
-            name="root_widths",
-            fn=get_root_pair_widths_projections,
-            input_traits=["primary_max_length_pts", "lateral_pts"],
-            scalar=False,
-            include_in_csv=True,
-            kwargs={"tolerance": root_width_tolerance, "monocots": monocots},
-            description="Return estimation of root width using bases of lateral roots.",
-        ),
-        TraitDef(
-            name="lateral_count",
-            fn=get_lateral_count,
-            input_traits=["lateral_pts"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Get the number of lateral roots.",
-        ),
-        TraitDef(
-            name="lateral_proximal_node_inds",
-            fn=get_node_ind,
-            input_traits=["lateral_pts"],
-            scalar=False,
-            include_in_csv=False,
-            kwargs={"proximal": True},
-            description="Get the indices of the proximal nodes of lateral roots.",
-        ),
-        TraitDef(
-            name="lateral_distal_node_inds",
-            fn=get_node_ind,
-            input_traits=["lateral_pts"],
-            scalar=False,
-            include_in_csv=False,
-            kwargs={"proximal": False},
-            description="Get the indices of the distal nodes of lateral roots.",
-        ),
-        TraitDef(
-            name="lateral_lengths",
-            fn=get_root_lengths,
-            input_traits=["lateral_pts"],
-            scalar=False,
-            include_in_csv=True,
-            kwargs={},
-            description="Array of lateral root lengths of shape `(instances,)`.",
-        ),
-        TraitDef(
-            name="lateral_base_pts",
-            fn=get_bases,
-            input_traits=["lateral_pts"],
-            scalar=False,
-            include_in_csv=False,
-            kwargs={"monocots": monocots},
-            description="Array of lateral bases `(instances, (x, y))`.",
-        ),
-        TraitDef(
-            name="lateral_tip_pts",
-            fn=get_tips,
-            input_traits=["lateral_pts"],
-            scalar=False,
-            include_in_csv=False,
-            kwargs={},
-            description="Array of lateral tips `(instances, (x, y))`.",
-        ),
-        TraitDef(
-            name="scanline_intersection_counts",
-            fn=count_scanline_intersections,
-            input_traits=["primary_max_length_pts", "lateral_pts"],
-            scalar=False,
-            include_in_csv=True,
-            kwargs={
-                "depth": 1080,
-                "width": 2048,
-                "n_line": n_line,
-                "monocots": monocots,
-            },
-            description="Array of intersections of each scanline `(#Nline,)`.",
-        ),
-        TraitDef(
-            name="lateral_angles_distal",
-            fn=get_root_angle,
-            input_traits=["lateral_pts", "lateral_distal_node_inds"],
-            scalar=False,
-            include_in_csv=True,
-            kwargs={"proximal": False, "base_ind": 0},
-            description="Array of lateral distal angles in degrees `(instances,)`.",
-        ),
-        TraitDef(
-            name="lateral_angles_proximal",
-            fn=get_root_angle,
-            input_traits=["lateral_pts", "lateral_proximal_node_inds"],
-            scalar=False,
-            include_in_csv=True,
-            kwargs={"proximal": True, "base_ind": 0},
-            description="Array of lateral proximal angles in degrees `(instances,)`.",
-        ),
-        TraitDef(
-            name="network_solidity",
-            fn=get_network_solidity,
-            input_traits=["network_length", "chull_area"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Scalar of the total network length divided by the network"
-            "convex area.",
-        ),
-        TraitDef(
-            name="ellipse",
-            fn=fit_ellipse,
-            input_traits=["pts_all_array"],
-            scalar=False,
-            include_in_csv=False,
-            kwargs={},
-            description="Tuple of (a, b, ratio) containing the semi-major axis length,"
-            "semi-minor axis length, and the ratio of the major to minor lengths.",
-        ),
-        TraitDef(
-            name="bounding_box",
-            fn=get_bbox,
-            input_traits=["pts_all_array"],
-            scalar=False,
-            include_in_csv=False,
-            kwargs={},
-            description="Tuple of four parameters in bounding box.",
-        ),
-        TraitDef(
-            name="convex_hull",
-            fn=get_convhull,
-            input_traits=["pts_all_array"],
-            scalar=False,
-            include_in_csv=False,
-            kwargs={},
-            description="Convex hull of the points.",
-        ),
-        TraitDef(
-            name="primary_proximal_node_ind",
-            fn=get_node_ind,
-            input_traits=["primary_max_length_pts"],
-            scalar=True,
-            include_in_csv=False,
-            kwargs={"proximal": True},
-            description="Get the indices of the proximal nodes of primary roots.",
-        ),
-        TraitDef(
-            name="primary_angle_proximal",
-            fn=get_root_angle,
-            input_traits=["primary_max_length_pts", "primary_proximal_node_ind"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={"proximal": True, "base_ind": 0},
-            description="Array of primary proximal angles in degrees `(instances,)`.",
-        ),
-        TraitDef(
-            name="primary_distal_node_ind",
-            fn=get_node_ind,
-            input_traits=["primary_max_length_pts"],
-            scalar=True,
-            include_in_csv=False,
-            kwargs={"proximal": False},
-            description="Get the indices of the distal nodes of primary roots.",
-        ),
-        TraitDef(
-            name="primary_angle_distal",
-            fn=get_root_angle,
-            input_traits=["primary_max_length_pts", "primary_distal_node_ind"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={"proximal": False, "base_ind": 0},
-            description="Array of primary distal angles in degrees `(instances,)`.",
-        ),
-        TraitDef(
-            name="primary_length",
-            fn=get_root_lengths,
-            input_traits=["primary_max_length_pts"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Scalar of primary root length.",
-        ),
-        TraitDef(
-            name="primary_base_pt",
-            fn=get_bases,
-            input_traits=["primary_max_length_pts"],
-            scalar=False,
-            include_in_csv=False,
-            kwargs={"monocots": monocots},
-            description="Primary root base point.",
-        ),
-        TraitDef(
-            name="primary_tip_pt",
-            fn=get_tips,
-            input_traits=["primary_max_length_pts"],
-            scalar=False,
-            include_in_csv=False,
-            kwargs={},
-            description="Primary root tip point.",
-        ),
-        TraitDef(
-            name="network_length_lower",
-            fn=get_network_distribution,
-            input_traits=["primary_max_length_pts", "lateral_pts", "bounding_box"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={"fraction": network_fraction, "monocots": monocots},
-            description="Scalar of the root network length in the lower fraction of the"
-            "plant.",
-        ),
-        TraitDef(
-            name="lateral_base_xs",
-            fn=get_base_xs,
-            input_traits=["lateral_base_pts"],
-            scalar=False,
-            include_in_csv=True,
-            kwargs={"monocots": monocots},
-            description="Array of the x-coordinates of lateral bases `(instances,)`.",
-        ),
-        TraitDef(
-            name="lateral_base_ys",
-            fn=get_base_ys,
-            input_traits=["lateral_base_pts"],
-            scalar=False,
-            include_in_csv=True,
-            kwargs={"monocots": monocots},
-            description="Array of the y-coordinates of lateral bases `(instances,)`.",
-        ),
-        TraitDef(
-            name="base_ct_density",
-            fn=get_base_ct_density,
-            input_traits=["primary_length", "lateral_base_pts"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={"monocots": monocots},
-            description="Scalar of base count density.",
-        ),
-        TraitDef(
-            name="lateral_tip_xs",
-            fn=get_tip_xs,
-            input_traits=["lateral_tip_pts"],
-            scalar=False,
-            include_in_csv=True,
-            kwargs={},
-            description="Array of the x-coordinates of lateral tips `(instance,)`.",
-        ),
-        TraitDef(
-            name="lateral_tip_ys",
-            fn=get_tip_ys,
-            input_traits=["lateral_tip_pts"],
-            scalar=False,
-            include_in_csv=True,
-            kwargs={},
-            description="Array of the y-coordinates of lateral tips `(instance,)`.",
-        ),
-        TraitDef(
-            name="network_distribution_ratio",
-            fn=get_network_distribution_ratio,
-            input_traits=["primary_length", "lateral_lengths", "network_length_lower"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={"fraction": network_fraction, "monocots": monocots},
-            description="Scalar of ratio of the root network length in the lower fraction of the plant over all root length.",
-        ),
-        TraitDef(
-            name="network_length",
-            fn=get_network_length,
-            input_traits=["primary_length", "lateral_lengths"],
-            scalar=True,
-            include_in_csv=False,
-            kwargs={"monocots": monocots},
-            description="Scalar of all roots network length.",
-        ),
-        TraitDef(
-            name="primary_base_pt_y",
-            fn=get_base_ys,
-            input_traits=["primary_base_pt"],
-            scalar=True,
-            include_in_csv=False,
-            kwargs={"monocots": monocots},
-            description="Y-coordinate of the primary root base node.",
-        ),
-        TraitDef(
-            name="primary_tip_pt_y",
-            fn=get_tip_ys,
-            input_traits=["primary_tip_pt"],
-            scalar=True,
-            include_in_csv=False,
-            kwargs={},
-            description="Y-coordinate of the primary root tip node.",
-        ),
-        TraitDef(
-            name="ellipse_a",
-            fn=get_ellipse_a,
-            input_traits=["ellipse"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Scalar of semi-major axis length.",
-        ),
-        TraitDef(
-            name="ellipse_b",
-            fn=get_ellipse_b,
-            input_traits=["ellipse"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Scalar of semi-minor axis length.",
-        ),
-        TraitDef(
-            name="network_width_depth_ratio",
-            fn=get_network_width_depth_ratio,
-            input_traits=["bounding_box"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Scalar of bounding box width to depth ratio of root network.",
-        ),
-        TraitDef(
-            name="chull_perimeter",
-            fn=get_chull_perimeter,
-            input_traits=["convex_hull"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Scalar of convex hull perimeter.",
-        ),
-        TraitDef(
-            name="chull_area",
-            fn=get_chull_area,
-            input_traits=["convex_hull"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Scalar of convex hull area.",
-        ),
-        TraitDef(
-            name="chull_max_width",
-            fn=get_chull_max_width,
-            input_traits=["convex_hull"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Scalar of convex hull maximum width.",
-        ),
-        TraitDef(
-            name="chull_max_height",
-            fn=get_chull_max_height,
-            input_traits=["convex_hull"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Scalar of convex hull maximum height.",
-        ),
-        TraitDef(
-            name="chull_line_lengths",
-            fn=get_chull_line_lengths,
-            input_traits=["convex_hull"],
-            scalar=False,
-            include_in_csv=True,
-            kwargs={},
-            description="Array of line lengths connecting any two vertices on the"
-            "convex hull.",
-        ),
-        TraitDef(
-            name="base_length",
-            fn=get_base_length,
-            input_traits=["lateral_base_ys"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Scalar of the distance between the top and deepest base"
-            "y-coordinates.",
-        ),
-        TraitDef(
-            name="base_median_ratio",
-            fn=get_base_median_ratio,
-            input_traits=["lateral_base_ys", "primary_tip_pt_y"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={"monocots": monocots},
-            description="Scalar of base median ratio.",
-        ),
-        TraitDef(
-            name="grav_index",
-            fn=get_grav_index,
-            input_traits=["primary_length", "primary_base_tip_dist"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Scalar of primary root gravity index.",
-        ),
-        TraitDef(
-            name="base_length_ratio",
-            fn=get_base_length_ratio,
-            input_traits=["primary_length", "base_length"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={"monocots": monocots},
-            description="Scalar of base length ratio.",
-        ),
-        TraitDef(
-            name="primary_base_tip_dist",
-            fn=get_base_tip_dist,
-            input_traits=["primary_base_pt", "primary_tip_pt"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Scalar of distance from primary root base to tip.",
-        ),
-        TraitDef(
-            name="ellipse_ratio",
-            fn=get_ellipse_ratio,
-            input_traits=["ellipse"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Scalar of ratio of the minor to major lengths.",
-        ),
-        TraitDef(
-            name="scanline_last_ind",
-            fn=get_scanline_last_ind,
-            input_traits=["scanline_intersection_counts"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Scalar of count_scanline_interaction index for the last"
-            "interaction.",
-        ),
-        TraitDef(
-            name="scanline_first_ind",
-            fn=get_scanline_first_ind,
-            input_traits=["scanline_intersection_counts"],
-            scalar=True,
-            include_in_csv=True,
-            kwargs={},
-            description="Scalar of count_scanline_interaction index for the first"
-            "interaction.",
-        ),
-    ]
 
-    # Map trait names to their definitions.
-    trait_map = {trait_def.name: trait_def for trait_def in trait_definitions}
+    traits: List[TraitDef] = attrs.ib(init=False)
+    trait_map: Dict[str, TraitDef] = attrs.ib(init=False)
+    trait_computation_order: List[str] = attrs.ib(init=False)
 
-    # Infer edges from trait map.
-    edges = []
-    for trait_def in trait_definitions:
-        for input_trait in trait_def.input_traits:
-            edges.append((input_trait, trait_def.name))
+    def __attrs_post_init__(self):
+        """Build pipeline objects from traits list."""
+        # Build list of trait definitions.
+        self.traits = self.define_traits()
 
-    # Build networkx graph from inferred edges.
-    G = nx.DiGraph()
-    G.add_edges_from(edges)
+        # Check that trait names are unique.
+        trait_names = [trait.name for trait in self.traits]
+        if len(trait_names) != len(set(trait_names)):
+            raise ValueError("Trait names must be unique.")
 
-    # Determine computation order by topologically sorting the nodes.
-    trait_computation_order = list(nx.topological_sort(G))
+        # Map trait names to their definitions.
+        self.trait_map = {trait_def.name: trait_def for trait_def in self.traits}
 
-    missing_traits = [
-        trait for trait in trait_map.keys() if trait not in trait_computation_order
-    ]
-    if len(missing_traits) > 0:
-        print(
-            f"Missing traits in computation order: {', '.join(missing_traits)}. "
-            "Double check that trait pipeline is defined correctly."
-        )
+        # Determine computation order by topologically sorting the nodes.
+        self.trait_computation_order = self.get_compute_order()
 
-    # Initialize traits container with initial points.
-    traits = {"primary_pts": primary_pts, "lateral_pts": lateral_pts}
+    def define_traits(self) -> List[TraitDef]:
+        """Return list of `TraitDef` objects."""
+        raise NotImplementedError
 
-    # Compute traits!
-    for trait_name in trait_computation_order:
-        if trait_name in traits:
-            # Skip traits already computed.
-            continue
+    def get_compute_order(self) -> List[str]:
+        """Determine computation order by topologically sorting the nodes.
 
-        # Get trait definition.
-        trait_def = trait_map[trait_name]
-        # print(f"({', '.join(trait_def.input_traits)}) -> {trait_def.name}")
+        Returns:
+            A list of trait names in the order they should be computed.
+        """
+        # Infer edges from trait map.
+        edges = []
+        for trait_def in self.traits:
+            for input_trait in trait_def.input_traits:
+                edges.append((input_trait, trait_def.name))
 
-        # Compute trait based on trait definition.
-        traits[trait_name] = trait_def.fn(
-            *[traits[input_trait] for input_trait in trait_def.input_traits],
-            **trait_def.kwargs,
-        )
+        # Build networkx graph from inferred edges.
+        G = nx.DiGraph()
+        G.add_edges_from(edges)
 
-    return traits
+        # Determine computation order by topologically sorting the nodes.
+        trait_computation_order = list(nx.topological_sort(G))
 
+        return trait_computation_order
 
-def get_traits_value_plant(
-    h5,
-    monocots: bool = False,
-    primary_name: str = "primary_multi_day",
-    lateral_name: str = "lateral_3_nodes",
-    root_width_tolerance: float = 0.02,
-    n_line: int = 50,
-    network_fraction: float = 2 / 3,
-    write_csv: bool = False,
-    csv_suffix: str = ".traits.csv",
-) -> Tuple[Dict, pd.DataFrame, str]:
-    """Get detailed SLEAP traits for every frame of a plant, based on the graph.
+    def compute_traits(self, traits: Dict[str, Any]) -> Dict[str, Any]:
+        """Compute traits based on the pipeline.
 
-    Args:
-        h5: The h5 file representing the plant image series.
-        monocots: A boolean value indicating whether the plant is a monocot (True)
-            or a dicot (False) (default).
-        primary_name: Name of the primary root predictions. The predictions file is
-            expected to be named `"{h5_path}.{primary_name}.predictions.slp"`.
-        lateral_name: Name of the lateral root predictions. The predictions file is
-            expected to be named `"{h5_path}.{lateral_name}.predictions.slp"`.
-        root_width_tolerance: The difference in the projection norm between
-            the right and left side of the root.
-        n_line: The number of scan lines. Use np.nan for no interaction.
-        network_fraction: The length found in the lower fraction value of the network.
-        write_csv: A boolean value. If True, it writes per plant detailed
-            CSVs with traits for every instance on every frame.
-        csv_suffix: If write_csv=True, the CSV file will be saved with the
-            h5 path + csv_suffix.
+        Args:
+            traits: Dictionary of traits where keys are trait names and values are
+                the trait values.
 
-    Returns:
-        A tuple containing a dictionary and a DataFrame with all traits per plant,
-            and the plant name. The Dataframe has root traits per instance and frame
-            where each row corresponds to a frame in the H5 file. The plant_name is
-            given by the h5 file.
-    """
-    plant = Series.load(h5, primary_name=primary_name, lateral_name=lateral_name)
-    plant_name = plant.series_name
-    # get number of frames per plant
-    n_frame = len(plant)
+        Returns:
+            A dictionary of computed traits.
+        """
+        # Initialize traits container with initial data.
+        traits = traits.copy()
 
-    data_plant = []
-    # get traits for each frames in a row
-    for frame in range(n_frame):
-        primary, lateral = plant[frame]
+        # Compute traits!
+        for trait_name in self.trait_computation_order:
+            if trait_name in traits:
+                # Skip traits already computed.
+                continue
 
-        gt_instances_pr = primary.user_instances + primary.unused_predictions
-        gt_instances_lr = lateral.user_instances + lateral.unused_predictions
+            # Get trait definition.
+            trait_def = self.trait_map[trait_name]
+            # print(f"({', '.join(trait_def.input_traits)}) -> {trait_def.name}")
 
-        if len(gt_instances_lr) == 0:
-            lateral_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
-        else:
-            lateral_pts = np.stack([inst.numpy() for inst in gt_instances_lr], axis=0)
-
-        if len(gt_instances_pr) == 0:
-            primary_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
-        else:
-            primary_pts = np.stack([inst.numpy() for inst in gt_instances_pr], axis=0)
-
-        data = get_traits_value_frame(
-            primary_pts,
-            lateral_pts,
-            root_width_tolerance,
-            n_line,
-            network_fraction,
-            monocots,
-        )
-
-        data["plant_name"] = plant_name
-        data["frame_idx"] = frame
-        data_plant.append(data)
-    data_plant_df = pd.DataFrame(data_plant)
-
-    # reorganize the column position
-    column_names = data_plant_df.columns.tolist()
-    column_names = [column_names[-2]] + [column_names[-1]] + column_names[:-2]
-    data_plant_df = data_plant_df[column_names]
-
-    # convert the data in scalar column to the value without []
-    columns_to_convert = data_plant_df.columns[
-        data_plant_df.apply(
-            lambda x: all(
-                isinstance(val, np.ndarray) and val.shape == (1,) for val in x
+            # Compute trait based on trait definition.
+            traits[trait_name] = trait_def.fn(
+                *[traits[input_trait] for input_trait in trait_def.input_traits],
+                **trait_def.kwargs,
             )
-        )
-    ]
-    data_plant_df[columns_to_convert] = data_plant_df[columns_to_convert].apply(
-        lambda x: x.apply(lambda val: val[0])
-    )
 
-    if write_csv:
-        csv_name = Path(h5).with_suffix(f"{csv_suffix}")
-        data_plant_df.to_csv(csv_name, index=False)
-    return data_plant, data_plant_df, plant_name
+        return traits
+
+
+@attrs.define
+class DicotPipeline(Pipeline):
+    """Pipeline for computing traits for dicot plants.
+
+    Attributes:
+        img_height: Image height.
+        img_width: Image width.
+        root_width_tolerance: Difference in projection norm between right and left side.
+        n_scanlines: Number of scan lines, np.nan for no interaction.
+        network_fraction: Length found in the lower fraction value of the network.
+    """
+
+    img_height: int = 1080
+    img_width: int = 2048
+    root_width_tolerance: float = 0.02
+    n_scanlines: int = 50
+    network_fraction: float = 2 / 3
+
+    def define_traits(self) -> List[TraitDef]:
+        """Define the trait computation pipeline for dicot plants."""
+        trait_definitions = [
+            TraitDef(
+                name="primary_max_length_pts",
+                fn=get_max_length_pts,
+                input_traits=["primary_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Points of the primary root with maximum length.",
+            ),
+            TraitDef(
+                name="pts_all_array",
+                fn=get_all_pts_array,
+                input_traits=["primary_max_length_pts", "lateral_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={"monocots": False},
+                description="Landmark points within a given frame as a flat array"
+                "of coordinates.",
+            ),
+            TraitDef(
+                name="root_widths",
+                fn=get_root_pair_widths_projections,
+                input_traits=["primary_max_length_pts", "lateral_pts"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={"tolerance": self.root_width_tolerance, "monocots": False},
+                description="Return estimation of root width using bases of lateral roots.",
+            ),
+            TraitDef(
+                name="lateral_count",
+                fn=get_lateral_count,
+                input_traits=["lateral_pts"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Get the number of lateral roots.",
+            ),
+            TraitDef(
+                name="lateral_proximal_node_inds",
+                fn=get_node_ind,
+                input_traits=["lateral_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={"proximal": True},
+                description="Get the indices of the proximal nodes of lateral roots.",
+            ),
+            TraitDef(
+                name="lateral_distal_node_inds",
+                fn=get_node_ind,
+                input_traits=["lateral_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={"proximal": False},
+                description="Get the indices of the distal nodes of lateral roots.",
+            ),
+            TraitDef(
+                name="lateral_lengths",
+                fn=get_root_lengths,
+                input_traits=["lateral_pts"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={},
+                description="Array of lateral root lengths of shape `(instances,)`.",
+            ),
+            TraitDef(
+                name="lateral_base_pts",
+                fn=get_bases,
+                input_traits=["lateral_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={"monocots": False},
+                description="Array of lateral bases `(instances, (x, y))`.",
+            ),
+            TraitDef(
+                name="lateral_tip_pts",
+                fn=get_tips,
+                input_traits=["lateral_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Array of lateral tips `(instances, (x, y))`.",
+            ),
+            TraitDef(
+                name="scanline_intersection_counts",
+                fn=count_scanline_intersections,
+                input_traits=["primary_max_length_pts", "lateral_pts"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={
+                    "height": self.img_height,
+                    "width": self.img_width,
+                    "n_line": self.n_scanlines,
+                    "monocots": False,
+                },
+                description="Array of intersections of each scanline `(#Nline,)`.",
+            ),
+            TraitDef(
+                name="lateral_angles_distal",
+                fn=get_root_angle,
+                input_traits=["lateral_pts", "lateral_distal_node_inds"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={"proximal": False, "base_ind": 0},
+                description="Array of lateral distal angles in degrees `(instances,)`.",
+            ),
+            TraitDef(
+                name="lateral_angles_proximal",
+                fn=get_root_angle,
+                input_traits=["lateral_pts", "lateral_proximal_node_inds"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={"proximal": True, "base_ind": 0},
+                description="Array of lateral proximal angles in degrees `(instances,)`.",
+            ),
+            TraitDef(
+                name="network_solidity",
+                fn=get_network_solidity,
+                input_traits=["network_length", "chull_area"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of the total network length divided by the network"
+                "convex area.",
+            ),
+            TraitDef(
+                name="ellipse",
+                fn=fit_ellipse,
+                input_traits=["pts_all_array"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Tuple of (a, b, ratio) containing the semi-major axis length,"
+                "semi-minor axis length, and the ratio of the major to minor lengths.",
+            ),
+            TraitDef(
+                name="bounding_box",
+                fn=get_bbox,
+                input_traits=["pts_all_array"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Tuple of four parameters in bounding box.",
+            ),
+            TraitDef(
+                name="convex_hull",
+                fn=get_convhull,
+                input_traits=["pts_all_array"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Convex hull of the points.",
+            ),
+            TraitDef(
+                name="primary_proximal_node_ind",
+                fn=get_node_ind,
+                input_traits=["primary_max_length_pts"],
+                scalar=True,
+                include_in_csv=False,
+                kwargs={"proximal": True},
+                description="Get the indices of the proximal nodes of primary roots.",
+            ),
+            TraitDef(
+                name="primary_angle_proximal",
+                fn=get_root_angle,
+                input_traits=["primary_max_length_pts", "primary_proximal_node_ind"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={"proximal": True, "base_ind": 0},
+                description="Array of primary proximal angles in degrees `(instances,)`.",
+            ),
+            TraitDef(
+                name="primary_distal_node_ind",
+                fn=get_node_ind,
+                input_traits=["primary_max_length_pts"],
+                scalar=True,
+                include_in_csv=False,
+                kwargs={"proximal": False},
+                description="Get the indices of the distal nodes of primary roots.",
+            ),
+            TraitDef(
+                name="primary_angle_distal",
+                fn=get_root_angle,
+                input_traits=["primary_max_length_pts", "primary_distal_node_ind"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={"proximal": False, "base_ind": 0},
+                description="Array of primary distal angles in degrees `(instances,)`.",
+            ),
+            TraitDef(
+                name="primary_length",
+                fn=get_root_lengths,
+                input_traits=["primary_max_length_pts"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of primary root length.",
+            ),
+            TraitDef(
+                name="primary_base_pt",
+                fn=get_bases,
+                input_traits=["primary_max_length_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={"monocots": False},
+                description="Primary root base point.",
+            ),
+            TraitDef(
+                name="primary_tip_pt",
+                fn=get_tips,
+                input_traits=["primary_max_length_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Primary root tip point.",
+            ),
+            TraitDef(
+                name="network_length_lower",
+                fn=get_network_distribution,
+                input_traits=["primary_max_length_pts", "lateral_pts", "bounding_box"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={"fraction": self.network_fraction, "monocots": False},
+                description="Scalar of the root network length in the lower fraction of the"
+                "plant.",
+            ),
+            TraitDef(
+                name="lateral_base_xs",
+                fn=get_base_xs,
+                input_traits=["lateral_base_pts"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={"monocots": False},
+                description="Array of the x-coordinates of lateral bases `(instances,)`.",
+            ),
+            TraitDef(
+                name="lateral_base_ys",
+                fn=get_base_ys,
+                input_traits=["lateral_base_pts"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={"monocots": False},
+                description="Array of the y-coordinates of lateral bases `(instances,)`.",
+            ),
+            TraitDef(
+                name="base_ct_density",
+                fn=get_base_ct_density,
+                input_traits=["primary_length", "lateral_base_pts"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={"monocots": False},
+                description="Scalar of base count density.",
+            ),
+            TraitDef(
+                name="lateral_tip_xs",
+                fn=get_tip_xs,
+                input_traits=["lateral_tip_pts"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={},
+                description="Array of the x-coordinates of lateral tips `(instance,)`.",
+            ),
+            TraitDef(
+                name="lateral_tip_ys",
+                fn=get_tip_ys,
+                input_traits=["lateral_tip_pts"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={},
+                description="Array of the y-coordinates of lateral tips `(instance,)`.",
+            ),
+            TraitDef(
+                name="network_distribution_ratio",
+                fn=get_network_distribution_ratio,
+                input_traits=[
+                    "primary_length",
+                    "lateral_lengths",
+                    "network_length_lower",
+                ],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={"fraction": self.network_fraction, "monocots": False},
+                description=(
+                    "Scalar of ratio of the root network length in the lower "
+                    "fraction of the plant over all root length."
+                ),
+            ),
+            TraitDef(
+                name="network_length",
+                fn=get_network_length,
+                input_traits=["primary_length", "lateral_lengths"],
+                scalar=True,
+                include_in_csv=False,
+                kwargs={"monocots": False},
+                description="Scalar of all roots network length.",
+            ),
+            TraitDef(
+                name="primary_base_pt_y",
+                fn=get_base_ys,
+                input_traits=["primary_base_pt"],
+                scalar=True,
+                include_in_csv=False,
+                kwargs={"monocots": False},
+                description="Y-coordinate of the primary root base node.",
+            ),
+            TraitDef(
+                name="primary_tip_pt_y",
+                fn=get_tip_ys,
+                input_traits=["primary_tip_pt"],
+                scalar=True,
+                include_in_csv=False,
+                kwargs={},
+                description="Y-coordinate of the primary root tip node.",
+            ),
+            TraitDef(
+                name="ellipse_a",
+                fn=get_ellipse_a,
+                input_traits=["ellipse"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of semi-major axis length.",
+            ),
+            TraitDef(
+                name="ellipse_b",
+                fn=get_ellipse_b,
+                input_traits=["ellipse"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of semi-minor axis length.",
+            ),
+            TraitDef(
+                name="network_width_depth_ratio",
+                fn=get_network_width_depth_ratio,
+                input_traits=["bounding_box"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of bounding box width to depth ratio of root network.",
+            ),
+            TraitDef(
+                name="chull_perimeter",
+                fn=get_chull_perimeter,
+                input_traits=["convex_hull"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of convex hull perimeter.",
+            ),
+            TraitDef(
+                name="chull_area",
+                fn=get_chull_area,
+                input_traits=["convex_hull"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of convex hull area.",
+            ),
+            TraitDef(
+                name="chull_max_width",
+                fn=get_chull_max_width,
+                input_traits=["convex_hull"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of convex hull maximum width.",
+            ),
+            TraitDef(
+                name="chull_max_height",
+                fn=get_chull_max_height,
+                input_traits=["convex_hull"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of convex hull maximum height.",
+            ),
+            TraitDef(
+                name="chull_line_lengths",
+                fn=get_chull_line_lengths,
+                input_traits=["convex_hull"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={},
+                description="Array of line lengths connecting any two vertices on the"
+                "convex hull.",
+            ),
+            TraitDef(
+                name="base_length",
+                fn=get_base_length,
+                input_traits=["lateral_base_ys"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of the distance between the top and deepest base"
+                "y-coordinates.",
+            ),
+            TraitDef(
+                name="base_median_ratio",
+                fn=get_base_median_ratio,
+                input_traits=["lateral_base_ys", "primary_tip_pt_y"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={"monocots": False},
+                description="Scalar of base median ratio.",
+            ),
+            TraitDef(
+                name="grav_index",
+                fn=get_grav_index,
+                input_traits=["primary_length", "primary_base_tip_dist"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of primary root gravity index.",
+            ),
+            TraitDef(
+                name="base_length_ratio",
+                fn=get_base_length_ratio,
+                input_traits=["primary_length", "base_length"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={"monocots": False},
+                description="Scalar of base length ratio.",
+            ),
+            TraitDef(
+                name="primary_base_tip_dist",
+                fn=get_base_tip_dist,
+                input_traits=["primary_base_pt", "primary_tip_pt"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of distance from primary root base to tip.",
+            ),
+            TraitDef(
+                name="ellipse_ratio",
+                fn=get_ellipse_ratio,
+                input_traits=["ellipse"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of ratio of the minor to major lengths.",
+            ),
+            TraitDef(
+                name="scanline_last_ind",
+                fn=get_scanline_last_ind,
+                input_traits=["scanline_intersection_counts"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of count_scanline_interaction index for the last"
+                "interaction.",
+            ),
+            TraitDef(
+                name="scanline_first_ind",
+                fn=get_scanline_first_ind,
+                input_traits=["scanline_intersection_counts"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of count_scanline_interaction index for the first"
+                "interaction.",
+            ),
+        ]
+
+        return trait_definitions
+
+    def compute_plant_traits(
+        self, plant: Series, write_csv: bool = False, csv_suffix: str = ".traits.csv"
+    ) -> Dict[str, Any]:
+        plant_name = plant.series_name
+
+        traits = []
+        for frame in range(len(plant)):
+            primary, lateral = plant[frame]
+
+            gt_instances_pr = primary.user_instances + primary.unused_predictions
+            gt_instances_lr = lateral.user_instances + lateral.unused_predictions
+
+            if len(gt_instances_lr) == 0:
+                lateral_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
+            else:
+                lateral_pts = np.stack(
+                    [inst.numpy() for inst in gt_instances_lr], axis=0
+                )
+
+            if len(gt_instances_pr) == 0:
+                primary_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
+            else:
+                primary_pts = np.stack(
+                    [inst.numpy() for inst in gt_instances_pr], axis=0
+                )
+
+            traits_frame = self.compute_traits(
+                {"primary_pts": primary_pts, "lateral_pts": lateral_pts}
+            )
+
+            traits_frame["plant_name"] = plant_name
+            traits_frame["frame_idx"] = frame
+            traits.append(traits_frame)
+        traits = pd.DataFrame(traits)
+
+        # Move metadata columns to the front.
+        plant_name = traits.pop("plant_name")
+        frame_idx = traits.pop("frame_idx")
+        traits = pd.concat([plant_name, frame_idx, traits], axis=1)
+
+        # Convert the data in scalar columns to the value without [].
+        columns_to_convert = traits.columns[
+            traits.apply(
+                lambda x: all(
+                    isinstance(val, np.ndarray) and val.shape == (1,) for val in x
+                )
+            )
+        ]
+        traits[columns_to_convert] = traits[columns_to_convert].apply(
+            lambda x: x.apply(lambda val: val[0])
+        )
+
+        if write_csv:
+            csv_name = Path(plant.h5_path).with_suffix(csv_suffix)
+            csv_traits = [trait.name for trait in self.traits if trait.include_in_csv]
+            traits[["plant_name", "frame_idx"] + csv_traits].to_csv(
+                csv_name, index=False
+            )
+        return traits
 
 
 def get_traits_value_plant_summary(
