@@ -1,16 +1,16 @@
-"""Extract traits in a pipeline based on the trait graph."""
+"""Extract traits in a pipeline based on a trait graph."""
 
+import warnings
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
+
+import attrs
+import networkx as nx
 import numpy as np
 import pandas as pd
-import attrs
-from typing import List, Dict, Tuple, Callable, Optional, Any
-from fractions import Fraction
-import networkx as nx
-from pathlib import Path
-from sleap_roots.angle import get_root_angle, get_node_ind
-from sleap_roots.lengths import get_root_lengths, get_grav_index, get_max_length_pts
+
+from sleap_roots.angle import get_node_ind, get_root_angle
 from sleap_roots.bases import (
-    get_bases,
     get_base_ct_density,
     get_base_length,
     get_base_length_ratio,
@@ -18,17 +18,17 @@ from sleap_roots.bases import (
     get_base_tip_dist,
     get_base_xs,
     get_base_ys,
+    get_bases,
     get_lateral_count,
     get_root_pair_widths_projections,
 )
-from sleap_roots.tips import get_tips, get_tip_xs, get_tip_ys
 from sleap_roots.convhull import (
-    get_convhull,
     get_chull_area,
     get_chull_line_lengths,
-    get_chull_max_width,
     get_chull_max_height,
+    get_chull_max_width,
     get_chull_perimeter,
+    get_convhull,
 )
 from sleap_roots.ellipse import (
     fit_ellipse,
@@ -36,10 +36,11 @@ from sleap_roots.ellipse import (
     get_ellipse_b,
     get_ellipse_ratio,
 )
+from sleap_roots.lengths import get_grav_index, get_max_length_pts, get_root_lengths
 from sleap_roots.networklength import (
     get_bbox,
-    get_network_distribution_ratio,
     get_network_distribution,
+    get_network_distribution_ratio,
     get_network_length,
     get_network_solidity,
     get_network_width_depth_ratio,
@@ -50,51 +51,9 @@ from sleap_roots.scanline import (
     get_scanline_first_ind,
     get_scanline_last_ind,
 )
-from sleap_roots.series import Series, find_all_series
-from sleap_roots.summary import get_summary
-import warnings
-
-
-SCALAR_TRAITS = (
-    "primary_angle_proximal",
-    "primary_angle_distal",
-    "primary_length",
-    "primary_base_tip_dist",
-    "lateral_count",
-    "grav_index",
-    "base_length",
-    "base_length_ratio",
-    "primary_tip_pt_y",
-    "base_median_ratio",
-    "base_ct_density",
-    "chull_perimeter",
-    "chull_area",
-    "chull_max_width",
-    "chull_max_height",
-    "ellipse_a",
-    "ellipse_b",
-    "ellipse_ratio",
-    "network_width_depth_ratio",
-    "network_solidity",
-    "network_length_lower",
-    "network_distribution_ratio",
-    "scanline_first_ind",
-    "scanline_last_ind",
-)
-
-NON_SCALAR_TRAITS = (
-    "lateral_angles_proximal",
-    "lateral_angles_distal",
-    "lateral_lengths",
-    "root_widths",
-    "lateral_base_xs",
-    "lateral_base_ys",
-    "lateral_tip_xs",
-    "lateral_tip_ys",
-    "chull_line_lengths",
-    "scanline_intersection_counts",
-)
-
+from sleap_roots.series import Series
+from sleap_roots.summary import SUMMARY_SUFFIXES, get_summary
+from sleap_roots.tips import get_tip_xs, get_tip_ys, get_tips
 
 warnings.filterwarnings(
     "ignore",
@@ -219,13 +178,13 @@ class Pipeline:
         self.trait_map = {trait_def.name: trait_def for trait_def in self.traits}
 
         # Determine computation order by topologically sorting the nodes.
-        self.trait_computation_order = self.get_compute_order()
+        self.trait_computation_order = self.get_computation_order()
 
     def define_traits(self) -> List[TraitDef]:
         """Return list of `TraitDef` objects."""
         raise NotImplementedError
 
-    def get_compute_order(self) -> List[str]:
+    def get_computation_order(self) -> List[str]:
         """Determine computation order by topologically sorting the nodes.
 
         Returns:
@@ -245,6 +204,28 @@ class Pipeline:
         trait_computation_order = list(nx.topological_sort(G))
 
         return trait_computation_order
+
+    @property
+    def summary_traits(self) -> List[str]:
+        """List of traits to include in the summary CSV."""
+        return [
+            trait.name
+            for trait in self.traits
+            if trait.include_in_csv and not trait.scalar
+        ]
+
+    @property
+    def csv_traits(self) -> List[str]:
+        """List of frame-level traits to include in the CSV."""
+        csv_traits = []
+        for trait in self.traits:
+            if trait.include_in_csv:
+                if trait.scalar:
+                    csv_traits.append(trait.name)
+                else:
+                    csv_traits.extend(
+                        [f"{trait.name}_{suffix}" for suffix in SUMMARY_SUFFIXES]
+                    )
 
     def compute_traits(self, traits: Dict[str, Any]) -> Dict[str, Any]:
         """Compute traits based on the pipeline.
@@ -276,6 +257,52 @@ class Pipeline:
             )
 
         return traits
+
+    def compute_plant_traits(self, plant: Series) -> pd.DataFrame:
+        """Compute traits for a plant."""
+        raise NotImplementedError
+
+    def compute_batch_traits(
+        self,
+        plants: List[Series],
+        write_csv: bool = False,
+        csv_path: str = "traits.csv",
+    ) -> pd.DataFrame:
+        """Compute traits for a batch of plants.
+
+        Args:
+            plants: List of `Series` objects.
+            write_csv: If `True`, write the computed traits to a CSV file.
+            csv_path: Path to write the CSV file to.
+
+        Returns:
+            A pandas DataFrame of computed traits summarized over all frames of each
+            plant. The resulting dataframe will have a row for each plant and a column
+            for each plant-level summarized trait.
+
+            Summarized traits are prefixed with the trait name and an underscore,
+            followed by the summary statistic.
+        """
+        all_traits = []
+        for plant in plants:
+            # Compute frame level traits for the plant.
+            plant_traits = self.compute_plant_traits(plant)
+
+            # Summarize frame level traits.
+            plant_summary = {"plant_name": plant.name}
+            for trait_name in self.csv_traits:
+                trait_summary = get_summary(
+                    plant_traits[trait_name], prefix=f"{trait_name}_"
+                )
+                plant_summary.update(trait_summary)
+            all_traits.append(plant_summary)
+
+        # Build dataframe from list of frame-level summaries.
+        all_traits = pd.DataFrame(all_traits)
+
+        if write_csv:
+            all_traits.to_csv(csv_path, index=False)
+        return all_traits
 
 
 @attrs.define
@@ -325,7 +352,8 @@ class DicotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=True,
                 kwargs={"tolerance": self.root_width_tolerance, "monocots": False},
-                description="Return estimation of root width using bases of lateral roots.",
+                description="Return estimation of root width using bases of lateral "
+                "roots.",
             ),
             TraitDef(
                 name="lateral_count",
@@ -393,7 +421,7 @@ class DicotPipeline(Pipeline):
                     "n_line": self.n_scanlines,
                     "monocots": False,
                 },
-                description="Array of intersections of each scanline `(#Nline,)`.",
+                description="Array of intersections of each scanline `(n_scanlines,)`.",
             ),
             TraitDef(
                 name="lateral_angles_distal",
@@ -411,7 +439,8 @@ class DicotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=True,
                 kwargs={"proximal": True, "base_ind": 0},
-                description="Array of lateral proximal angles in degrees `(instances,)`.",
+                description="Array of lateral proximal angles in degrees "
+                "`(instances,)`.",
             ),
             TraitDef(
                 name="network_solidity",
@@ -430,8 +459,9 @@ class DicotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},
-                description="Tuple of (a, b, ratio) containing the semi-major axis length,"
-                "semi-minor axis length, and the ratio of the major to minor lengths.",
+                description="Tuple of (a, b, ratio) containing the semi-major axis "
+                "length, semi-minor axis length, and the ratio of the major to minor "
+                "lengths.",
             ),
             TraitDef(
                 name="bounding_box",
@@ -467,7 +497,8 @@ class DicotPipeline(Pipeline):
                 scalar=True,
                 include_in_csv=True,
                 kwargs={"proximal": True, "base_ind": 0},
-                description="Array of primary proximal angles in degrees `(instances,)`.",
+                description="Array of primary proximal angles in degrees "
+                "`(instances,)`.",
             ),
             TraitDef(
                 name="primary_distal_node_ind",
@@ -521,8 +552,8 @@ class DicotPipeline(Pipeline):
                 scalar=True,
                 include_in_csv=True,
                 kwargs={"fraction": self.network_fraction, "monocots": False},
-                description="Scalar of the root network length in the lower fraction of the"
-                "plant.",
+                description="Scalar of the root network length in the lower fraction "
+                "of the plant.",
             ),
             TraitDef(
                 name="lateral_base_xs",
@@ -531,7 +562,8 @@ class DicotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=True,
                 kwargs={"monocots": False},
-                description="Array of the x-coordinates of lateral bases `(instances,)`.",
+                description="Array of the x-coordinates of lateral bases "
+                "`(instances,)`.",
             ),
             TraitDef(
                 name="lateral_base_ys",
@@ -540,7 +572,8 @@ class DicotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=True,
                 kwargs={"monocots": False},
-                description="Array of the y-coordinates of lateral bases `(instances,)`.",
+                description="Array of the y-coordinates of lateral bases "
+                "`(instances,)`.",
             ),
             TraitDef(
                 name="base_ct_density",
@@ -580,10 +613,8 @@ class DicotPipeline(Pipeline):
                 scalar=True,
                 include_in_csv=True,
                 kwargs={"fraction": self.network_fraction, "monocots": False},
-                description=(
-                    "Scalar of ratio of the root network length in the lower "
-                    "fraction of the plant over all root length."
-                ),
+                description="Scalar of ratio of the root network length in the lower "
+                "fraction of the plant over all root length.",
             ),
             TraitDef(
                 name="network_length",
@@ -637,7 +668,8 @@ class DicotPipeline(Pipeline):
                 scalar=True,
                 include_in_csv=True,
                 kwargs={},
-                description="Scalar of bounding box width to depth ratio of root network.",
+                description="Scalar of bounding box width to depth ratio of root "
+                "network.",
             ),
             TraitDef(
                 name="chull_perimeter",
@@ -765,17 +797,31 @@ class DicotPipeline(Pipeline):
         return trait_definitions
 
     def compute_plant_traits(
-        self, plant: Series, write_csv: bool = False, csv_suffix: str = ".traits.csv"
-    ) -> Dict[str, Any]:
-        plant_name = plant.series_name
+        self,
+        plant: Series,
+        write_csv: bool = False,
+        csv_suffix: str = ".traits.csv",
+    ) -> pd.DataFrame:
+        """Compute traits for a plant.
 
+        Args:
+            plant: The plant image series as a `Series` object.
+            write_csv: A boolean value. If True, it writes per plant detailed
+                CSVs with traits for every instance on every frame.
+            csv_suffix: If `write_csv` is `True`, a CSV file will be saved with the same
+                name as the plant's `{plant.series_name}{csv_suffix}`.
+
+        Returns:
+            The computed traits as a pandas DataFrame.
+        """
         traits = []
         for frame in range(len(plant)):
+            # Get the root instances.
             primary, lateral = plant[frame]
-
             gt_instances_pr = primary.user_instances + primary.unused_predictions
             gt_instances_lr = lateral.user_instances + lateral.unused_predictions
 
+            # Convert the instances to numpy arrays.
             if len(gt_instances_lr) == 0:
                 lateral_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
             else:
@@ -790,13 +836,22 @@ class DicotPipeline(Pipeline):
                     [inst.numpy() for inst in gt_instances_pr], axis=0
                 )
 
-            traits_frame = self.compute_traits(
+            # Compute traits via the frame-level pipeline.
+            frame_traits = self.compute_traits(
                 {"primary_pts": primary_pts, "lateral_pts": lateral_pts}
             )
 
-            traits_frame["plant_name"] = plant_name
-            traits_frame["frame_idx"] = frame
-            traits.append(traits_frame)
+            # Compute trait summaries.
+            for trait_name in self.summary_traits:
+                trait_summary = get_summary(
+                    frame_traits[trait_name], prefix=f"{trait_name}_"
+                )
+                frame_traits.update(trait_summary)
+
+            # Add metadata.
+            frame_traits["plant_name"] = plant.series_name
+            frame_traits["frame_idx"] = frame
+            traits.append(frame_traits)
         traits = pd.DataFrame(traits)
 
         # Move metadata columns to the front.
@@ -804,327 +859,9 @@ class DicotPipeline(Pipeline):
         frame_idx = traits.pop("frame_idx")
         traits = pd.concat([plant_name, frame_idx, traits], axis=1)
 
-        # Convert the data in scalar columns to the value without [].
-        columns_to_convert = traits.columns[
-            traits.apply(
-                lambda x: all(
-                    isinstance(val, np.ndarray) and val.shape == (1,) for val in x
-                )
-            )
-        ]
-        traits[columns_to_convert] = traits[columns_to_convert].apply(
-            lambda x: x.apply(lambda val: val[0])
-        )
-
         if write_csv:
             csv_name = Path(plant.h5_path).with_suffix(csv_suffix)
-            csv_traits = [trait.name for trait in self.traits if trait.include_in_csv]
-            traits[["plant_name", "frame_idx"] + csv_traits].to_csv(
+            traits[["plant_name", "frame_idx"] + self.csv_traits].to_csv(
                 csv_name, index=False
             )
         return traits
-
-
-def get_traits_value_plant_summary(
-    h5,
-    monocots: bool = False,
-    primary_name: str = "longest_3do_6nodes",
-    lateral_name: str = "main_3do_6nodes",
-    root_width_tolerance: float = 0.02,
-    n_line: int = 50,
-    network_fraction: float = 2 / 3,
-    write_csv: bool = False,
-    csv_suffix: str = ".traits.csv",
-    write_summary_csv: bool = False,
-    summary_csv_suffix: str = ".summary_traits.csv",
-) -> pd.DataFrame:
-    """Get summary statistics of SLEAP traits per plant based on graph.
-
-    Args:
-        h5: The h5 file representing the plant image series.
-        monocots: A boolean value indicating whether the plant is a monocot (True)
-            or a dicot (False) (default).
-        primary_name: Name of the primary root predictions. The predictions file is
-            expected to be named `"{h5_path}.{primary_name}.predictions.slp"`.
-        lateral_name: Name of the lateral root predictions. The predictions file is
-            expected to be named `"{h5_path}.{lateral_name}.predictions.slp"`.
-        root_width_tolerance: The difference in the projection norm between
-            the right and left side of the root.
-        n_line: The number of scan lines. Use np.nan for no interaction.
-        network_fraction: The length found in the lower fraction value of the network.
-        write_csv: A boolean value. If True, it writes per plant detailed
-            CSVs with traits for every instance on every frame.
-        csv_suffix: If write_csv=True, the CSV file will be saved with the name
-            h5 path + csv_suffix.
-        write_summary_csv: Boolean value, where true is write summarized csv file.
-        summary_csv_suffix: If write_summary_csv=True, the CSV file with the summary
-            statistics per plant will be saved with the name
-            h5 path + summary_csv_suffix.
-
-    Return:
-        A DataFrame with summary statistics of all traits per plant.
-    """
-    data_plant, data_plant_df, plant_name = get_traits_value_plant(
-        h5,
-        monocots,
-        primary_name,
-        lateral_name,
-        root_width_tolerance,
-        n_line,
-        network_fraction,
-        write_csv,
-        csv_suffix,
-    )
-
-    # get summarized non-scalar traits per frame
-    data_plant_frame_summary = []
-    data_plant_frame_summary_non_scalar = {}
-
-    for i in range(len(NON_SCALAR_TRAITS)):
-        trait = data_plant_df[NON_SCALAR_TRAITS[i]]
-
-        if not trait.isna().all():
-            data_plant_frame_summary_non_scalar[
-                NON_SCALAR_TRAITS[i] + "_fmin"
-            ] = trait.apply(
-                lambda x: x
-                if isinstance(x, (np.floating, float, np.integer, int))
-                else (np.nanmin(x) if len(x) > 0 else np.nan)
-            )
-            data_plant_frame_summary_non_scalar[
-                NON_SCALAR_TRAITS[i] + "_fmax"
-            ] = trait.apply(
-                lambda x: x
-                if isinstance(x, (np.floating, float, np.integer, int))
-                else (np.nanmax(x) if len(x) > 0 else np.nan)
-            )
-            data_plant_frame_summary_non_scalar[
-                NON_SCALAR_TRAITS[i] + "_fmean"
-            ] = trait.apply(
-                lambda x: x
-                if isinstance(x, (np.floating, float, np.integer, int))
-                else (np.nanmean(x) if len(x) > 0 else np.nan)
-            )
-            data_plant_frame_summary_non_scalar[
-                NON_SCALAR_TRAITS[i] + "_fmedian"
-            ] = trait.apply(
-                lambda x: x
-                if isinstance(x, (np.floating, float, np.integer, int))
-                else (np.nanmedian(x) if len(x) > 0 else np.nan)
-            )
-            data_plant_frame_summary_non_scalar[
-                NON_SCALAR_TRAITS[i] + "_fstd"
-            ] = trait.apply(
-                lambda x: x
-                if isinstance(x, (np.floating, float, np.integer, int))
-                else (np.nanstd(x) if len(x) > 0 else np.nan)
-            )
-            data_plant_frame_summary_non_scalar[
-                NON_SCALAR_TRAITS[i] + "_fprc5"
-            ] = trait.apply(
-                lambda x: x
-                if isinstance(x, (np.floating, float, np.integer, int))
-                else (np.nan if np.isnan(x).all() else np.percentile(x[~pd.isna(x)], 5))
-            )
-            data_plant_frame_summary_non_scalar[
-                NON_SCALAR_TRAITS[i] + "_fprc25"
-            ] = trait.apply(
-                lambda x: x
-                if isinstance(x, (np.floating, float, np.integer, int))
-                else (
-                    np.nan if np.isnan(x).all() else np.percentile(x[~pd.isna(x)], 25)
-                )
-            )
-            data_plant_frame_summary_non_scalar[
-                NON_SCALAR_TRAITS[i] + "_fprc75"
-            ] = trait.apply(
-                lambda x: x
-                if isinstance(x, (np.floating, float, np.integer, int))
-                else (
-                    np.nan if np.isnan(x).all() else np.percentile(x[~pd.isna(x)], 75)
-                )
-            )
-            data_plant_frame_summary_non_scalar[
-                NON_SCALAR_TRAITS[i] + "_fprc95"
-            ] = trait.apply(
-                lambda x: x
-                if isinstance(x, (np.floating, float, np.integer, int))
-                else (
-                    np.nan if np.isnan(x).all() else np.percentile(x[~pd.isna(x)], 95)
-                )
-            )
-        else:
-            data_plant_frame_summary_non_scalar[NON_SCALAR_TRAITS[i] + "_fmin"] = np.nan
-            data_plant_frame_summary_non_scalar[NON_SCALAR_TRAITS[i] + "_fmax"] = np.nan
-            data_plant_frame_summary_non_scalar[
-                NON_SCALAR_TRAITS[i] + "_fmean"
-            ] = np.nan
-            data_plant_frame_summary_non_scalar[
-                NON_SCALAR_TRAITS[i] + "_fmedian"
-            ] = np.nan
-            data_plant_frame_summary_non_scalar[NON_SCALAR_TRAITS[i] + "_fstd"] = np.nan
-            data_plant_frame_summary_non_scalar[
-                NON_SCALAR_TRAITS[i] + "_fprc5"
-            ] = np.nan
-            data_plant_frame_summary_non_scalar[
-                NON_SCALAR_TRAITS[i] + "_fprc25"
-            ] = np.nan
-            data_plant_frame_summary_non_scalar[
-                NON_SCALAR_TRAITS[i] + "_fprc75"
-            ] = np.nan
-            data_plant_frame_summary_non_scalar[
-                NON_SCALAR_TRAITS[i] + "_fprc95"
-            ] = np.nan
-
-    # get summarized scalar traits per plant
-    column_names = data_plant_df.columns.tolist()
-    data_plant_frame_summary = {}
-    for i in range(len(SCALAR_TRAITS)):
-        if SCALAR_TRAITS[i] in column_names:
-            trait = data_plant_df[SCALAR_TRAITS[i]]
-            if trait.shape[0] > 0:
-                if not (
-                    isinstance(trait[0], (np.floating, float))
-                    or isinstance(trait[0], (np.integer, int))
-                ):
-                    values = np.array([element[0] for element in trait])
-                    trait = values
-            trait = trait.astype(float)
-            trait = np.reshape(trait, (len(trait), 1))
-            (
-                trait_min,
-                trait_max,
-                trait_mean,
-                trait_median,
-                trait_std,
-                trait_prc5,
-                trait_prc25,
-                trait_prc75,
-                trait_prc95,
-            ) = get_summary(trait)
-
-            data_plant_frame_summary[SCALAR_TRAITS[i] + "_min"] = trait_min
-            data_plant_frame_summary[SCALAR_TRAITS[i] + "_max"] = trait_max
-            data_plant_frame_summary[SCALAR_TRAITS[i] + "_mean"] = trait_mean
-            data_plant_frame_summary[SCALAR_TRAITS[i] + "_median"] = trait_median
-            data_plant_frame_summary[SCALAR_TRAITS[i] + "_std"] = trait_std
-            data_plant_frame_summary[SCALAR_TRAITS[i] + "_prc5"] = trait_prc5
-            data_plant_frame_summary[SCALAR_TRAITS[i] + "_prc25"] = trait_prc25
-            data_plant_frame_summary[SCALAR_TRAITS[i] + "_prc75"] = trait_prc75
-            data_plant_frame_summary[SCALAR_TRAITS[i] + "_prc95"] = trait_prc95
-
-    # append the summarized non-scalar traits per plant
-    data_plant_frame_summary_key = list(data_plant_frame_summary_non_scalar.keys())
-    for j in range(len(data_plant_frame_summary_non_scalar)):
-        trait = data_plant_frame_summary_non_scalar[data_plant_frame_summary_key[j]]
-        (
-            trait_min,
-            trait_max,
-            trait_mean,
-            trait_median,
-            trait_std,
-            trait_prc5,
-            trait_prc25,
-            trait_prc75,
-            trait_prc95,
-        ) = get_summary(trait)
-
-        data_plant_frame_summary[data_plant_frame_summary_key[j] + "_min"] = trait_min
-        data_plant_frame_summary[data_plant_frame_summary_key[j] + "_max"] = trait_max
-        data_plant_frame_summary[data_plant_frame_summary_key[j] + "_mean"] = trait_mean
-        data_plant_frame_summary[
-            data_plant_frame_summary_key[j] + "_median"
-        ] = trait_median
-        data_plant_frame_summary[data_plant_frame_summary_key[j] + "_std"] = trait_std
-        data_plant_frame_summary[data_plant_frame_summary_key[j] + "_prc5"] = trait_prc5
-        data_plant_frame_summary[
-            data_plant_frame_summary_key[j] + "_prc25"
-        ] = trait_prc25
-        data_plant_frame_summary[
-            data_plant_frame_summary_key[j] + "_prc75"
-        ] = trait_prc75
-        data_plant_frame_summary[
-            data_plant_frame_summary_key[j] + "_prc95"
-        ] = trait_prc95
-    data_plant_frame_summary["plant_name"] = [plant_name]
-    data_plant_frame_summary_df = pd.DataFrame(data_plant_frame_summary)
-
-    # reorganize the column position
-    column_names = data_plant_frame_summary_df.columns.tolist()
-    column_names = [column_names[-1]] + column_names[:-1]
-    data_plant_frame_summary_df = data_plant_frame_summary_df[column_names]
-
-    if write_summary_csv:
-        summary_csv_name = Path(h5).with_suffix(f"{summary_csv_suffix}")
-        data_plant_frame_summary_df.to_csv(summary_csv_name, index=False)
-    return data_plant_frame_summary_df
-
-
-def get_all_plants_traits(
-    data_folders: List[str],
-    primary_name: str,
-    lateral_name: str,
-    root_width_tolerance: float = 0.02,
-    n_line: int = 50,
-    network_fraction: Fraction = Fraction(2, 3),
-    write_per_plant_details: bool = False,
-    per_plant_details_csv_suffix: str = ".traits.csv",
-    write_per_plant_summary: bool = False,
-    per_plant_summary_csv_suffix: str = ".summary_traits.csv",
-    monocots: bool = False,
-    all_plants_csv_name: str = "all_plants_traits.csv",
-) -> pd.DataFrame:
-    """Get a DataFrame with summary traits from all plants in the given data folders.
-
-    Args:
-        h5: The h5 file representing the plant image series.
-        monocots: A boolean value indicating whether the plant is a monocot (True)
-            or a dicot (False) (default).
-        primary_name: Name of the primary root predictions. The predictions file is
-            expected to be named `"{h5_path}.{primary_name}.predictions.slp"`.
-        lateral_name: Name of the lateral root predictions. The predictions file is
-            expected to be named `"{h5_path}.{lateral_name}.predictions.slp"`.
-        root_width_tolerance: The difference in the projection norm between
-            the right and left side of the root.
-        n_line: The number of scan lines. Use np.nan for no interaction.
-        network_fraction: The length found in the lower fraction value of the network.
-        write_per_plant_details: A boolean value. If True, it writes per plant detailed
-            CSVs with traits for every instance.
-        per_plant_details_csv_suffix: If write_csv=True, the CSV file will be saved
-            with the name h5 path + csv_suffix.
-        write_per_plant_summary: A boolean value. If True, it writes per plant summary
-            CSVs.
-        per_plant_summary_csv_suffix: If write_summary_csv=True, the CSV file with the
-            summary statistics per plant will be saved with the name
-            h5 path + summary_csv_suffix.
-        all_plants_csv_name: The name of the output CSV file containing all plants'
-            summary traits.
-
-    Returns:
-        A pandas DataFrame with summary root traits for all plants in the data folders.
-        Each row is a sample.
-    """
-    h5_series = find_all_series(data_folders)
-
-    all_traits = []
-    for h5 in h5_series:
-        plant_traits = get_traits_value_plant_summary(
-            h5,
-            monocots=monocots,
-            primary_name=primary_name,
-            lateral_name=lateral_name,
-            root_width_tolerance=root_width_tolerance,
-            n_line=n_line,
-            network_fraction=network_fraction,
-            write_csv=write_per_plant_details,
-            csv_suffix=per_plant_details_csv_suffix,
-            write_summary_csv=write_per_plant_summary,
-            summary_csv_suffix=per_plant_summary_csv_suffix,
-        )
-        plant_traits["path"] = h5
-        all_traits.append(plant_traits)
-
-    all_traits_df = pd.concat(all_traits, ignore_index=True)
-
-    all_traits_df.to_csv(all_plants_csv_name, index=False)
-    return all_traits_df
