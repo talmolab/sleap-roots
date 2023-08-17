@@ -247,9 +247,9 @@ def get_base_median_ratio(lateral_base_ys, primary_tip_pt_y, monocots: bool = Fa
     """Get ratio of median value in all base points to tip of primary root in y axis.
 
     Args:
-        lateral_base_ys: y-coordinates of the base points of lateral roots of shape
+        lateral_base_ys: Y-coordinates of the base points of lateral roots of shape
             `(instances,)`.
-        primary_tip_pt_y: y-coordinate of the tip point of the primary root of shape
+        primary_tip_pt_y: Y-coordinate of the tip point of the primary root of shape
             `(1)`.
         monocots: Boolean value, where false is dicot (default), true is rice.
 

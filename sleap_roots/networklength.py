@@ -210,7 +210,6 @@ def get_network_distribution_ratio(
     primary_length: float,
     lateral_lengths: Union[float, np.ndarray],
     network_length_lower: float,
-    fraction: float = 2 / 3,
     monocots: bool = False,
 ) -> float:
     """Return ratio of the root length in the lower fraction over all root length.
@@ -220,7 +219,6 @@ def get_network_distribution_ratio(
         lateral_lengths: Lateral root lengths. Can be a single float (for one root)
             or an array of floats (for multiple roots).
         network_length_lower: The root length in the lower network.
-        fraction: The fraction of the network considered as 'lower'. Defaults to 2/3.
         monocots: A boolean value, where True indicates rice. Defaults to False.
 
     Returns:

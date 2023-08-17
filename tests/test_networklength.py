@@ -235,7 +235,6 @@ def test_get_network_distribution_ratio(canola_h5):
         primary_length,
         lateral_lengths,
         network_length_lower,
-        fraction,
         monocots,
     )
     np.testing.assert_almost_equal(ratio, 0.5024769665338648, decimal=7)
@@ -268,7 +267,6 @@ def test_get_network_distribution_ratio_rice(rice_h5):
         primary_length,
         lateral_lengths,
         network_length_lower,
-        fraction,
         monocots,
     )
 

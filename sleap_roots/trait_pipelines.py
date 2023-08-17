@@ -684,7 +684,7 @@ class DicotPipeline(Pipeline):
                 ],
                 scalar=True,
                 include_in_csv=True,
-                kwargs={"fraction": self.network_fraction, "monocots": False},
+                kwargs={"monocots": False},
                 description="Scalar of ratio of the root network length in the lower "
                 "fraction of the plant over all root length.",
             ),
