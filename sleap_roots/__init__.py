@@ -11,7 +11,7 @@ import sleap_roots.scanline
 import sleap_roots.series
 import sleap_roots.summary
 import sleap_roots.trait_pipeline
-from sleap_roots.trait_pipeline import get_all_plants_traits
+from sleap_roots.trait_pipeline import DicotPipeline, TraitDef
 from sleap_roots.series import Series
 
 # Define package version.

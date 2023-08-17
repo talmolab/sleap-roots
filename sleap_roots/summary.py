@@ -26,14 +26,27 @@ def get_summary(
     if prefix is None:
         prefix = ""
 
-    return {
-        "{prefix}min": np.nanmin(X),
-        "{prefix}max": np.nanmax(X),
-        "{prefix}mean": np.nanmean(X),
-        "{prefix}median": np.nanmedian(X),
-        "{prefix}std": np.nanstd(X),
-        "{prefix}p5": np.nanpercentile(X, 5),
-        "{prefix}p25": np.nanpercentile(X, 25),
-        "{prefix}p75": np.nanpercentile(X, 75),
-        "{prefix}p95": np.nanpercentile(X, 95),
-    }
+    if len(X) == 0:
+        return {
+            f"{prefix}min": np.nan,
+            f"{prefix}max": np.nan,
+            f"{prefix}mean": np.nan,
+            f"{prefix}median": np.nan,
+            f"{prefix}std": np.nan,
+            f"{prefix}p5": np.nan,
+            f"{prefix}p25": np.nan,
+            f"{prefix}p75": np.nan,
+            f"{prefix}p95": np.nan,
+        }
+    else:
+        return {
+            f"{prefix}min": np.nanmin(X),
+            f"{prefix}max": np.nanmax(X),
+            f"{prefix}mean": np.nanmean(X),
+            f"{prefix}median": np.nanmedian(X),
+            f"{prefix}std": np.nanstd(X),
+            f"{prefix}p5": np.nanpercentile(X, 5),
+            f"{prefix}p25": np.nanpercentile(X, 25),
+            f"{prefix}p75": np.nanpercentile(X, 75),
+            f"{prefix}p95": np.nanpercentile(X, 95),
+        }

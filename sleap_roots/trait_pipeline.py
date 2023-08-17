@@ -160,9 +160,9 @@ class Pipeline:
             computed.
     """
 
-    traits: List[TraitDef] = attrs.ib(init=False)
-    trait_map: Dict[str, TraitDef] = attrs.ib(init=False)
-    trait_computation_order: List[str] = attrs.ib(init=False)
+    traits: List[TraitDef] = attrs.field(init=False)
+    trait_map: Dict[str, TraitDef] = attrs.field(init=False)
+    trait_computation_order: List[str] = attrs.field(init=False)
 
     def __attrs_post_init__(self):
         """Build pipeline objects from traits list."""
@@ -226,6 +226,7 @@ class Pipeline:
                     csv_traits.extend(
                         [f"{trait.name}_{suffix}" for suffix in SUMMARY_SUFFIXES]
                     )
+        return csv_traits
 
     def compute_traits(self, traits: Dict[str, Any]) -> Dict[str, Any]:
         """Compute traits based on the pipeline.
@@ -289,7 +290,7 @@ class Pipeline:
             plant_traits = self.compute_plant_traits(plant)
 
             # Summarize frame level traits.
-            plant_summary = {"plant_name": plant.name}
+            plant_summary = {"plant_name": plant.series_name}
             for trait_name in self.csv_traits:
                 trait_summary = get_summary(
                     plant_traits[trait_name], prefix=f"{trait_name}_"
@@ -801,6 +802,7 @@ class DicotPipeline(Pipeline):
         plant: Series,
         write_csv: bool = False,
         csv_suffix: str = ".traits.csv",
+        return_non_scalar: bool = False,
     ) -> pd.DataFrame:
         """Compute traits for a plant.
 
@@ -810,6 +812,8 @@ class DicotPipeline(Pipeline):
                 CSVs with traits for every instance on every frame.
             csv_suffix: If `write_csv` is `True`, a CSV file will be saved with the same
                 name as the plant's `{plant.series_name}{csv_suffix}`.
+            return_non_scalar: If `True`, return all non-scalar traits as well as the
+                summarized traits.
 
         Returns:
             The computed traits as a pandas DataFrame.
@@ -864,4 +868,8 @@ class DicotPipeline(Pipeline):
             traits[["plant_name", "frame_idx"] + self.csv_traits].to_csv(
                 csv_name, index=False
             )
-        return traits
+
+        if return_non_scalar:
+            return traits
+        else:
+            return traits[["plant_name", "frame_idx"] + self.csv_traits]
