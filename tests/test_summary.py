@@ -39,4 +39,3 @@ def test_get_summary_prefix():
     assert "test_p25" in summary
     assert "test_p75" in summary
     assert "test_p95" in summary
-    
