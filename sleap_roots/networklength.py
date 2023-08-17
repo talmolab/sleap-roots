@@ -75,7 +75,6 @@ def get_network_length(
     Returns:
         Total length of root network.
     """
-
     # Ensure primary_length is a scalar
     if not isinstance(primary_length, (float, np.float64)):
         raise ValueError("Input primary_length must be a scalar value.")
@@ -141,7 +140,6 @@ def get_network_distribution(
     Returns:
         Root network length in the lower fraction of the plant.
     """
-
     # Input validation
     if primary_pts.ndim not in [2, 3]:
         raise ValueError(
@@ -229,7 +227,6 @@ def get_network_distribution_ratio(
         Float of ratio of the root network length in the lower fraction of the plant
         over all root length.
     """
-
     # Ensure primary_length is a scalar
     if not isinstance(primary_length, (float, np.float64)):
         raise ValueError("Input primary_length must be a scalar value.")

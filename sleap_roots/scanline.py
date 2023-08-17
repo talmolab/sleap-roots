@@ -34,7 +34,6 @@ def count_scanline_intersections(
         An array with shape `(n_line,)` representing the number of intersections
             of roots with each scanline.
     """
-
     # Input validation
     if primary_pts.ndim != 2 or primary_pts.shape[-1] != 2:
         raise ValueError("primary_pts should have a shape of `(nodes, 2)`.")
