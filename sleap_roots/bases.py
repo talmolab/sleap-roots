@@ -72,19 +72,6 @@ def get_base_tip_dist(
     return distances
 
 
-def get_lateral_count(pts: np.ndarray):
-    """Get number of lateral roots.
-
-    Args:
-        pts: lateral root landmarks as array of shape `(instance, node, 2)`.
-
-    Return:
-        Scalar of number of lateral roots.
-    """
-    lateral_count = pts.shape[0]
-    return lateral_count
-
-
 def get_base_xs(pts: np.ndarray, monocots: bool = False) -> np.ndarray:
     """Get x coordinates of the base of each lateral root.
 

@@ -1,6 +1,72 @@
 """Get traits related to the points."""
 
 import numpy as np
+from typing import List, Optional
+
+
+def get_count(pts: np.ndarray):
+    """Get number of roots.
+
+    Args:
+        pts: Root landmarks as array of shape `(instance, node, 2)`.
+
+    Return:
+        Scalar of number of lateral roots.
+    """
+    # number of lateral roots is the number of instances
+    count = pts.shape[0]
+    return count
+
+
+def join_pts(pts0: np.ndarray, *args: Optional[np.ndarray]) -> List[np.ndarray]:
+    """Join an arbitrary number of points arrays and return them as a list.
+
+    Args:
+        pts0: The first array of points. Should have shape `(instances, nodes, 2)`
+            or `(nodes, 2)`.
+        *args: Additional optional arrays of points. Each should have shape
+            `(instances, nodes, 2)` or `(nodes, 2)`.
+
+    Returns:
+        A list of arrays, each having shape `(nodes, 2)`.
+    """
+
+    # Initialize an empty list to store the points
+    all_pts = []
+
+    if pts0 is None:
+        raise ValueError("pts0 must not be None.")
+
+    # First, process pts0 since it's mandatory.
+    # If it has shape `(nodes, 2)`, expand dimensions to `(1, nodes, 2)`
+    if pts0.ndim == 2 and pts0.shape[-1] == 2:
+        pts0 = pts0[np.newaxis, :, :]
+
+    # Validate the shape of pts0
+    if pts0.ndim != 3 or pts0.shape[-1] != 2:
+        raise ValueError(
+            "pts0 should have a shape of `(instances, nodes, 2)` or `(nodes, 2)`."
+        )
+
+    # Add the points from pts0 to the list
+    all_pts.extend(list(pts0))
+
+    # Loop through all the additional arrays of points
+    for pts in [arg for arg in args if arg is not None]:
+        # If an array has shape `(nodes, 2)`, expand dimensions to `(1, nodes, 2)`
+        if pts.ndim == 2 and pts.shape[-1] == 2:
+            pts = pts[np.newaxis, :, :]
+
+        # Validate the shape of each array
+        if pts.ndim != 3 or pts.shape[-1] != 2:
+            raise ValueError(
+                "Points should have a shape of `(instances, nodes, 2)` or `(nodes, 2)`."
+            )
+
+        # Add the points to the list
+        all_pts.extend(list(pts))
+
+    return all_pts
 
 
 def get_all_pts_array(
