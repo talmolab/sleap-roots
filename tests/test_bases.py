@@ -2,7 +2,6 @@ from sleap_roots.bases import (
     get_bases,
     get_base_ct_density,
     get_base_tip_dist,
-    get_lateral_count,
     get_base_xs,
     get_base_ys,
     get_base_length,
@@ -213,17 +212,6 @@ def test_get_base_tip_dist_no_roots(pts_no_roots):
     distance = get_base_tip_dist(primary_base_pt, primary_tip_pt)
     assert distance.shape == (2,)
     np.testing.assert_almost_equal(distance, [np.nan, np.nan], decimal=7)
-
-
-# test get_lateral_count function with canola
-def test_get_lateral_count(canola_h5):
-    series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = series[0]
-    lateral_pts = lateral.numpy()
-    lateral_count = get_lateral_count(lateral_pts)
-    assert lateral_count == 5
 
 
 # test get_base_xs with canola

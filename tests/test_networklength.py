@@ -9,7 +9,7 @@ from sleap_roots.networklength import get_network_distribution_ratio
 from sleap_roots.networklength import get_network_length
 from sleap_roots.networklength import get_network_solidity
 from sleap_roots.networklength import get_network_width_depth_ratio
-from sleap_roots.points import get_all_pts_array
+from sleap_roots.points import get_all_pts_array, join_pts
 
 
 @pytest.fixture
@@ -83,6 +83,61 @@ def test_get_network_width_depth_ratio_nan(pts_nan3):
     np.testing.assert_almost_equal(ratio, np.nan, decimal=7)
 
 
+def test_get_network_distribution_basic_functionality():
+    pts_list = [np.array([[0, 0], [4, 0]]), np.array([[0, 1], [4, 1]])]
+    bounding_box = (0, 0, 4, 1)
+    fraction = 2 / 3
+    result = get_network_distribution(pts_list, bounding_box, fraction)
+    assert (
+        result == 4
+    )  # Only the first line segment is in the lower 2/3 of the bounding box
+
+
+def test_get_network_distribution_invalid_shape():
+    with pytest.raises(ValueError):
+        pts_list = [np.array([0, 1])]
+        bounding_box = (0, 0, 4, 4)
+        get_network_distribution(pts_list, bounding_box)
+
+
+def test_get_network_distribution_invalid_bounding_box():
+    with pytest.raises(ValueError):
+        pts_list = [np.array([[0, 0], [4, 0]])]
+        bounding_box = (0, 0, 4)
+        get_network_distribution(pts_list, bounding_box)
+
+
+def test_get_network_distribution_with_nan():
+    # NaNs should be filtered out
+    pts_list = [np.array([[0, 0], [4, 0]]), np.array([[0, 1], [4, np.nan]])]
+    bounding_box = (0, 0, 4, 1)
+    fraction = 2 / 3
+    result = get_network_distribution(pts_list, bounding_box, fraction)
+    assert (
+        result == 0.0
+    )  # Given (0,0) is the top-left, the line segment is in the upper 1/3
+
+
+def test_get_network_distribution_with_nan_nonzero_length():
+    # First line segment is at y = 2/3, which is in the lower 2/3 of the bounding box.
+    # Second line segment has a NaN value and will be filtered out.
+    pts_list = [np.array([[0, 2 / 3], [4, 2 / 3]]), np.array([[0, 1], [4, np.nan]])]
+    bounding_box = (0, 0, 4, 1)
+    fraction = 2 / 3
+    result = get_network_distribution(pts_list, bounding_box, fraction)
+    assert (
+        result == 4.0
+    )  # Only the first line segment is in the lower 2/3 and its length is 4.
+
+
+def test_get_network_distribution_different_fraction():
+    pts_list = [np.array([[0, 0], [4, 0]]), np.array([[0, 1], [4, 1]])]
+    bounding_box = (0, 0, 4, 1)
+    fraction = 1  # Cover the whole bounding box
+    result = get_network_distribution(pts_list, bounding_box, fraction)
+    assert result == 8  # Both line segments are in the lower part of the bounding box
+
+
 def test_get_network_length(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
@@ -133,9 +188,7 @@ def test_get_network_solidity(canola_h5):
     network_length = get_network_length(primary_length, lateral_lengths, monocots)
 
     # get chull_area
-    pts_all_array = get_all_pts_array(
-        primary_max_length_pts, lateral_pts, monocots=monocots
-    )
+    pts_all_array = get_all_pts_array(primary_max_length_pts, lateral_pts)
     convex_hull = get_convhull(pts_all_array)
     chull_area = get_chull_area(convex_hull)
 
@@ -159,9 +212,7 @@ def test_get_network_solidity_rice(rice_h5):
     network_length = get_network_length(primary_length, lateral_lengths, monocots)
 
     # get chull_area
-    pts_all_array = get_all_pts_array(
-        primary_max_length_pts, lateral_pts, monocots=monocots
-    )
+    pts_all_array = get_all_pts_array(lateral_pts)
     convex_hull = get_convhull(pts_all_array)
     chull_area = get_chull_area(convex_hull)
 
@@ -177,14 +228,11 @@ def test_get_network_distribution(canola_h5):
     primary_pts = primary.numpy()
     primary_max_length_pts = get_max_length_pts(primary_pts)
     lateral_pts = lateral.numpy()
-    monocots = False
-    pts_all_array = get_all_pts_array(primary_max_length_pts, lateral_pts, monocots)
+    pts_all_array = get_all_pts_array(primary_max_length_pts, lateral_pts)
     bbox = get_bbox(pts_all_array)
+    pts_all_list = join_pts(primary_max_length_pts, lateral_pts)
     fraction = 2 / 3
-    monocots = False
-    root_length = get_network_distribution(
-        primary_max_length_pts, lateral_pts, bbox, fraction, monocots
-    )
+    root_length = get_network_distribution(pts_all_list, bbox, fraction)
     np.testing.assert_almost_equal(root_length, 589.4322131363684, decimal=7)
 
 
@@ -192,19 +240,13 @@ def test_get_network_distribution_rice(rice_h5):
     series = Series.load(
         rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
     )
-    primary, lateral = series[0]
-    primary_pts = primary.numpy()
-    primary_max_length_pts = get_max_length_pts(primary_pts)
+    lateral = series[0][1]
     lateral_pts = lateral.numpy()
-    monocots = True
-    pts_all_array = get_all_pts_array(
-        primary_max_length_pts, lateral_pts, monocots=monocots
-    )
+    pts_all_array = get_all_pts_array(lateral_pts)
     bbox = get_bbox(pts_all_array)
     fraction = 2 / 3
-    root_length = get_network_distribution(
-        primary_max_length_pts, lateral_pts, bbox, fraction, monocots
-    )
+    pts_all_list = join_pts(lateral_pts)
+    root_length = get_network_distribution(pts_all_list, bbox, fraction)
     np.testing.assert_almost_equal(root_length, 477.77168597561507, decimal=7)
 
 
@@ -222,15 +264,11 @@ def test_get_network_distribution_ratio(canola_h5):
     lateral_pts = lateral.numpy()
     lateral_lengths = get_root_lengths(lateral_pts)
     # get pts_all_array
-    pts_all_array = get_all_pts_array(
-        primary_max_length_pts, lateral_pts, monocots=monocots
-    )
+    pts_all_array = get_all_pts_array(primary_max_length_pts, lateral_pts)
     bbox = get_bbox(pts_all_array)
+    pts_all_list = join_pts(primary_max_length_pts, lateral_pts)
     # get network_length_lower
-    network_length_lower = get_network_distribution(
-        primary_max_length_pts, lateral_pts, bbox
-    )
-    fraction = 2 / 3
+    network_length_lower = get_network_distribution(pts_all_list, bbox)
     ratio = get_network_distribution_ratio(
         primary_length,
         lateral_lengths,
@@ -255,13 +293,12 @@ def test_get_network_distribution_ratio_rice(rice_h5):
     lateral_pts = lateral.numpy()
     lateral_lengths = get_root_lengths(lateral_pts)
     # get pts_all_array
-    pts_all_array = get_all_pts_array(
-        primary_max_length_pts, lateral_pts, monocots=monocots
-    )
+    pts_all_array = get_all_pts_array(lateral_pts)
     bbox = get_bbox(pts_all_array)
+    pts_all_list = join_pts(lateral_pts)
     # get network_length_lower
     network_length_lower = get_network_distribution(
-        primary_max_length_pts, lateral_pts, bbox, fraction=fraction, monocots=monocots
+        pts_all_list, bbox, fraction=fraction
     )
     ratio = get_network_distribution_ratio(
         primary_length,
