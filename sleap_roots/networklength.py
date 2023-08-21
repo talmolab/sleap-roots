@@ -3,7 +3,7 @@
 import numpy as np
 from shapely import LineString, Polygon
 from sleap_roots.lengths import get_root_lengths, get_max_length_pts
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, List
 
 
 def get_bbox(pts: np.ndarray) -> Tuple[float, float, float, float]:
@@ -121,60 +121,34 @@ def get_network_solidity(
 
 
 def get_network_distribution(
-    primary_pts: np.ndarray,
-    lateral_pts: np.ndarray,
+    pts_list: List[np.ndarray],
     bounding_box: Tuple[float, float, float, float],
     fraction: float = 2 / 3,
-    monocots: bool = False,
 ) -> float:
     """Return the root length in the lower fraction of the plant.
 
     Args:
-        primary_pts: Array of primary root landmarks. Can have shape `(nodes, 2)` or
-            `(1, nodes, 2)`.
-        lateral_pts: Array of lateral root landmarks with shape `(instances, nodes, 2)`.
+        pts_list: A list of arrays, each having shape `(nodes, 2)`.
         bounding_box: Tuple in the form `(left_x, top_y, width, height)`.
         fraction: Lower fraction value. Defaults to 2/3.
-        monocots: A boolean value, where True indicates rice. Defaults to False.
 
     Returns:
         Root network length in the lower fraction of the plant.
     """
-    # Input validation
-    if primary_pts.ndim not in [2, 3]:
+    # Input validation for pts_list
+    if any(pts.ndim != 2 or pts.shape[-1] != 2 for pts in pts_list):
         raise ValueError(
-            "primary_pts should have a shape of `(nodes, 2)` or `(1, nodes, 2)`."
+            "Each pts array in pts_list should have a shape of `(nodes, 2)`."
         )
 
-    if primary_pts.ndim == 2 and primary_pts.shape[-1] != 2:
-        raise ValueError("primary_pts should have a shape of `(nodes, 2)`.")
-
-    if primary_pts.ndim == 3 and primary_pts.shape[-1] != 2:
-        raise ValueError("primary_pts should have a shape of `(1, nodes, 2)`.")
-
-    if lateral_pts.ndim != 3 or lateral_pts.shape[-1] != 2:
-        raise ValueError("lateral_pts should have a shape of `(instances, nodes, 2)`.")
-
+    # Input validation for bounding_box
     if len(bounding_box) != 4:
         raise ValueError(
-            "bounding_box should be in the form `(left_x, top_y, width, height)`."
+            "bounding_box must contain exactly 4 elements: `(left_x, top_y, width, height)`."
         )
 
-    # Make sure the longest primary root is used
-    if primary_pts.ndim == 3:
-        primary_pts = get_max_length_pts(primary_pts)  # shape is (nodes, 2)
-
-    # Make primary_pts and lateral_pts have the same dimension of 3
-    primary_pts = (
-        primary_pts[np.newaxis, :, :] if primary_pts.ndim == 2 else primary_pts
-    )
-
     # Filter out NaN values
-    primary_pts = [root[~np.isnan(root).any(axis=1)] for root in primary_pts]
-    lateral_pts = [root[~np.isnan(root).any(axis=1)] for root in lateral_pts]
-
-    # Collate root points.
-    all_roots = primary_pts + lateral_pts if not monocots else lateral_pts
+    pts_list = [pts[~np.isnan(pts).any(axis=-1)] for pts in pts_list]
 
     # Get the vertices of the bounding box
     left_x, top_y, width, height = bounding_box
@@ -185,7 +159,6 @@ def get_network_distribution(
         return np.nan
 
     # Convert lower bounding box to polygon
-    # Vertices are in counter-clockwise order
     lower_box = Polygon(
         [
             [left_x, top_y + (height - lower_height)],
@@ -197,7 +170,9 @@ def get_network_distribution(
 
     # Calculate length of roots within the lower bounding box
     network_length = 0
-    for root in all_roots:
+    for root in pts_list:
+        if root.shape[0] < 2:  # Skip if fewer than two points
+            continue
         root_poly = LineString(root)
         lower_intersection = root_poly.intersection(lower_box)
         root_length = lower_intersection.length
