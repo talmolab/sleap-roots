@@ -69,7 +69,8 @@ def get_root_lengths(pts: np.ndarray) -> np.ndarray:
     segment_lengths = np.linalg.norm(segment_diffs, axis=-1)
     # Add the segments together to get the total length using nansum
     total_lengths = np.nansum(segment_lengths, axis=-1)
-    # Find the NaN segment lengths and record NaN in place of 0 when finding the total length
+    # Find the NaN segment lengths and record NaN in place of 0 when finding the total
+    # length
     total_lengths[np.isnan(segment_lengths).all(axis=-1)] = np.nan
 
     # If there is 1 instance, return a scalar instead of an array of length 1
