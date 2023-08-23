@@ -1,6 +1,7 @@
 """Get intersections between roots and horizontal scan lines."""
 
 import numpy as np
+from typing import List
 
 
 def count_scanline_intersections(
