@@ -15,6 +15,6 @@ def test_dicot_pipeline(canola_h5, soy_h5):
     soy_traits = pipeline.compute_plant_traits(soy)
     all_traits = pipeline.compute_batch_traits([canola, soy])
 
-    assert canola_traits.shape == (72, 115)
-    assert soy_traits.shape == (72, 115)
-    assert all_traits.shape == (2, 1018)
+    assert canola_traits.shape == (72, 133)
+    assert soy_traits.shape == (72, 133)
+    assert all_traits.shape == (2, 1180)

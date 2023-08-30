@@ -426,7 +426,7 @@ class DicotPipeline(Pipeline):
                 fn=get_root_widths_package,
                 input_traits=["primary_max_length_pts", "lateral_pts"],
                 scalar=False,
-                include_in_csv=True,
+                include_in_csv=False,
                 kwargs={"tolerance": self.root_width_tolerance, "monocots": False},
                 description="Returns estimation of root width using bases of lateral "
                 "roots with indices and coordinates of matched base pairs.",
@@ -446,7 +446,7 @@ class DicotPipeline(Pipeline):
                 fn=get_root_widths_inds,
                 input_traits=["root_widths_package"],
                 scalar=False,
-                include_in_csv=True,
+                include_in_csv=False,
                 kwargs={},
                 description="Returns indices of matched roots used to calculate the"
                 "root widths.",
