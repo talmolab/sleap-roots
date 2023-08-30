@@ -20,7 +20,6 @@ from sleap_roots.bases import (
     get_base_ys,
     get_bases,
     get_lateral_count,
-    get_root_width,
 )
 from sleap_roots.convhull import (
     get_chull_area,

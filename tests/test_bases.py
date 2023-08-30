@@ -7,7 +7,11 @@ from sleap_roots.bases import (
     get_base_ys,
     get_base_length,
     get_base_length_ratio,
-    get_root_width,
+    get_root_widths_inds,
+    get_root_widths_package,
+    get_root_widths_left_bases,
+    get_root_widths_right_bases,
+    get_root_widths,
 )
 from sleap_roots.lengths import get_max_length_pts, get_root_lengths_max
 from sleap_roots.tips import get_tips
@@ -400,7 +404,7 @@ def test_get_base_length_ratio(canola_h5):
     np.testing.assert_almost_equal(base_length_ratio, 0.086, decimal=3)
 
 
-def test_root_width(canola_h5):
+def test_root_width_canola(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
@@ -411,5 +415,89 @@ def test_root_width(canola_h5):
     assert primary_max_length_pts.shape == (6, 2)
     assert lateral_pts.shape == (5, 3, 2)
 
-    root_widths = get_root_width(primary_max_length_pts, lateral_pts, 0.02)
+    root_widths = get_root_widths_package(primary_max_length_pts, lateral_pts, 0.02)
     np.testing.assert_almost_equal(root_widths[0], np.array([31.60323909]), decimal=7)
+
+
+def test_root_width_rice(rice_h5):
+    series = Series.load(
+        rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
+    )
+    primary, lateral = series[0]
+    primary_pts = primary.numpy()
+    primary_max_length_pts = get_max_length_pts(primary_pts)
+    lateral_pts = lateral.numpy()
+    root_widths = get_root_widths_package(
+        primary_max_length_pts, lateral_pts, 0.02, False
+    )
+    assert np.allclose(root_widths[0], np.array([]), atol=1e-7)
+    assert root_widths[1] == [(np.nan, np.nan)]
+    assert np.allclose(root_widths[2], np.empty((0, 2)), atol=1e-7)
+    assert np.allclose(root_widths[3], np.empty((0, 2)), atol=1e-7)
+
+
+# Test for get_root_widths_package function
+@pytest.mark.parametrize(
+    "primary, lateral, tolerance, monocots, expected",
+    [
+        (
+            np.array([[0, 0], [1, 1]]),
+            np.array([[[0, 0], [1, 1]], [[1, 1], [2, 2]]]),
+            0.02,
+            False,
+            (np.array([]), [(np.nan, np.nan)], np.empty((0, 2)), np.empty((0, 2))),
+        ),
+        (
+            np.array([[np.nan, np.nan], [np.nan, np.nan]]),
+            np.array([[[0, 0], [1, 1]], [[1, 1], [2, 2]]]),
+            0.02,
+            False,
+            (np.array([]), [(np.nan, np.nan)], np.empty((0, 2)), np.empty((0, 2))),
+        ),
+    ],
+)
+def test_get_root_widths_package(primary, lateral, tolerance, monocots, expected):
+    result = get_root_widths_package(primary, lateral, tolerance, monocots)
+    np.testing.assert_array_almost_equal(result[0], expected[0])
+    assert result[1] == expected[1]
+    np.testing.assert_array_almost_equal(result[2], expected[2])
+    np.testing.assert_array_almost_equal(result[3], expected[3])
+
+
+# Test for functions that extract root width related traits from the package
+@pytest.mark.parametrize(
+    "root_widths_package, expected_widths, expected_inds, expected_left_bases, expected_right_bases",
+    [
+        (
+            (np.array([]), [(np.nan, np.nan)], np.empty((0, 2)), np.empty((0, 2))),
+            np.array([]),
+            [(np.nan, np.nan)],
+            np.empty((0, 2)),
+            np.empty((0, 2)),
+        ),
+    ],
+)
+def test_get_root_widths_and_bases(
+    root_widths_package,
+    expected_widths,
+    expected_inds,
+    expected_left_bases,
+    expected_right_bases,
+):
+    assert len(root_widths_package) == 4  # Check that the input tuple has 4 elements
+
+    # Test the get_root_widths function
+    result_widths = get_root_widths(root_widths_package)
+    np.testing.assert_array_almost_equal(result_widths, expected_widths)
+
+    # Test the get_root_widths_inds function
+    result_inds = get_root_widths_inds(root_widths_package)
+    assert result_inds == expected_inds  # Assuming the indices are integers or NaNs
+
+    # Test the left bases
+    result_left_bases = get_root_widths_left_bases(root_widths_package)
+    np.testing.assert_array_almost_equal(result_left_bases, expected_left_bases)
+
+    # Test the right bases
+    result_right_bases = get_root_widths_right_bases(root_widths_package)
+    np.testing.assert_array_almost_equal(result_right_bases, expected_right_bases)
