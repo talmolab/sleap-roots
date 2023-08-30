@@ -279,83 +279,141 @@ def get_base_median_ratio(lateral_base_ys, primary_tip_pt_y, monocots: bool = Fa
     return base_median_ratio
 
 
-def get_root_pair_widths_projections(
+def get_root_width(
     primary_max_length_pts: np.ndarray,
     lateral_pts: np.ndarray,
-    tolerance: float,
+    tolerance: float = 0.02,
     monocots: bool = False,
-) -> float:
-    """Return estimation of root width using bases of lateral roots.
+) -> (np.ndarray, list, np.ndarray, np.ndarray):
+    """
+    Estimate root width using bases of lateral roots and also return pairs of matched indices.
 
     Args:
         primary_max_length_pts: Longest primary root as an array of shape (nodes, 2).
         lateral_pts: Lateral roots as an array of shape (n, nodes, 2).
-        tolerance: Difference in projection norm between the right and left side
-            (~0.02).
+        tolerance: Tolerance for the projection difference between matched roots. The default value is 0.02.
         monocots: Boolean value, where False is dicot (default), True is rice.
 
     Returns:
-        float: The distance in pixels between the bases of matched roots, or NaN
-            if no matches were found or all input points were NaN.
-
-    Raises:
-        ValueError: If the input arrays are of incorrect shape.
+        A tuple containing four elements:
+            - np.ndarray: The distances in pixels between the bases of matched roots, or NaN if no valid matches found.
+            - list: A list of tuples, where each tuple contains the indices of the matched roots on the left and right sides.
+            - np.ndarray: An array of shape (n, 2) containing the (x, y) coordinates of the left bases of the final paired coordinates.
+            - np.ndarray: An array of shape (n, 2) containing the (x, y) coordinates of the right bases of the final paired coordinates.
     """
+    # Check array dimensions
     if primary_max_length_pts.ndim != 2 or lateral_pts.ndim != 3:
         raise ValueError("Input arrays should be 2-dimensional and 3-dimensional")
 
+    # Check the shape of the last dimensions
+    if primary_max_length_pts.shape[1] != 2 or lateral_pts.shape[2] != 2:
+        raise ValueError("The last dimension should contain x and y coordinates")
+
+    # Check for minimum length
+    if len(primary_max_length_pts) < 2 or len(lateral_pts) < 2:
+        return np.nan, [], [], []
+
+    # Validate tolerance
+    if tolerance <= 0:
+        raise ValueError("Tolerance should be a positive number")
+
+    # Return NaN and an empty list if the function is called for monocots,
+    # or if all points in either array are NaN
     if (
         monocots
         or np.isnan(primary_max_length_pts).all()
         or np.isnan(lateral_pts).all()
     ):
-        return np.nan
+        return np.nan, [], [], []
 
+    # Filter out any NaN points from the primary root points
     primary_pts_filtered = primary_max_length_pts[
         ~np.isnan(primary_max_length_pts).any(axis=-1)
     ]
+    # Create a LineString object for the primary root
     primary_line = LineString(primary_pts_filtered)
 
+    # Identify lateral roots that have a defined base (not NaN)
     has_base = ~np.isnan(lateral_pts[:, 0, 0])
-    valid_inds = np.argwhere(has_base).squeeze()
+    # Filter the lateral roots based on the valid base points
     lateral_pts = lateral_pts[has_base]
 
+    # Determine if the base of each lateral root is to the left or right of the rest of the root
     is_left = lateral_pts[:, 0, 0] > np.nanmin(lateral_pts[:, 1:, 0], axis=1)
 
+    # If all lateral roots are on the same side, return NaN and an empty list
     if is_left.all() or (~is_left).all():
-        return np.nan
+        return np.nan, [], [], []
 
+    # Split lateral roots into left and right bases
     left_bases, right_bases = lateral_pts[is_left, 0], lateral_pts[~is_left, 0]
 
+    # Find the nearest points on the primary root for each right base
     nearest_primary_right = [
         nearest_points(primary_line, Point(right_base))[0] for right_base in right_bases
     ]
 
+    # Find the nearest points on the primary root for each left base
     nearest_primary_left = [
         nearest_points(primary_line, Point(left_base))[0] for left_base in left_bases
     ]
 
+    # Calculate the normalized projection of each nearest point on the primary root (right side)
     nearest_primary_norm_right = np.array(
         [primary_line.project(pt, normalized=True) for pt in nearest_primary_right]
     )
 
+    # Calculate the normalized projection of each nearest point on the primary root (left side)
     nearest_primary_norm_left = np.array(
         [primary_line.project(pt, normalized=True) for pt in nearest_primary_left]
     )
 
-    projection_diffs = np.abs(
+    # Create a cost matrix based on the differences in projections between left and right bases
+    cost_matrix = np.abs(
         nearest_primary_norm_left.reshape(-1, 1)
         - nearest_primary_norm_right.reshape(1, -1)
     )
 
-    indices = np.argwhere(projection_diffs <= tolerance)
+    # Use the Hungarian algorithm to find an optimal pairing that minimizes the sum of projection differences
+    left_inds, right_inds = linear_sum_assignment(cost_matrix)
 
-    left_inds = indices[:, 0]
-    right_inds = indices[:, 1]
+    # Filter out pairs where the projection difference exceeds the given tolerance
+    valid_pairs = cost_matrix[left_inds, right_inds] <= tolerance
+    left_inds = left_inds[valid_pairs]
+    right_inds = right_inds[valid_pairs]
 
+    # If no valid pairs remain, return NaN and empty lists
+    if len(left_inds) == 0 or len(right_inds) == 0:
+        return np.nan, [], [], []
+
+    # Filter out pairs that do not intersect the primary root
+    is_intersecting = np.array(
+        [
+            primary_line.intersects(
+                LineString([left_bases[left_ind], right_bases[right_ind]])
+            )
+            for left_ind, right_ind in zip(left_inds, right_inds)
+        ]
+    )
+    left_inds = left_inds[is_intersecting]
+    right_inds = right_inds[is_intersecting]
+
+    # If no valid pairs remain, return NaN and empty lists
+    if len(left_inds) == 0 or len(right_inds) == 0:
+        return np.nan, [], [], []
+
+    # Update the left and right bases of the final paired coordinates
+    left_bases_final = left_bases[left_inds]
+    right_bases_final = right_bases[right_inds]
+
+    # Calculate the Euclidean distance between the bases of the valid pairs
     match_dists = np.linalg.norm(
         left_bases[left_inds] - right_bases[right_inds],
         axis=-1,
     )
 
-    return match_dists
+    # Create a list of tuples representing the indices of the matched pairs
+    matched_indices = list(zip(left_inds, right_inds))
+
+    # Return the distances, matched indices, and the final left and right bases
+    return match_dists, matched_indices, left_bases_final, right_bases_final
