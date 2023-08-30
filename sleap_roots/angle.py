@@ -1,7 +1,6 @@
 """Get angle of each root."""
 
 import numpy as np
-import math
 
 
 def get_node_ind(pts: np.ndarray, proximal: bool = True) -> np.ndarray:

@@ -7,7 +7,7 @@ from sleap_roots.bases import (
     get_base_ys,
     get_base_length,
     get_base_length_ratio,
-    get_root_pair_widths_projections,
+    get_root_width,
 )
 from sleap_roots.lengths import get_max_length_pts, get_root_lengths_max
 from sleap_roots.tips import get_tips
@@ -411,7 +411,5 @@ def test_root_width(canola_h5):
     assert primary_max_length_pts.shape == (6, 2)
     assert lateral_pts.shape == (5, 3, 2)
 
-    root_widths = get_root_pair_widths_projections(
-        primary_max_length_pts, lateral_pts, 0.02
-    )
-    np.testing.assert_almost_equal(root_widths, np.array([31.60323909]), decimal=7)
+    root_widths = get_root_width(primary_max_length_pts, lateral_pts, 0.02)
+    np.testing.assert_almost_equal(root_widths[0], np.array([31.60323909]), decimal=7)
