@@ -286,8 +286,7 @@ def get_root_widths_package(
     tolerance: float = 0.02,
     monocots: bool = False,
 ) -> (np.ndarray, list, np.ndarray, np.ndarray):
-    """Estimate root width using bases of lateral roots and also return pairs of matched
-        indices.
+    """Estimate root width using bases of lateral roots.
 
     Args:
         primary_max_length_pts: Longest primary root as an array of shape (nodes, 2).
@@ -466,7 +465,6 @@ def get_root_widths(
             with a shape of (n,), where n is the number of matched base pairs. Returns
             an empty array if no matches are found.
     """
-
     # Check to make sure the input is a tuple of 4 elements
     if not isinstance(root_widths_package, tuple) or len(root_widths_package) != 4:
         raise ValueError("The input should be a tuple containing exactly 4 elements.")
@@ -501,7 +499,6 @@ def get_root_widths_inds(
             roots on the left and right sides. A list containing a tuple of NaNs is
             returned when no matched indices are found.
     """
-
     # Check to make sure the input is a tuple of 4 elements
     if not isinstance(root_widths_package, tuple) or len(root_widths_package) != 4:
         raise ValueError("The input should be a tuple containing exactly 4 elements.")
@@ -536,7 +533,6 @@ def get_root_widths_left_bases(
             coordinates of the left bases of the final paired coordinates. An empty
             array of shape (0, 2) is returned when no matched indices are found.
     """
-
     # Check to make sure the input is a tuple of 4 elements
     if not isinstance(root_widths_package, tuple) or len(root_widths_package) != 4:
         raise ValueError("The input should be a tuple containing exactly 4 elements.")
@@ -571,7 +567,6 @@ def get_root_widths_right_bases(
             coordinates of the right bases of the final paired coordinates. An empty
             array of shape (0, 2) is returned when no matched indices are found.
     """
-
     # Check to make sure the input is a tuple of 4 elements
     if not isinstance(root_widths_package, tuple) or len(root_widths_package) != 4:
         raise ValueError("The input should be a tuple containing exactly 4 elements.")
