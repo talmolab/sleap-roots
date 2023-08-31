@@ -1,7 +1,7 @@
 """Get length-related traits."""
 import numpy as np
 from sleap_roots.bases import get_base_tip_dist
-from typing import Optional
+from typing import Union
 
 
 def get_max_length_pts(pts: np.ndarray) -> np.ndarray:
@@ -114,57 +114,45 @@ def get_root_lengths_max(pts: np.ndarray) -> np.ndarray:
 
 
 def get_grav_index(
-    primary_length: Optional[float] = None,
-    primary_base_tip_dist: Optional[float] = None,
-    pts: Optional[np.ndarray] = None,
-) -> float:
-    """Calculate the gravitropism index of a primary root.
+    lengths: Union[float, np.ndarray],
+    base_tip_dists: Union[float, np.ndarray],
+) -> Union[float, np.ndarray]:
+    """
+    Calculate the gravitropism index of a root.
 
     The gravitropism index quantifies the curviness of the root's growth. A higher
     gravitropism index indicates a curvier root (less responsive to gravity), while a
     lower index indicates a straighter root (more responsive to gravity). The index is
-    computed as the difference between the maximum primary root length and straight-line
-    distance from the base to the tip of the primary root, normalized by the root length.
+    computed as the difference between the maximum root length and straight-line
+    distance from the base to the tip of the root, normalized by the root length.
 
     Args:
-        primary_length: Maximum length of the primary root. Used if `pts` is not
-            provided.
-        primary_base_tip_dist: The straight-line distance from the base to the tip of
-        the primary root. Used if `pts` is not provided.
-        pts: Landmarks of the primary root of shape `(instances, nodes, 2)`. If
-        provided, `primary_length` and `primary_base_tip_dist` are ignored.
+        lengths: Maximum length(s) of the root(s).
+        base_tip_dists: The straight-line distance(s) from the base to the tip of the
+        root(s).
 
     Returns:
-        float: Gravitropism index of the primary root, quantifying its curviness.
+        float or np.ndarray: Gravitropism index of the root(s), quantifying its (their)
+        curviness.
     """
-    # Use provided scalar values if available
-    if primary_length is not None and primary_base_tip_dist is not None:
-        max_primary_length = primary_length
-        max_base_tip_distance = primary_base_tip_dist
+    # Convert inputs to NumPy arrays for element-wise operations
+    lengths = np.asarray(lengths)
+    base_tip_dists = np.asarray(base_tip_dists)
 
-    # Use provided pts array to compute required values if available
-    elif pts is not None:
-        if np.isnan(pts).all():
-            return np.nan
-        primary_length_max = get_root_lengths_max(pts=pts)
-        primary_base_tip_dist = get_base_tip_dist(pts=pts)
-        max_primary_length = np.nanmax(primary_length_max)
-        max_base_tip_distance = np.nanmax(primary_base_tip_dist)
+    # Initialize an array to store the gravitropism index, filled with NaN
+    grav_index = np.full(lengths.shape, np.nan)
 
-    else:
-        raise ValueError(
-            "Either both primary_length and primary_base_tip_dist, or pts"
-            "must be provided."
-        )
+    # Identify valid and invalid values
+    valid_values = ~np.isnan(lengths) & ~np.isnan(base_tip_dists) & (lengths != 0)
 
-    # Check for invalid values (NaN or zero lengths)
-    if (
-        np.isnan(max_primary_length)
-        or np.isnan(max_base_tip_distance)
-        or max_primary_length == 0
-    ):
-        return np.nan
+    # Calculate gravitropism index only for valid values
+    grav_index[valid_values] = (
+        lengths[valid_values] - base_tip_dists[valid_values]
+    ) / lengths[valid_values]
 
-    # Calculate and return gravitropism index
-    grav_index = (max_primary_length - max_base_tip_distance) / max_primary_length
-    return grav_index
+    # If the input was a float, return a float; otherwise, return the NumPy array.
+    return (
+        grav_index
+        if grav_index.size > 1
+        else (grav_index.item() if valid_values else np.nan)
+    )
