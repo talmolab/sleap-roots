@@ -29,8 +29,10 @@ class Series:
         get_points: Returns points for the given prediction name.
 
     Example:
-        >>> series = Series.load(h5_path="your_h5_path", prediction_names=["primary_multi_day", "lateral_3_nodes"])
-        >>> primary_points = series.get_points(frame_idx=0, pred_name="primary_multi_day")
+        >>> series = Series.load(h5_path="your_h5_path",
+        prediction_names=["primary_multi_day", "lateral_3_nodes"])
+        >>> primary_points =
+        series.get_points(frame_idx=0, pred_name="primary_multi_day")
     """
 
     h5_path: Optional[str] = attrib(default=None)
