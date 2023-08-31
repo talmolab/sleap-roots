@@ -1249,7 +1249,7 @@ class OlderMonocotPipeline(Pipeline):
                 - "main_pts": Array of main root points.
         """
         # Get the root instances.
-        main = plant[frame_idx]
+        main = plant[frame_idx][0]
         gt_instances_lr = main.user_instances + main.unused_predictions
 
         # Convert the instances to numpy arrays.

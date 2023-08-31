@@ -21,9 +21,9 @@ def test_dicot_pipeline(canola_h5, soy_h5):
 
 
 def test_OlderMonocot_pipeline(rice_main_10do_h5):
-    rice = Series.load(rice_main_10do_h5, ["main_10do_6nodes"])[0]
+    rice = Series.load(rice_main_10do_h5, ["main_10do_6nodes"])
 
     pipeline = OlderMonocotPipeline()
     rice_10dag_traits = pipeline.compute_plant_traits(rice)
 
-    assert rice_10dag_traits.shape == (72, 115)
+    assert rice_10dag_traits.shape == (72, 98)

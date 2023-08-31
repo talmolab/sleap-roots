@@ -162,6 +162,32 @@ def test_get_grav_index(canola_h5):
     np.testing.assert_almost_equal(grav_index, 0.08898137324716636)
 
 
+def test_grav_index_float():
+    assert get_grav_index(10.0, 5.0) == 0.5
+
+
+def test_grav_index_float_invalid():
+    assert np.isnan(get_grav_index(np.nan, 5.0))
+
+
+def test_grav_index_array():
+    lengths = np.array([10, 20, 30, 0, np.nan])
+    base_tip_dists = np.array([5, 15, 25, 0, np.nan])
+    expected = np.array([0.5, 0.25, 0.16666667, np.nan, np.nan])
+    np.testing.assert_allclose(
+        get_grav_index(lengths, base_tip_dists), expected, rtol=1e-6
+    )
+
+
+def test_grav_index_mixed_invalid():
+    lengths = np.array([10, np.nan, 0])
+    base_tip_dists = np.array([5, 5, 5])
+    expected = np.array([0.5, np.nan, np.nan])
+    np.testing.assert_allclose(
+        get_grav_index(lengths, base_tip_dists), expected, rtol=1e-6
+    )
+
+
 def test_get_root_lengths(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
