@@ -117,8 +117,7 @@ def get_grav_index(
     lengths: Union[float, np.ndarray],
     base_tip_dists: Union[float, np.ndarray],
 ) -> Union[float, np.ndarray]:
-    """
-    Calculate the gravitropism index of a root.
+    """Calculate the gravitropism index of a root.
 
     The gravitropism index quantifies the curviness of the root's growth. A higher
     gravitropism index indicates a curvier root (less responsive to gravity), while a
