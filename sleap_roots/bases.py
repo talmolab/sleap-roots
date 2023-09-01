@@ -280,35 +280,46 @@ def get_base_median_ratio(lateral_base_ys, primary_tip_pt_y, monocots: bool = Fa
     return base_median_ratio
 
 
-def get_root_widths_package(
+def get_root_widths(
     primary_max_length_pts: np.ndarray,
     lateral_pts: np.ndarray,
     tolerance: float = 0.02,
     monocots: bool = False,
+    return_inds: bool = False,
 ) -> (np.ndarray, list, np.ndarray, np.ndarray):
     """Estimate root width using bases of lateral roots.
 
     Args:
-        primary_max_length_pts: Longest primary root as an array of shape (nodes, 2).
-        lateral_pts: Lateral roots as an array of shape (n, nodes, 2).
-        tolerance: Tolerance for the projection difference between matched roots. The
-            default value is 0.02.
-        monocots: Boolean value, where False is dicot (default), True is rice.
+        primary_max_length_pts: Longest primary root, represented
+            as a 2D array of shape (nodes, 2).
+        lateral_pts: Lateral roots, represented as a 3D array of
+            shape (n, nodes, 2).
+        tolerance: Tolerance level for the projection difference between matched roots.
+            Defaults to 0.02.
+        monocots: Indicates the type of plant. Set to False for dicots (default) or
+            True for monocots like rice.
+        return_inds: Flag to indicate whether to return matched indices along with
+            distances. Defaults to False.
 
     Returns:
-        A tuple containing four elements:
-            - matched_dists: An array of distances in pixels between the bases of
-                matched roots. An empty array is returned if there are no matched
-                indices.
-            - matched_indices: A list of tuples, where each tuple contains the indices
-                of the matched roots on the left and right sides. A list containing a
-                tuple of NaNs is returned when no matched indices are found.
-            - left_bases_final: An array of shape (n, 2) containing the (x, y)
-                coordinates of the left bases of the final paired coordinates. An empty
-                array of shape (0, 2) is returned when no matched indices are found.
-            - right_bases_final: An array of shape (n, 2) containing the (x, y)
-                coordinates of the right bases of the final paired coordinates. An empty
-                array of shape (0, 2) is returned when no matched indices are found.
+        - If `return_inds` is False (default):
+            Returns an array of distances between the bases of matched roots. An empty
+            array is returned if no matching indices are found.
+
+        - If `return_inds` is True:
+            Returns a tuple containing the following four elements:
+                - matched_dists: Distances between the bases of matched roots. An empty
+                    array is returned if no matched indices
+                    are found.
+                - matched_indices: List of tuples, each containing the indices
+                    of matched roots on the left and right sides. A list containing a
+                    tuple of NaNs is returned if no matched indices are found.
+                - left_bases_final: (n, 2) array containing the (x, y)
+                    coordinates of the left bases of the matched roots. An empty array
+                    of shape (0, 2) is returned if no matched indices are found.
+                - right_bases_final: (n, 2) array containing the (x, y)
+                    coordinates of the right bases of the matched roots. An empty array
+                    of shape (0, 2) is returned if no matched indices are found.
     """
     # Check array dimensions
     if primary_max_length_pts.ndim != 2 or lateral_pts.ndim != 3:
@@ -435,141 +446,9 @@ def get_root_widths_package(
     # Create a list of tuples representing the indices of the matched pairs
     matched_indices = list(zip(left_inds, right_inds))
 
-    # Return the distances, matched indices, and the final left and right bases
-    return match_dists, matched_indices, left_bases_final, right_bases_final
-
-
-def get_root_widths(
-    root_widths_package: Tuple[np.ndarray, list, np.ndarray, np.ndarray]
-) -> np.ndarray:
-    """Returns root widths using matched base pairs.
-
-    Args:
-        root_widths_package: A tuple containing:
-            - root widths: An array of distances in pixels between the bases of matched
-                roots. An empty array is returned if there are no matched indices.
-            - matched base pair indices: A list of tuples, each containing the indices
-              of the matched roots on the left and right sides. A list containing a
-              tuple of NaNs is returned when no matched indices are found.
-            - left bases of matched pairs: An array of shape (n, 2) containing the
-                (x, y) coordinates of the left bases of the final paired coordinates. An
-                empty array of shape (0, 2) is returned when no matched indices are
-                found.
-            - right bases of matched pairs: An array of shape (n, 2) containing the
-                (x, y) coordinates of the right bases of the final paired coordinates.
-                An empty array of shape (0, 2) is returned when no matched indices are
-                found.
-
-    Returns:
-        root_widths: An array of distances between matched base pairs of lateral roots
-            with a shape of (n,), where n is the number of matched base pairs. Returns
-            an empty array if no matches are found.
-    """
-    # Check to make sure the input is a tuple of 4 elements
-    if not isinstance(root_widths_package, tuple) or len(root_widths_package) != 4:
-        raise ValueError("The input should be a tuple containing exactly 4 elements.")
-
-    root_widths = root_widths_package[0]  # Extract the root widths
-    return root_widths
-
-
-def get_root_widths_inds(
-    root_widths_package: Tuple[np.ndarray, list, np.ndarray, np.ndarray]
-) -> np.ndarray:
-    """Returns indices of matched roots used to calculate the root widths.
-
-    Args:
-        root_widths_package: A tuple containing:
-            - root widths: An array of distances in pixels between the bases of matched
-                roots. An empty array is returned if there are no matched indices.
-            - matched base pair indices: A list of tuples, each containing the indices
-              of the matched roots on the left and right sides. A list containing a
-              tuple of NaNs is returned when no matched indices are found.
-            - left bases of matched pairs: An array of shape (n, 2) containing the
-                (x, y) coordinates of the left bases of the final paired coordinates. An
-                empty array of shape (0, 2) is returned when no matched indices are
-                found.
-            - right bases of matched pairs: An array of shape (n, 2) containing the
-                (x, y) coordinates of the right bases of the final paired coordinates.
-                An empty array of shape (0, 2) is returned when no matched indices are
-                found.
-
-    Returns:
-        root_widths_inds: A list of tuples, each containing the indices of the matched
-            roots on the left and right sides. A list containing a tuple of NaNs is
-            returned when no matched indices are found.
-    """
-    # Check to make sure the input is a tuple of 4 elements
-    if not isinstance(root_widths_package, tuple) or len(root_widths_package) != 4:
-        raise ValueError("The input should be a tuple containing exactly 4 elements.")
-
-    root_widths_inds = root_widths_package[1]  # Extract the root widths
-    return root_widths_inds
-
-
-def get_root_widths_left_bases(
-    root_widths_package: Tuple[np.ndarray, list, np.ndarray, np.ndarray]
-) -> np.ndarray:
-    """Returns the left bases of matched roots used to calculate the root widths.
-
-    Args:
-        root_widths_package: A tuple containing:
-            - root widths: An array of distances in pixels between the bases of matched
-                roots. An empty array is returned if there are no matched indices.
-            - matched base pair indices: A list of tuples, each containing the indices
-              of the matched roots on the left and right sides. A list containing a
-              tuple of NaNs is returned when no matched indices are found.
-            - left bases of matched pairs: An array of shape (n, 2) containing the
-                (x, y) coordinates of the left bases of the final paired coordinates. An
-                empty array of shape (0, 2) is returned when no matched indices are
-                found.
-            - right bases of matched pairs: An array of shape (n, 2) containing the
-                (x, y) coordinates of the right bases of the final paired coordinates.
-                An empty array of shape (0, 2) is returned when no matched indices are
-                found.
-
-    Returns:
-        root_widths_left_bases: An array of shape (n, 2) containing the (x, y)
-            coordinates of the left bases of the final paired coordinates. An empty
-            array of shape (0, 2) is returned when no matched indices are found.
-    """
-    # Check to make sure the input is a tuple of 4 elements
-    if not isinstance(root_widths_package, tuple) or len(root_widths_package) != 4:
-        raise ValueError("The input should be a tuple containing exactly 4 elements.")
-
-    root_widths_left_bases = root_widths_package[2]  # Extract the root widths
-    return root_widths_left_bases
-
-
-def get_root_widths_right_bases(
-    root_widths_package: Tuple[np.ndarray, list, np.ndarray, np.ndarray]
-) -> np.ndarray:
-    """Returns the right bases of matched roots used to calculate the root widths.
-
-    Args:
-        root_widths_package: A tuple containing:
-            - root widths: An array of distances in pixels between the bases of matched
-                roots. An empty array is returned if there are no matched indices.
-            - matched base pair indices: A list of tuples, each containing the indices
-              of the matched roots on the left and right sides. A list containing a
-              tuple of NaNs is returned when no matched indices are found.
-            - left bases of matched pairs: An array of shape (n, 2) containing the
-                (x, y) coordinates of the left bases of the final paired coordinates. An
-                empty array of shape (0, 2) is returned when no matched indices are
-                found.
-            - right bases of matched pairs: An array of shape (n, 2) containing the
-                (x, y) coordinates of the right bases of the final paired coordinates.
-                An empty array of shape (0, 2) is returned when no matched indices are
-                found.
-
-    Returns:
-        root_widths_right_bases: An array of shape (n, 2) containing the (x, y)
-            coordinates of the right bases of the final paired coordinates. An empty
-            array of shape (0, 2) is returned when no matched indices are found.
-    """
-    # Check to make sure the input is a tuple of 4 elements
-    if not isinstance(root_widths_package, tuple) or len(root_widths_package) != 4:
-        raise ValueError("The input should be a tuple containing exactly 4 elements.")
-
-    root_widths_right_bases = root_widths_package[2]  # Extract the root widths
-    return root_widths_right_bases
+    if return_inds:
+        # Return the distances, matched indices, and the final left and right bases
+        return match_dists, matched_indices, left_bases_final, right_bases_final
+    else:
+        # Default: Return the distances
+        return match_dists

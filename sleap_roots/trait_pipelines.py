@@ -20,10 +20,6 @@ from sleap_roots.bases import (
     get_base_ys,
     get_bases,
     get_lateral_count,
-    get_root_widths_inds,
-    get_root_widths_package,
-    get_root_widths_left_bases,
-    get_root_widths_right_bases,
     get_root_widths,
 )
 from sleap_roots.convhull import (
@@ -422,54 +418,13 @@ class DicotPipeline(Pipeline):
                 "of coordinates.",
             ),
             TraitDef(
-                name="root_widths_package",
-                fn=get_root_widths_package,
+                name="root_widths",
+                fn=get_root_widths,
                 input_traits=["primary_max_length_pts", "lateral_pts"],
                 scalar=False,
                 include_in_csv=False,
                 kwargs={"tolerance": self.root_width_tolerance, "monocots": False},
-                description="Returns estimation of root width using bases of lateral "
-                "roots with indices and coordinates of matched base pairs.",
-            ),
-            TraitDef(
-                name="root_widths",
-                fn=get_root_widths,
-                input_traits=["root_widths_package"],
-                scalar=False,
-                include_in_csv=True,
-                kwargs={},
-                description="Returns estimation of root width using bases of lateral "
-                "roots.",
-            ),
-            TraitDef(
-                name="root_widths_inds",
-                fn=get_root_widths_inds,
-                input_traits=["root_widths_package"],
-                scalar=False,
-                include_in_csv=False,
-                kwargs={},
-                description="Returns indices of matched roots used to calculate the"
-                "root widths.",
-            ),
-            TraitDef(
-                name="root_widths_left_bases",
-                fn=get_root_widths_left_bases,
-                input_traits=["root_widths_package"],
-                scalar=False,
-                include_in_csv=False,
-                kwargs={},
-                description="Returns the left bases of matched roots used to calculate"
-                "the root widths.",
-            ),
-            TraitDef(
-                name="root_widths_right_bases",
-                fn=get_root_widths_right_bases,
-                input_traits=["root_widths_package"],
-                scalar=False,
-                include_in_csv=False,
-                kwargs={},
-                description="Returns the right bases of matched roots used to calculate"
-                "the root widths.",
+                description="Estimate root width using bases of lateral roots.",
             ),
             TraitDef(
                 name="lateral_count",
