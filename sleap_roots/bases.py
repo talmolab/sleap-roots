@@ -321,6 +321,10 @@ def get_root_widths(
                     coordinates of the right bases of the matched roots. An empty array
                     of shape (0, 2) is returned if no matched indices are found.
     """
+    # Validate tolerance
+    if tolerance <= 0:
+        raise ValueError("Tolerance should be a positive number")
+
     # Check array dimensions
     if primary_max_length_pts.ndim != 2 or lateral_pts.ndim != 3:
         raise ValueError("Input arrays should be 2-dimensional and 3-dimensional")
@@ -335,28 +339,11 @@ def get_root_widths(
     default_left_bases = np.empty((0, 2))
     default_right_bases = np.empty((0, 2))
 
-    # Check for minimum length
-    if len(primary_max_length_pts) < 2 or len(lateral_pts) < 2:
-        if return_inds:
-            # Return the distances, matched indices, and the final left and right bases
-            return (
-                default_dists,
-                default_indices,
-                default_left_bases,
-                default_right_bases,
-            )
-        else:
-            # Default: Return the distances
-            return default_dists
-
-    # Validate tolerance
-    if tolerance <= 0:
-        raise ValueError("Tolerance should be a positive number")
-
-    # Return NaN and an empty list if the function is called for monocots,
-    # or if all points in either array are NaN
+    # Check for minimum length, monocots, or all NaNs in arrays
     if (
-        monocots
+        len(primary_max_length_pts) < 2
+        or len(lateral_pts) < 2
+        or monocots
         or np.isnan(primary_max_length_pts).all()
         or np.isnan(lateral_pts).all()
     ):
