@@ -50,6 +50,12 @@ def rice_main_slp():
 
 
 @pytest.fixture
+def rice_10do_folder():
+    """Path to a folder with the predictions for 10 day old rice."""
+    return "tests/data/rice_10do"
+
+
+@pytest.fixture
 def rice_main_10do_h5():
     """Path to root image stack for 10 day old rice."""
     return "tests/data/rice_10do/0K9E8BI.h5"

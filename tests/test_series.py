@@ -15,6 +15,11 @@ def test_find_all_series_canola(canola_folder: Literal["tests/data/canola_7do"])
     assert len(all_series_files) == 1
 
 
+def test_find_all_series_rice_10do(rice_10do_folder: Literal["tests/data/rice_10do"]):
+    all_series_files = find_all_series(rice_10do_folder)
+    assert len(all_series_files) == 1
+
+
 def test_load_rice_10do(rice_main_10do_h5: Literal["tests/data/rice_10do/0K9E8BI.h5"]):
     series = Series.load(rice_main_10do_h5, ["main_10do_6nodes"])
     # Load the expected Labels object for comparison
