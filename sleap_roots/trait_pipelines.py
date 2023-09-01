@@ -20,7 +20,7 @@ from sleap_roots.bases import (
     get_base_ys,
     get_bases,
     get_lateral_count,
-    get_root_pair_widths_projections,
+    get_root_widths,
 )
 from sleap_roots.convhull import (
     get_chull_area,
@@ -419,13 +419,16 @@ class DicotPipeline(Pipeline):
             ),
             TraitDef(
                 name="root_widths",
-                fn=get_root_pair_widths_projections,
+                fn=get_root_widths,
                 input_traits=["primary_max_length_pts", "lateral_pts"],
                 scalar=False,
                 include_in_csv=True,
-                kwargs={"tolerance": self.root_width_tolerance, "monocots": False},
-                description="Return estimation of root width using bases of lateral "
-                "roots.",
+                kwargs={
+                    "tolerance": self.root_width_tolerance,
+                    "monocots": False,
+                    "return_inds": False,
+                },
+                description="Estimate root width using bases of lateral roots.",
             ),
             TraitDef(
                 name="lateral_count",
@@ -693,7 +696,7 @@ class DicotPipeline(Pipeline):
                 fn=get_network_length,
                 input_traits=["primary_length", "lateral_lengths"],
                 scalar=True,
-                include_in_csv=False,
+                include_in_csv=True,
                 kwargs={"monocots": False},
                 description="Scalar of all roots network length.",
             ),
@@ -711,7 +714,7 @@ class DicotPipeline(Pipeline):
                 fn=get_tip_ys,
                 input_traits=["primary_tip_pt"],
                 scalar=True,
-                include_in_csv=False,
+                include_in_csv=True,
                 kwargs={},
                 description="Y-coordinate of the primary root tip node.",
             ),
