@@ -337,7 +337,17 @@ def get_root_widths(
 
     # Check for minimum length
     if len(primary_max_length_pts) < 2 or len(lateral_pts) < 2:
-        return default_dists, default_indices, default_left_bases, default_right_bases
+        if return_inds:
+            # Return the distances, matched indices, and the final left and right bases
+            return (
+                default_dists,
+                default_indices,
+                default_left_bases,
+                default_right_bases,
+            )
+        else:
+            # Default: Return the distances
+            return default_dists
 
     # Validate tolerance
     if tolerance <= 0:
@@ -350,7 +360,17 @@ def get_root_widths(
         or np.isnan(primary_max_length_pts).all()
         or np.isnan(lateral_pts).all()
     ):
-        return default_dists, default_indices, default_left_bases, default_right_bases
+        if return_inds:
+            # Return the distances, matched indices, and the final left and right bases
+            return (
+                default_dists,
+                default_indices,
+                default_left_bases,
+                default_right_bases,
+            )
+        else:
+            # Default: Return the distances
+            return default_dists
 
     # Filter out any NaN points from the primary root points
     primary_pts_filtered = primary_max_length_pts[
@@ -370,7 +390,17 @@ def get_root_widths(
 
     # If all lateral roots are on the same side, return default values
     if is_left.all() or (~is_left).all():
-        return default_dists, default_indices, default_left_bases, default_right_bases
+        if return_inds:
+            # Return the distances, matched indices, and the final left and right bases
+            return (
+                default_dists,
+                default_indices,
+                default_left_bases,
+                default_right_bases,
+            )
+        else:
+            # Default: Return the distances
+            return default_dists
 
     # Split lateral roots into left and right bases
     left_bases, right_bases = lateral_pts[is_left, 0], lateral_pts[~is_left, 0]
@@ -415,7 +445,17 @@ def get_root_widths(
 
     # If no valid pairs remain, return default values
     if len(left_inds) == 0 or len(right_inds) == 0:
-        return default_dists, default_indices, default_left_bases, default_right_bases
+        if return_inds:
+            # Return the distances, matched indices, and the final left and right bases
+            return (
+                default_dists,
+                default_indices,
+                default_left_bases,
+                default_right_bases,
+            )
+        else:
+            # Default: Return the distances
+            return default_dists
 
     # Filter out pairs that do not intersect the primary root
     is_intersecting = np.array(
@@ -431,7 +471,17 @@ def get_root_widths(
 
     # If no valid pairs remain, return default values
     if len(left_inds) == 0 or len(right_inds) == 0:
-        return default_dists, default_indices, default_left_bases, default_right_bases
+        if return_inds:
+            # Return the distances, matched indices, and the final left and right bases
+            return (
+                default_dists,
+                default_indices,
+                default_left_bases,
+                default_right_bases,
+            )
+        else:
+            # Default: Return the distances
+            return default_dists
 
     # Update the left and right bases of the final paired coordinates
     left_bases_final = left_bases[left_inds]
