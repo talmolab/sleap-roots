@@ -394,6 +394,7 @@ class DicotPipeline(Pipeline):
     root_width_tolerance: float = 0.02
     n_scanlines: int = 50
     network_fraction: float = 2 / 3
+    return_inds: bool = False
 
     def define_traits(self) -> List[TraitDef]:
         """Define the trait computation pipeline for dicot plants."""
@@ -422,8 +423,12 @@ class DicotPipeline(Pipeline):
                 fn=get_root_widths,
                 input_traits=["primary_max_length_pts", "lateral_pts"],
                 scalar=False,
-                include_in_csv=False,
-                kwargs={"tolerance": self.root_width_tolerance, "monocots": False},
+                include_in_csv=True,
+                kwargs={
+                    "tolerance": self.root_width_tolerance,
+                    "monocots": False,
+                    "return_inds": self.return_inds,
+                },
                 description="Estimate root width using bases of lateral roots.",
             ),
             TraitDef(
