@@ -12,7 +12,7 @@ import sleap_roots.series
 import sleap_roots.summary
 import sleap_roots.trait_pipelines
 from sleap_roots.trait_pipelines import DicotPipeline, TraitDef
-from sleap_roots.series import Series
+from sleap_roots.series import Series, find_all_series
 
 # Define package version.
 # This is read dynamically by setuptools in pyproject.toml to determine the release version.
