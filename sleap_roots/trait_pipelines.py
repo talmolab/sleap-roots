@@ -636,9 +636,8 @@ class DicotPipeline(Pipeline):
                 input_traits=["lateral_base_pts"],
                 scalar=False,
                 include_in_csv=True,
-                kwargs={"monocots": False},
-                description="Array of the x-coordinates of lateral bases "
-                "`(instances,)`.",
+                kwargs={},
+                description="Get x coordinates of the base of each lateral root.",
             ),
             TraitDef(
                 name="lateral_base_ys",
