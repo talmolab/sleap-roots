@@ -383,8 +383,10 @@ def test_get_base_ct_density_rice(rice_h5):
     )
     primary, lateral = series[0]
     primary_pts = primary.numpy()
+    primary_max_length = get_root_lengths_max(primary_pts)
     lateral_pts = lateral.numpy()
-    base_ct_density = get_base_ct_density(primary_pts, lateral_pts, monocots)
+    bases = get_bases(lateral_pts, monocots=monocots)
+    base_ct_density = get_base_ct_density(primary_max_length, bases)
     assert np.isnan(base_ct_density)
 
 

@@ -655,7 +655,7 @@ class DicotPipeline(Pipeline):
                 input_traits=["primary_length", "lateral_base_pts"],
                 scalar=True,
                 include_in_csv=True,
-                kwargs={"monocots": False},
+                kwargs={},
                 description="Scalar of base count density.",
             ),
             TraitDef(
