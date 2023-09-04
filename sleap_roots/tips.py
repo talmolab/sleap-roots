@@ -29,36 +29,35 @@ def get_tips(pts: np.ndarray) -> np.ndarray:
     return tip_pts
 
 
-def get_tip_xs(pts: np.ndarray) -> np.ndarray:
-    """Get x coordinates of tip points.
+def get_tip_xs(tip_pts: np.ndarray) -> np.ndarray:
+    """Get x coordinates of the tips of each lateral root.
 
     Args:
-        pts: Root landmarks as array of shape (instances, nodes, 2) or tips
-            (instances, 2).
+        tip_pts: Array of tips as returned by `get_tips`, shape `(instances, 2)` or 
+            `(2,)`.
 
-    Return:
-        An array of tip x-coordinates (instances,).
+    Returns:
+        An array of the x-coordinates of tips `(instances,)` or a single x-coordinate.
     """
-    if pts.ndim not in (2, 3):
-        raise ValueError(
-            "Input array must be 2-dimensional (n_tips, 2) or "
-            "3-dimensional (n_roots, n_nodes, 2)."
-        )
+    # If the input is a single number (float or integer), return np.nan
+    if isinstance(tip_pts, (np.floating, float, np.integer, int)):
+        return np.nan
 
-    if pts.ndim == 3:
-        _tip_pts = get_tips(
-            pts
-        )  # Assuming get_tips returns an array of shape (instance, 2)
-    else:
-        _tip_pts = pts
+    # If the tip points array has shape `(2,)`, return the first element
+    if tip_pts.ndim == 1 and tip_pts.shape[0] == 2:
+        return tip_pts[0]
 
-    if _tip_pts.ndim != 2 or _tip_pts.shape[1] != 2:
+    # If the tip points array doesn't have exactly 2 dimensions or
+    # the second dimension is not of size 2, raise an error
+    elif tip_pts.ndim != 2 or tip_pts.shape[1] != 2:
         raise ValueError(
             "Array of tip points must be 2-dimensional with shape (instances, 2)."
         )
 
-    tip_xs = _tip_pts[:, 0]
-    return tip_xs
+    # If everything is fine, extract and return the x-coordinates of the tip points
+    else:
+        tip_xs = tip_pts[:, 0]
+        return tip_xs
 
 
 def get_tip_ys(tip_pts: np.ndarray) -> np.ndarray:

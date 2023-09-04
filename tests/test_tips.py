@@ -87,14 +87,16 @@ def test_get_tip_xs_canola(canola_h5):
     )
     lateral = series[0][1]  # LabeledFrame
     lateral_pts = lateral.numpy()  # Lateral roots as a numpy array
-    tip_xs = get_tip_xs(lateral_pts)
+    tips = get_tips(lateral_pts)
+    tip_xs = get_tip_xs(tips)
     assert tip_xs.shape[0] == 5
     np.testing.assert_almost_equal(tip_xs[1], 1072.6610107421875, decimal=3)
 
 
 # test get_tip_xs with standard points
 def test_get_tip_xs_standard(pts_standard):
-    tip_xs = get_tip_xs(pts_standard)
+    tips = get_tips(pts_standard)
+    tip_xs = get_tip_xs(tips)
     assert tip_xs.shape[0] == 2
     np.testing.assert_almost_equal(tip_xs[0], 3, decimal=3)
     np.testing.assert_almost_equal(tip_xs[1], 7, decimal=3)
@@ -102,7 +104,8 @@ def test_get_tip_xs_standard(pts_standard):
 
 # test get_tip_xs with no tips
 def test_get_tip_xs_no_tip(pts_no_tips):
-    tip_xs = get_tip_xs(pts_no_tips)
+    tips = get_tips(pts_no_tips)
+    tip_xs = get_tip_xs(tips)
     assert tip_xs.shape[0] == 2
     np.testing.assert_almost_equal(tip_xs[1], np.nan, decimal=3)
 
