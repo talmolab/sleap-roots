@@ -113,6 +113,7 @@ def test_get_tip_xs_no_tip(pts_no_tips):
     tip_xs = get_tip_xs(tips[[0]], flatten=True)
     assert type(tip_xs) == np.float64
 
+
 # test get_tip_ys with canola
 def test_get_tip_ys_canola(canola_h5):
     series = Series.load(

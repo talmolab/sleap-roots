@@ -90,7 +90,7 @@ def get_base_xs(base_pts: np.ndarray) -> np.ndarray:
     """Get x coordinates of the base of each lateral root.
 
     Args:
-        base_pts: Array of bases as returned by `get_bases`, shape `(instances, 2)` or 
+        base_pts: Array of bases as returned by `get_bases`, shape `(instances, 2)` or
             `(2,)`.
 
     Returns:
@@ -173,14 +173,17 @@ def get_base_ct_density(
 
     Args:
         primary_length_max: Scalar of maximum primary root length.
-        lateral_base_pts: Base points of lateral roots as returned by `get_bases`, 
+        lateral_base_pts: Base points of lateral roots as returned by `get_bases`,
             shape `(instances, 2)` or `(2,)`.
 
     Return:
         Scalar of base count density.
     """
     # Check if the input is invalid
-    if isinstance(lateral_base_pts, (np.floating, float, np.integer, int)) or np.isnan(lateral_base_pts).all():
+    if (
+        isinstance(lateral_base_pts, (np.floating, float, np.integer, int))
+        or np.isnan(lateral_base_pts).all()
+    ):
         return np.nan
 
     # Handle the case where lateral_base_pts has shape `(2,)`
