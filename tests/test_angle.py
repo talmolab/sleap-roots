@@ -158,7 +158,7 @@ def test_get_node_ind_nan6(pts_nan6):
 def test_get_node_ind_nanall(pts_nanall):
     proximal = False
     node_ind = get_node_ind(pts_nanall, proximal)
-    np.testing.assert_array_equal(node_ind, np.nan)
+    np.testing.assert_array_equal(node_ind, 0)
 
 
 # test get_node_ind function using root with pts_nan32_5node

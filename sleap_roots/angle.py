@@ -11,68 +11,46 @@ def get_node_ind(pts: np.ndarray, proximal: bool = True) -> np.ndarray:
         proximal: Boolean value, where true is proximal (default), false is distal.
 
     Returns:
-        An array of shape (instances,) of proximal or distal node index.
+        An array of shape (instances,) of proximal or distal node indices.
+
+        The proximal node is the first non-NaN node in the first half of the root.
+
+        The distal node is the last non-NaN node in the last half of the root.
+
+        If all nodes (or all nodes in the half of the root) are NaN, then zero is
+        returned.
     """
-    # Check if pts is a numpy array
-    if not isinstance(pts, np.ndarray):
-        raise TypeError("Input pts should be a numpy array.")
-
-    # Check if pts has 2 or 3 dimensions
-    if pts.ndim not in [2, 3]:
-        raise ValueError("Input pts should have 2 or 3 dimensions.")
-
-    # Check if the last dimension of pts has size 2
-    if pts.shape[-1] != 2:
-        raise ValueError(
-            "The last dimension of the input pts should have size 2,"
-            "representing x and y coordinates."
-        )
-
     # Check if pts is 2D, if so, reshape to 3D
     if pts.ndim == 2:
         pts = pts[np.newaxis, ...]
 
+    n_instances, n_nodes, _ = pts.shape
+
     # Identify where NaN values exist
-    nan_mask = np.isnan(pts).any(axis=-1)
+    is_nan = np.isnan(pts).any(axis=-1)  # (n_instances, n_nodes)
 
     # If only NaN values, return NaN
-    if nan_mask.all():
-        return np.nan
+    if is_nan.all():
+        return np.zeros((n_instances,))
 
     if proximal:
-        # For proximal, we want the first non-NaN node in the first half root
-        # get the first half nan mask (exclude the base node)
-        node_proximal = nan_mask[:, 1 : int((nan_mask.shape[1] + 1) / 2)]
-        # get the nearest non-Nan node index
-        node_ind = np.argmax(~node_proximal, axis=-1)
-        # if there is no non-Nan node, set value of 99
-        node_ind[node_proximal.all(axis=1)] = 99
-        node_ind = node_ind + 1  # adjust indices by adding one (base node)
+        # Proximal nodes are in the first half of the root.
+        is_nan = is_nan[:, 1 : (n_nodes + 1) // 2]
+        node_ind = np.argmax(~is_nan, axis=-1) + 1
     else:
-        # For distal, we want the last non-NaN node in the last half root
-        # get the last half nan mask
-        node_distal = nan_mask[:, int(nan_mask.shape[1] / 2) :]
-        # get the farest non-Nan node
-        node_ind = (node_distal[:, ::-1] == False).argmax(axis=1)
-        node_ind[node_distal.all(axis=1)] = -95  # set value if no non-Nan node
-        node_ind = pts.shape[1] - node_ind - 1  # adjust indices by reversing
+        # Distal nodes are in the last half of the root.
+        is_nan = is_nan[:, (n_nodes + 1) // 2 :]
+        node_ind = np.argmax(~is_nan[:, ::-1], axis=-1)
+        node_ind = n_nodes - node_ind - 1
 
-    # reset indices of 0 (base node) if no non-Nan node
-    node_ind[node_ind == 100] = 0
-
-    # If pts was originally 2D, return a scalar instead of a single-element array
-    if pts.shape[0] == 1:
-        return node_ind[0]
-
-    # If only one root, return a scalar instead of a single-element array
-    if node_ind.shape[0] == 1:
-        return node_ind[0]
+    # If the selected index is missing originally, return 0.
+    node_ind = np.where(is_nan.all(axis=-1), 0, node_ind)
 
     return node_ind
 
 
 def get_root_angle(
-    pts: np.ndarray, node_ind: np.ndarray, proximal: bool = True, base_ind=0
+    pts: np.ndarray, node_ind: np.ndarray, proximal: bool = True, base_ind: int = 0
 ) -> np.ndarray:
     """Find angles for each root.
 
