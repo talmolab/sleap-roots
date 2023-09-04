@@ -35,11 +35,11 @@ def get_node_ind(pts: np.ndarray, proximal: bool = True) -> np.ndarray:
 
     if proximal:
         # Proximal nodes are in the first half of the root.
-        is_nan = is_nan[:, 1:(n_nodes + 1) // 2]
+        is_nan = is_nan[:, 1 : (n_nodes + 1) // 2]
         node_ind = np.argmax(~is_nan, axis=-1) + 1
     else:
         # Distal nodes are in the last half of the root.
-        is_nan = is_nan[:, (n_nodes + 1) // 2:]
+        is_nan = is_nan[:, (n_nodes + 1) // 2 :]
         node_ind = np.argmax(~is_nan[:, ::-1], axis=-1)
         node_ind = n_nodes - node_ind - 1
 
