@@ -29,46 +29,50 @@ def get_tips(pts: np.ndarray) -> np.ndarray:
     return tip_pts
 
 
-def get_tip_xs(tip_pts: np.ndarray) -> np.ndarray:
-    """Get x coordinates of the tips of each lateral root.
+def get_tip_xs(tip_pts: np.ndarray, flatten: bool = False) -> np.ndarray:
+    """Get x coordinates of tip points.
 
     Args:
-        tip_pts: Array of tips as returned by `get_tips`, shape `(instances, 2)` or 
-            `(2,)`.
+        tip_pts: Root tips as array of shape `(instances, 2)` or `(2)` when there is
+            only one tip.
+        flatten: If `True`, return scalar (0-D) array if scalar (there is only 1 root).
+            Defaults to `False`.
 
     Returns:
-        An array of the x-coordinates of tips `(instances,)` or a single x-coordinate.
+        An array of the x-coordinates of tips (instances,) or () if `flatten` is `True`.
     """
-    # If the input is a single number (float or integer), return np.nan
+    # If the input is a single number (float or integer), raise an error
     if isinstance(tip_pts, (np.floating, float, np.integer, int)):
-        return np.nan
+        raise ValueError("Input must be an array of shape `(instances, 2)` or `(2, )`.")
 
-    # If the tip points array has shape `(2,)`, return the first element
-    if tip_pts.ndim == 1 and tip_pts.shape[0] == 2:
-        return tip_pts[0]
+    # Check for the 2D shape of the input array
+    if tip_pts.ndim == 1:
+        # If shape is `(2,)`, then reshape it to `(1, 2)` for consistency
+        tip_pts = tip_pts.reshape(1, 2)
+    elif tip_pts.ndim != 2:
+        raise ValueError("Input array must be of shape `(instances, 2)` or `(2, )`.")
 
-    # If the tip points array doesn't have exactly 2 dimensions or
-    # the second dimension is not of size 2, raise an error
-    elif tip_pts.ndim != 2 or tip_pts.shape[1] != 2:
-        raise ValueError(
-            "Array of tip points must be 2-dimensional with shape (instances, 2)."
-        )
+    # At this point, `tip_pts` should be of shape `(instances, 2)`.
+    tip_xs = tip_pts[:, 0]
 
-    # If everything is fine, extract and return the x-coordinates of the tip points
-    else:
-        tip_xs = tip_pts[:, 0]
-        return tip_xs
+    if flatten:
+        tip_xs = tip_xs.squeeze()
+        if tip_xs.size == 1:
+            tip_xs = tip_xs[()]
+    return tip_xs
 
 
-def get_tip_ys(tip_pts: np.ndarray) -> np.ndarray:
+def get_tip_ys(tip_pts: np.ndarray, flatten: bool = False) -> np.ndarray:
     """Get y coordinates of tip points.
 
     Args:
-        tip_pts: Root tips as array of shape `(instances, 2)` or `(2)`
-            when there is only one tip.
+        tip_pts: Root tips as array of shape `(instances, 2)` or `(2)` when there is
+            only one tip.
+        flatten: If `True`, return scalar (0-D) array if scalar (there is only 1 root).
+            Defaults to `False`.
 
     Return:
-        An array of the y-coordinates of tips (instances,).
+        An array of the y-coordinates of tips (instances,) or () if `flatten` is `True`.
     """
     # If the input is a single number (float or integer), raise an error
     if isinstance(tip_pts, (np.floating, float, np.integer, int)):
@@ -83,4 +87,9 @@ def get_tip_ys(tip_pts: np.ndarray) -> np.ndarray:
 
     # At this point, `tip_pts` should be of shape `(instances, 2)`.
     tip_ys = tip_pts[:, 1]
+
+    if flatten:
+        tip_ys = tip_ys.squeeze()
+        if tip_ys.size == 1:
+            tip_ys = tip_ys[()]
     return tip_ys

@@ -363,9 +363,13 @@ class Pipeline:
             # Summarize frame level traits.
             plant_summary = {"plant_name": plant.series_name}
             for trait_name in self.csv_traits:
-                trait_summary = get_summary(
-                    plant_traits[trait_name], prefix=f"{trait_name}_"
-                )
+                try:
+                    trait_summary = get_summary(
+                        plant_traits[trait_name], prefix=f"{trait_name}_"
+                    )
+                except AttributeError:
+                    print(f"Issue computing summary for: {plant.series_name}/{trait_name} ({plant_traits[trait_name]})")
+                    raise
                 plant_summary.update(trait_summary)
             all_traits.append(plant_summary)
 
@@ -714,7 +718,7 @@ class DicotPipeline(Pipeline):
                 input_traits=["primary_tip_pt"],
                 scalar=True,
                 include_in_csv=True,
-                kwargs={},
+                kwargs={"flatten": True},
                 description="Y-coordinate of the primary root tip node.",
             ),
             TraitDef(
