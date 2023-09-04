@@ -234,7 +234,8 @@ def test_get_base_xs_canola(canola_h5):
     )
     lateral = plant[0][1]  # first frame, lateral labels
     lateral_pts = lateral.numpy()  # lateral points as numpy array
-    base_xs = get_base_xs(lateral_pts, monocots)
+    bases = get_bases(lateral_pts)
+    base_xs = get_base_xs(bases)
     assert base_xs.shape[0] == 5
     np.testing.assert_almost_equal(base_xs[1], 1112.5506591796875, decimal=3)
 
@@ -247,13 +248,15 @@ def test_get_base_xs_rice(rice_h5):
     )
     lateral = plant[0][1]  # first frame, lateral labels
     lateral_pts = lateral.numpy()  # lateral points as numpy array
-    base_xs = get_base_xs(lateral_pts, monocots)
+    bases = get_bases(lateral_pts, monocots=monocots)
+    base_xs = get_base_xs(bases)
     assert np.isnan(base_xs)
 
 
 # test get_base_xs with pts_standard
 def test_get_base_xs_standard(pts_standard):
-    base_xs = get_base_xs(pts_standard)
+    bases = get_bases(pts_standard)
+    base_xs = get_base_xs(bases)
     assert base_xs.shape[0] == 2
     np.testing.assert_almost_equal(base_xs[0], 1, decimal=3)
     np.testing.assert_almost_equal(base_xs[1], 5, decimal=3)
@@ -261,7 +264,8 @@ def test_get_base_xs_standard(pts_standard):
 
 # test get_base_xs with pts_no_roots
 def test_get_base_xs_no_roots(pts_no_roots):
-    base_xs = get_base_xs(pts_no_roots)
+    bases = get_bases(pts_no_roots)
+    base_xs = get_base_xs(bases)
     assert base_xs.shape[0] == 2
     np.testing.assert_almost_equal(base_xs[0], np.nan, decimal=3)
 
@@ -379,8 +383,10 @@ def test_get_base_ct_density_rice(rice_h5):
     )
     primary, lateral = series[0]
     primary_pts = primary.numpy()
+    primary_max_length = get_root_lengths_max(primary_pts)
     lateral_pts = lateral.numpy()
-    base_ct_density = get_base_ct_density(primary_pts, lateral_pts, monocots)
+    bases = get_bases(lateral_pts, monocots=monocots)
+    base_ct_density = get_base_ct_density(primary_max_length, bases)
     assert np.isnan(base_ct_density)
 
 

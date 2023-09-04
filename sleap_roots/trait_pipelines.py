@@ -636,9 +636,8 @@ class DicotPipeline(Pipeline):
                 input_traits=["lateral_base_pts"],
                 scalar=False,
                 include_in_csv=True,
-                kwargs={"monocots": False},
-                description="Array of the x-coordinates of lateral bases "
-                "`(instances,)`.",
+                kwargs={},
+                description="Get x coordinates of the base of each lateral root.",
             ),
             TraitDef(
                 name="lateral_base_ys",
@@ -656,7 +655,7 @@ class DicotPipeline(Pipeline):
                 input_traits=["primary_length", "lateral_base_pts"],
                 scalar=True,
                 include_in_csv=True,
-                kwargs={"monocots": False},
+                kwargs={},
                 description="Scalar of base count density.",
             ),
             TraitDef(
@@ -715,7 +714,7 @@ class DicotPipeline(Pipeline):
                 input_traits=["primary_tip_pt"],
                 scalar=True,
                 include_in_csv=True,
-                kwargs={},
+                kwargs={"flatten": True},
                 description="Y-coordinate of the primary root tip node.",
             ),
             TraitDef(
