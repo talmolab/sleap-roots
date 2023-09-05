@@ -32,9 +32,7 @@ def fit_ellipse(pts: np.ndarray) -> Tuple[float, float, float]:
     try:
         success = ell.estimate(pts)
     except TypeError as e:
-        # Log the error and problematic points if estimation fails
-        print(f"An error occurred: {e}")
-        print(f"Problematic pts array: {pts}")
+        # If the estimation fails, return NaNs
         return np.nan, np.nan, np.nan
 
     # Check if the estimation was successful
@@ -44,7 +42,6 @@ def fit_ellipse(pts: np.ndarray) -> Tuple[float, float, float]:
 
         # Check for complex numbers in the parameters.
         if np.iscomplex([xc, yc, a_f, b_f, theta]).any():
-            print("Complex numbers detected.")
             return np.nan, np.nan, np.nan
 
         # Check for invalid (zero or NaN) major or minor axes.
