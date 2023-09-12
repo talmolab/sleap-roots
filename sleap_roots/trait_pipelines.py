@@ -1041,16 +1041,6 @@ class DicotPipeline(Pipeline):
                     "of the plant.",
                 ),
                 TraitDef(
-                    name="network_solidity",
-                    fn=get_network_solidity,
-                    input_traits=["network_length", "chull_area"],
-                    scalar=True,
-                    include_in_csv=True,
-                    kwargs={},
-                    description="Scalar of the total network length divided by the network"
-                    "convex area.",
-                ),
-                TraitDef(
                     name="ellipse",
                     fn=fit_ellipse,
                     input_traits=["pts_all_array"],
@@ -1147,34 +1137,6 @@ class DicotPipeline(Pipeline):
                     description="Primary root tip point.",
                 ),
                 TraitDef(
-                    name="main_base_xs",
-                    fn=get_base_xs,
-                    input_traits=["main_base_pts"],
-                    scalar=False,
-                    include_in_csv=True,
-                    kwargs={},
-                    description="Get x coordinates of the base of each main root.",
-                ),
-                TraitDef(
-                    name="main_base_ys",
-                    fn=get_base_ys,
-                    input_traits=["main_base_pts"],
-                    scalar=False,
-                    include_in_csv=True,
-                    kwargs={"monocots": False},
-                    description="Array of the y-coordinates of main bases "
-                    "`(instances,)`.",
-                ),
-                TraitDef(
-                    name="base_ct_density",
-                    fn=get_base_ct_density,
-                    input_traits=["primary_length", "main_base_pts"],
-                    scalar=True,
-                    include_in_csv=True,
-                    kwargs={},
-                    description="Scalar of base count density.",
-                ),
-                TraitDef(
                     name="main_tip_xs",
                     fn=get_tip_xs,
                     input_traits=["main_tip_pts"],
@@ -1203,7 +1165,7 @@ class DicotPipeline(Pipeline):
                     scalar=True,
                     include_in_csv=True,
                     kwargs={"fraction": self.network_fraction, "monocots": False},
-                    description="Scalar of ratio of the root network length in the lower "
+                    description="Scalar of ratio of the root network length in the lower"
                     "fraction of the plant over all root length.",
                 ),
                 TraitDef(
@@ -1212,17 +1174,38 @@ class DicotPipeline(Pipeline):
                     input_traits=["primary_length", "main_lengths"],
                     scalar=True,
                     include_in_csv=True,
-                    kwargs={"monocots": False},
+                    kwargs={"monocots": True},
                     description="Scalar of all roots network length.",
                 ),
                 TraitDef(
-                    name="primary_base_pt_y",
-                    fn=get_base_ys,
-                    input_traits=["primary_base_pt"],
+                    name="main_base_tip_dists",
+                    fn=get_base_tip_dist,
+                    input_traits=["main_base_pts", "main_tip_pts"],
                     scalar=True,
-                    include_in_csv=False,
-                    kwargs={"monocots": False},
-                    description="Y-coordinate of the primary root base node.",
+                    include_in_csv=True,
+                    kwargs={},
+                    description="Straight-line distance(s) from the base(s) to the"
+                    "tip(s) of the main root(s).",
+                ),
+                TraitDef(
+                    name="main_grav_indices",
+                    fn=get_base_tip_dist,
+                    input_traits=["main_base_pts", "main_tip_pts"],
+                    scalar=True,
+                    include_in_csv=True,
+                    kwargs={},
+                    description="Straight-line distance(s) from the base(s) to the"
+                    "tip(s) of the main root(s).",
+                ),
+                TraitDef(
+                    name="network_solidity",
+                    fn=get_network_solidity,
+                    input_traits=["network_length", "chull_area"],
+                    scalar=True,
+                    include_in_csv=True,
+                    kwargs={},
+                    description="Scalar of the total network length divided by the"
+                    "network convex hull area.",
                 ),
                 TraitDef(
                     name="primary_tip_pt_y",
@@ -1306,25 +1289,6 @@ class DicotPipeline(Pipeline):
                     kwargs={},
                     description="Array of line lengths connecting any two vertices on the"
                     "convex hull.",
-                ),
-                TraitDef(
-                    name="base_length",
-                    fn=get_base_length,
-                    input_traits=["main_base_ys"],
-                    scalar=True,
-                    include_in_csv=True,
-                    kwargs={},
-                    description="Scalar of the distance between the top and deepest base"
-                    "y-coordinates.",
-                ),
-                TraitDef(
-                    name="base_median_ratio",
-                    fn=get_base_median_ratio,
-                    input_traits=["main_base_ys", "primary_tip_pt_y"],
-                    scalar=True,
-                    include_in_csv=True,
-                    kwargs={"monocots": False},
-                    description="Scalar of base median ratio.",
                 ),
                 TraitDef(
                     name="grav_index",

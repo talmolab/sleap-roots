@@ -146,7 +146,7 @@ def lengths_all_nan():
     return np.array([np.nan, np.nan, np.nan])
 
 
-# test get_grav_index function
+# tests for get_grav_index function
 def test_get_grav_index(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
@@ -162,6 +162,50 @@ def test_get_grav_index(canola_h5):
     np.testing.assert_almost_equal(grav_index, 0.08898137324716636)
 
 
+def test_scalar_inputs():
+    assert get_grav_index(10, 8) == 0.2
+
+
+def test_array_inputs():
+    lengths = np.array([10, 20, 30])
+    base_tip_dists = np.array([8, 16, 24])
+    np.testing.assert_array_almost_equal(
+        get_grav_index(lengths, base_tip_dists), np.array([0.2, 0.2, 0.2])
+    )
+
+
+def test_shape_mismatch():
+    lengths = 10
+    base_tip_dists = np.array([8, 9, 10])
+    with pytest.raises(
+        ValueError, match="The shapes of lengths and base_tip_dists must match."
+    ):
+        get_grav_index(lengths, base_tip_dists)
+
+
+def test_nan_values():
+    lengths = np.array([10, np.nan, 30])
+    base_tip_dists = np.array([8, 16, np.nan])
+    np.testing.assert_array_equal(
+        get_grav_index(lengths, base_tip_dists), np.array([0.2, np.nan, np.nan])
+    )
+
+
+def test_zero_lengths():
+    lengths = np.array([0, 20, 30])
+    base_tip_dists = np.array([0, 16, 24])
+    np.testing.assert_array_equal(
+        get_grav_index(lengths, base_tip_dists), np.array([np.nan, 0.2, 0.2])
+    )
+
+
+def test_invalid_scalar_values():
+    assert np.isnan(get_grav_index(np.nan, 8))
+    assert np.isnan(get_grav_index(10, np.nan))
+    assert np.isnan(get_grav_index(0, 8))
+
+
+# tests for `get_root_lengths`
 def test_get_root_lengths(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
