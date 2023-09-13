@@ -147,7 +147,7 @@ def lengths_all_nan():
 
 
 # tests for get_grav_index function
-def test_get_grav_index(canola_h5):
+def test_get_grav_index_canola(canola_h5):
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
@@ -162,25 +162,43 @@ def test_get_grav_index(canola_h5):
     np.testing.assert_almost_equal(grav_index, 0.08898137324716636)
 
 
-def test_scalar_inputs():
+def test_get_grav_index():
+    # Test 1: Scalar inputs where length > base_tip_dist
+    # Gravitropism index should be (10 - 8) / 10 = 0.2
     assert get_grav_index(10, 8) == 0.2
 
+    # Test 2: Scalar inputs where length and base_tip_dist are zero
+    # Should return NaN as length is zero
+    assert np.isnan(get_grav_index(0, 0))
 
-def test_array_inputs():
-    lengths = np.array([10, 20, 30])
-    base_tip_dists = np.array([8, 16, 24])
-    np.testing.assert_array_almost_equal(
-        get_grav_index(lengths, base_tip_dists), np.array([0.2, 0.2, 0.2])
-    )
+    # Test 3: Scalar inputs where length < base_tip_dist
+    # Should return NaN as it's an invalid case
+    assert np.isnan(get_grav_index(5, 10))
 
+    # Test 4: Array inputs covering various cases
+    # Case 1: length > base_tip_dist, should return 0.2
+    # Case 2: length = 0, should return NaN
+    # Case 3: length < base_tip_dist, should return NaN
+    # Case 4: length > base_tip_dist, should return 0.2
+    lengths = np.array([10, 0, 5, 15])
+    base_tip_dists = np.array([8, 0, 10, 12])
+    expected = np.array([0.2, np.nan, np.nan, 0.2])
+    result = get_grav_index(lengths, base_tip_dists)
+    assert np.allclose(result, expected, equal_nan=True)
 
-def test_shape_mismatch():
-    lengths = 10
-    base_tip_dists = np.array([8, 9, 10])
-    with pytest.raises(
-        ValueError, match="The shapes of lengths and base_tip_dists must match."
-    ):
-        get_grav_index(lengths, base_tip_dists)
+    # Test 5: Mismatched shapes between lengths and base_tip_dists
+    # Should raise a ValueError
+    with pytest.raises(ValueError):
+        get_grav_index(np.array([10, 20]), np.array([8]))
+
+    # Test 6: Array inputs with NaN values
+    # Case 1: length > base_tip_dist, should return 0.2
+    # Case 2 and 3: either length or base_tip_dist is NaN, should return NaN
+    lengths = np.array([10, np.nan, np.nan])
+    base_tip_dists = np.array([8, 8, np.nan])
+    expected = np.array([0.2, np.nan, np.nan])
+    result = get_grav_index(lengths, base_tip_dists)
+    assert np.allclose(result, expected, equal_nan=True)
 
 
 def test_nan_values():

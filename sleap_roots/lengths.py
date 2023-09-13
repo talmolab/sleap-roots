@@ -147,8 +147,15 @@ def get_grav_index(
     # Initialize gravitropism index with NaN values
     grav_index = np.full_like(lengths, np.nan, dtype=float)
 
-    # Calculate the gravitropism index where possible (ignoring NaN and zero-length cases)
-    valid_indices = ~np.isnan(lengths) & ~np.isnan(base_tip_dists) & (lengths != 0)
+    # Filter out invalid cases (NaN or zero lengths or lengths < base_tip_dists)
+    valid_indices = (
+        ~np.isnan(lengths)
+        & ~np.isnan(base_tip_dists)
+        & (lengths > 0)
+        & (lengths >= base_tip_dists)
+    )
+
+    # Calculate the gravitropism index where possible
     grav_index[valid_indices] = (
         lengths[valid_indices] - base_tip_dists[valid_indices]
     ) / lengths[valid_indices]
