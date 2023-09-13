@@ -201,6 +201,36 @@ def test_get_grav_index():
     assert np.allclose(result, expected, equal_nan=True)
 
 
+def test_get_grav_index_shape():
+    # Check if scalar inputs result in scalar output
+    result = get_grav_index(10, 8)
+    assert isinstance(
+        result, (int, float)
+    ), f"Expected scalar output, got {type(result)}"
+
+    # Check if array inputs result in array output
+    lengths = np.array([10, 15])
+    base_tip_dists = np.array([8, 12])
+    result = get_grav_index(lengths, base_tip_dists)
+    assert isinstance(
+        result, np.ndarray
+    ), f"Expected np.ndarray output, got {type(result)}"
+
+    # Check the shape of output for array inputs
+    # Should match the shape of the input arrays
+    assert (
+        result.shape == lengths.shape
+    ), f"Output shape {result.shape} does not match input shape {lengths.shape}"
+
+    # Check the shape of output for larger array inputs
+    lengths = np.array([10, 15, 20, 25])
+    base_tip_dists = np.array([8, 12, 18, 22])
+    result = get_grav_index(lengths, base_tip_dists)
+    assert (
+        result.shape == lengths.shape
+    ), f"Output shape {result.shape} does not match input shape {lengths.shape}"
+
+
 def test_nan_values():
     lengths = np.array([10, np.nan, 30])
     base_tip_dists = np.array([8, 16, np.nan])

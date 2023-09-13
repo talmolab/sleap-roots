@@ -129,9 +129,9 @@ def get_grav_index(
             root(s). Can be a scalar or a 1D numpy array of shape `(instances,)`.
 
     Returns:
-        Union[float, np.ndarray]: Gravitropism index of the root(s), quantifying its/their
-            curviness. Will be a scalar if input is scalar, or a 1D numpy array of shape
-            `(instances,)` otherwise.
+       Gravitropism index of the root(s), quantifying its/their curviness. Will be a
+            scalar if input is scalar, or a 1D numpy array of shape `(instances,)`
+            otherwise.
     """
     # Check if the input is scalar or array
     is_scalar_input = np.isscalar(lengths) and np.isscalar(base_tip_dists)
@@ -144,21 +144,15 @@ def get_grav_index(
     if lengths.shape != base_tip_dists.shape:
         raise ValueError("The shapes of lengths and base_tip_dists must match.")
 
-    # Initialize gravitropism index with NaN values
-    grav_index = np.full_like(lengths, np.nan, dtype=float)
-
-    # Filter out invalid cases (NaN or zero lengths or lengths < base_tip_dists)
-    valid_indices = (
-        ~np.isnan(lengths)
-        & ~np.isnan(base_tip_dists)
-        & (lengths > 0)
-        & (lengths >= base_tip_dists)
-    )
-
     # Calculate the gravitropism index where possible
-    grav_index[valid_indices] = (
-        lengths[valid_indices] - base_tip_dists[valid_indices]
-    ) / lengths[valid_indices]
+    grav_index = np.where(
+        (~np.isnan(lengths))
+        & (~np.isnan(base_tip_dists))
+        & (lengths > 0)
+        & (lengths >= base_tip_dists),
+        (lengths - base_tip_dists) / lengths,
+        np.nan,
+    )
 
     # Return scalar or array based on the input type
     if is_scalar_input:
