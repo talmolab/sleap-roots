@@ -62,9 +62,9 @@ def test_younger_monocot_pipeline(rice_h5, rice_folder):
         ), f"Unexpected dtype for column {col} in all_traits"
 
     # Value range assertions for traits
-    # assert (
-    #     rice_traits["grav_index"] >= 0
-    # ).all(), "grav_index in rice_traits contains negative values"
+    assert (
+        rice_traits["grav_index"].fillna(0) >= 0
+    ).all(), "grav_index in rice_traits contains negative values"
     assert (
         all_traits["grav_index_median"] >= 0
     ).all(), "grav_index in all_traits contains negative values"
