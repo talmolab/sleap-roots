@@ -1195,8 +1195,7 @@ class YoungerMonocotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=True,
                 kwargs={},
-                description="Straight-line distance(s) from the base(s) to the"
-                "tip(s) of the main root(s).",
+                description="Gravitropism index for each main root.",
             ),
             TraitDef(
                 name="network_solidity",
