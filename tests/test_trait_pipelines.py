@@ -36,5 +36,5 @@ def test_younger_monocot_pipeline(rice_h5, rice_folder):
     rice_traits = pipeline.compute_plant_traits(rice)
     all_traits = pipeline.compute_batch_traits(series_all)
 
-    assert rice_traits.shape == (72, 117)
-    assert all_traits.shape == (2, 1036)
+    assert rice_traits.shape == (72, 104)
+    assert all_traits.shape == (2, 919)

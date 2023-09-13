@@ -1182,7 +1182,7 @@ class YoungerMonocotPipeline(Pipeline):
                 name="main_base_tip_dists",
                 fn=get_base_tip_dist,
                 input_traits=["main_base_pts", "main_tip_pts"],
-                scalar=True,
+                scalar=False,
                 include_in_csv=True,
                 kwargs={},
                 description="Straight-line distance(s) from the base(s) to the"
@@ -1192,7 +1192,7 @@ class YoungerMonocotPipeline(Pipeline):
                 name="main_grav_indices",
                 fn=get_base_tip_dist,
                 input_traits=["main_base_pts", "main_tip_pts"],
-                scalar=True,
+                scalar=False,
                 include_in_csv=True,
                 kwargs={},
                 description="Straight-line distance(s) from the base(s) to the"
