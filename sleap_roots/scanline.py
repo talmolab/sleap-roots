@@ -102,7 +102,7 @@ def get_scanline_last_ind(scanline_intersection_counts: np.ndarray):
     Return:
         Scalar of count_scanline_interaction index for the last interaction.
     """
-    # get the first scanline index using scanline_intersection_counts
+    # get the last scanline index using scanline_intersection_counts
     if np.where((scanline_intersection_counts > 0))[0].shape[0] > 0:
         scanline_last_ind = np.where((scanline_intersection_counts > 0))[0][-1]
         return scanline_last_ind
