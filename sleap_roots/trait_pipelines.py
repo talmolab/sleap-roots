@@ -36,7 +36,7 @@ from sleap_roots.ellipse import (
     get_ellipse_b,
     get_ellipse_ratio,
 )
-from sleap_roots.lengths import get_grav_index, get_max_length_pts, get_root_lengths
+from sleap_roots.lengths import get_curve_index, get_max_length_pts, get_root_lengths
 from sleap_roots.networklength import (
     get_bbox,
     get_network_distribution,
@@ -811,13 +811,13 @@ class DicotPipeline(Pipeline):
                 description="Scalar of base median ratio.",
             ),
             TraitDef(
-                name="grav_index",
-                fn=get_grav_index,
+                name="curve_index",
+                fn=get_curve_index,
                 input_traits=["primary_length", "primary_base_tip_dist"],
                 scalar=True,
                 include_in_csv=True,
                 kwargs={},
-                description="Scalar of primary root gravity index.",
+                description="Scalar of primary root curvature index.",
             ),
             TraitDef(
                 name="base_length_ratio",
@@ -1189,13 +1189,13 @@ class YoungerMonocotPipeline(Pipeline):
                 "tip(s) of the main root(s).",
             ),
             TraitDef(
-                name="main_grav_indices",
+                name="main_curve_indices",
                 fn=get_base_tip_dist,
                 input_traits=["main_base_pts", "main_tip_pts"],
                 scalar=False,
                 include_in_csv=True,
                 kwargs={},
-                description="Gravitropism index for each main root.",
+                description="Curvature index for each main root.",
             ),
             TraitDef(
                 name="network_solidity",
@@ -1291,13 +1291,13 @@ class YoungerMonocotPipeline(Pipeline):
                 "convex hull.",
             ),
             TraitDef(
-                name="grav_index",
-                fn=get_grav_index,
+                name="curve_index",
+                fn=get_curve_index,
                 input_traits=["primary_length", "primary_base_tip_dist"],
                 scalar=True,
                 include_in_csv=True,
                 kwargs={},
-                description="Scalar of primary root gravity index.",
+                description="Scalar of primary root curvature index.",
             ),
             TraitDef(
                 name="primary_base_tip_dist",

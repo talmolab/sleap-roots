@@ -111,13 +111,13 @@ def get_root_lengths_max(pts: np.ndarray) -> np.ndarray:
     return max_length
 
 
-def get_grav_index(
+def get_curve_index(
     lengths: Union[float, np.ndarray], base_tip_dists: Union[float, np.ndarray]
 ) -> Union[float, np.ndarray]:
-    """Calculate the gravitropism index of a root.
+    """Calculate the curvature index of a root.
 
-    The gravitropism index quantifies the curviness of the root's growth. A higher
-    gravitropism index indicates a curvier root (less responsive to gravity), while a
+    The curvature index quantifies the curviness of the root's growth. A higher
+    curvature index indicates a curvier root (less responsive to gravity), while a
     lower index indicates a straighter root (more responsive to gravity). The index is
     computed as the difference between the maximum root length and straight-line
     distance from the base to the tip of the root, normalized by the root length.
@@ -129,7 +129,7 @@ def get_grav_index(
             root(s). Can be a scalar or a 1D numpy array of shape `(instances,)`.
 
     Returns:
-       Gravitropism index of the root(s), quantifying its/their curviness. Will be a
+       Curvature index of the root(s), quantifying its/their curviness. Will be a
             scalar if input is scalar, or a 1D numpy array of shape `(instances,)`
             otherwise.
     """
@@ -144,8 +144,8 @@ def get_grav_index(
     if lengths.shape != base_tip_dists.shape:
         raise ValueError("The shapes of lengths and base_tip_dists must match.")
 
-    # Calculate the gravitropism index where possible
-    grav_index = np.where(
+    # Calculate the curvature index where possible
+    curve_index = np.where(
         (~np.isnan(lengths))
         & (~np.isnan(base_tip_dists))
         & (lengths > 0)
@@ -156,6 +156,6 @@ def get_grav_index(
 
     # Return scalar or array based on the input type
     if is_scalar_input:
-        return grav_index.item()
+        return curve_index.item()
     else:
-        return grav_index
+        return curve_index
