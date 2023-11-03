@@ -1,6 +1,7 @@
 """Get length-related traits."""
 import numpy as np
 from typing import Union
+from shapely.geometry import LineString
 
 
 def get_max_length_pts(pts: np.ndarray) -> np.ndarray:
@@ -159,3 +160,27 @@ def get_curve_index(
         return curve_index.item()
     else:
         return curve_index
+
+
+def min_distance_line_to_line(line1: LineString, line2: LineString) -> float:
+    """Calculate the minimum distance between two LineString objects.
+
+    This function computes the shortest distance between any two points on the first
+    line segment and the second line segment. If the lines intersect, the minimum
+    distance is zero. The distance is calculated in the same units as the coordinates
+    of the LineStrings.
+
+    Args:
+    line1: The first LineString object representing a line segment.
+    line2: The second LineString object representing a line segment.
+
+    Returns:
+    The minimum distance between the two line segments.
+    """
+    # Check if the inputs are LineString instances
+    if not isinstance(line1, LineString):
+        raise TypeError("The first argument must be a LineString object.")
+    if not isinstance(line2, LineString):
+        raise TypeError("The second argument must be a LineString object.")
+
+    return line1.distance(line2)
