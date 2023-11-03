@@ -21,6 +21,7 @@ pip install sleap-roots
 
 ## Usage
 
+**DicotPipeline**
 **1. Computing traits for a single plant:**
 
 ```py
@@ -62,6 +63,55 @@ plant = sr.Series.load(
     "tests/data/canola_7do/919QDUH.h5",
     primary_name="primary_multi_day",
     lateral_name="lateral_3_nodes"
+)
+
+primary, lateral = plant[10]
+pts = np.concatenate([primary.numpy(), lateral.numpy()], axis=0).reshape(-1, 2)
+convex_hull = sr.convhull.get_convhull(pts)
+```
+
+**YoungerMonocotPipeline**
+**1. Computing traits for a single plant:**
+
+```py
+import sleap_roots as sr
+
+plant = sr.Series.load(
+    "tests/data/rice_3do/0K9E8BI.h5",
+    primary_name="longest_3do_6nodes",
+    lateral_name="main_3do_6nodes"
+)
+pipeline = sr.YoungerMonocotPipeline()
+traits = pipeline.compute_plant_traits(plant, write_csv=True)
+```
+
+**2. Computing traits for a batch of plants:**
+
+```py
+import sleap_roots as sr
+
+plant_paths = sr.find_all_series("tests/data/rice_3do")
+plants = [
+    sr.Series.load(
+        plant_path,
+        primary_name="longest_3do_6nodes",
+        lateral_name="main_3do_6nodes"
+    ) for plant_path in plant_paths]
+
+pipeline = sr.YoungerMonocotPipeline()
+all_traits = pipeline.compute_batch_traits(plants, write_csv=True)
+```
+
+**3. Computing individual traits:**
+
+```py
+import sleap_roots as sr
+import numpy as np
+
+plant = sr.Series.load(
+    "tests/data/rice_3do/0K9E8BI.h5",
+    primary_name="longest_3do_6nodes",
+    lateral_name="main_3do_6nodes"
 )
 
 primary, lateral = plant[10]
