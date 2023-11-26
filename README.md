@@ -21,7 +21,8 @@ pip install sleap-roots
 
 ## Usage
 
-**DicotPipeline**
+### `DicotPipeline`
+
 **1. Computing traits for a single plant:**
 
 ```py
@@ -70,7 +71,8 @@ pts = np.concatenate([primary.numpy(), lateral.numpy()], axis=0).reshape(-1, 2)
 convex_hull = sr.convhull.get_convhull(pts)
 ```
 
-**YoungerMonocotPipeline**
+### `YoungerMonocotPipeline`
+
 **1. Computing traits for a single plant:**
 
 ```py
