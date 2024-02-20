@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from typing import Dict, Optional, Tuple, List, Union
-from attr import attrib
 from pathlib import Path
 
 
@@ -17,87 +16,107 @@ class Series:
     """Data and predictions for a single image series.
 
     Attributes:
-        h5_path: Path to the HDF5-formatted image series.
-        labels_dict: A dictionary where each key is a prediction name and the value is
-            a `sio.Labels` object corresponding to those predictions.
-        video: A `sio.Video` object corresponding to the image series.
+        h5_path: Optional path to the HDF5-formatted image series.
+        primary_labels: Optional `sio.Labels` corresponding to the primary root predictions.
+        lateral_labels: Optional `sio.Labels` corresponding to the lateral root predictions.
+        crown_labels: Optional `sio.Labels` corresponding to the crown predictions.
+        video: Optional `sio.Video` corresponding to the image series.
 
     Methods:
-        load: Class method to load a set of predictions.
-        series_name: Property that returns the series name derived from the HDF5 filename.
-        get_frame: Returns labeled frames for the given prediction name.
-        get_points: Returns points for the given prediction name.
+        load: Load a set of predictions for this series.
+        __len__: Length of the series (number of images).
+        __getitem__: Return labeled frames for predictions.
+        __iter__: Iterator for looping through predictions.
+        get_frame: Return labeled frames for predictions.
+        plot: Plot predictions on top of the image.
+        get_primary_points: Get primary root points.
+        get_lateral_points: Get lateral root points.
+        get_crown_points: Get crown root points.
 
-    Example:
-        >>> series = Series.load(h5_path="your_h5_path",
-        prediction_names=["primary_multi_day", "lateral_3_nodes"])
-        >>> primary_points =
-        series.get_points(frame_idx=0, pred_name="primary_multi_day")
+    Properties:
+        series_name: Name of the series derived from the HDF5 filename.
     """
 
-    h5_path: Optional[str] = attrib(default=None)
-    labels_dict: Dict[str, sio.Labels] = attrib(factory=dict)
-    video: Optional[sio.Video] = attrib(default=None)
+    h5_path: Optional[str] = None
+    primary_labels: Optional[sio.Labels] = None
+    lateral_labels: Optional[sio.Labels] = None
+    crown_labels: Optional[sio.Labels] = None
+    video: Optional[sio.Video] = None
 
     @classmethod
-    def load(cls, h5_path: str, prediction_names: List[str]) -> "Series":
-        """Load a set of predictions for this series."""
-        labels_dict = {
-            name: sio.load_slp(
-                Path(h5_path).with_suffix(f".{name}.predictions.slp").as_posix()
-            )
-            for name in prediction_names
-        }
-        return cls(
-            h5_path=h5_path,
-            labels_dict=labels_dict,
-            video=sio.Video.from_filename(h5_path),
-        )
-
-    def get_frame(self, frame_idx: int) -> Tuple["sio.LabeledFrame", ...]:
-        """Return labeled frames for all available predictions."""
-        return tuple(
-            labels.find(labels.video, frame_idx, return_new=True)[0]
-            for labels in self.labels_dict.values()
-        )
-
-    def get_points(self, frame_idx: int, pred_name: str) -> np.ndarray:
-        """Get points for the given prediction name."""
-        labels = self.labels_dict.get(pred_name)
-        if labels is None:
-            raise KeyError(f"No predictions found for name: {pred_name}")
-        lf = labels.find(labels.video, frame_idx, return_new=True)[0]
-        gt_instances = lf.user_instances + lf.unused_predictions
-        if len(gt_instances) == 0:
-            return np.array([])
-        else:
-            return np.stack([inst.numpy() for inst in gt_instances], axis=0)
-
-    def plot(self, frame_idx: int, scale: float = 1.0, **kwargs):
-        """Plot predictions on top of the image for an arbitrary number of predictions.
+    def load(
+        cls,
+        h5_path: str,
+        primary_name: Optional[str] = None,
+        lateral_name: Optional[str] = None,
+        crown_name: Optional[str] = None,
+    ) -> "Series":
+        """Load a set of predictions for this series.
 
         Args:
-            frame_idx: Frame index to visualize.
-            scale: Relative size of the visualized image. Useful for plotting smaller
-                images within notebooks.
+            h5_path: Path to the HDF5-formatted image series.
+            primary_name: Optional name of the primary root predictions file. If provided,
+                the file is expected to be named "{h5_path}.{primary_name}.predictions.slp".
+            lateral_name: Optional name of the lateral root predictions file. If provided,
+                the file is expected to be named "{h5_path}.{lateral_name}.predictions.slp".
+            crown_name: Optional name of the crown predictions file. If provided,
+                the file is expected to be named "{h5_path}.{crown_name}.predictions.slp".
+
+        Returns:
+            An instance of Series loaded with the specified predictions.
         """
-        # Fetch all labeled frames
-        labeled_frames = self.get_frame(frame_idx)
+        # Initialize the labels as None
+        primary_labels, lateral_labels, crown_labels = None, None, None
 
-        # Ensure that we have at least one labeled frame to plot
-        if not labeled_frames:
-            return
+        # Attempt to load the predictions, with error handling
+        try:
+            if primary_name:
+                primary_path = (
+                    Path(h5_path)
+                    .with_suffix(f".{primary_name}.predictions.slp")
+                    .as_posix()
+                )
+                if Path(primary_path).exists():
+                    primary_labels = sio.load_slp(primary_path)
+                else:
+                    print(f"Primary prediction file not found: {primary_path}")
+            if lateral_name:
+                lateral_path = (
+                    Path(h5_path)
+                    .with_suffix(f".{lateral_name}.predictions.slp")
+                    .as_posix()
+                )
+                if Path(lateral_path).exists():
+                    lateral_labels = sio.load_slp(lateral_path)
+                else:
+                    print(f"Lateral prediction file not found: {lateral_path}")
+            if crown_name:
+                crown_path = (
+                    Path(h5_path)
+                    .with_suffix(f".{crown_name}.predictions.slp")
+                    .as_posix()
+                )
+                if Path(crown_path).exists():
+                    crown_labels = sio.load_slp(crown_path)
+                else:
+                    print(f"Crown prediction file not found: {crown_path}")
+        except Exception as e:
+            print(f"Error loading prediction files: {e}")
 
-        # Plot the image using the first labeled frame
-        plot_img(labeled_frames[0].image, scale=scale)
+        # Attempt to load the video, with error handling
+        video = None
+        try:
+            video = sio.Video.from_filename(h5_path) if Path(h5_path).exists() else None
+        except Exception as e:
+            print(f"Error loading video file {h5_path}: {e}")
 
-        # Different colors for each set of predictions
-        cmap_options = ["r", "g", "b", "c", "m", "y", "k"]
-
-        # Plot instances for each labeled frame
-        for i, lf in enumerate(labeled_frames):
-            cmap = [cmap_options[i % len(cmap_options)]]
-            plot_instances(lf.instances, cmap=cmap, **kwargs)
+        return cls(
+            h5_path=h5_path,
+            primary_labels=primary_labels,
+            lateral_labels=lateral_labels,
+            crown_labels=crown_labels,
+            video=video,
+        )
 
     @property
     def series_name(self) -> str:
@@ -108,8 +127,8 @@ class Series:
         """Length of the series (number of images)."""
         return len(self.video)
 
-    def __getitem__(self, idx: int) -> Tuple:
-        """Return labeled frames for all available predictions."""
+    def __getitem__(self, idx: int) -> Dict[str, Optional[sio.LabeledFrame]]:
+        """Return labeled frames for primary and/or lateral and/or crown predictions."""
         return self.get_frame(idx)
 
     def __iter__(self):
@@ -117,135 +136,153 @@ class Series:
         for i in range(len(self)):
             yield self[i]
 
+    def get_frame(self, frame_idx: int) -> dict:
+        """Return labeled frames for primary, lateral, and crown predictions.
 
-# @attrs.define
-# class Series:
-#     """Data and predictions for a single image series.
+        Args:
+            frame_idx: Integer frame number.
 
-#     Attributes:
-#         h5_path: Path to the HDF5-formatted image series.
-#         primary_labels: A `sio.Labels` corresponding to the primary root predictions.
-#         lateral_labels: A `sio.Labels` corresponding to the lateral root predictions.
-#         video: A `sio.Video` corresponding to the image series.
-#     """
+        Returns:
+            Dictionary with keys 'primary', 'lateral', and 'crown', each corresponding
+            to the `sio.LabeledFrame` from each set of predictions on the same frame. If
+            any set of predictions is not available, its value will be None.
+        """
+        frames = {}
 
-#     h5_path: Optional[str] = None
-#     primary_labels: Optional[sio.Labels] = None
-#     lateral_labels: Optional[sio.Labels] = None
-#     video: Optional[sio.Video] = None
+        # For primary predictions
+        if self.primary_labels is not None:
+            frames["primary"] = self.primary_labels.find(
+                self.primary_labels.video, frame_idx, return_new=True
+            )[0]
+        else:
+            frames["primary"] = None
 
-#     @classmethod
-#     def load(
-#         cls,
-#         h5_path: str,
-#         primary_name: str = "primary_multi_day",
-#         lateral_name: str = "lateral__nodes",
-#     ):
-#         """Load a set of predictions for this series.
+        # For lateral predictions
+        if self.lateral_labels is not None:
+            frames["lateral"] = self.lateral_labels.find(
+                self.lateral_labels.video, frame_idx, return_new=True
+            )[0]
+        else:
+            frames["lateral"] = None
 
-#         Args:
-#             h5_path: Path to the HDF5-formatted image series.
-#             primary_name: Name of the primary root predictions. The predictions file is
-#                 expected to be named `"{h5_path}.{primary_name}.predictions.slp"`.
-#             lateral_name: Name of the lateral root predictions. The predictions file is
-#                 expected to be named `"{h5_path}.{lateral_name}.predictions.slp"`.
-#         """
-#         primary_path = (
-#             Path(h5_path).with_suffix(f".{primary_name}.predictions.slp").as_posix()
-#         )
-#         lateral_path = (
-#             Path(h5_path).with_suffix(f".{lateral_name}.predictions.slp").as_posix()
-#         )
+        # For crown predictions
+        if self.crown_labels is not None:
+            frames["crown"] = self.crown_labels.find(
+                self.crown_labels.video, frame_idx, return_new=True
+            )[0]
+        else:
+            frames["crown"] = None
 
-#         return cls(
-#             h5_path,
-#             primary_labels=sio.load_slp(primary_path),
-#             lateral_labels=sio.load_slp(lateral_path),
-#             video=sio.Video.from_filename(h5_path),
-#         )
+        return frames
 
-#     @property
-#     def series_name(self) -> str:
-#         """Name of the series derived from the HDF5 filename."""
-#         return Path(self.h5_path).name.split(".")[0]
+    def plot(self, frame_idx: int, scale: float = 1.0, **kwargs):
+        """Plot predictions on top of the image.
 
-#     def __len__(self) -> int:
-#         """Length of the series (number of images)."""
-#         return len(self.video)
+        Args:
+            frame_idx: Frame index to visualize.
+            scale: Relative size of the visualized image. Useful for plotting smaller
+                images within notebooks.
+        """
+        # Retrieve all available frames
+        frames = self.get_frame(frame_idx)
 
-#     def __getitem__(self, idx: int) -> Tuple[sio.LabeledFrame, sio.LabeledFrame]:
-#         """Return labeled frames for primary and lateral predictions."""
-#         return self.get_frame(idx)
+        # Generate the color palette from seaborn
+        cmap = sns.color_palette("tab10")
 
-#     def __iter__(self):
-#         """Iterator for looping through predictions."""
-#         for i in range(len(self)):
-#             yield self[i]
+        # Define the order of preference for the predictions for plotting the image
+        prediction_order = ["primary", "lateral", "crown"]
 
-#     def get_frame(self, frame_idx: int) -> Tuple[sio.LabeledFrame, sio.LabeledFrame]:
-#         """Return labeled frames for primary and lateral predictions.
+        # Variable to keep track if the image has been plotted
+        image_plotted = False
 
-#         Args:
-#             frame_idx: Integer frame number.
+        # First, find the first available prediction to plot the image
+        for prediction in prediction_order:
+            labeled_frame = frames.get(prediction)
+            if labeled_frame is not None and not image_plotted:
+                # Plot the image
+                plot_img(labeled_frame.image, scale=scale)
+                # Set the flag to True to avoid plotting the image again
+                image_plotted = True
 
-#         Returns:
-#             Tuple of (primary_lf, lateral_lf) corresponding to the `sio.LabeledFrame`
-#             from each set of predictions on the same frame.
-#         """
-#         lf_primary = self.primary_labels.find(
-#             self.primary_labels.video, frame_idx, return_new=True
-#         )[0]
-#         lf_lateral = self.lateral_labels.find(
-#             self.lateral_labels.video, frame_idx, return_new=True
-#         )[0]
-#         return lf_primary, lf_lateral
+        # Then, iterate through all predictions to plot instances
+        for i, prediction in enumerate(prediction_order):
+            labeled_frame = frames.get(prediction)
+            if labeled_frame is not None:
+                # Use the color map index for each prediction type
+                # Modulo the length of the color map to avoid index out of range
+                color = cmap[i % len(cmap)]
 
-#     def plot(self, frame_idx: int, scale: float = 1.0, **kwargs):
-#         """Plot predictions on top of the image.
+                # Plot the instances
+                plot_instances(labeled_frame.instances, cmap=[color], **kwargs)
 
-#         Args:
-#             frame_idx: Frame index to visualize.
-#             scale: Relative size of the visualized image. Useful for plotting smaller
-#                 images within notebooks.
-#         """
-#         primary_lf, lateral_lf = self.get_frame(frame_idx)
-#         plot_img(primary_lf.image, scale=scale)
-#         plot_instances(primary_lf.instances, cmap=["r"], **kwargs)
-#         plot_instances(lateral_lf.instances, cmap=["g"], **kwargs)
+    def get_primary_points(self, frame_idx: int) -> np.ndarray:
+        """Get primary root points.
 
-#     def get_primary_points(self, frame_idx: int) -> np.ndarray:
-#         """Get primary root points.
+        Args:
+            frame_idx: Frame index.
 
-#         Args:
-#             frame_idx: Frame index.
+        Returns:
+            Primary root points as array of shape `(n_instances, n_nodes, 2)`.
+        """
+        # Retrieve all available frames
+        frames = self.get_frame(frame_idx)
+        # Get the primary labeled frame
+        primary_lf = frames.get("primary")
+        # Get the ground truth instances and unused predictions
+        gt_instances_pr = primary_lf.user_instances + primary_lf.unused_predictions
+        # If there are no instances, return an empty array
+        if len(gt_instances_pr) == 0:
+            return []
+        # Otherwise, stack the instances into an array
+        else:
+            primary_pts = np.stack([inst.numpy() for inst in gt_instances_pr], axis=0)
+        return primary_pts
 
-#         Returns:
-#             Primary root points as array of shape `(n_instances, n_nodes, 2)`.
-#         """
-#         primary_lf, lateral_lf = self.get_frame(frame_idx)
-#         gt_instances_pr = primary_lf.user_instances + primary_lf.unused_predictions
-#         if len(gt_instances_pr) == 0:
-#             return []
-#         else:
-#             primary_pts = np.stack([inst.numpy() for inst in gt_instances_pr], axis=0)
-#         return primary_pts
+    def get_lateral_points(self, frame_idx: int) -> np.ndarray:
+        """Get lateral root points.
 
-#     def get_lateral_points(self, frame_idx: int) -> np.ndarray:
-#         """Get lateral root points.
+        Args:
+            frame_idx: Frame index.
 
-#         Args:
-#             frame_idx: Frame index.
+        Returns:
+            Lateral root points as array of shape `(n_instances, n_nodes, 2)`.
+        """
+        # Retrieve all available frames
+        frames = self.get_frame(frame_idx)
+        # Get the lateral labeled frame
+        lateral_lf = frames.get("lateral")
+        # Get the ground truth instances and unused predictions
+        gt_instances_lr = lateral_lf.user_instances + lateral_lf.unused_predictions
+        # If there are no instances, return an empty array
+        if len(gt_instances_lr) == 0:
+            return []
+        # Otherwise, stack the instances into an array
+        else:
+            lateral_pts = np.stack([inst.numpy() for inst in gt_instances_lr], axis=0)
+        return lateral_pts
 
-#         Returns:
-#             Lateral root points as array of shape `(n_instances, n_nodes, 2)`.
-#         """
-#         primary_lf, lateral_lf = self.get_frame(frame_idx)
-#         gt_instances_lr = lateral_lf.user_instances + lateral_lf.unused_predictions
-#         if len(gt_instances_lr) == 0:
-#             return []
-#         else:
-#             lateral_pts = np.stack([inst.numpy() for inst in gt_instances_lr], axis=0)
-#         return lateral_pts
+    def get_crown_points(self, frame_idx: int) -> np.ndarray:
+        """Get crown root points.
+
+        Args:
+            frame_idx: Frame index.
+
+        Returns:
+            Crown root points as array of shape `(n_instances, n_nodes, 2)`.
+        """
+        # Retrieve all available frames
+        frames = self.get_frame(frame_idx)
+        # Get the crown labeled frame
+        crown_lf = frames.get("crown")
+        # Get the ground truth instances and unused predictions
+        gt_instances_cr = crown_lf.user_instances + crown_lf.unused_predictions
+        # If there are no instances, return an empty array
+        if len(gt_instances_cr) == 0:
+            return []
+        # Otherwise, stack the instances into an array
+        else:
+            crown_pts = np.stack([inst.numpy() for inst in gt_instances_cr], axis=0)
+        return crown_pts
 
 
 def find_all_series(data_folders: Union[str, List[str]]) -> List[str]:
