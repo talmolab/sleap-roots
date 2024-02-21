@@ -216,27 +216,16 @@ def test_get_base_tip_dist_no_roots(pts_no_roots):
 
 # test get_base_xs with canola
 def test_get_base_xs_canola(canola_h5):
-    monocots = False
-    plant = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    lateral = plant[0][1]  # first frame, lateral labels
-    lateral_pts = lateral.numpy()  # lateral points as numpy array
-    base_xs = get_base_xs(lateral_pts, monocots)
+    # Set the frame idx to 0
+    frame_idx = 0
+    # Load a series from a canola dataset
+    plant = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    # Get the labeled frame
+    lateral_points = plant.get_lateral_points(frame_idx)
+    # Get the base x-coordinates
+    base_xs = get_base_xs(lateral_points)
     assert base_xs.shape[0] == 5
     np.testing.assert_almost_equal(base_xs[1], 1112.5506591796875, decimal=3)
-
-
-# test get_base_xs with rice
-def test_get_base_xs_rice(rice_h5):
-    monocots = True
-    plant = Series.load(
-        rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
-    )
-    lateral = plant[0][1]  # first frame, lateral labels
-    lateral_pts = lateral.numpy()  # lateral points as numpy array
-    base_xs = get_base_xs(lateral_pts, monocots)
-    assert np.isnan(base_xs)
 
 
 # test get_base_xs with pts_standard
@@ -252,33 +241,6 @@ def test_get_base_xs_no_roots(pts_no_roots):
     base_xs = get_base_xs(pts_no_roots)
     assert base_xs.shape[0] == 2
     np.testing.assert_almost_equal(base_xs[0], np.nan, decimal=3)
-
-
-# test get_base_ys with canola
-def test_get_base_ys_canola(canola_h5):
-    monocots = False
-    plant = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    lateral = plant[0][1]  # first frame, lateral labels
-    lateral_pts = lateral.numpy()  # lateral points as numpy array
-    base_pts = get_bases(lateral_pts)  # get the bases of the lateral roots
-    base_ys = get_base_ys(base_pts, monocots)
-    assert base_ys.shape[0] == 5
-    np.testing.assert_almost_equal(base_ys[1], 228.0966796875, decimal=3)
-
-
-# test get_base_ys with rice
-def test_get_base_ys_rice(rice_h5):
-    monocots = True
-    plant = Series.load(
-        rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
-    )
-    lateral = plant[0][1]  # first frame, lateral labels
-    lateral_pts = lateral.numpy()  # lateral points as numpy array
-    base_pts = get_bases(lateral_pts, monocots)  # get the bases of the lateral roots
-    base_ys = get_base_ys(base_pts, monocots)
-    assert np.isnan(base_ys)
 
 
 # test get_base_ys with pts_standard
@@ -311,17 +273,6 @@ def test_get_base_length_canola(canola_h5):
     np.testing.assert_almost_equal(base_length, 83.69914245605469, decimal=3)
 
 
-# test get_base_length with rice
-def test_get_base_length_rice(rice_h5):
-    plant = Series.load(
-        rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
-    )
-    lateral = plant[0][1]  # first frame, lateral labels
-    lateral_pts = lateral.numpy()  # lateral points as numpy array
-    base_length = get_base_length(lateral_pts, monocots=True)
-    assert np.isnan(base_length)
-
-
 # test get_base_length with pts_standard
 def test_get_base_length_standard(pts_standard):
     bases = get_bases(pts_standard)  # get bases of lateral roots
@@ -346,7 +297,6 @@ def test_get_base_ct_density(primary_pts, lateral_pts):
 
 # test get_base_ct_density function with canola example
 def test_get_base_ct_density_canola(canola_h5):
-    monocots = False
     series = Series.load(
         canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
     )
@@ -357,19 +307,6 @@ def test_get_base_ct_density_canola(canola_h5):
     lateral_base_pts = get_bases(lateral_pts)
     base_ct_density = get_base_ct_density(primary_length_max, lateral_base_pts)
     np.testing.assert_almost_equal(base_ct_density, 0.004119, decimal=5)
-
-
-# test get_base_ct_density function with rice example
-def test_get_base_ct_density_rice(rice_h5):
-    monocots = True
-    series = Series.load(
-        rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
-    )
-    primary, lateral = series[0]
-    primary_pts = primary.numpy()
-    lateral_pts = lateral.numpy()
-    base_ct_density = get_base_ct_density(primary_pts, lateral_pts, monocots)
-    assert np.isnan(base_ct_density)
 
 
 # test get_base_length_ratio with canola

@@ -8,12 +8,12 @@ def get_count(pts: np.ndarray):
     """Get number of roots.
 
     Args:
-        pts: Root landmarks as array of shape `(instance, node, 2)`.
+        pts: Root landmarks as array of shape `(instances, nodes, 2)`.
 
     Return:
-        Scalar of number of lateral roots.
+        Scalar of number of  roots.
     """
-    # number of lateral roots is the number of instances
+    # The number of roots is the number of instances
     count = pts.shape[0]
     return count
 

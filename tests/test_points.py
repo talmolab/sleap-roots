@@ -10,12 +10,14 @@ from sleap_roots.points import (
 
 # test get_count function with canola
 def test_get_lateral_count(canola_h5):
-    series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = series[0]
-    lateral_pts = lateral.numpy()
-    lateral_count = get_count(lateral_pts)
+    # Set frame index to 0
+    frame_idx = 0
+    # Load the series
+    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    # Get the lateral points
+    lateral_points = series.get_lateral_points(frame_idx)
+    # Get the count of lateral roots
+    lateral_count = get_count(lateral_points)
     assert lateral_count == 5
 
 
@@ -89,25 +91,28 @@ def test_join_pts_mixed_shapes():
 
 # test get_all_pts_array function
 def test_get_all_pts_array(canola_h5):
-    plant = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = plant[0]
-    primary_pts = primary.numpy()
-    # get primary length
+    # Set frame index to 0
+    frame_idx = 0
+    # Load the series
+    plant = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    # Get the primary points
+    primary_pts = plant.get_primary_points(frame_idx)
+    # Get primary length
     primary_max_length_pts = get_max_length_pts(primary_pts)
-    # get lateral_lengths
-    lateral_pts = lateral.numpy()
+    # Get lateral points
+    lateral_pts = plant.get_lateral_points(frame_idx)
     pts_all_array = get_all_pts_array(primary_max_length_pts, lateral_pts)
     assert pts_all_array.shape[0] == 21
 
 
 # test get_all_pts_array function
 def test_get_all_pts_array_rice(rice_h5):
-    plant = Series.load(
-        rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
-    )
-    lateral = plant[0][1]
-    lateral_pts = lateral.numpy()
+    # Set frame index to 0
+    frame_idx = 0
+    # Load the series
+    plant = Series.load(rice_h5, primary_name="primary", lateral_name="crown")
+    # Get the lateral points
+    lateral_pts = plant.get_lateral_points(frame_idx)
+    # Get the flattened array with all of the points
     pts_all_array = get_all_pts_array(lateral_pts)
     assert pts_all_array.shape[0] == 12

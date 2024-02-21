@@ -38,7 +38,6 @@ def dummy_series(dummy_video_path, dummy_labels_path):
         "h5_path": dummy_video_path,
         f"{label_type}_name": dummy_labels_path,
     }
-
     return Series.load(**kwargs)
 
 
