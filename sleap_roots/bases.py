@@ -68,51 +68,25 @@ def get_base_tip_dist(
     return distances
 
 
-def get_base_xs(pts: np.ndarray) -> np.ndarray:
+def get_base_xs(base_pts: np.ndarray) -> np.ndarray:
     """Get x coordinates of the base of each lateral root.
 
     Args:
-        pts: root landmarks as array of shape `(instances, point, 2)` or bases
-            `(instances, 2)`.
+        base_pts: root bases as array of shape `(instances, 2)` or `(2)` when there is
+            only one root, as is the case for primary roots.
 
     Return:
-        An array of the x-coordinates of bases `(instance,)`.
+        An array of base x-coordinates (instances,) or (1,) when there is only one root.
     """
-    # If the input is a single number (float or integer), return np.nan
-    if isinstance(pts, (np.floating, float, np.integer, int)):
-        return np.nan
-
-    # If the input array doesn't have 2 or 3 dimensions, raise an error
-    if pts.ndim not in (2, 3):
+    if base_pts.ndim not in (1, 2):
         raise ValueError(
-            "Input array must be 2-dimensional (n_bases, 2) or "
-            "3-dimensional (n_roots, n_nodes, 2)."
+            "Input array must be 2-dimensional (instances, 2) or 1-dimensional (2,)."
         )
+    if base_pts.shape[-1] != 2:
+        raise ValueError("Last dimension must be (x, y).")
 
-    # If the input array has 3 dimensions, calculate the base points,
-    # otherwise, assume the input array already contains the base points
-    if pts.ndim == 3:
-        _base_pts = get_bases(
-            pts
-        )  # Assuming get_bases returns an array of shape (instance, 2)
-    else:
-        _base_pts = pts
-
-    # If _base_pts is a single number (float or integer), return np.nan
-    if isinstance(_base_pts, (np.floating, float, np.integer, int)):
-        return np.nan
-
-    # If the base points array doesn't have exactly 2 dimensions or
-    # the second dimension is not of size 2, raise an error
-    if _base_pts.ndim != 2 or _base_pts.shape[1] != 2:
-        raise ValueError(
-            "Array of base points must be 2-dimensional with shape (instance, 2)."
-        )
-
-    # If everything is fine, extract and return the x-coordinates of the base points
-    else:
-        base_xs = _base_pts[:, 0]
-        return base_xs
+    base_xs = base_pts[..., 0]
+    return base_xs
 
 
 def get_base_ys(base_pts: np.ndarray) -> np.ndarray:
@@ -154,7 +128,6 @@ def get_base_length(lateral_base_ys: np.ndarray) -> float:
     """
     # Compute the difference between the maximum and minimum y-coordinates
     base_length = np.nanmax(lateral_base_ys) - np.nanmin(lateral_base_ys)
-
     return base_length
 
 

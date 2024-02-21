@@ -29,35 +29,24 @@ def get_tips(pts: np.ndarray) -> np.ndarray:
     return tip_pts
 
 
-def get_tip_xs(pts: np.ndarray) -> np.ndarray:
+def get_tip_xs(tip_pts: np.ndarray) -> np.ndarray:
     """Get x coordinates of tip points.
 
     Args:
-        pts: Root landmarks as array of shape (instances, nodes, 2) or tips
-            (instances, 2).
+        tip_pts: Root tip points as array of shape `(instances, 2)` or `(2,)` when there
+            is only one tip.
 
     Return:
-        An array of tip x-coordinates (instances,).
+        An array of tip x-coordinates (instances,) or (1,) when there is only one root.
     """
-    if pts.ndim not in (2, 3):
+    if tip_pts.ndim not in (1, 2):
         raise ValueError(
-            "Input array must be 2-dimensional (n_tips, 2) or "
-            "3-dimensional (n_roots, n_nodes, 2)."
+            "Input array must be 2-dimensional (instances, 2) or 1-dimensional (2,)."
         )
+    if tip_pts.shape[-1] != 2:
+        raise ValueError("Last dimension must be (x, y).")
 
-    if pts.ndim == 3:
-        _tip_pts = get_tips(
-            pts
-        )  # Assuming get_tips returns an array of shape (instance, 2)
-    else:
-        _tip_pts = pts
-
-    if _tip_pts.ndim != 2 or _tip_pts.shape[1] != 2:
-        raise ValueError(
-            "Array of tip points must be 2-dimensional with shape (instances, 2)."
-        )
-
-    tip_xs = _tip_pts[:, 0]
+    tip_xs = tip_pts[..., 0]
     return tip_xs
 
 
