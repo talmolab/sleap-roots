@@ -6,7 +6,7 @@ from sleap_roots.bases import (
     get_base_ys,
     get_base_length,
     get_base_length_ratio,
-    get_root_pair_widths_projections,
+    get_root_widths,
 )
 from sleap_roots.lengths import get_max_length_pts, get_root_lengths_max
 from sleap_roots.tips import get_tips
@@ -347,20 +347,107 @@ def test_get_base_length_ratio(canola_h5):
     np.testing.assert_almost_equal(base_length_ratio, 0.086, decimal=3)
 
 
-def test_root_width(canola_h5):
-    # Set the frame index to 0
-    frame_idx = 0
-    # Load a series from a canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
-    # Get the primary and lateral points
-    primary_pts = series.get_primary_points(frame_idx)
-    lateral_pts = series.get_lateral_points(frame_idx)
-    # Get the maximum length of the primary root
+def test_root_width_canola(canola_h5):
+    series = Series.load(
+        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
+    )
+    primary, lateral = series[0]
+    primary_pts = primary.numpy()
     primary_max_length_pts = get_max_length_pts(primary_pts)
+    lateral_pts = lateral.numpy()
     assert primary_max_length_pts.shape == (6, 2)
     assert lateral_pts.shape == (5, 3, 2)
-    # Get the root widths
-    root_widths = get_root_pair_widths_projections(
-        primary_max_length_pts, lateral_pts, 0.02
+
+    root_widths = get_root_widths(primary_max_length_pts, lateral_pts, 0.02)
+    np.testing.assert_almost_equal(root_widths[0], np.array([31.60323909]), decimal=7)
+
+
+# Test get_root_widths with rice
+def test_root_width_rice(rice_h5):
+    series = Series.load(
+        rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
     )
-    np.testing.assert_almost_equal(root_widths, np.array([31.60323909]), decimal=7)
+    primary, lateral = series[0]
+    primary_pts = primary.numpy()
+    primary_max_length_pts = get_max_length_pts(primary_pts)
+    lateral_pts = lateral.numpy()
+    root_widths = get_root_widths(
+        primary_max_length_pts, lateral_pts, 0.02, monocots=True, return_inds=False
+    )
+    assert np.allclose(root_widths, np.array([]), atol=1e-7)
+
+
+# Test for get_root_widths with return_inds=True
+@pytest.mark.parametrize(
+    "primary, lateral, tolerance, monocots, expected",
+    [
+        (
+            np.array([[0, 0], [1, 1]]),
+            np.array([[[0, 0], [1, 1]], [[1, 1], [2, 2]]]),
+            0.02,
+            False,
+            (np.array([]), [(np.nan, np.nan)], np.empty((0, 2)), np.empty((0, 2))),
+        ),
+        (
+            np.array([[np.nan, np.nan], [np.nan, np.nan]]),
+            np.array([[[0, 0], [1, 1]], [[1, 1], [2, 2]]]),
+            0.02,
+            False,
+            (np.array([]), [(np.nan, np.nan)], np.empty((0, 2)), np.empty((0, 2))),
+        ),
+    ],
+)
+def test_get_root_widths(primary, lateral, tolerance, monocots, expected):
+    result = get_root_widths(primary, lateral, tolerance, monocots, return_inds=True)
+    np.testing.assert_array_almost_equal(result[0], expected[0])
+    assert result[1] == expected[1]
+    np.testing.assert_array_almost_equal(result[2], expected[2])
+    np.testing.assert_array_almost_equal(result[3], expected[3])
+
+
+def test_get_root_widths_tolerance():
+    # Non-positive tolerance
+    tolerance = -0.01
+    with pytest.raises(ValueError):
+        get_root_widths(
+            np.array([[0, 0], [1, 1], [2, 2]]),
+            np.array([[[0, 0], [1, 1], [2, 2]], [[1, 1], [2, 2], [3, 3]]]),
+            tolerance=tolerance,
+        )
+
+
+def test_get_root_widths_invalid_cases():
+    # Invalid array dimensions
+    with pytest.raises(ValueError):
+        get_root_widths(np.array([]), np.array([]))
+
+    # Invalid shape of last dimensions
+    with pytest.raises(ValueError):
+        get_root_widths(np.array([[1, 2, 3]]), np.array([[[1, 2, 3]]]))
+
+    # Minimum length
+    result = get_root_widths(np.array([[0, 0]]), np.array([[[0, 0]]]))
+    assert np.array_equal(result, np.array([]))
+
+    # Return default values with return_inds=True
+    result = get_root_widths(np.array([[0, 0]]), np.array([[[0, 0]]]), return_inds=True)
+    # Checks if both arrays are exactly the same
+    assert np.array_equal(result[0], np.array([]))
+    # Continue to check the other parts of the tuple
+    assert result[1] == [(np.nan, np.nan)]
+    # Check the other NumPy arrays in the tuple
+    assert np.array_equal(result[2], np.empty((0, 2)))
+    assert np.array_equal(result[3], np.empty((0, 2)))
+
+    # All NaNs in input arrays
+    result = get_root_widths(
+        np.array([[np.nan, np.nan], [np.nan, np.nan]]),
+        np.array([[[np.nan, np.nan], [np.nan, np.nan]]]),
+    )
+    assert np.array_equal(result, np.array([]))
+
+    # All lateral roots on the same side
+    result = get_root_widths(
+        np.array([[0, 0], [1, 1]]), np.array([[[0, 0], [1, 1]], [[0, 0], [1, 1]]])
+    )
+    assert np.array_equal(result, np.array([]))

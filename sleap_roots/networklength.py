@@ -2,8 +2,8 @@
 
 import numpy as np
 from shapely import LineString, Polygon
-from sleap_roots.lengths import get_root_lengths, get_max_length_pts
-from typing import Optional, Tuple, Union, List
+from sleap_roots.lengths import get_max_length_pts
+from typing import Tuple, Union
 
 
 def get_bbox(pts: np.ndarray) -> Tuple[float, float, float, float]:
@@ -168,13 +168,12 @@ def get_network_distribution(
 
     # Calculate length of roots within the lower bounding box
     network_length = 0
-    for root in pts_list:
-        if root.shape[0] < 2:  # Skip if fewer than two points
-            continue
-        root_poly = LineString(root)
-        lower_intersection = root_poly.intersection(lower_box)
-        root_length = lower_intersection.length
-        network_length += root_length if ~np.isnan(root_length) else 0
+    for root in all_roots:
+        if len(root) > 1:  # Ensure that root has more than one point
+            root_poly = LineString(root)
+            lower_intersection = root_poly.intersection(lower_box)
+            root_length = lower_intersection.length
+            network_length += root_length if ~np.isnan(root_length) else 0
 
     return network_length
 

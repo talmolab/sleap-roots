@@ -19,7 +19,8 @@ from sleap_roots.bases import (
     get_base_xs,
     get_base_ys,
     get_bases,
-    get_root_pair_widths_projections,
+    get_lateral_count,
+    get_root_widths,
 )
 from sleap_roots.convhull import (
     get_chull_area,
@@ -35,7 +36,7 @@ from sleap_roots.ellipse import (
     get_ellipse_b,
     get_ellipse_ratio,
 )
-from sleap_roots.lengths import get_grav_index, get_max_length_pts, get_root_lengths
+from sleap_roots.lengths import get_curve_index, get_max_length_pts, get_root_lengths
 from sleap_roots.networklength import (
     get_bbox,
     get_network_distribution,
@@ -418,13 +419,16 @@ class DicotPipeline(Pipeline):
             ),
             TraitDef(
                 name="root_widths",
-                fn=get_root_pair_widths_projections,
+                fn=get_root_widths,
                 input_traits=["primary_max_length_pts", "lateral_pts"],
                 scalar=False,
                 include_in_csv=True,
-                kwargs={"tolerance": self.root_width_tolerance, "monocots": False},
-                description="Return estimation of root width using bases of lateral "
-                "roots.",
+                kwargs={
+                    "tolerance": self.root_width_tolerance,
+                    "monocots": False,
+                    "return_inds": False,
+                },
+                description="Estimate root width using bases of lateral roots.",
             ),
             TraitDef(
                 name="lateral_count",
@@ -632,9 +636,8 @@ class DicotPipeline(Pipeline):
                 input_traits=["lateral_base_pts"],
                 scalar=False,
                 include_in_csv=True,
-                kwargs={"monocots": False},
-                description="Array of the x-coordinates of lateral bases "
-                "`(instances,)`.",
+                kwargs={},
+                description="Get x coordinates of the base of each lateral root.",
             ),
             TraitDef(
                 name="lateral_base_ys",
@@ -652,7 +655,7 @@ class DicotPipeline(Pipeline):
                 input_traits=["primary_length", "lateral_base_pts"],
                 scalar=True,
                 include_in_csv=True,
-                kwargs={"monocots": False},
+                kwargs={},
                 description="Scalar of base count density.",
             ),
             TraitDef(
@@ -692,7 +695,7 @@ class DicotPipeline(Pipeline):
                 fn=get_network_length,
                 input_traits=["primary_length", "lateral_lengths"],
                 scalar=True,
-                include_in_csv=False,
+                include_in_csv=True,
                 kwargs={"monocots": False},
                 description="Scalar of all roots network length.",
             ),
@@ -710,8 +713,8 @@ class DicotPipeline(Pipeline):
                 fn=get_tip_ys,
                 input_traits=["primary_tip_pt"],
                 scalar=True,
-                include_in_csv=False,
-                kwargs={},
+                include_in_csv=True,
+                kwargs={"flatten": True},
                 description="Y-coordinate of the primary root tip node.",
             ),
             TraitDef(
@@ -808,13 +811,13 @@ class DicotPipeline(Pipeline):
                 description="Scalar of base median ratio.",
             ),
             TraitDef(
-                name="grav_index",
-                fn=get_grav_index,
+                name="curve_index",
+                fn=get_curve_index,
                 input_traits=["primary_length", "primary_base_tip_dist"],
                 scalar=True,
                 include_in_csv=True,
                 kwargs={},
-                description="Scalar of primary root gravity index.",
+                description="Scalar of primary root curvature index.",
             ),
             TraitDef(
                 name="base_length_ratio",
@@ -899,11 +902,8 @@ class DicotPipeline(Pipeline):
 
 
 @attrs.define
-class OlderMonocotPipeline(Pipeline):
-    """Pipeline for computing traits for older monocot plants.
-
-    Older monocot plants have similar-looking primary and seminal roots so we use one
-    model for root detection and refer to these roots as `main` roots.
+class YoungerMonocotPipeline(Pipeline):
+    """Pipeline for computing traits for young monocot plants (primary + seminal).
 
     Attributes:
         img_height: Image height.
@@ -918,11 +918,30 @@ class OlderMonocotPipeline(Pipeline):
     network_fraction: float = 2 / 3
 
     def define_traits(self) -> List[TraitDef]:
-        """Define the trait computation pipeline for older monocot plants."""
+        """Define the trait computation pipeline for younger monocot plants."""
         trait_definitions = [
             TraitDef(
+                name="primary_max_length_pts",
+                fn=get_max_length_pts,
+                input_traits=["primary_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Points of the primary root with maximum length.",
+            ),
+            TraitDef(
+                name="pts_all_array",
+                fn=get_all_pts_array,
+                input_traits=["primary_max_length_pts", "main_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={"monocots": True},
+                description="Landmark points within a given frame as a flat array"
+                "of coordinates.",
+            ),
+            TraitDef(
                 name="main_count",
-                fn=get_count,
+                fn=get_lateral_count,
                 input_traits=["main_pts"],
                 scalar=True,
                 include_in_csv=True,
@@ -975,22 +994,19 @@ class OlderMonocotPipeline(Pipeline):
                 description="Array of main tips `(instances, (x, y))`.",
             ),
             TraitDef(
-                name="main_pts_list",
-                fn=join_pts,
-                input_traits=["main_pts"],
+                name="scanline_intersection_counts",
+                fn=count_scanline_intersections,
+                input_traits=["primary_max_length_pts", "main_pts"],
                 scalar=False,
-                include_in_csv=False,
-                kwargs={},
-                description="A list of roots from `main_pts`.",
-            ),
-            TraitDef(
-                name="pts_all_array",
-                fn=get_all_pts_array,
-                input_traits=["main_pts"],
-                scalar=False,
-                include_in_csv=False,
-                kwargs={},
-                description="An array of points with shape `(n_points, 2)`.",
+                include_in_csv=True,
+                kwargs={
+                    "height": self.img_height,
+                    "width": self.img_width,
+                    "n_line": self.n_scanlines,
+                    "monocots": True,
+                },
+                description="Array of intersections of each scanline"
+                "`(n_scanlines,)`.",
             ),
             TraitDef(
                 name="main_angles_distal",
@@ -1014,24 +1030,16 @@ class OlderMonocotPipeline(Pipeline):
             TraitDef(
                 name="network_length_lower",
                 fn=get_network_distribution,
-                input_traits=["main_pts", "bounding_box"],
+                input_traits=[
+                    "primary_max_length_pts",
+                    "main_pts",
+                    "bounding_box",
+                ],
                 scalar=True,
                 include_in_csv=True,
-                kwargs={"fraction": self.network_fraction},
+                kwargs={"fraction": self.network_fraction, "monocots": True},
                 description="Scalar of the root network length in the lower fraction "
                 "of the plant.",
-            ),
-            TraitDef(
-                name="scanline_intersection_counts",
-                fn=count_scanline_intersections,
-                input_traits=["main_pts"],
-                scalar=False,
-                include_in_csv=True,
-                kwargs={
-                    "n_line": self.n_scanlines,
-                    "height": self.img_height,
-                },
-                description="Array of intersections of each scanline `(n_scanlines,)`.",
             ),
             TraitDef(
                 name="ellipse",
@@ -1063,6 +1071,73 @@ class OlderMonocotPipeline(Pipeline):
                 description="Convex hull of the points.",
             ),
             TraitDef(
+                name="primary_proximal_node_ind",
+                fn=get_node_ind,
+                input_traits=["primary_max_length_pts"],
+                scalar=True,
+                include_in_csv=False,
+                kwargs={"proximal": True},
+                description="Get the indices of the proximal nodes of primary roots.",
+            ),
+            TraitDef(
+                name="primary_angle_proximal",
+                fn=get_root_angle,
+                input_traits=[
+                    "primary_max_length_pts",
+                    "primary_proximal_node_ind",
+                ],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={"proximal": True, "base_ind": 0},
+                description="Array of primary proximal angles in degrees "
+                "`(instances,)`.",
+            ),
+            TraitDef(
+                name="primary_distal_node_ind",
+                fn=get_node_ind,
+                input_traits=["primary_max_length_pts"],
+                scalar=True,
+                include_in_csv=False,
+                kwargs={"proximal": False},
+                description="Get the indices of the distal nodes of primary roots.",
+            ),
+            TraitDef(
+                name="primary_angle_distal",
+                fn=get_root_angle,
+                input_traits=["primary_max_length_pts", "primary_distal_node_ind"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={"proximal": False, "base_ind": 0},
+                description="Array of primary distal angles in degrees `(instances,)`.",
+            ),
+            TraitDef(
+                name="primary_length",
+                fn=get_root_lengths,
+                input_traits=["primary_max_length_pts"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of primary root length.",
+            ),
+            TraitDef(
+                name="primary_base_pt",
+                fn=get_bases,
+                input_traits=["primary_max_length_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={"monocots": False},
+                description="Primary root base point.",
+            ),
+            TraitDef(
+                name="primary_tip_pt",
+                fn=get_tips,
+                input_traits=["primary_max_length_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Primary root tip point.",
+            ),
+            TraitDef(
                 name="main_tip_xs",
                 fn=get_tip_xs,
                 input_traits=["main_tip_pts"],
@@ -1081,36 +1156,27 @@ class OlderMonocotPipeline(Pipeline):
                 description="Array of the y-coordinates of main tips `(instance,)`.",
             ),
             TraitDef(
-                name="network_length",
-                fn=get_network_length,
-                input_traits=["main_lengths"],
-                scalar=True,
-                include_in_csv=True,
-                kwargs={},
-                description="Total root length of network.",
-            ),
-            TraitDef(
                 name="network_distribution_ratio",
                 fn=get_network_distribution_ratio,
                 input_traits=[
-                    "network_length",
+                    "primary_length",
+                    "main_lengths",
                     "network_length_lower",
                 ],
                 scalar=True,
                 include_in_csv=True,
-                kwargs={},
-                description="Scalar of ratio of the root network length in the lower "
+                kwargs={"fraction": self.network_fraction, "monocots": False},
+                description="Scalar of ratio of the root network length in the lower"
                 "fraction of the plant over all root length.",
             ),
             TraitDef(
-                name="network_solidity",
-                fn=get_network_solidity,
-                input_traits=["network_length", "chull_area"],
+                name="network_length",
+                fn=get_network_length,
+                input_traits=["primary_length", "main_lengths"],
                 scalar=True,
                 include_in_csv=True,
-                kwargs={},
-                description="Scalar of the total network length divided by the network"
-                "convex area.",
+                kwargs={"monocots": True},
+                description="Scalar of all roots network length.",
             ),
             TraitDef(
                 name="main_base_tip_dists",
@@ -1119,16 +1185,36 @@ class OlderMonocotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=True,
                 kwargs={},
-                description="Array of main root distances from base to tip.",
+                description="Straight-line distance(s) from the base(s) to the"
+                "tip(s) of the main root(s).",
             ),
             TraitDef(
-                name="grav_indices",
-                fn=get_grav_index,
-                input_traits=["main_lengths", "main_base_tip_dists"],
+                name="main_curve_indices",
+                fn=get_base_tip_dist,
+                input_traits=["main_base_pts", "main_tip_pts"],
                 scalar=False,
                 include_in_csv=True,
                 kwargs={},
-                description="Array of main root gravity indices.",
+                description="Curvature index for each main root.",
+            ),
+            TraitDef(
+                name="network_solidity",
+                fn=get_network_solidity,
+                input_traits=["network_length", "chull_area"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of the total network length divided by the"
+                "network convex hull area.",
+            ),
+            TraitDef(
+                name="primary_tip_pt_y",
+                fn=get_tip_ys,
+                input_traits=["primary_tip_pt"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={"flatten": True},
+                description="Y-coordinate of the primary root tip node.",
             ),
             TraitDef(
                 name="ellipse_a",
@@ -1205,6 +1291,24 @@ class OlderMonocotPipeline(Pipeline):
                 "convex hull.",
             ),
             TraitDef(
+                name="curve_index",
+                fn=get_curve_index,
+                input_traits=["primary_length", "primary_base_tip_dist"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of primary root curvature index.",
+            ),
+            TraitDef(
+                name="primary_base_tip_dist",
+                fn=get_base_tip_dist,
+                input_traits=["primary_base_pt", "primary_tip_pt"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of distance from primary root base to tip.",
+            ),
+            TraitDef(
                 name="ellipse_ratio",
                 fn=get_ellipse_ratio,
                 input_traits=["ellipse"],
@@ -1246,10 +1350,12 @@ class OlderMonocotPipeline(Pipeline):
 
         Returns:
             A dictionary of initial traits with keys:
+                - "primary_pts": Array of primary root points.
                 - "main_pts": Array of main root points.
         """
         # Get the root instances.
-        main = plant[frame_idx][0]
+        primary, main = plant[frame_idx]
+        gt_instances_pr = primary.user_instances + primary.unused_predictions
         gt_instances_lr = main.user_instances + main.unused_predictions
 
         # Convert the instances to numpy arrays.
@@ -1258,4 +1364,9 @@ class OlderMonocotPipeline(Pipeline):
         else:
             main_pts = np.stack([inst.numpy() for inst in gt_instances_lr], axis=0)
 
-        return {"main_pts": main_pts}
+        if len(gt_instances_pr) == 0:
+            primary_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
+        else:
+            primary_pts = np.stack([inst.numpy() for inst in gt_instances_pr], axis=0)
+
+        return {"primary_pts": primary_pts, "main_pts": main_pts}

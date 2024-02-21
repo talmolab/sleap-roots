@@ -1,6 +1,5 @@
 """Get length-related traits."""
 import numpy as np
-from sleap_roots.bases import get_base_tip_dist
 from typing import Union
 
 
@@ -113,45 +112,51 @@ def get_root_lengths_max(pts: np.ndarray) -> np.ndarray:
     return max_length
 
 
-def get_grav_index(
-    lengths: Union[float, np.ndarray],
-    base_tip_dists: Union[float, np.ndarray],
+def get_curve_index(
+    lengths: Union[float, np.ndarray], base_tip_dists: Union[float, np.ndarray]
 ) -> Union[float, np.ndarray]:
-    """Calculate the gravitropism index of a root.
+    """Calculate the curvature index of a root.
 
-    The gravitropism index quantifies the curviness of the root's growth. A higher
-    gravitropism index indicates a curvier root (less responsive to gravity), while a
+    The curvature index quantifies the curviness of the root's growth. A higher
+    curvature index indicates a curvier root (less responsive to gravity), while a
     lower index indicates a straighter root (more responsive to gravity). The index is
     computed as the difference between the maximum root length and straight-line
     distance from the base to the tip of the root, normalized by the root length.
 
     Args:
-        lengths: Maximum length(s) of the root(s).
-        base_tip_dists: The straight-line distance(s) from the base to the tip of the
-        root(s).
+        lengths: Maximum length of the root(s). Can be a scalar or a 1D numpy array
+            of shape `(instances,)`.
+        base_tip_dists: The straight-line distance from the base to the tip of the
+            root(s). Can be a scalar or a 1D numpy array of shape `(instances,)`.
 
     Returns:
-        float or np.ndarray: Gravitropism index of the root(s), quantifying its (their)
-        curviness.
+       Curvature index of the root(s), quantifying its/their curviness. Will be a
+            scalar if input is scalar, or a 1D numpy array of shape `(instances,)`
+            otherwise.
     """
-    # Convert inputs to NumPy arrays for element-wise operations
-    lengths = np.asarray(lengths)
-    base_tip_dists = np.asarray(base_tip_dists)
+    # Check if the input is scalar or array
+    is_scalar_input = np.isscalar(lengths) and np.isscalar(base_tip_dists)
 
-    # Initialize an array to store the gravitropism index, filled with NaN
-    grav_index = np.full(lengths.shape, np.nan)
+    # Convert scalars to numpy arrays for uniform handling
+    lengths = np.atleast_1d(np.asarray(lengths, dtype=float))
+    base_tip_dists = np.atleast_1d(np.asarray(base_tip_dists, dtype=float))
 
-    # Identify valid and invalid values
-    valid_values = ~np.isnan(lengths) & ~np.isnan(base_tip_dists) & (lengths != 0)
+    # Check for shape mismatch
+    if lengths.shape != base_tip_dists.shape:
+        raise ValueError("The shapes of lengths and base_tip_dists must match.")
 
-    # Calculate gravitropism index only for valid values
-    grav_index[valid_values] = (
-        lengths[valid_values] - base_tip_dists[valid_values]
-    ) / lengths[valid_values]
-
-    # If the input was a float, return a float; otherwise, return the NumPy array.
-    return (
-        grav_index
-        if grav_index.size > 1
-        else (grav_index.item() if valid_values else np.nan)
+    # Calculate the curvature index where possible
+    curve_index = np.where(
+        (~np.isnan(lengths))
+        & (~np.isnan(base_tip_dists))
+        & (lengths > 0)
+        & (lengths >= base_tip_dists),
+        (lengths - base_tip_dists) / lengths,
+        np.nan,
     )
+
+    # Return scalar or array based on the input type
+    if is_scalar_input:
+        return curve_index.item()
+    else:
+        return curve_index

@@ -58,7 +58,7 @@ def get_tip_ys(tip_pts: np.ndarray) -> np.ndarray:
             when there is only one tip.
 
     Return:
-        An array of the y-coordinates of tips (instances,).
+        An array of the y-coordinates of tips (instances,) or () if `flatten` is `True`.
     """
     # If the input is a single number (float or integer), raise an error
     if isinstance(tip_pts, (np.floating, float, np.integer, int)):

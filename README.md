@@ -1,7 +1,6 @@
 # sleap-roots
 
 [![CI](https://github.com/talmolab/sleap-roots/actions/workflows/ci.yml/badge.svg)](https://github.com/talmolab/sleap-roots/actions/workflows/ci.yml)
-[![Lint](https://github.com/talmolab/sleap-roots/actions/workflows/lint.yml/badge.svg)](https://github.com/talmolab/sleap-roots/actions/workflows/lint.yml)
 [![codecov](https://codecov.io/gh/talmolab/sleap-roots/branch/main/graph/badge.svg)](https://codecov.io/gh/talmolab/sleap-roots)
 [![Release](https://img.shields.io/github/v/release/talmolab/sleap-roots?label=Latest)](https://github.com/talmolab/sleap-roots/releases/)
 [![PyPI](https://img.shields.io/pypi/v/sleap-roots?label=PyPI)](https://pypi.org/project/sleap-roots)
@@ -10,17 +9,119 @@ Analysis tools for [SLEAP](https://sleap.ai)-based plant root phenotyping.
 
 ## Installation
 ```
-pip install git+https://github.com/talmolab/sleap-roots.git@main
+pip install sleap-roots
 ```
 
-If you are using conda:
+If you are using conda (recommended):
 ```
-conda create -n sleap-roots python=3.8
+conda create -n sleap-roots python=3.9
 conda activate sleap-roots
-pip install git+https://github.com/talmolab/sleap-roots.git@main
+pip install sleap-roots
 ```
 
-### Development
+## Usage
+
+### `DicotPipeline`
+
+**1. Computing traits for a single plant:**
+
+```py
+import sleap_roots as sr
+
+plant = sr.Series.load(
+    "tests/data/canola_7do/919QDUH.h5",
+    primary_name="primary_multi_day",
+    lateral_name="lateral_3_nodes"
+)
+pipeline = sr.DicotPipeline()
+traits = pipeline.compute_plant_traits(plant, write_csv=True)
+```
+
+**2. Computing traits for a batch of plants:**
+
+```py
+import sleap_roots as sr
+
+plant_paths = sr.find_all_series("tests/data/soy_6do")
+plants = [
+    sr.Series.load(
+        plant_path,
+        primary_name="primary_multi_day",
+        lateral_name="lateral__nodes",
+    ) for plant_path in plant_paths]
+
+pipeline = sr.DicotPipeline()
+all_traits = pipeline.compute_batch_traits(plants, write_csv=True)
+```
+
+**3. Computing individual traits:**
+
+```py
+import sleap_roots as sr
+import numpy as np
+
+plant = sr.Series.load(
+    "tests/data/canola_7do/919QDUH.h5",
+    primary_name="primary_multi_day",
+    lateral_name="lateral_3_nodes"
+)
+
+primary, lateral = plant[10]
+pts = np.concatenate([primary.numpy(), lateral.numpy()], axis=0).reshape(-1, 2)
+convex_hull = sr.convhull.get_convhull(pts)
+```
+
+### `YoungerMonocotPipeline`
+
+**1. Computing traits for a single plant:**
+
+```py
+import sleap_roots as sr
+
+plant = sr.Series.load(
+    "tests/data/rice_3do/0K9E8BI.h5",
+    primary_name="longest_3do_6nodes",
+    lateral_name="main_3do_6nodes"
+)
+pipeline = sr.YoungerMonocotPipeline()
+traits = pipeline.compute_plant_traits(plant, write_csv=True)
+```
+
+**2. Computing traits for a batch of plants:**
+
+```py
+import sleap_roots as sr
+
+plant_paths = sr.find_all_series("tests/data/rice_3do")
+plants = [
+    sr.Series.load(
+        plant_path,
+        primary_name="longest_3do_6nodes",
+        lateral_name="main_3do_6nodes"
+    ) for plant_path in plant_paths]
+
+pipeline = sr.YoungerMonocotPipeline()
+all_traits = pipeline.compute_batch_traits(plants, write_csv=True)
+```
+
+**3. Computing individual traits:**
+
+```py
+import sleap_roots as sr
+import numpy as np
+
+plant = sr.Series.load(
+    "tests/data/rice_3do/0K9E8BI.h5",
+    primary_name="longest_3do_6nodes",
+    lateral_name="main_3do_6nodes"
+)
+
+primary, lateral = plant[10]
+pts = np.concatenate([primary.numpy(), lateral.numpy()], axis=0).reshape(-1, 2)
+convex_hull = sr.convhull.get_convhull(pts)
+```
+
+## Development
 For development, first clone the repository:
 ```
 git clone https://github.com/talmolab/sleap-roots && cd sleap-roots
@@ -54,13 +155,16 @@ Then run `pytest` with:
 pytest tests
 ```
 
-To **develop on M1 Macs**, you'll need to manually install SLEAP first like this:
-```
-git clone https://github.com/talmolab/sleap && cd sleap
-conda env create -f environment_m1.yml -n sleap-roots
-```
-Then, install this package in editable mode:
-```
-cd .. && git clone https://github.com/talmolab/sleap-roots
-pip install -e ".[dev]"
-```
+## Acknowledgments
+
+This repository was created by the [Talmo Lab](https://talmolab.org) and [Busch Lab](https://busch.salk.edu) at the Salk Institute for Biological Studies as part of the [Harnessing Plants Initiative](https://www.salk.edu/harnessing-plants-initiative/).
+
+### Contributors
+
+- Elizabeth Berrigan
+- Lin Wang
+- Talmo Pereira
+
+### Citation
+
+*Coming soon.*
