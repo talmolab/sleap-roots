@@ -222,15 +222,20 @@ def test_get_base_xs_canola(canola_h5):
     plant = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
     # Get the labeled frame
     lateral_points = plant.get_lateral_points(frame_idx)
+    # Get the lateral root bases
+    bases = get_bases(lateral_points)
     # Get the base x-coordinates
-    base_xs = get_base_xs(lateral_points)
+    base_xs = get_base_xs(bases)
     assert base_xs.shape[0] == 5
     np.testing.assert_almost_equal(base_xs[1], 1112.5506591796875, decimal=3)
 
 
 # test get_base_xs with pts_standard
 def test_get_base_xs_standard(pts_standard):
-    base_xs = get_base_xs(pts_standard)
+    # Get the base points
+    bases = get_bases(pts_standard)
+    # Get the x-coordinates of the base points
+    base_xs = get_base_xs(bases)
     assert base_xs.shape[0] == 2
     np.testing.assert_almost_equal(base_xs[0], 1, decimal=3)
     np.testing.assert_almost_equal(base_xs[1], 5, decimal=3)
@@ -238,7 +243,10 @@ def test_get_base_xs_standard(pts_standard):
 
 # test get_base_xs with pts_no_roots
 def test_get_base_xs_no_roots(pts_no_roots):
-    base_xs = get_base_xs(pts_no_roots)
+    # Get the base points
+    bases = get_bases(pts_no_roots)
+    # Get the x-coordinates of the base points
+    base_xs = get_base_xs(bases)
     assert base_xs.shape[0] == 2
     np.testing.assert_almost_equal(base_xs[0], np.nan, decimal=3)
 
@@ -262,13 +270,17 @@ def test_get_base_ys_no_roots(pts_no_roots):
 
 # test get_base_length with canola
 def test_get_base_length_canola(canola_h5):
-    plant = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    lateral = plant[0][1]  # first frame, lateral labels
-    lateral_pts = lateral.numpy()  # lateral points as numpy array
-    bases = get_bases(lateral_pts)  # get bases of lateral roots
-    base_ys = get_base_ys(bases)  # get y-coordinates of bases
+    # Set the frame index to 0
+    frame_idx = 0
+    # Load a series from a canola dataset
+    plant = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    # Get the lateral points
+    lateral_pts = plant.get_lateral_points(frame_idx)
+    # Get the bases of the lateral roots
+    bases = get_bases(lateral_pts)
+    # Get the y-coordinates of the bases
+    base_ys = get_base_ys(bases)
+    # Get the length of the bases of the lateral roots
     base_length = get_base_length(base_ys)
     np.testing.assert_almost_equal(base_length, 83.69914245605469, decimal=3)
 
@@ -297,45 +309,57 @@ def test_get_base_ct_density(primary_pts, lateral_pts):
 
 # test get_base_ct_density function with canola example
 def test_get_base_ct_density_canola(canola_h5):
-    series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = series[0]
-    primary_pts = primary.numpy()
-    lateral_pts = lateral.numpy()
+    # Set the frame index to 0
+    frame_idx = 0
+    # Load a series from a canola dataset
+    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    # Get the primary and lateral points
+    primary_pts = series.get_primary_points(frame_idx)
+    lateral_pts = series.get_lateral_points(frame_idx)
+    # Get the maximum length of the primary root
     primary_length_max = get_root_lengths_max(primary_pts)
+    # Get the bases of the lateral roots
     lateral_base_pts = get_bases(lateral_pts)
+    # Get the CT density of the bases of the lateral roots
     base_ct_density = get_base_ct_density(primary_length_max, lateral_base_pts)
     np.testing.assert_almost_equal(base_ct_density, 0.004119, decimal=5)
 
 
 # test get_base_length_ratio with canola
 def test_get_base_length_ratio(canola_h5):
-    series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = series[0]
-    primary_pts = primary.numpy()
-    lateral_pts = lateral.numpy()
+    # Set the frame index to 0
+    frame_idx = 0
+    # Load a series from a canola dataset
+    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    # Get the primary and lateral points
+    primary_pts = series.get_primary_points(frame_idx)
+    lateral_pts = series.get_lateral_points(frame_idx)
+    # Get the maximum length of the primary root
     primary_length_max = get_root_lengths_max(primary_pts)
+    # Get the bases of the lateral roots
     bases = get_bases(lateral_pts)
+    # Get the y-coordinates of the bases
     lateral_base_ys = get_base_ys(bases)
+    # Get the length of the bases of the lateral roots
     base_length = get_base_length(lateral_base_ys)
+    # Get the length ratio of the bases of the lateral roots
     base_length_ratio = get_base_length_ratio(primary_length_max, base_length)
     np.testing.assert_almost_equal(base_length_ratio, 0.086, decimal=3)
 
 
 def test_root_width(canola_h5):
-    series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = series[0]
-    primary_pts = primary.numpy()
+    # Set the frame index to 0
+    frame_idx = 0
+    # Load a series from a canola dataset
+    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    # Get the primary and lateral points
+    primary_pts = series.get_primary_points(frame_idx)
+    lateral_pts = series.get_lateral_points(frame_idx)
+    # Get the maximum length of the primary root
     primary_max_length_pts = get_max_length_pts(primary_pts)
-    lateral_pts = lateral.numpy()
     assert primary_max_length_pts.shape == (6, 2)
     assert lateral_pts.shape == (5, 3, 2)
-
+    # Get the root widths
     root_widths = get_root_pair_widths_projections(
         primary_max_length_pts, lateral_pts, 0.02
     )
