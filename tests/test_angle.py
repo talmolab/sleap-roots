@@ -1,7 +1,11 @@
 import numpy as np
 import pytest
 from sleap_roots import Series
-from sleap_roots.angle import get_node_ind, get_root_angle
+from sleap_roots.angle import (
+    get_node_ind,
+    get_root_angle,
+    get_vector_angles_from_gravity,
+)
 
 
 @pytest.fixture
@@ -114,15 +118,39 @@ def pts_nan32_5node():
     )
 
 
+@pytest.mark.parametrize(
+    "vector, expected_angle",
+    [
+        (np.array([[0, 1]]), 0),  # Directly downwards (with gravity)
+        (np.array([[0, -1]]), 180),  # Directly upwards (against gravity)
+        (np.array([[1, 0]]), 90),  # Right, perpendicular to gravity
+        (np.array([[-1, 0]]), 90),  # Left, perpendicular to gravity
+        (np.array([[1, 1]]), 45),  # Diagonal right-down
+        (np.array([[1, -1]]), 135),  # Diagonal right-up, against gravity
+        (np.array([[-1, 1]]), 45),  # Diagonal left-down, aligned with gravity
+        (np.array([[-1, -1]]), 135),  # Diagonal left-up, against gravity
+    ],
+)
+def test_get_vector_angle_from_gravity(vector, expected_angle):
+    """Test get_vector_angle_from_gravity function with vectors from various directions,
+    considering a coordinate system where positive y-direction is downwards.
+    """
+    angle = get_vector_angles_from_gravity(vector)
+    np.testing.assert_almost_equal(angle, expected_angle, decimal=3)
+
+
 # test get_node_ind function
 def test_get_node_ind(canola_h5):
-    series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = series[0]
-    pts = primary.numpy()
+    # Set the frame index to 0
+    frame_index = 0
+    # Load the series from the canola dataset
+    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    # Get the primary root points
+    primary_points = series.get_primary_points(frame_index)
+    # Set the proximal flag to True
     proximal = True
-    node_ind = get_node_ind(pts, proximal)
+    # Get the node index
+    node_ind = get_node_ind(primary_points, proximal)
     np.testing.assert_array_equal(node_ind, 1)
 
 
@@ -177,30 +205,36 @@ def test_get_node_ind_5node_proximal(pts_nan32_5node):
 
 # test canola get_root_angle function (base node to distal node angle)
 def test_get_root_angle_distal(canola_h5):
-    series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = series[0]
-    pts = primary.numpy()
+    # Set the frame index to 0
+    frame_index = 0
+    # Load the series from the canola dataset
+    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    # Get the primary root points
+    primary_points = series.get_primary_points(frame_index)
+    # Set the proximal flag to False
     proximal = False
-    node_ind = get_node_ind(pts, proximal)
-    angs = get_root_angle(pts, node_ind, proximal)
-    assert pts.shape == (1, 6, 2)
+    # Get the distal node index
+    node_ind = get_node_ind(primary_points, proximal)
+    angs = get_root_angle(primary_points, node_ind, proximal)
+    assert primary_points.shape == (1, 6, 2)
     np.testing.assert_almost_equal(angs, 7.7511306, decimal=3)
 
 
 # test rice get_root_angle function (base node to proximal node angle)
 def test_get_root_angle_proximal_rice(rice_h5):
-    series = Series.load(
-        rice_h5, primary_name="main_3do_6nodes", lateral_name="longest_3do_6nodes"
-    )
-    primary, lateral = series[0]
-    pts = primary.numpy()
+    # Set the frame index to 0
+    frame_index = 0
+    # Load the series from the rice dataset
+    series = Series.load(rice_h5, primary_name="crown", lateral_name="primary")
+    # Get the primary root points
+    primary_points = series.get_primary_points(frame_index)
+    # Set the proximal flag to True
     proximal = True
-    node_ind = get_node_ind(pts, proximal)
-    angs = get_root_angle(pts, node_ind, proximal)
+    # Get the proximal node index
+    node_ind = get_node_ind(primary_points, proximal)
+    angs = get_root_angle(primary_points, node_ind, proximal)
     assert angs.shape == (2,)
-    assert pts.shape == (2, 6, 2)
+    assert primary_points.shape == (2, 6, 2)
     np.testing.assert_almost_equal(angs, [17.3180819, 3.2692877], decimal=3)
 
 
@@ -228,3 +262,79 @@ def test_get_root_angle_proximal_allnan(pts_nanall):
     node_ind = get_node_ind(pts_nanall, proximal)
     angs = get_root_angle(pts_nanall, node_ind, proximal)
     np.testing.assert_almost_equal(angs, np.nan, decimal=3)
+
+
+def test_get_root_angle_horizontal():
+    # Root pointing right, should be 90 degrees from the downward gravity vector
+    # Gravity vector is upwards in this coordinate system
+    pts = np.array(
+        [[[0, 0], [1, 0]]]
+    )  # Two nodes: base and end node horizontally aligned
+    node_ind = np.array([1])
+    expected_angles = np.array([90])
+    angles = get_root_angle(pts, node_ind)
+    assert np.allclose(angles, expected_angles), "Angle for horizontal root incorrect."
+
+
+def test_get_root_angle_vertical():
+    # Root pointing down, should be 0 degrees from the gravity vector
+    # Gravity vector is upwards in this coordinate system
+    pts = np.array(
+        [[[0, 0], [0, 1]]]
+    )  # Two nodes: base and end node vertically aligned downwards
+    node_ind = np.array([1])
+    expected_angles = np.array([0])
+    angles = get_root_angle(pts, node_ind)
+    assert np.allclose(angles, expected_angles), "Angle for vertical root incorrect."
+
+
+def test_get_root_angle_up_left():
+    # Root pointing up and to the left: should be 45 degrees from the gravity vector
+    # Gravity vector is upwards in this coordinate system
+    pts = np.array(
+        [[[0, 0], [-1, 1]]]
+    )  # Two nodes: base and end node diagonally upwards to the left
+    node_ind = np.array([1])
+    expected_angles = np.array([45])
+    angles = get_root_angle(pts, node_ind)
+    assert np.allclose(angles, expected_angles), "Angle for vertical root incorrect."
+
+
+def test_get_root_angle_up_right():
+    # Root pointing up and to the right: should be 45 degrees from the gravity vector
+    # Gravity vector is upwards in this coordinate system
+    pts = np.array(
+        [[[0, 0], [1, 1]]]
+    )  # Two nodes: base and end node diagonally upwards to the right
+    node_ind = np.array([1])
+    expected_angles = np.array([45])
+    angles = get_root_angle(pts, node_ind)
+    assert np.allclose(
+        angles, expected_angles
+    ), "Angle for diagonally upwards root incorrect."
+
+
+def test_get_root_angle_down_left():
+    # Root pointing down and to the left: should be 135 degrees from the gravity vector
+    # Gravity vector is upwards in this coordinate system
+    pts = np.array(
+        [[[0, 0], [-1, -1]]]
+    )  # Two nodes: base and end node diagonally downwards to the left
+    node_ind = np.array([1])
+    expected_angles = np.array([135])
+    angles = get_root_angle(pts, node_ind)
+    assert np.allclose(angles, expected_angles), "Angle for vertical root incorrect."
+
+
+def test_get_root_angle_down_right():
+    # Root pointing down and to the right: should be 135 degrees from the gravity vector
+    # Gravity vector is upwards in this coordinate system
+    pts = np.array(
+        [[[0, 0], [1, -1]]]
+    )  # Two nodes: base and end node diagonally downwards to the right
+    node_ind = np.array([1])
+    expected_angles = np.array([135])
+    angles = get_root_angle(pts, node_ind)
+    assert np.allclose(
+        angles, expected_angles
+    ), "Angle for diagonally upwards root incorrect."
