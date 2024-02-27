@@ -8,7 +8,7 @@ from sleap_roots.bases import (
     get_base_length_ratio,
     get_root_widths,
 )
-from sleap_roots.lengths import get_max_length_pts, get_root_lengths_max
+from sleap_roots.lengths import get_max_length_pts, get_root_lengths
 from sleap_roots.tips import get_tips
 from sleap_roots import Series
 import numpy as np
@@ -301,7 +301,8 @@ def test_get_base_length_no_roots(pts_no_roots):
 
 # test get_base_ct_density function with defined primary and lateral points
 def test_get_base_ct_density(primary_pts, lateral_pts):
-    primary_length_max = get_root_lengths_max(primary_pts)
+    primary_max_length_pts = get_max_length_pts(primary_pts)
+    primary_length_max = get_root_lengths(primary_max_length_pts)
     lateral_base_pts = get_bases(lateral_pts)
     base_ct_density = get_base_ct_density(primary_length_max, lateral_base_pts)
     np.testing.assert_almost_equal(base_ct_density, 0.00334, decimal=5)
@@ -317,7 +318,8 @@ def test_get_base_ct_density_canola(canola_h5):
     primary_pts = series.get_primary_points(frame_idx)
     lateral_pts = series.get_lateral_points(frame_idx)
     # Get the maximum length of the primary root
-    primary_length_max = get_root_lengths_max(primary_pts)
+    primary_max_length_pts = get_max_length_pts(primary_pts)
+    primary_length_max = get_root_lengths(primary_max_length_pts)
     # Get the bases of the lateral roots
     lateral_base_pts = get_bases(lateral_pts)
     # Get the CT density of the bases of the lateral roots
@@ -335,7 +337,8 @@ def test_get_base_length_ratio(canola_h5):
     primary_pts = series.get_primary_points(frame_idx)
     lateral_pts = series.get_lateral_points(frame_idx)
     # Get the maximum length of the primary root
-    primary_length_max = get_root_lengths_max(primary_pts)
+    primary_max_length_pts = get_max_length_pts(primary_pts)
+    primary_length_max = get_root_lengths(primary_max_length_pts)
     # Get the bases of the lateral roots
     bases = get_bases(lateral_pts)
     # Get the y-coordinates of the bases
@@ -348,33 +351,21 @@ def test_get_base_length_ratio(canola_h5):
 
 
 def test_root_width_canola(canola_h5):
-    series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = series[0]
-    primary_pts = primary.numpy()
+    # Set the frame index to 0
+    frame_idx = 0
+    # Load a series from a canola dataset
+    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    # Get the primary points
+    primary_pts = series.get_primary_points(frame_idx)
+    # Get the primary points with the maximum length
     primary_max_length_pts = get_max_length_pts(primary_pts)
-    lateral_pts = lateral.numpy()
+    # Get the lateral points
+    lateral_pts = series.get_lateral_points(frame_idx)
     assert primary_max_length_pts.shape == (6, 2)
     assert lateral_pts.shape == (5, 3, 2)
 
     root_widths = get_root_widths(primary_max_length_pts, lateral_pts, 0.02)
     np.testing.assert_almost_equal(root_widths[0], np.array([31.60323909]), decimal=7)
-
-
-# Test get_root_widths with rice
-def test_root_width_rice(rice_h5):
-    series = Series.load(
-        rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
-    )
-    primary, lateral = series[0]
-    primary_pts = primary.numpy()
-    primary_max_length_pts = get_max_length_pts(primary_pts)
-    lateral_pts = lateral.numpy()
-    root_widths = get_root_widths(
-        primary_max_length_pts, lateral_pts, 0.02, monocots=True, return_inds=False
-    )
-    assert np.allclose(root_widths, np.array([]), atol=1e-7)
 
 
 # Test for get_root_widths with return_inds=True

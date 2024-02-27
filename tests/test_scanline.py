@@ -57,13 +57,14 @@ def pts_nan3():
 
 
 def test_count_scanline_intersections_canola(canola_h5):
-    series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = series[0]
-    primary_pts = primary.numpy()
-    lateral_pts = lateral.numpy()
+    # Set the frame number to 0
+    frame = 0
+    # Load the series from canola
+    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    # Get the primary and lateral roots
+    primary_pts = series.get_primary_points(frame)
     primary_pts = get_max_length_pts(primary_pts)
+    lateral_pts = series.get_lateral_points(frame)
     pts_all_list = join_pts(primary_pts, lateral_pts)
     depth = 1080
     n_line = 50
@@ -73,15 +74,14 @@ def test_count_scanline_intersections_canola(canola_h5):
 
 
 def test_count_scanline_intersections_rice(rice_h5):
-    series = Series.load(
-        rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
-    )
-    lateral = series[0][1]
-    lateral_pts = lateral.numpy()
+    # Set the frame number to 0
+    frame = 0
+    # Load the series from rice
+    series = Series.load(rice_h5, primary_name="primary", crown_name="crown")
+    crown_pts = series.get_crown_points(frame)
     depth = 1080
     n_line = 50
-    pts_all_list = join_pts(lateral_pts)
-    n_inter = count_scanline_intersections(pts_all_list, depth, n_line)
+    n_inter = count_scanline_intersections(crown_pts, depth, n_line)
     assert n_inter.shape == (50,)
     np.testing.assert_equal(n_inter[14], 2)
 
@@ -120,13 +120,13 @@ def test_count_scanline_intersections_different_params():
 
 # test get_scanline_first_ind with canola
 def test_get_scanline_first_ind(canola_h5):
-    plant = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = plant[0]
-    primary_pts = primary.numpy()
-    lateral_pts = lateral.numpy()
+    # Set the frame number to 0
+    frame = 0
+    # Load the series from canola
+    plant = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    primary_pts = plant.get_primary_points(frame)
     primary_pts = get_max_length_pts(primary_pts)
+    lateral_pts = plant.get_lateral_points(frame)
     depth = 1080
     n_line = 50
     pts_all_list = join_pts(primary_pts, lateral_pts)
@@ -141,13 +141,13 @@ def test_get_scanline_first_ind(canola_h5):
 
 # test get_scanline_last_ind with canola
 def test_get_scanline_last_ind(canola_h5):
-    plant = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = plant[0]
-    primary_pts = primary.numpy()
-    lateral_pts = lateral.numpy()
+    # Set the frame number to 0
+    frame = 0
+    # Load the series from canola
+    plant = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    primary_pts = plant.get_primary_points(frame)
     primary_pts = get_max_length_pts(primary_pts)
+    lateral_pts = plant.get_lateral_points(frame)
     depth = 1080
     n_line = 50
     pts_all_list = join_pts(primary_pts, lateral_pts)

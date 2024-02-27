@@ -12,13 +12,13 @@ from typing import Literal
 
 
 def test_get_ellipse(canola_h5: Literal["tests/data/canola_7do/919QDUH.h5"]):
-    series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = series[0]
+    # Set the frame index = 0
+    frame_index = 0
+    # Load the canola dataset
+    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    primary_pts = series.get_primary_points(frame_index)
     # only test ellipse for primary root points
-    pts = primary.numpy()
-    a, b, ratio = fit_ellipse(pts)
+    a, b, ratio = fit_ellipse(primary_pts)
     np.testing.assert_almost_equal(a, 733.3038028507555, decimal=3)
     np.testing.assert_almost_equal(b, 146.47723651978848, decimal=3)
     np.testing.assert_almost_equal(ratio, 5.006264591916579, decimal=3)
@@ -34,66 +34,20 @@ def test_get_ellipse(canola_h5: Literal["tests/data/canola_7do/919QDUH.h5"]):
     assert np.isnan(ratio)
 
 
-def test_get_ellipse_a(canola_h5: Literal["tests/data/canola_7do/919QDUH.h5"]):
-    plant = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = plant[0]
-    primary_pts = primary.numpy()
+def test_get_ellipse_all_points(canola_h5: Literal["tests/data/canola_7do/919QDUH.h5"]):
+    # Set the frame index = 0
+    frame_index = 0
+    # Load the canola dataset
+    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    primary_pts = series.get_primary_points(frame_index)
     primary_max_length_pts = get_max_length_pts(primary_pts)
-    lateral_pts = lateral.numpy()
-    pts_all_array = get_all_pts_array(
-        primary_max_length_pts, lateral_pts, monocots=False
-    )
+    lateral_pts = series.get_lateral_points(frame_index)
+    pts_all_array = get_all_pts_array(primary_max_length_pts, lateral_pts)
     ellipse_a = get_ellipse_a(pts_all_array)
-    np.testing.assert_almost_equal(ellipse_a, 398.1275346610801, decimal=3)
-
-
-def test_get_ellipse_b(canola_h5: Literal["tests/data/canola_7do/919QDUH.h5"]):
-    plant = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = plant[0]
-    primary_pts = primary.numpy()
-    primary_max_length_pts = get_max_length_pts(primary_pts)
-    lateral_pts = lateral.numpy()
-    pts_all_array = get_all_pts_array(
-        primary_max_length_pts, lateral_pts, monocots=False
-    )
     ellipse_b = get_ellipse_b(pts_all_array)
-    np.testing.assert_almost_equal(ellipse_b, 115.03734180292595, decimal=3)
-
-
-def test_get_ellipse_ratio(canola_h5: Literal["tests/data/canola_7do/919QDUH.h5"]):
-    plant = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = plant[0]
-    primary_pts = primary.numpy()
-    primary_max_length_pts = get_max_length_pts(primary_pts)
-    lateral_pts = lateral.numpy()
-    pts_all_array = get_all_pts_array(
-        primary_max_length_pts, lateral_pts, monocots=False
-    )
     ellipse_ratio = get_ellipse_ratio(pts_all_array)
-    np.testing.assert_almost_equal(ellipse_ratio, 3.460854783511295, decimal=3)
-
-
-def test_get_ellipse_ratio_ellipse(
-    canola_h5: Literal["tests/data/canola_7do/919QDUH.h5"],
-):
-    plant = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = plant[0]
-    primary_pts = primary.numpy()
-    primary_max_length_pts = get_max_length_pts(primary_pts)
-    lateral_pts = lateral.numpy()
-    pts_all_array = get_all_pts_array(
-        primary_max_length_pts, lateral_pts, monocots=False
-    )
-    ellipse = fit_ellipse(pts_all_array)
-    ellipse_ratio = get_ellipse_ratio(ellipse)
+    np.testing.assert_almost_equal(ellipse_a, 398.1275346610801, decimal=3)
+    np.testing.assert_almost_equal(ellipse_b, 115.03734180292595, decimal=3)
     np.testing.assert_almost_equal(ellipse_ratio, 3.460854783511295, decimal=3)
 
 

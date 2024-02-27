@@ -1,7 +1,6 @@
 from sleap_roots.lengths import (
     get_curve_index,
     get_root_lengths,
-    get_root_lengths_max,
     get_max_length_pts,
 )
 from sleap_roots.bases import get_base_tip_dist, get_bases
@@ -148,16 +147,22 @@ def lengths_all_nan():
 
 # tests for get_curve_index function
 def test_get_curve_index_canola(canola_h5):
-    series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary = series[0][0]  # first frame, primary labels
-    primary_pts = primary.numpy()  # primary points as numpy array
-    primary_length = get_root_lengths_max(primary_pts)
-    max_length_pts = get_max_length_pts(primary_pts)
-    bases = get_bases(max_length_pts)
-    tips = get_tips(max_length_pts)
+    # Set the frame index to 0
+    frame_idx = 0
+    # Load the series from the canola dataset
+    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    # Get the primary points from the first frame
+    primary_pts = series.get_primary_points(frame_idx)
+    # Get the points from the root with maximum length
+    primary_pts = get_max_length_pts(primary_pts)
+    # Get the length of the root with maximum length
+    primary_length = get_root_lengths(primary_pts)
+    # Get the bases and tips of the root
+    bases = get_bases(primary_pts)
+    tips = get_tips(primary_pts)
+    # Get the distance between the base and the tip of the root
     base_tip_dist = get_base_tip_dist(bases, tips)
+    # Get the curvature index of the root
     curve_index = get_curve_index(primary_length, base_tip_dist)
     np.testing.assert_almost_equal(curve_index, 0.08898137324716636)
 
@@ -254,48 +259,49 @@ def test_invalid_scalar_values():
 
 
 # tests for `get_root_lengths`
-def test_grav_index_float():
-    assert get_grav_index(10.0, 5.0) == 0.5
+def test_curve_index_float():
+    assert get_curve_index(10.0, 5.0) == 0.5
 
 
-def test_grav_index_float_invalid():
-    assert np.isnan(get_grav_index(np.nan, 5.0))
+def test_curve_index_float_invalid():
+    assert np.isnan(get_curve_index(np.nan, 5.0))
 
 
-def test_grav_index_array():
+def test_curve_index_array():
     lengths = np.array([10, 20, 30, 0, np.nan])
     base_tip_dists = np.array([5, 15, 25, 0, np.nan])
     expected = np.array([0.5, 0.25, 0.16666667, np.nan, np.nan])
     np.testing.assert_allclose(
-        get_grav_index(lengths, base_tip_dists), expected, rtol=1e-6
+        get_curve_index(lengths, base_tip_dists), expected, rtol=1e-6
     )
 
 
-def test_grav_index_mixed_invalid():
+def test_curve_index_mixed_invalid():
     lengths = np.array([10, np.nan, 0])
     base_tip_dists = np.array([5, 5, 5])
     expected = np.array([0.5, np.nan, np.nan])
     np.testing.assert_allclose(
-        get_grav_index(lengths, base_tip_dists), expected, rtol=1e-6
+        get_curve_index(lengths, base_tip_dists), expected, rtol=1e-6
     )
 
 
 def test_get_root_lengths(canola_h5):
-    series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = series[0]
-    pts = primary.numpy()
-    assert pts.shape == (1, 6, 2)
-
-    root_lengths = get_root_lengths(pts)
+    # Set the frame index to 0
+    frame_idx = 0
+    # Load the series from the canola dataset
+    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    # Get the primary points from the first frame
+    primary_pts = series.get_primary_points(frame_idx)
+    assert primary_pts.shape == (1, 6, 2)
+    # Get the root lengths
+    root_lengths = get_root_lengths(primary_pts)
     assert np.isscalar(root_lengths)
     np.testing.assert_array_almost_equal(root_lengths, [971.050417])
-
-    pts = lateral.numpy()
-    assert pts.shape == (5, 3, 2)
-
-    root_lengths = get_root_lengths(pts)
+    # Get the lateral points from the first frame
+    lateral_pts = series.get_lateral_points(frame_idx)
+    assert lateral_pts.shape == (5, 3, 2)
+    # Get the root lengths
+    root_lengths = get_root_lengths(lateral_pts)
     assert root_lengths.shape == (5,)
     np.testing.assert_array_almost_equal(
         root_lengths, [20.129579, 62.782368, 80.268003, 34.925591, 3.89724]
@@ -316,30 +322,14 @@ def test_get_root_lengths_one_point(pts_one_base):
     )
 
 
-# test get_root_lengths_max function with lengths_normal
-def test_get_root_lengths_max_normal(lengths_normal):
-    max_length = get_root_lengths_max(lengths_normal)
-    np.testing.assert_array_almost_equal(max_length, 329.4)
-
-
-# test get_root_lengths_max function with lengths_with_nan
-def test_get_root_lengths_max_with_nan(lengths_with_nan):
-    max_length = get_root_lengths_max(lengths_with_nan)
-    np.testing.assert_array_almost_equal(max_length, 329.4)
-
-
-# test get_root_lengths_max function with lengths_all_nan
-def test_get_root_lengths_max_all_nan(lengths_all_nan):
-    max_length = get_root_lengths_max(lengths_all_nan)
-    np.testing.assert_array_almost_equal(max_length, np.nan)
-
-
 def test_get_max_length_pts(canola_h5):
-    series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary = series[0][0]  # first frame, primary labels
-    primary_pts = primary.numpy()  # primary points as numpy array
+    # Set the frame index to 0
+    frame_idx = 0
+    # Load the series from the canola dataset
+    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    # Get the primary points from the first frame
+    primary_pts = series.get_primary_points(frame_idx)
+    # Get the points from the root with maximum length
     max_length_pts = get_max_length_pts(primary_pts)
     assert max_length_pts.shape == (6, 2)
     np.testing.assert_almost_equal(
