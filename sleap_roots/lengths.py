@@ -79,39 +79,6 @@ def get_root_lengths(pts: np.ndarray) -> np.ndarray:
     return total_lengths
 
 
-def get_root_lengths_max(pts: np.ndarray) -> np.ndarray:
-    """Return maximum root length for all roots in a frame.
-
-    Args:
-        pts: root landmarks as array of shape `(instance, nodes, 2)` or lengths
-            `(instances)`.
-
-    Returns:
-        Scalar of the maximum root length.
-    """
-    # If the pts are NaNs, return NaN
-    if np.isnan(pts).all():
-        return np.nan
-
-    if pts.ndim not in (1, 3):
-        raise ValueError(
-            "Input array must be 1-dimensional (n_lengths) or "
-            "3-dimensional (n_roots, n_nodes, 2)."
-        )
-
-    # If the input array has 3 dimensions, calculate the root lengths,
-    # otherwise, assume the input array already contains the root lengths
-    if pts.ndim == 3:
-        root_lengths = get_root_lengths(
-            pts
-        )  # Assuming get_root_lengths returns an array of shape (instances)
-        max_length = np.nanmax(root_lengths)
-    else:
-        max_length = np.nanmax(pts)
-
-    return max_length
-
-
 def get_curve_index(
     lengths: Union[float, np.ndarray], base_tip_dists: Union[float, np.ndarray]
 ) -> Union[float, np.ndarray]:
