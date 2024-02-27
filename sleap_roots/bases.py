@@ -1,4 +1,4 @@
-"""Trait calculations that rely on bases (i.e., dicot-only)."""
+"""Trait calculations that rely on bases."""
 
 import numpy as np
 from shapely.geometry import LineString, Point
@@ -231,7 +231,7 @@ def get_root_widths(
     tolerance: float = 0.02,
     monocots: bool = False,
     return_inds: bool = False,
-) -> (np.ndarray, list, np.ndarray, np.ndarray):
+) -> Tuple[np.ndarray, list, np.ndarray, np.ndarray]:
     """Estimate root width using bases of lateral roots.
 
     Args:
