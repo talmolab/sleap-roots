@@ -1,4 +1,5 @@
 """Get length-related traits."""
+
 import numpy as np
 from typing import Union
 
@@ -7,7 +8,7 @@ def get_max_length_pts(pts: np.ndarray) -> np.ndarray:
     """Points of the root with maximum length (intended for primary root traits).
 
     Args:
-        pts (np.ndarray): Root landmarks as array of shape `(instances, nodes, 2)`.
+        pts: Root landmarks as array of shape `(instances, nodes, 2)`.
 
     Returns:
         np.ndarray: Array of points with shape `(nodes, 2)` from the root with maximum
@@ -15,7 +16,7 @@ def get_max_length_pts(pts: np.ndarray) -> np.ndarray:
     """
     # Return NaN points if the input array is empty
     if len(pts) == 0:
-        return np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
+        return np.array([[np.nan, np.nan]])
 
     # Check if pts has the correct shape, raise error if it does not
     if pts.ndim != 3 or pts.shape[2] != 2:
