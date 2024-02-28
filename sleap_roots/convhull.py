@@ -297,7 +297,7 @@ def get_chull_division_areas_below(areas: Tuple[float, float]) -> float:
     return areas[1]
 
 
-def get_chull_area_via_intersection(
+def get_chull_areas_via_intersection(
     rn_pts: np.ndarray, pts: np.ndarray, hull: Optional[ConvexHull]
 ) -> Tuple[float, float]:
     """Get convex hull areas above and below the intersecting line.
@@ -399,7 +399,7 @@ def get_chull_area_via_intersection(
     return area_above_line, area_below_line
 
 
-def get_chull_areas_via_intersection_above(areas: Tuple[float, float]) -> float:
+def get_chull_area_via_intersection_above(areas: Tuple[float, float]) -> float:
     """Get the chull area above the line from `get_chull_area_via_intersection`.
 
     Args:
@@ -448,7 +448,7 @@ def get_chull_intersection_vectors(
     Returns:
         A tuple containing vectors from the top left point to the left intersection point, and from
         the top right point to the right intersection point with the convex hull. Returns two vectors
-        of NaNs if the vectors can't be calculated.
+        of NaNs if the vectors can't be calculated. Vectors are of shape (1, 2).
 
     Raises:
         ValueError: If pts does not have the expected shape.
@@ -472,13 +472,13 @@ def get_chull_intersection_vectors(
     # Check for a valid or existing convex hull
     if hull is None or len(unique_pts) < 3:
         # Return two vectors of NaNs if not valid hull
-        return (np.array([np.nan, np.nan]), np.array([np.nan, np.nan]))
+        return (np.array([[np.nan, np.nan]]), np.array([[np.nan, np.nan]]))
 
     # Ensure rn_pts does not contain NaN values
     rn_pts_valid = rn_pts[~np.isnan(rn_pts).any(axis=1)]
     # Need at least two points to define a line
     if len(rn_pts_valid) < 2:
-        return (np.array([np.nan, np.nan]), np.array([np.nan, np.nan]))
+        return (np.array([[np.nan, np.nan]]), np.array([[np.nan, np.nan]]))
 
     # Ensuring r0_pts does not contain NaN values
     r0_pts_valid = r0_pts[~np.isnan(r0_pts).any(axis=1)]
@@ -499,8 +499,8 @@ def get_chull_intersection_vectors(
     )
 
     # Initialize vectors
-    leftmost_vector = np.array([np.nan, np.nan])
-    rightmost_vector = np.array([np.nan, np.nan])
+    leftmost_vector = np.array([[np.nan, np.nan]])
+    rightmost_vector = np.array([[np.nan, np.nan]])
     if not is_leftmost_on_hull and not is_rightmost_on_hull:
         # If leftmost and rightmost r0 points are not on the convex hull return NaNs
         return leftmost_vector, rightmost_vector
@@ -555,9 +555,10 @@ def get_chull_intersection_vectors(
     rightmost_intersect = intersect_points[np.argmax(intersect_points[:, 0])]
 
     # Make a vector from the leftmost r0 point to the leftmost intersection point
-    leftmost_vector = leftmost_intersect - leftmost_r0
+    leftmost_vector = (leftmost_intersect - leftmost_r0).reshape(1, -1)
+
     # Make a vector from the rightmost r0 point to the rightmost intersection point
-    rightmost_vector = rightmost_intersect - rightmost_r0
+    rightmost_vector = (rightmost_intersect - rightmost_r0).reshape(1, -1)
 
     return leftmost_vector, rightmost_vector
 

@@ -232,7 +232,7 @@ class Series:
         gt_instances_pr = primary_lf.user_instances + primary_lf.unused_predictions
         # If there are no instances, return an empty array
         if len(gt_instances_pr) == 0:
-            return []
+            primary_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
         # Otherwise, stack the instances into an array
         else:
             primary_pts = np.stack([inst.numpy() for inst in gt_instances_pr], axis=0)
@@ -255,7 +255,7 @@ class Series:
         gt_instances_lr = lateral_lf.user_instances + lateral_lf.unused_predictions
         # If there are no instances, return an empty array
         if len(gt_instances_lr) == 0:
-            return []
+            lateral_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
         # Otherwise, stack the instances into an array
         else:
             lateral_pts = np.stack([inst.numpy() for inst in gt_instances_lr], axis=0)
@@ -278,7 +278,7 @@ class Series:
         gt_instances_cr = crown_lf.user_instances + crown_lf.unused_predictions
         # If there are no instances, return an empty array
         if len(gt_instances_cr) == 0:
-            return []
+            crown_pts = np.array([[(np.nan, np.nan), (np.nan, np.nan)]])
         # Otherwise, stack the instances into an array
         else:
             crown_pts = np.stack([inst.numpy() for inst in gt_instances_cr], axis=0)

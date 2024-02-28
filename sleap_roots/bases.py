@@ -229,7 +229,6 @@ def get_root_widths(
     primary_max_length_pts: np.ndarray,
     lateral_pts: np.ndarray,
     tolerance: float = 0.02,
-    monocots: bool = False,
     return_inds: bool = False,
 ) -> Tuple[np.ndarray, list, np.ndarray, np.ndarray]:
     """Estimate root width using bases of lateral roots.
@@ -241,8 +240,6 @@ def get_root_widths(
             shape (n, nodes, 2).
         tolerance: Tolerance level for the projection difference between matched roots.
             Defaults to 0.02.
-        monocots: Indicates the type of plant. Set to False for dicots (default) or
-            True for monocots like rice.
         return_inds: Flag to indicate whether to return matched indices along with
             distances. Defaults to False.
 
@@ -284,11 +281,10 @@ def get_root_widths(
     default_left_bases = np.empty((0, 2))
     default_right_bases = np.empty((0, 2))
 
-    # Check for minimum length, monocots, or all NaNs in arrays
+    # Check for minimum length, or all NaNs in arrays
     if (
         len(primary_max_length_pts) < 2
         or len(lateral_pts) < 2
-        or monocots
         or np.isnan(primary_max_length_pts).all()
         or np.isnan(lateral_pts).all()
     ):

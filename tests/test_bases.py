@@ -370,26 +370,24 @@ def test_root_width_canola(canola_h5):
 
 # Test for get_root_widths with return_inds=True
 @pytest.mark.parametrize(
-    "primary, lateral, tolerance, monocots, expected",
+    "primary, lateral, tolerance, expected",
     [
         (
             np.array([[0, 0], [1, 1]]),
             np.array([[[0, 0], [1, 1]], [[1, 1], [2, 2]]]),
             0.02,
-            False,
             (np.array([]), [(np.nan, np.nan)], np.empty((0, 2)), np.empty((0, 2))),
         ),
         (
             np.array([[np.nan, np.nan], [np.nan, np.nan]]),
             np.array([[[0, 0], [1, 1]], [[1, 1], [2, 2]]]),
             0.02,
-            False,
             (np.array([]), [(np.nan, np.nan)], np.empty((0, 2)), np.empty((0, 2))),
         ),
     ],
 )
-def test_get_root_widths(primary, lateral, tolerance, monocots, expected):
-    result = get_root_widths(primary, lateral, tolerance, monocots, return_inds=True)
+def test_get_root_widths(primary, lateral, tolerance, expected):
+    result = get_root_widths(primary, lateral, tolerance, return_inds=True)
     np.testing.assert_array_almost_equal(result[0], expected[0])
     assert result[1] == expected[1]
     np.testing.assert_array_almost_equal(result[2], expected[2])

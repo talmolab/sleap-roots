@@ -8,7 +8,7 @@ from sleap_roots.convhull import (
     get_chull_max_width,
     get_chull_perimeter,
     get_chull_division_areas,
-    get_chull_area_via_intersection,
+    get_chull_areas_via_intersection,
     get_chull_intersection_vectors,
 )
 from sleap_roots.lengths import get_max_length_pts
@@ -256,7 +256,7 @@ def test_get_chull_division_areas(pts_shape_3_6_2):
 
 def test_get_chull_area_via_intersection_valid(valid_input):
     rn_pts, pts, hull, expected_areas = valid_input
-    above, below = get_chull_area_via_intersection(rn_pts, pts, hull)
+    above, below = get_chull_areas_via_intersection(rn_pts, pts, hull)
     np.testing.assert_almost_equal(above, expected_areas[0], decimal=3)
     np.testing.assert_almost_equal(below, expected_areas[1], decimal=3)
 
@@ -264,12 +264,12 @@ def test_get_chull_area_via_intersection_valid(valid_input):
 def test_invalid_pts_shape_area_via_intersection(invalid_pts_shape):
     rn_pts, pts = invalid_pts_shape
     with pytest.raises(ValueError):
-        _ = get_chull_area_via_intersection(rn_pts, pts, None)
+        _ = get_chull_areas_via_intersection(rn_pts, pts, None)
 
 
 def test_nan_in_rn_pts_area_via_intersection(nan_in_rn_pts):
     rn_pts, pts, hull = nan_in_rn_pts
-    area_above_line, area_below_line = get_chull_area_via_intersection(
+    area_above_line, area_below_line = get_chull_areas_via_intersection(
         rn_pts, pts, hull
     )
     assert np.isnan(area_above_line) and np.isnan(
@@ -281,7 +281,7 @@ def test_insufficient_unique_points_for_hull_area_via_intersection(
     insufficient_unique_points_for_hull,
 ):
     rn_pts, pts = insufficient_unique_points_for_hull
-    area_above_line, area_below_line = get_chull_area_via_intersection(
+    area_above_line, area_below_line = get_chull_areas_via_intersection(
         rn_pts, pts, None
     )
     assert np.isnan(area_above_line) and np.isnan(
