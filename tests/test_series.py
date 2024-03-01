@@ -112,3 +112,15 @@ def test_get_frame_rice_10do(
     assert crown_lf == expected_labeled_frame
     # Check the series name property
     assert series.series_name == "0K9E8BI"
+
+
+def test_find_all_series_rice_10do(rice_10do_folder: Literal["tests/data/rice_10do"]):
+    series_h5_path = Path(rice_10do_folder) / "0K9E8BI.h5"
+    all_series_files = find_all_series(rice_10do_folder)
+    assert len(all_series_files) == 1
+    assert series_h5_path.as_posix() == "tests/data/rice_10do/0K9E8BI.h5"
+
+
+def test_find_all_series_rice(rice_folder: Literal["tests/data/rice_3do"]):
+    all_series_files = find_all_series(rice_folder)
+    assert len(all_series_files) == 2

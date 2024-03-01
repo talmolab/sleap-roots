@@ -388,7 +388,7 @@ class Pipeline:
 
 @attrs.define
 class DicotPipeline(Pipeline):
-    """Pipeline for computing traits for dicot plants.
+    """Pipeline for computing traits for dicot plants (primary + lateral roots).
 
     Attributes:
         img_height: Image height.
