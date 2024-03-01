@@ -50,12 +50,14 @@ def get_tip_xs(tip_pts: np.ndarray) -> np.ndarray:
     return tip_xs
 
 
-def get_tip_ys(tip_pts: np.ndarray) -> np.ndarray:
+def get_tip_ys(tip_pts: np.ndarray, flatten: bool = False) -> np.ndarray:
     """Get y coordinates of tip points.
 
     Args:
-        tip_pts: Root tips as array of shape `(instances, 2)` or `(2)`
-            when there is only one tip.
+        tip_pts: Root tips as array of shape `(instances, 2)` or `(2)` when there is
+            only one tip.
+        flatten: If `True`, return scalar (0-D) array if scalar (there is only 1 root).
+            Defaults to `False`.
 
     Return:
         An array of the y-coordinates of tips (instances,) or () if `flatten` is `True`.
@@ -73,4 +75,9 @@ def get_tip_ys(tip_pts: np.ndarray) -> np.ndarray:
 
     # At this point, `tip_pts` should be of shape `(instances, 2)`.
     tip_ys = tip_pts[:, 1]
+
+    if flatten:
+        tip_ys = tip_ys.squeeze()
+        if tip_ys.size == 1:
+            tip_ys = tip_ys[()]
     return tip_ys
