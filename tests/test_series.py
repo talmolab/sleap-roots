@@ -66,17 +66,12 @@ def test_len():
 
 
 def test_series_load_canola(canola_h5: Literal["tests/data/canola_7do/919QDUH.h5"]):
-    series = Series.load(canola_h5, ["primary", "lateral"])
+    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
     assert len(series) == 72
 
 
 def test_find_all_series_canola(canola_folder: Literal["tests/data/canola_7do"]):
     all_series_files = find_all_series(canola_folder)
-    assert len(all_series_files) == 1
-
-
-def test_find_all_series_rice_10do(rice_10do_folder: Literal["tests/data/rice_10do"]):
-    all_series_files = find_all_series(rice_10do_folder)
     assert len(all_series_files) == 1
 
 

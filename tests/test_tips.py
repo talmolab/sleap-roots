@@ -115,8 +115,8 @@ def test_get_tip_xs_no_tip(pts_no_tips):
     np.testing.assert_almost_equal(tip_xs[1], np.nan, decimal=3)
     assert type(tip_xs) == np.ndarray
 
-    tip_xs = get_tip_xs(tips[[0]], flatten=True)
-    assert type(tip_xs) == np.float64
+    tip_xs = get_tip_xs(tips[[0]])
+    assert type(tip_xs) == np.ndarray
 
 
 # test get_tip_ys with canola
@@ -152,5 +152,5 @@ def test_get_tip_ys_no_tip(pts_no_tips):
     np.testing.assert_almost_equal(tip_ys[1], np.nan, decimal=3)
     assert type(tip_ys) == np.ndarray
 
-    tip_ys = get_tip_ys(tips[[0]], flatten=True)
-    assert type(tip_ys) == np.float64
+    tip_ys = get_tip_ys(tips[[0]])
+    assert type(tip_ys) == np.ndarray
