@@ -56,7 +56,6 @@ def test_fit_ellipse():
     pts = np.array([])
     assert np.isnan(fit_ellipse(pts)).all()
 
-
     # Test when pts has NaNs only
     pts = np.array([[np.nan, np.nan], [np.nan, np.nan], [np.nan, np.nan]])
     assert np.isnan(fit_ellipse(pts)).all()
