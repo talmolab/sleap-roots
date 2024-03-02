@@ -436,8 +436,7 @@ def get_chull_area_via_intersection_below(areas: Tuple[float, float]) -> float:
 def get_chull_intersection_vectors(
     r0_pts: np.ndarray, rn_pts: np.ndarray, pts: np.ndarray, hull: Optional[ConvexHull]
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Get vectors from top left and top right points to their respective intersection points
-    with the convex hull.
+    """Get vectors from top left and top right to intersection on convex hull.
 
     Args:
         r0_pts: The 0th root nodes when indexing from 0. Shape is (instances, 2).

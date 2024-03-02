@@ -94,8 +94,7 @@ def get_root_angle(
 
 
 def get_vector_angles_from_gravity(vectors: np.ndarray) -> np.ndarray:
-    """Calculate the angle of given vectors from the gravity vector, assuming the gravity
-    vector points downwards along the positive y-axis.
+    """Calculate the angle of given vectors from the gravity vector.
 
     Args:
         vectors: An array of vectorss with shape (instances, 2), each representing a vector
