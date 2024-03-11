@@ -131,7 +131,7 @@ def get_curve_index(
         return curve_index
 
 
-def min_distance_line_to_line(line1: LineString, line2: LineString) -> float:
+def get_min_distance_line_to_line(line1: LineString, line2: LineString) -> float:
     """Calculate the minimum distance between two LineString objects.
 
     This function computes the shortest distance between any two points on the first

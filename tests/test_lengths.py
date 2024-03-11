@@ -2,10 +2,12 @@ from sleap_roots.lengths import (
     get_curve_index,
     get_root_lengths,
     get_max_length_pts,
+    get_min_distance_line_to_line,
 )
 from sleap_roots.bases import get_base_tip_dist, get_bases
 from sleap_roots.tips import get_tips
 from sleap_roots import Series
+from shapely.geometry import LineString
 import numpy as np
 import pytest
 
@@ -143,6 +145,29 @@ def lengths_with_nan():
 @pytest.fixture
 def lengths_all_nan():
     return np.array([np.nan, np.nan, np.nan])
+
+
+def test_min_distance_line_to_line():
+    # Test with non-intersecting lines
+    line1 = LineString([(0, 0), (1, 1)])
+    line2 = LineString([(1, 0), (2, 0)])
+    assert get_min_distance_line_to_line(line1, line2) == np.sqrt(2) / 2
+
+    # Test with intersecting lines (expect 0 distance)
+    line1 = LineString([(0, 0), (1, 1)])
+    line2 = LineString([(0, 1), (1, 0)])
+    assert get_min_distance_line_to_line(line1, line2) == 0
+
+    # Test with parallel lines
+    line1 = LineString([(0, 0), (1, 0)])
+    line2 = LineString([(0, 1), (1, 1)])
+    assert get_min_distance_line_to_line(line1, line2) == 1
+
+    # Test with invalid input types
+    with pytest.raises(TypeError):
+        get_min_distance_line_to_line("not a linestring", LineString([(0, 0), (1, 1)]))
+    with pytest.raises(TypeError):
+        get_min_distance_line_to_line(LineString([(0, 0), (1, 1)]), "not a linestring")
 
 
 # tests for get_curve_index function

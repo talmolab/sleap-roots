@@ -2,7 +2,7 @@
 
 import numpy as np
 from shapely.geometry import LineString
-from sleap_roots.lengths import min_distance_line_to_line
+from sleap_roots.lengths import get_min_distance_line_to_line
 from typing import List, Optional, Tuple
 
 
@@ -344,7 +344,7 @@ def associate_lateral_to_primary(
     # Associate each lateral root with the closest primary root
     for i, lateral_line in enumerate(lateral_line_strings):
         min_dists = [
-            min_distance_line_to_line(lateral_line, primary_line)
+            get_min_distance_line_to_line(lateral_line, primary_line)
             for primary_line in primary_line_strings
         ]
         # Index of the primary root closest to this lateral root
