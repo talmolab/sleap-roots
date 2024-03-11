@@ -16,13 +16,13 @@ def canola_h5():
 @pytest.fixture
 def canola_primary_slp():
     """Path to primary root predictions for 7 day old canola."""
-    return "tests/data/canola_7do/919QDUH.primary_multi_day.predictions.slp"
+    return "tests/data/canola_7do/919QDUH.primary.predictions.slp"
 
 
 @pytest.fixture
 def canola_lateral_slp():
     """Path to lateral root predictions for 7 day old canola."""
-    return "tests/data/canola_7do/919QDUH.lateral_3_nodes.predictions.slp"
+    return "tests/data/canola_7do/919QDUH.lateral.predictions.slp"
 
 
 @pytest.fixture
@@ -40,13 +40,31 @@ def rice_h5():
 @pytest.fixture
 def rice_long_slp():
     """Path to longest root predictions for 3 day old rice."""
-    return "tests/data/rice_3do/YR39SJX.longest_3do_6nodes.predictions.slp"
+    return "tests/data/rice_3do/YR39SJX.primary.predictions.slp"
 
 
 @pytest.fixture
 def rice_main_slp():
     """Path to main root predictions for 3 day old rice."""
-    return "tests/data/rice_3do/YR39SJX.main_3do_6nodes.predictions.slp"
+    return "tests/data/rice_3do/YR39SJX.crown.predictions.slp"
+
+
+@pytest.fixture
+def rice_10do_folder():
+    """Path to a folder with the predictions for 10 day old rice."""
+    return "tests/data/rice_10do"
+
+
+@pytest.fixture
+def rice_main_10do_h5():
+    """Path to root image stack for 10 day old rice."""
+    return "tests/data/rice_10do/0K9E8BI.h5"
+
+
+@pytest.fixture
+def rice_main_10do_slp():
+    """Path to main root predictions for 10 day old rice."""
+    return "tests/data/rice_10do/0K9E8BI.crown.predictions.slp"
 
 
 @pytest.fixture
@@ -64,7 +82,7 @@ def soy_h5():
 @pytest.fixture
 def soy_primary_slp():
     """Path to primary root predictions for 6 day old soy."""
-    return "tests/data/soy_6do/6PR6AA22JK.primary_multi_day.predictions.slp"
+    return "tests/data/soy_6do/6PR6AA22JK.primary.predictions.slp"
 
 
 @pytest.fixture
