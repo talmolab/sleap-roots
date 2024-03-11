@@ -1,6 +1,8 @@
 import pytest
 import numpy as np
+from typing import List
 from sleap_roots import Series
+from sleap_roots.points import join_pts
 from sleap_roots.lengths import get_max_length_pts
 from sleap_roots.scanline import (
     get_scanline_first_ind,
@@ -55,58 +57,83 @@ def pts_nan3():
 
 
 def test_count_scanline_intersections_canola(canola_h5):
-    series = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = series[0]
-    primary_pts = primary.numpy()
-    lateral_pts = lateral.numpy()
+    # Set the frame number to 0
+    frame = 0
+    # Load the series from canola
+    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    # Get the primary and lateral roots
+    primary_pts = series.get_primary_points(frame)
     primary_pts = get_max_length_pts(primary_pts)
+    lateral_pts = series.get_lateral_points(frame)
+    pts_all_list = join_pts(primary_pts, lateral_pts)
     depth = 1080
-    width = 2048
     n_line = 50
-    monocots = False
-    n_inter = count_scanline_intersections(
-        primary_pts, lateral_pts, depth, width, n_line, monocots
-    )
+    n_inter = count_scanline_intersections(pts_all_list, depth, n_line)
     assert n_inter.shape == (50,)
     np.testing.assert_equal(n_inter[14], 1)
 
 
 def test_count_scanline_intersections_rice(rice_h5):
-    series = Series.load(
-        rice_h5, primary_name="longest_3do_6nodes", lateral_name="main_3do_6nodes"
-    )
-    primary, lateral = series[0]
-    primary_pts = primary.numpy()
-    lateral_pts = lateral.numpy()
-    primary_pts = get_max_length_pts(primary_pts)
+    # Set the frame number to 0
+    frame = 0
+    # Load the series from rice
+    series = Series.load(rice_h5, primary_name="primary", crown_name="crown")
+    crown_pts = series.get_crown_points(frame)
     depth = 1080
-    width = 2048
     n_line = 50
-    monocots = True
-    n_inter = count_scanline_intersections(
-        primary_pts, lateral_pts, depth, width, n_line, monocots
-    )
+    n_inter = count_scanline_intersections(crown_pts, depth, n_line)
     assert n_inter.shape == (50,)
     np.testing.assert_equal(n_inter[14], 2)
 
 
+def test_count_scanline_intersections_basic():
+    pts_list = [np.array([[0, 0], [4, 0]]), np.array([[0, 1], [4, 1]])]
+    height = 2
+    n_line = 3  # y-values: 0, 1, 2
+    result = count_scanline_intersections(pts_list, height, n_line)
+    assert np.all(result == np.array([1, 1, 0]))  # Intersections at y = 0 and y = 1
+
+
+def test_count_scanline_intersections_invalid_shape():
+    with pytest.raises(ValueError):
+        pts_list = [np.array([0, 1])]
+        count_scanline_intersections(pts_list)
+
+
+def test_count_scanline_intersections_with_nan():
+    pts_list = [np.array([[0, 0], [4, 0]]), np.array([[0, 1], [4, np.nan]])]
+    height = 2
+    n_line = 3  # y-values: 0, 1, 2
+    result = count_scanline_intersections(pts_list, height, n_line)
+    assert np.all(result == np.array([1, 0, 0]))  # Only one valid intersection at y = 0
+
+
+def test_count_scanline_intersections_different_params():
+    pts_list = [np.array([[0, 0], [4, 0]]), np.array([[0, 2], [4, 2]])]
+    height = 4
+    n_line = 5  # y-values: 0, 1, 2, 3, 4
+    result = count_scanline_intersections(pts_list, height, n_line)
+    assert np.all(
+        result == np.array([1, 0, 1, 0, 0])
+    )  # Intersections at y = 0 and y = 2
+
+
 # test get_scanline_first_ind with canola
 def test_get_scanline_first_ind(canola_h5):
-    plant = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = plant[0]
-    primary_pts = primary.numpy()
-    lateral_pts = lateral.numpy()
+    # Set the frame number to 0
+    frame = 0
+    # Load the series from canola
+    plant = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    primary_pts = plant.get_primary_points(frame)
     primary_pts = get_max_length_pts(primary_pts)
+    lateral_pts = plant.get_lateral_points(frame)
     depth = 1080
-    width = 2048
     n_line = 50
-    monocots = False
+    pts_all_list = join_pts(primary_pts, lateral_pts)
     scanline_intersection_counts = count_scanline_intersections(
-        primary_pts, lateral_pts, depth, width, n_line, monocots
+        pts_all_list,
+        depth,
+        n_line,
     )
     scanline_first_ind = get_scanline_first_ind(scanline_intersection_counts)
     np.testing.assert_equal(scanline_first_ind, 7)
@@ -114,19 +141,18 @@ def test_get_scanline_first_ind(canola_h5):
 
 # test get_scanline_last_ind with canola
 def test_get_scanline_last_ind(canola_h5):
-    plant = Series.load(
-        canola_h5, primary_name="primary_multi_day", lateral_name="lateral_3_nodes"
-    )
-    primary, lateral = plant[0]
-    primary_pts = primary.numpy()
-    lateral_pts = lateral.numpy()
+    # Set the frame number to 0
+    frame = 0
+    # Load the series from canola
+    plant = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    primary_pts = plant.get_primary_points(frame)
     primary_pts = get_max_length_pts(primary_pts)
+    lateral_pts = plant.get_lateral_points(frame)
     depth = 1080
-    width = 2048
     n_line = 50
-    monocots = True
+    pts_all_list = join_pts(primary_pts, lateral_pts)
     scanline_intersection_counts = count_scanline_intersections(
-        primary_pts, lateral_pts, depth, width, n_line, monocots
+        pts_all_list, depth, n_line
     )
     scanline_last_ind = get_scanline_last_ind(scanline_intersection_counts)
-    np.testing.assert_equal(scanline_last_ind, 12)
+    np.testing.assert_equal(scanline_last_ind, 46)

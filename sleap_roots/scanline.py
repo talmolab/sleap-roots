@@ -1,16 +1,13 @@
 """Get intersections between roots and horizontal scan lines."""
 
 import numpy as np
-import math
+from typing import List
 
 
 def count_scanline_intersections(
-    primary_pts: np.ndarray,
-    lateral_pts: np.ndarray,
+    pts_list: List[np.ndarray],
     height: int = 1080,
-    width: int = 2048,
     n_line: int = 50,
-    monocots: bool = False,
 ) -> np.ndarray:
     """Count intersections of roots with a series of horizontal scanlines.
 
@@ -19,33 +16,19 @@ def count_scanline_intersections(
     are equally spaced across the specified height.
 
     Args:
-        primary_pts: Array of primary root landmarks of shape `(nodes, 2)`.
-            Will be reshaped internally to `(1, nodes, 2)`.
-        lateral_pts: Array of lateral root landmarks with shape
-            `(instances, nodes, 2)`.
+        pts_list: A list of arrays, each having shape `(nodes, 2)`.
         height: The height of the image or cylinder. Defaults to 1080.
-        width: The width of the image or cylinder. Defaults to 2048.
         n_line: Number of scanlines to use. Defaults to 50.
-        monocots: If `True`, only uses lateral roots (e.g., for rice).
-            If `False`, uses both primary and lateral roots (e.g., for dicots).
-            Defaults to `False`.
 
     Returns:
         An array with shape `(n_line,)` representing the number of intersections
             of roots with each scanline.
     """
-    # Input validation
-    if primary_pts.ndim != 2 or primary_pts.shape[-1] != 2:
-        raise ValueError("primary_pts should have a shape of `(nodes, 2)`.")
-
-    if lateral_pts.ndim != 3 or lateral_pts.shape[-1] != 2:
-        raise ValueError("lateral_pts should have a shape of `(instances, nodes, 2)`.")
-
-    # Reshape primary_pts to have three dimensions
-    primary_pts = primary_pts[np.newaxis, :, :]
-
-    # Collate root points.
-    all_roots = list(primary_pts) + list(lateral_pts) if not monocots else lateral_pts
+    # Input validation for pts_list
+    if any(pts.ndim != 2 or pts.shape[-1] != 2 for pts in pts_list):
+        raise ValueError(
+            "Each pts array in pts_list should have a shape of `(nodes, 2)`."
+        )
 
     # Calculate the interval between two scanlines
     interval = height / (n_line - 1)
@@ -57,7 +40,7 @@ def count_scanline_intersections(
         y_coord = interval * i
         line_intersections = 0
 
-        for root_points in all_roots:
+        for root_points in pts_list:
             # Remove NaN values
             valid_points = root_points[(~np.isnan(root_points)).any(axis=1)]
 

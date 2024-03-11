@@ -74,7 +74,8 @@ def get_root_angle(
         pts = np.expand_dims(pts, axis=0)
 
     angs_root = []
-    for i in range(len(node_ind)):
+    # Calculate the angle for each instance
+    for i in range(pts.shape[0]):
         # if the node_ind is 0, do NOT calculate angs
         if node_ind[i] == 0:
             angs = np.nan
@@ -90,3 +91,30 @@ def get_root_angle(
     if angs_root.shape[0] == 1:
         return angs_root[0]
     return angs_root
+
+
+def get_vector_angles_from_gravity(vectors: np.ndarray) -> np.ndarray:
+    """Calculate the angle of given vectors from the gravity vector.
+
+    Args:
+        vectors: An array of vectorss with shape (instances, 2), each representing a vector
+                from start to end in an instance.
+
+    Returns:
+        An array of angles in degrees with shape (instances,), representing the angle
+        between each vector and the downward-pointing gravity vector.
+    """
+    gravity_vector = np.array([0, 1])  # Downwards along the positive y-axis
+    # Calculate the angle between the vectors and the gravity vectors
+    angles = np.arctan2(vectors[:, 1], vectors[:, 0]) - np.arctan2(
+        gravity_vector[1], gravity_vector[0]
+    )
+    angles = np.degrees(angles)
+    # Normalize angles to the range [0, 180] since direction doesn't matter
+    angles = np.abs(angles)
+    angles[angles > 180] = 360 - angles[angles > 180]
+
+    # If only one root, return a scalar instead of a single-element array
+    if angles.shape[0] == 1:
+        return angles[0]
+    return angles
