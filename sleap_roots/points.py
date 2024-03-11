@@ -286,7 +286,7 @@ def get_line_equation_from_points(pts1: np.ndarray, pts2: np.ndarray):
     # Calculate the y-intercept
     b = pts1[1] - m * pts1[0]
 
-    return pts_all_array
+    return m, b
 
 
 def associate_lateral_to_primary(
