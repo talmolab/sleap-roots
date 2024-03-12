@@ -305,10 +305,9 @@ def is_line_valid(line: np.ndarray) -> bool:
 def associate_lateral_to_primary(
     primary_pts: np.ndarray, lateral_pts: np.ndarray
 ) -> dict:
-    """
-    Associates each lateral root point with the closest primary root point, while
-    accounting for NaN values to skip invalid calculations. Returns a detailed
-    association including indices and points.
+    """Associates each lateral root with the closest primary root.
+
+    This is meant for the pipelines involving multiple plants.
 
     Args:
         primary_pts: A numpy array of primary root points with shape
