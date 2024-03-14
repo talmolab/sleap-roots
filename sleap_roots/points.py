@@ -294,7 +294,8 @@ def is_line_valid(line: np.ndarray) -> bool:
     Check if a line (numpy array of points) does not contain NaN values, indicating it is valid.
 
     Args:
-        line: A numpy array representing a line with shape (nodes, 2), where 'nodes' is the number of points in the line.
+        line: A numpy array representing a line with shape (nodes, 2), where 'nodes' is 
+            the number of points in the line.
 
     Returns:
         True if the line does not contain any NaN values, False otherwise.
@@ -302,50 +303,50 @@ def is_line_valid(line: np.ndarray) -> bool:
     return not np.isnan(line).any()
 
 
-def associate_lateral_to_primary(
-    primary_pts: np.ndarray, lateral_pts: np.ndarray
-) -> dict:
-    """Associates each lateral root with the closest primary root.
+def clean_points(points):
+    """Remove NaN points from root points.
 
-    This is meant for the pipelines involving multiple plants.
+    Args:
+        points: An array of points representing a root, with shape (nodes, 2).
+
+    Returns:
+        np.ndarray: An array of the same points with NaN values removed.
+    """
+    # Filter out points with NaN values and return the cleaned array
+    return np.array([pt for pt in points if not np.isnan(pt).any()])
+
+
+
+def associate_lateral_to_primary(primary_pts: np.ndarray, lateral_pts: np.ndarray) -> dict:
+    """Associates each lateral root with the closest primary root.
 
     Args:
         primary_pts: A numpy array of primary root points with shape
             (instances, nodes, 2), where 'instances' is the number of primary roots,
             'nodes' is the number of points in each root, and '2' corresponds to the x and y
             coordinates.
-
         lateral_pts: A numpy array of lateral root points with a shape similar
             to primary_pts, representing the lateral roots.
 
     Returns:
-        A dictionary where each key is an index of a primary root (from the primary_pts
+        dict: A dictionary where each key is an index of a primary root (from the primary_pts
         array) and each value is a dictionary containing 'primary_points' as the points of
-        the primary root and 'lateral_points' as a list of lateral root points that are
-        closest to that primary root.
+        the primary root with NaN points excluded and 'lateral_points' as an array of 
+        lateral root points (roots with NaN points are excluded) that are closest to 
+        that primary root. The shape of 'lateral_points' is (instances, nodes, 2), where
+        instances is the number of lateral roots associated with the primary root.
     """
-    # Initialize the association dictionary for all primary roots
-    plant_associations = {
-        i: {"primary_points": primary_pts[i], "lateral_points": []}
-        for i in range(len(primary_pts))
-    }
+    plant_associations = {}
 
-    # Basic input validation
-    if not (
-        isinstance(primary_pts, np.ndarray) and isinstance(lateral_pts, np.ndarray)
-    ):
-        raise TypeError("Both primary_pts and lateral_pts should be NumPy arrays.")
-    if primary_pts.size == 0 or lateral_pts.size == 0:
-        return plant_associations
-    if len(primary_pts.shape) != 3 or len(lateral_pts.shape) != 3:
-        raise ValueError("Input arrays must be 3-dimensional.")
-    if primary_pts.shape[-1] != 2 or lateral_pts.shape[-1] != 2:
-        raise ValueError(
-            "The last dimension of the input arrays must be 2 (for x and y coordinates)."
-        )
+    # Iterate through each primary root to clean and initialize in the dictionary
+    for i, primary_root in enumerate(primary_pts):
+        cleaned_primary_points = clean_points(primary_root)
+        # Only include primary roots with at least one valid point after cleaning
+        if cleaned_primary_points.size > 0:
+            plant_associations[i] = {"primary_points": cleaned_primary_points, "lateral_points": []}
 
-    # Iterate over lateral roots to find the closest primary root for each
-    for lateral_index, lateral_root in enumerate(lateral_pts):
+    # Iterate over each lateral root to associate with the closest primary root
+    for lateral_root in lateral_pts:
         # Skip lateral roots containing NaN values
         if not is_line_valid(lateral_root):
             continue
@@ -354,15 +355,11 @@ def associate_lateral_to_primary(
         min_distance = float("inf")
         closest_primary_index = None
 
-        # Compare each lateral root to all valid primary roots to find the closest one
+        # Compare each lateral root to all primary roots to find the closest one
         for primary_index, primary_data in plant_associations.items():
             primary_root = primary_data["primary_points"]
-            # Skip primary roots containing NaN values
-            if not is_line_valid(primary_root):
-                continue
-
             primary_line = LineString(primary_root)
-            distance = get_min_distance_line_to_line(lateral_line, primary_line)
+            distance = primary_line.distance(lateral_line)
             # Update the closest primary root if a shorter distance is found
             if distance < min_distance:
                 min_distance = distance
@@ -370,9 +367,14 @@ def associate_lateral_to_primary(
 
         # Associate the lateral root with its closest primary root
         if closest_primary_index is not None:
-            plant_associations[closest_primary_index]["lateral_points"].append(
-                lateral_root
-            )
+            plant_associations[closest_primary_index]["lateral_points"].append(lateral_root)
+
+    # Convert lateral points lists into arrays for each primary root
+    for primary_index in plant_associations:
+        lateral_points_list = plant_associations[primary_index]["lateral_points"]
+        # Convert list of lateral points to array
+        lateral_points_array = np.array(lateral_points_list)
+        plant_associations[primary_index]["lateral_points"] = lateral_points_array
 
     return plant_associations
 
