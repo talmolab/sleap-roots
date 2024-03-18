@@ -13,6 +13,7 @@ from sleap_roots.points import (
     get_line_equation_from_points,
     associate_lateral_to_primary,
     flatten_associated_points,
+    filter_roots_with_nans,
 )
 
 
@@ -358,21 +359,30 @@ def test_get_line_equation_from_points(pts1, pts2, expected):
 def test_get_line_equation_input_errors(pts1, pts2):
     with pytest.raises(ValueError):
         get_line_equation_from_points(pts1, pts2)
-    assert pts_all_array.shape[0] == 12
 
+
+import numpy as np
 
 def test_associate_basic():
     # Tests basic association between one primary and one lateral root.
     primary_pts = np.array([[[0, 0], [0, 1]]])
     lateral_pts = np.array([[[0, 1], [0, 2]]])
 
-    expected = {0: [np.array([[0, 1], [0, 2]])]}
+    expected = {0: {'primary_points': primary_pts, 'lateral_points': lateral_pts}}
     result = associate_lateral_to_primary(primary_pts, lateral_pts)
 
-    # Loop through the result and the expected dictionary to compare the numpy arrays
+    # Ensure the keys match
+    assert set(result.keys()) == set(expected.keys())
+
+    # Loop through the result and the expected dictionary to compare the numpy arrays within
     for key in expected:
-        assert key in result
-        np.testing.assert_array_equal(result[key], expected[key])
+        # Ensure both dictionaries have the same keys (e.g., 'primary_points', 'lateral_points')
+        assert set(result[key].keys()) == set(expected[key].keys())
+        
+        # Now compare the NumPy arrays for each key within the dictionaries
+        for sub_key in expected[key]:
+            np.testing.assert_array_equal(result[key][sub_key], expected[key][sub_key])
+
 
 
 def test_associate_no_primary():
@@ -512,3 +522,60 @@ def test_flatten_associated_points_parametrized(associations, primary_pts, expec
     # Then
     for key in expected:
         np.testing.assert_array_equal(result[key], expected[key])
+
+
+def test_filter_roots_with_nans_no_nans():
+    """Test with an array that contains no NaN values."""
+    pts = np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+    expected = pts
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)
+
+def test_filter_roots_with_nans_nan_in_one_instance():
+    """Test with an array where one instance contains NaN values."""
+    pts = np.array([[[1, 2], [3, 4]], [[np.nan, 6], [7, 8]]])
+    expected = np.array([[[1, 2], [3, 4]]])
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)
+
+def test_filter_roots_with_nans_all_nans_in_one_instance():
+    """Test with an array where one instance is entirely NaN."""
+    pts = np.array([[[np.nan, np.nan], [np.nan, np.nan]], [[5, 6], [7, 8]]])
+    expected = np.array([[[5, 6], [7, 8]]])
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)
+
+def test_filter_roots_with_nans_nan_across_multiple_instances():
+    """Test with NaN values scattered across multiple instances."""
+    pts = np.array([[[1, np.nan], [3, 4]], [[5, 6], [np.nan, 8]], [[9, 10], [11, 12]]])
+    expected = np.array([[[9, 10], [11, 12]]])
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)
+
+def test_filter_roots_with_nans_all_instances_contain_nans():
+    """Test with an array where all instances contain at least one NaN value."""
+    pts = np.array([[[np.nan, 2], [3, 4]], [[5, np.nan], [7, 8]], [[9, 10], [np.nan, 12]]])
+    expected = np.empty((0, pts.shape[1], 2))
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)
+
+def test_filter_roots_with_nans_empty_array():
+    """Test with an empty array."""
+    pts = np.array([])
+    expected = np.empty((0, 0, 2))
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)
+
+def test_filter_roots_with_nans_single_instance_with_nans():
+    """Test with a single instance that contains NaN values."""
+    pts = np.array([[[np.nan, np.nan], [np.nan, np.nan]]])
+    expected = np.empty((0, pts.shape[1], 2))
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)
+
+def test_filter_roots_with_nans_single_instance_without_nans():
+    """Test with a single instance that does not contain NaN values."""
+    pts = np.array([[[1, 2], [3, 4]]])
+    expected = pts
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)

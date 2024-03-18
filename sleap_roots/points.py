@@ -289,9 +289,32 @@ def get_line_equation_from_points(pts1: np.ndarray, pts2: np.ndarray):
     return m, b
 
 
-def is_line_valid(line: np.ndarray) -> bool:
+def filter_roots_with_nans(pts: np.ndarray) -> np.ndarray:
+    """Remove roots with NaN values from an array of root points.
+
+    Args:
+        pts: An array of points representing roots, with shape (instances, nodes, 2),
+            where 'instances' is the number of roots, 'nodes' is the number of points in
+            each root, and '2' corresponds to the x and y coordinates.
+
+    Returns:
+        np.ndarray: An array of shape (instances, nodes, 2) with NaN-containing roots 
+            removed. If all roots contain NaN values, an empty array of shape 
+            (0, nodes, 2) is returned.
     """
-    Check if a line (numpy array of points) does not contain NaN values, indicating it is valid.
+    # Filter out roots where any part of the root contains NaN values
+    cleaned_pts = np.array([root for root in pts if not np.isnan(root).any()])
+    
+    # Ensure the array has the correct shape even if it's empty
+    if cleaned_pts.size == 0:
+        return np.empty((0, pts.shape[1], 2))
+    
+    return cleaned_pts
+
+
+
+def is_line_valid(line: np.ndarray) -> bool:
+    """Check if a line (numpy array of points) does not contain NaN values, indicating it is valid.
 
     Args:
         line: A numpy array representing a line with shape (nodes, 2), where 'nodes' is 
