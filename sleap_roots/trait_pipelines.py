@@ -60,6 +60,7 @@ from sleap_roots.points import (
     filter_roots_with_nans,
     get_all_pts_array,
     get_count,
+    get_filtered_lateral_pts,
     get_filtered_primary_pts,
     get_nodes,
     join_pts,
@@ -1857,7 +1858,7 @@ class MultipleDicotPipeline(Pipeline):
             ),
             TraitDef(
                 name="lateral_pts_expected_plant_ct",
-                fn=filter_plants_with_unexpected_ct,
+                fn=get_filtered_lateral_pts,
                 input_traits=["filtered_pts_expected_plant_ct"],
                 scalar=False,
                 include_in_csv=False,
@@ -1895,5 +1896,5 @@ class MultipleDicotPipeline(Pipeline):
         """
         primary_pts = plant.get_primary_points(frame_idx)
         lateral_pts = plant.get_lateral_points(frame_idx)
-        expected_plant_ct = plant.get_expected_count(frame_idx)
-        return {"primary_pts": primary_pts, "lateral_pts": lateral_pts}
+        expected_plant_ct = plant.expected_count
+        return {"primary_pts": primary_pts, "lateral_pts": lateral_pts, "expected_plant_ct": expected_plant_ct}
