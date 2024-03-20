@@ -131,7 +131,7 @@ class Series:
         return Path(self.h5_path).name.split(".")[0]
 
     @property
-    def expected_count(self) -> float:
+    def expected_count(self) -> Union[float, int]:
         """Fetch the expected plant count for this series from the CSV."""
         if not self.csv_path or not Path(self.csv_path).exists():
             print("CSV path is not set or the file does not exist.")

@@ -343,8 +343,9 @@ def filter_plants_with_unexpected_ct(
         lateral_pts, np.ndarray
     ):
         raise ValueError("primary_pts and lateral_pts must be numpy arrays.")
-    if not isinstance(expected_count, float):
-        raise ValueError("expected_count must be a float.")
+    if not np.issubdtype(type(expected_count), np.number):
+        raise ValueError("expected_count must be a numeric type.")
+
 
     # Handle NaN expected_count: Skip filtering if expected_count is NaN
     if not np.isnan(expected_count):
@@ -425,7 +426,7 @@ def associate_lateral_to_primary(
     Returns:
         dict: A dictionary where each key is an index of a primary root (from the primary_pts
         array) and each value is a dictionary containing 'primary_points' as the points of
-        the primary root (nodes, 2) and 'lateral_points' as an array of
+        the primary root (1, nodes, 2) and 'lateral_points' as an array of
         lateral root points that are closest to that primary root. The shape of
         'lateral_points' is (instances, nodes, 2), where instances is the number of
         lateral roots associated with the primary root.
