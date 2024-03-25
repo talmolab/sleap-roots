@@ -246,6 +246,16 @@ class Pipeline:
                         [f"{trait.name}_{suffix}" for suffix in SUMMARY_SUFFIXES]
                     )
         return csv_traits
+    
+
+    @property
+    def csv_traits_multiple_plants(self) -> List[str]:
+        """List of frame-level traits to include in the CSV for multiple plants."""
+        csv_traits = []
+        for trait in self.traits:
+            if trait.include_in_csv:
+                csv_traits.append(trait.name)
+        return csv_traits
 
     def compute_frame_traits(self, traits: Dict[str, Any]) -> Dict[str, Any]:
         """Compute traits based on the pipeline.
