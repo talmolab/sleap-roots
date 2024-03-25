@@ -246,7 +246,6 @@ class Pipeline:
                         [f"{trait.name}_{suffix}" for suffix in SUMMARY_SUFFIXES]
                     )
         return csv_traits
-    
 
     @property
     def csv_traits_multiple_plants(self) -> List[str]:
@@ -1907,4 +1906,8 @@ class MultipleDicotPipeline(Pipeline):
         primary_pts = plant.get_primary_points(frame_idx)
         lateral_pts = plant.get_lateral_points(frame_idx)
         expected_plant_ct = plant.expected_count
-        return {"primary_pts": primary_pts, "lateral_pts": lateral_pts, "expected_plant_ct": expected_plant_ct}
+        return {
+            "primary_pts": primary_pts,
+            "lateral_pts": lateral_pts,
+            "expected_plant_ct": expected_plant_ct,
+        }

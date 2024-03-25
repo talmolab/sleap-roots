@@ -346,7 +346,6 @@ def filter_plants_with_unexpected_ct(
     if not np.issubdtype(type(expected_count), np.number):
         raise ValueError("expected_count must be a numeric type.")
 
-
     # Handle NaN expected_count: Skip filtering if expected_count is NaN
     if not np.isnan(expected_count):
         # Rounding expected_count to the nearest integer for comparison
@@ -496,8 +495,7 @@ def associate_lateral_to_primary(
 
 
 def flatten_associated_points(associations: dict, primary_pts: np.ndarray) -> dict:
-    """
-    Creates a dictionary of flattened arrays containing primary and lateral root points.
+    """Creates a dictionary of flattened arrays containing primary and lateral root points.
 
     Args:
         associations: A dictionary with primary root indices as keys and lists of lateral root
