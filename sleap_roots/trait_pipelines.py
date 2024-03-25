@@ -1,5 +1,6 @@
 """Extract traits in a pipeline based on a trait graph."""
 
+import json
 import warnings
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
@@ -112,6 +113,16 @@ warnings.filterwarnings(
     category=RuntimeWarning,
     module="ellipse",
 )
+
+
+class NumpyArrayEncoder(json.JSONEncoder):
+    """Custom encoder for NumPy array types."""
+
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, obj)
 
 
 @attrs.define
@@ -362,6 +373,113 @@ class Pipeline:
         else:
             return traits[["plant_name", "frame_idx"] + self.csv_traits]
 
+    def compute_multiple_dicots_traits(
+        self,
+        series: Series,
+        write_json: bool = True,
+        json_suffix: str = ".all_frames_traits.json",
+        write_csv: bool = False,
+        csv_suffix: str = ".all_frames_summary.csv",
+    ):
+        """Computes plant traits for pipelines with multiple plants over all frames in a series.
+
+        Args:
+            series: The Series object containing the primary and lateral root points.
+            write_json: Whether to write the aggregated traits to a JSON file. Default is True.
+            json_suffix: The suffix to append to the JSON file name. Default is ".all_frames_traits.json".
+            write_csv: Whether to write the summary statistics to a CSV file. Default is False.
+            csv_suffix: The suffix to append to the CSV file name. Default is ".all_frames_summary.csv".
+
+        Returns:
+            A dictionary containing the series name and the aggregated traits and summary statistics.
+        """
+        # Initialize the return structure with the series name
+        result = {"series": series.series_name, "traits": {}, "summary_stats": {}}
+
+        # Check if the series has frames to process
+        if len(series) == 0:
+            print(f"Series '{series.series_name}' contains no frames to process.")
+            # Return early with the initialized structure
+            return result
+
+        # Initialize a separate dictionary to hold the aggregated traits across all frames
+        aggregated_traits = {}
+
+        # Iterate over frames in series
+        for frame in range(len(series)):
+            # Get initial points and number of plants per frame
+            initial_frame_traits = self.get_initial_frame_traits(series, frame)
+            # Compute initial associations and perform filter operations
+            frame_traits = self.compute_frame_traits(initial_frame_traits)
+
+            # Instantiate DicotPipeline
+            dicot_pipeline = DicotPipeline()
+
+            # Extract the plant associations for this frame
+            associations = frame_traits["plant_associations_dict"]
+
+            for primary_idx, assoc in associations.items():
+                primary_pts = assoc["primary_points"]
+                lateral_pts = assoc["lateral_points"]
+                # Get the initial frame traits for this plant using the primary and lateral points
+                initial_frame_traits = {
+                    "primary_pts": primary_pts,
+                    "lateral_pts": lateral_pts,
+                }
+                # Use the dicot pipeline to compute the plant traits on this frame
+                plant_traits = dicot_pipeline.compute_frame_traits(initial_frame_traits)
+
+                # For each plant's traits in the frame
+                for trait_name, trait_value in plant_traits.items():
+                    # Not all traits are added to the aggregated traits dictionary
+                    if trait_name in dicot_pipeline.csv_traits_multiple_plants:
+                        if trait_name not in aggregated_traits:
+                            # Initialize the trait array if it's the first frame
+                            aggregated_traits[trait_name] = [np.atleast_1d(trait_value)]
+                        else:
+                            # Append new trait values for subsequent frames
+                            aggregated_traits[trait_name].append(
+                                np.atleast_1d(trait_value)
+                            )
+
+        # After processing, update the result dictionary with computed traits
+        for trait, arrays in aggregated_traits.items():
+            aggregated_traits[trait] = np.concatenate(arrays, axis=0)
+        result["traits"] = aggregated_traits
+
+        # Write to JSON if requested
+        if write_json:
+            json_name = f"{series.series_name}{json_suffix}"
+            try:
+                with open(json_name, "w") as f:
+                    json.dump(
+                        result, f, cls=NumpyArrayEncoder, ensure_ascii=False, indent=4
+                    )
+                print(f"Aggregated traits saved to {json_name}")
+            except IOError as e:
+                print(f"Error writing JSON file '{json_name}': {e}")
+
+        # Compute summary statistics and update result
+        summary_stats = {}
+        for trait_name, trait_values in aggregated_traits.items():
+            trait_stats = get_summary(trait_values, prefix=f"{trait_name}_")
+            summary_stats.update(trait_stats)
+        result["summary_stats"] = summary_stats
+
+        # Optionally write summary stats to CSV
+        if write_csv:
+            csv_name = f"{series.series_name}{csv_suffix}"
+            try:
+                summary_df = pd.DataFrame([summary_stats])
+                summary_df.insert(0, "series", series.series_name)
+                summary_df.to_csv(csv_name, index=False)
+                print(f"Summary statistics saved to {csv_name}")
+            except IOError as e:
+                print(f"Failed to write CSV file '{csv_name}': {e}")
+
+        # Return the final result structure
+        return result
+
     def compute_batch_traits(
         self,
         plants: List[Series],
@@ -403,6 +521,52 @@ class Pipeline:
         if write_csv:
             all_traits.to_csv(csv_path, index=False)
         return all_traits
+
+    def compute_batch_multiple_dicots_traits(
+        self,
+        all_series: List[Series],
+        write_csv: bool = False,
+        csv_path: str = "traits.csv",
+    ) -> pd.DataFrame:
+        """Compute traits for a batch of series with multiple dicots.
+
+        Args:
+            all_series: List of `Series` objects.
+            write_csv: If `True`, write the computed traits to a CSV file.
+            csv_path: Path to write the CSV file to.
+
+        Returns:
+            A pandas DataFrame of computed traits summarized over all frames of each
+            series. The resulting dataframe will have a row for each series and a column
+            for each series-level summarized trait.
+
+            Summarized traits are prefixed with the trait name and an underscore,
+            followed by the summary statistic.
+        """
+        all_series_summaries = []
+
+        for series in all_series:
+            print(f"Processing series '{series.series_name}'")
+            # Use the updated function and access its return value
+            series_result = self.compute_multiple_dicots_traits(
+                series, write_json=False, write_csv=False
+            )
+            # Prepare the series-level summary.
+            series_summary = {
+                "series_name": series_result["series"],
+                **series_result["summary_stats"],  # Unpack summary_stats
+            }
+            all_series_summaries.append(series_summary)
+
+        # Convert list of dictionaries to a DataFrame
+        all_series_summaries_df = pd.DataFrame(all_series_summaries)
+
+        # Write to CSV if requested
+        if write_csv:
+            all_series_summaries_df.to_csv(csv_path, index=False)
+            print(f"Computed traits for all series saved to {csv_path}")
+
+        return all_series_summaries_df
 
 
 @attrs.define
@@ -1814,13 +1978,7 @@ class MultipleDicotPipeline(Pipeline):
     """Pipeline for computing traits for multiple dicot plants.
 
     Attributes:
-        img_height: Image height.
-        n_scanlines: Number of scan lines, np.nan for no interaction.
-        network_fraction: Lower fraction value. Defaults to 2/3.
     """
-
-    img_height: int = 1080
-    n_scanlines: int = 50
 
     def define_traits(self) -> List[TraitDef]:
         """Define the trait computation pipeline for primary roots."""
