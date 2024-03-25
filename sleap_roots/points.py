@@ -1,8 +1,10 @@
 """Get traits related to the points."""
 
 import numpy as np
+from matplotlib import pyplot as plt
+from matplotlib.lines import Line2D
 from shapely.geometry import LineString
-from sleap_roots.lengths import get_min_distance_line_to_line
+from shapely.ops import nearest_points
 from typing import List, Optional, Tuple
 
 
@@ -487,9 +489,9 @@ def associate_lateral_to_primary(
             lateral_points_array = np.array(lateral_points_list)
             plant_associations[primary_index]["lateral_points"] = lateral_points_array
         else:
-            plant_associations[primary_index]["lateral_points"] = np.empty(
-                (0, lateral_pts.shape[1], 2)
-            )
+            # Create an array of NaNs if there are no lateral points
+            shape = (1, lateral_pts.shape[1], 2)  # Shape of lateral points array
+            plant_associations[primary_index]["lateral_points"] = np.full(shape, np.nan)
 
     return plant_associations
 
@@ -528,3 +530,63 @@ def flatten_associated_points(associations: dict, primary_pts: np.ndarray) -> di
         flattened_points[key] = all_points_array
 
     return flattened_points
+
+
+def plot_root_associations(associations: dict):
+    """Plots the associations between primary and lateral roots, including the line
+    connecting the closest points between each lateral root and its closest primary root,
+    and ensures the color map does not include red. Adds explanations in the legend and
+    inverts the y-axis for image coordinate system.
+
+    Args:
+        associations: The output dictionary from associate_lateral_to_primary function.
+    """
+    plt.figure(figsize=(12, 10))
+
+    # Generate a color map for primary roots
+    cmap = plt.cm.viridis  # Using viridis which doesn't contain red
+    colors = cmap(np.linspace(0, 1, len(associations)))
+
+    for primary_index, data in associations.items():
+        primary_points = data["primary_points"]
+        lateral_points_list = data["lateral_points"]
+        color = colors[primary_index]
+
+        # Convert primary points to LineString
+        primary_line = LineString(primary_points)
+
+        # Plot primary root
+        plt.plot(primary_points[:, 0], primary_points[:, 1], color=color, linewidth=2)
+
+        # Plot each associated lateral root
+        for lateral_points in lateral_points_list:
+            # Convert lateral points to LineString
+            lateral_line = LineString(lateral_points)
+            plt.plot(
+                lateral_points[:, 0],
+                lateral_points[:, 1],
+                color=color,
+                linestyle="--",
+                linewidth=1,
+            )
+
+            # Use nearest_points to find the closest points between the two lines
+            p1, p2 = nearest_points(primary_line, lateral_line)
+            plt.plot([p1.x, p2.x], [p1.y, p2.y], "r--", linewidth=1)
+
+    # Invert y-axis
+    plt.gca().invert_yaxis()
+
+    # Custom legend
+    custom_lines = [
+        Line2D([0], [0], color="black", lw=2),
+        Line2D([0], [0], color="black", lw=2, linestyle="--"),
+        Line2D([0], [0], color="red", lw=1, linestyle="--"),
+    ]
+    plt.legend(custom_lines, ["Primary Root", "Lateral Root", "Minimum Distance"])
+
+    plt.xlabel("X Coordinate")
+    plt.ylabel("Y Coordinate")
+    plt.title("Primary and Lateral Root Associations with Minimum Distances")
+    plt.axis("equal")  # Ensure equal aspect ratio for x and y axes
+    plt.show()

@@ -247,6 +247,9 @@ class Series:
         Returns:
             Primary root points as array of shape `(n_instances, n_nodes, 2)`.
         """
+        # Check that self.primary_labels is not None
+        if self.primary_labels is None:
+            raise ValueError("Primary labels are not available.")
         # Retrieve all available frames
         frames = self.get_frame(frame_idx)
         # Get the primary labeled frame
@@ -270,6 +273,9 @@ class Series:
         Returns:
             Lateral root points as array of shape `(n_instances, n_nodes, 2)`.
         """
+        # Check that self.lateral_labels is not None
+        if self.lateral_labels is None:
+            raise ValueError("Lateral labels are not available.")
         # Retrieve all available frames
         frames = self.get_frame(frame_idx)
         # Get the lateral labeled frame
@@ -293,6 +299,9 @@ class Series:
         Returns:
             Crown root points as array of shape `(n_instances, n_nodes, 2)`.
         """
+        # Check that self.crown_labels is not None
+        if self.crown_labels is None:
+            raise ValueError("Crown labels are not available.")
         # Retrieve all available frames
         frames = self.get_frame(frame_idx)
         # Get the crown labeled frame
