@@ -376,7 +376,7 @@ class Pipeline:
     def compute_multiple_dicots_traits(
         self,
         series: Series,
-        write_json: bool = True,
+        write_json: bool = False,
         json_suffix: str = ".all_frames_traits.json",
         write_csv: bool = False,
         csv_suffix: str = ".all_frames_summary.csv",
@@ -385,7 +385,7 @@ class Pipeline:
 
         Args:
             series: The Series object containing the primary and lateral root points.
-            write_json: Whether to write the aggregated traits to a JSON file. Default is True.
+            write_json: Whether to write the aggregated traits to a JSON file. Default is False.
             json_suffix: The suffix to append to the JSON file name. Default is ".all_frames_traits.json".
             write_csv: Whether to write the summary statistics to a CSV file. Default is False.
             csv_suffix: The suffix to append to the CSV file name. Default is ".all_frames_summary.csv".
