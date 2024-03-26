@@ -496,15 +496,13 @@ def associate_lateral_to_primary(
     return plant_associations
 
 
-def flatten_associated_points(associations: dict, primary_pts: np.ndarray) -> dict:
+def flatten_associated_points(associations: dict) -> dict:
     """Creates a dictionary of flattened arrays containing primary and lateral root points.
 
     Args:
-        associations: A dictionary with primary root indices as keys and lists of lateral root
-                      point arrays as values.
-        primary_pts: A numpy array of primary root points with shape (instances, nodes, 2),
-                     where 'instances' is the number of primary roots, 'nodes' is the number
-                     of points in each root, and '2' corresponds to the x and y coordinates.
+        associations: A dictionary where each key is an index of a primary root and each value
+                      is a dictionary containing 'primary_points' as the points of the primary root
+                      and 'lateral_points' as an array of lateral root points that are closest to that primary root.
 
     Returns:
         A dictionary with the same keys as associations. Each key corresponds to a flattened
@@ -512,22 +510,25 @@ def flatten_associated_points(associations: dict, primary_pts: np.ndarray) -> di
     """
     flattened_points = {}
 
-    for key, laterals in associations.items():
+    for key, data in associations.items():
         # Get the primary root points for the current key
-        primary_root_points = primary_pts[key]
+        primary_root_points = data["primary_points"]
 
-        # Initialize a list with the primary root points
+        # Get the lateral root points array
+        lateral_root_points = data["lateral_points"]
+
+        # Initialize an array with the primary root points
         all_points = [primary_root_points]
 
-        # Extend the list with lateral root points for the current primary root
-        for lateral in laterals:
-            all_points.append(lateral)
+        # Check if there are lateral points and extend the array if so
+        if lateral_root_points.size > 0 and not np.isnan(lateral_root_points[0][0][0]):
+            all_points.extend(lateral_root_points)
 
-        # Concatenate all the points into a single array and flatten it
-        all_points_array = np.vstack(all_points).flatten()
+        # Concatenate all the points into a single array
+        all_points_array = np.vstack(all_points)
 
-        # Add to the dictionary
-        flattened_points[key] = all_points_array
+        # Flatten the array and add to the dictionary
+        flattened_points[key] = all_points_array.flatten()
 
     return flattened_points
 
