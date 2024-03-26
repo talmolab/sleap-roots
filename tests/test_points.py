@@ -399,7 +399,10 @@ def test_associate_no_lateral():
     lateral_pts = np.empty((0, 2, 2))  # No lateral roots
 
     expected = {
-        0: {"primary_points": primary_pts[0], "lateral_points": np.empty((0, 2, 2))}
+        0: {
+            "primary_points": primary_pts[0],
+            "lateral_points": np.full((1, 2, 2), np.nan),
+        }
     }
     result = associate_lateral_to_primary(primary_pts, lateral_pts)
 
@@ -469,17 +472,23 @@ def test_associate_lateral_to_primary_all_nan_laterals():
     filtered_lateral = filter_roots_with_nans(lateral_pts)
     associations = associate_lateral_to_primary(filtered_primary, filtered_lateral)
     # Expect an empty array for lateral points due to NaN filtering
-    assert np.array_equal(associations[0]["lateral_points"], np.empty((0, 2, 2)))
+    assert np.isnan(associations[0]["lateral_points"]).all()
 
 
 def test_flatten_associated_points_single_primary_no_lateral():
     # Given a single primary root with no lateral roots,
     # the function should return a dictionary with a flattened array of the primary points.
-    associations = {0: []}
-    primary_pts = np.array([[[1, 2], [3, 4]]])
+    associations = {
+        0: {
+            "primary_points": np.array([[1, 2], [3, 4]]),
+            "lateral_points": np.full(
+                (1, 2, 2), np.nan
+            ),  # Assuming this represents no lateral points
+        }
+    }
     expected = {0: np.array([1, 2, 3, 4])}
     # When
-    result = flatten_associated_points(associations, primary_pts)
+    result = flatten_associated_points(associations)
     # Then
     np.testing.assert_array_equal(result[0], expected[0])
 
@@ -487,11 +496,15 @@ def test_flatten_associated_points_single_primary_no_lateral():
 def test_flatten_associated_points_single_primary_single_lateral():
     # Given a single primary root with one lateral root,
     # the function should return a flattened array combining both primary and lateral points.
-    associations = {0: [np.array([[5, 6], [7, 8]])]}
-    primary_pts = np.array([[[1, 2], [3, 4]]])
+    associations = {
+        0: {
+            "primary_points": np.array([[1, 2], [3, 4]]),
+            "lateral_points": np.array([[[5, 6], [7, 8]]]),
+        }
+    }
     expected = {0: np.array([1, 2, 3, 4, 5, 6, 7, 8])}
     # When
-    result = flatten_associated_points(associations, primary_pts)
+    result = flatten_associated_points(associations)
     # Then
     np.testing.assert_array_equal(result[0], expected[0])
 
@@ -514,7 +527,7 @@ def test_associate_lateral_to_primary_nan_values():
     lateral_pts = np.array([[[np.nan, np.nan], [1, 1]]])
     associations = associate_lateral_to_primary(primary_pts, lateral_pts)
     assert len(associations) == 1
-    assert len(associations[0]["lateral_points"]) == 0
+    assert len(associations[0]["lateral_points"]) == 1
 
 
 def test_associate_lateral_to_primary_invalid_input_type():
@@ -547,55 +560,59 @@ def test_flatten_associated_points_multiple_primaries_multiple_laterals():
     # the function should return a dictionary with keys as primary root indices
     # and values as flattened arrays of their associated primary and lateral points.
     associations = {
-        0: [np.array([[5, 6], [7, 8]])],
-        1: [np.array([[9, 10], [11, 12]]), np.array([[13, 14], [15, 16]])],
+        0: {
+            "primary_points": np.array([[1, 2], [3, 4]]),
+            "lateral_points": np.array([[[5, 6], [7, 8]]]),
+        },
+        1: {
+            "primary_points": np.array([[17, 18], [19, 20]]),
+            "lateral_points": np.concatenate(
+                ([[[9, 10], [11, 12]]], [[[13, 14], [15, 16]]])
+            ),
+        },
     }
-    primary_pts = np.array([[[1, 2], [3, 4]], [[17, 18], [19, 20]]])
     expected = {
         0: np.array([1, 2, 3, 4, 5, 6, 7, 8]),
         1: np.array([17, 18, 19, 20, 9, 10, 11, 12, 13, 14, 15, 16]),
     }
     # When
-    result = flatten_associated_points(associations, primary_pts)
+    result = flatten_associated_points(associations)
     # Then
     for key in expected:
         np.testing.assert_array_equal(result[key], expected[key])
 
 
 def test_flatten_associated_points_empty_input():
-    # Given an empty dictionary for associations and an empty array for primary points,
+    # Given an empty dictionary for associations,
     # the function should return an empty dictionary.
     associations = {}
-    primary_pts = np.array([])
     expected = {}
     # When
-    result = flatten_associated_points(associations, primary_pts)
+    result = flatten_associated_points(associations)
     # Then
     assert result == expected
 
 
-def test_flatten_associated_points_invalid_association_key():
-    # Given an invalid association key that does not exist in the primary points,
-    # the function should raise an IndexError.
-    associations = {2: [np.array([[5, 6], [7, 8]])]}
-    primary_pts = np.array([[[1, 2], [3, 4]]])
-    # When / Then
-    with pytest.raises(IndexError):
-        _ = flatten_associated_points(associations, primary_pts)
-
-
 @pytest.mark.parametrize(
-    "associations, primary_pts, expected",
+    "associations, expected",
     [
-        ({0: [np.array([[5, 6]])]}, np.array([[[1, 2]]]), {0: np.array([1, 2, 5, 6])}),
-        ({}, np.array([]), {}),
+        (
+            {
+                0: {
+                    "primary_points": np.array([[1, 2]]),
+                    "lateral_points": np.array([[[5, 6]]]),
+                }
+            },
+            {0: np.array([1, 2, 5, 6])},
+        ),
+        ({}, {}),
     ],
 )
-def test_flatten_associated_points_parametrized(associations, primary_pts, expected):
+def test_flatten_associated_points_parametrized(associations, expected):
     # This parametrized test checks the function with various combinations
-    # of associations and primary points.
+    # of associations.
     # When
-    result = flatten_associated_points(associations, primary_pts)
+    result = flatten_associated_points(associations)
     # Then
     for key in expected:
         np.testing.assert_array_equal(result[key], expected[key])
