@@ -1,7 +1,9 @@
+import numpy as np
 from sleap_roots.trait_pipelines import (
     DicotPipeline,
     YoungerMonocotPipeline,
     OlderMonocotPipeline,
+    MultipleDicotPipeline,
 )
 from sleap_roots.series import Series, find_all_series
 
@@ -133,3 +135,40 @@ def test_older_monocot_pipeline(rice_main_10do_h5, rice_10do_folder):
         (0 <= all_traits["crown_angles_proximal_median_p95"])
         & (all_traits["crown_angles_proximal_median_p95"] <= 180)
     ).all(), "angle_column in all_traits contains values out of range [0, 180]"
+
+
+def test_multiple_dicot_pipeline(
+    multiple_arabidopsis_11do_h5, multiple_arabidopsis_11do_folder
+):
+    arabidopsis = Series.load(
+        multiple_arabidopsis_11do_h5, primary_name="primary", lateral_name="lateral"
+    )
+    arabidopsis_series_all = find_all_series(multiple_arabidopsis_11do_folder)
+    series_all = [
+        Series.load(series, primary_name="primary", lateral_name="lateral")
+        for series in arabidopsis_series_all
+    ]
+
+    pipeline = MultipleDicotPipeline()
+    arabidopsis_traits = pipeline.compute_multiple_dicots_traits(arabidopsis)
+    all_traits = pipeline.compute_batch_multiple_dicots_traits(series_all)
+
+    # Dataframe shape assertions
+    assert len(arabidopsis_traits) == 3
+    assert all_traits.shape == (4, 316)
+
+    # Dataframe dtype assertions
+    expected_all_traits_dtypes = {
+        "lateral_count_min": "int64",
+        "lateral_count_max": "int64",
+    }
+
+    for col, expected_dtype in expected_all_traits_dtypes.items():
+        assert np.issubdtype(
+            all_traits[col].dtype, np.integer
+        ), f"Unexpected dtype for column {col} in all_traits. Expected integer, got {all_traits[col].dtype}"
+
+    # Value range assertions for traits
+    assert (
+        all_traits["curve_index_median"] >= 0
+    ).all(), "curve_index in all_traits contains negative values"
