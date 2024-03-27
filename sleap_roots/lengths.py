@@ -2,38 +2,42 @@
 
 import numpy as np
 from typing import Union
+from shapely.geometry import LineString
+
 
 
 def get_max_length_pts(pts: np.ndarray) -> np.ndarray:
     """Points of the root with maximum length (intended for primary root traits).
 
     Args:
-        pts: Root landmarks as array of shape `(instances, nodes, 2)`.
+        pts: Root landmarks as array of shape `(instances, nodes, 2)` or `(nodes, 2)`.
 
     Returns:
         np.ndarray: Array of points with shape `(nodes, 2)` from the root with maximum
-        length.
+        length, or the input array unchanged if its shape is `(nodes, 2)`.
     """
+    # Return the input array unchanged if its shape is (nodes, 2)
+    if pts.ndim == 2 and pts.shape[1] == 2:
+        return pts
+
     # Return NaN points if the input array is empty
     if len(pts) == 0:
         return np.array([[np.nan, np.nan]])
 
-    # Check if pts has the correct shape, raise error if it does not
+    # Check if pts has the correct shape for processing multiple instances, raise error if it does not
     if pts.ndim != 3 or pts.shape[2] != 2:
-        raise ValueError("Input array should have shape (instances, nodes, 2)")
+        raise ValueError("Input array should have shape (instances, nodes, 2) for multiple instances")
 
     # Calculate the differences between consecutive points in each root
     segment_diffs = np.diff(pts, axis=1)
 
-    # Calculate the length of each segment (the Euclidean distance between consecutive
-    # points)
+    # Calculate the length of each segment (the Euclidean distance between consecutive points)
     segment_lengths = np.linalg.norm(segment_diffs, axis=-1)
 
     # Sum the lengths of the segments for each root
     total_lengths = np.nansum(segment_lengths, axis=-1)
 
-    # Handle roots where all segment lengths are NaN, recording NaN in place of the
-    # total length for these roots
+    # Handle roots where all segment lengths are NaN, recording NaN in place of the total length for these roots
     total_lengths[np.isnan(segment_lengths).all(axis=-1)] = np.nan
 
     # Return NaN points if all total lengths are NaN
@@ -128,3 +132,27 @@ def get_curve_index(
         return curve_index.item()
     else:
         return curve_index
+
+
+def get_min_distance_line_to_line(line1: LineString, line2: LineString) -> float:
+    """Calculate the minimum distance between two LineString objects.
+
+    This function computes the shortest distance between any two points on the first
+    line segment and the second line segment. If the lines intersect, the minimum
+    distance is zero. The distance is calculated in the same units as the coordinates
+    of the LineStrings.
+
+    Args:
+    line1: The first LineString object representing a line segment.
+    line2: The second LineString object representing a line segment.
+
+    Returns:
+    The minimum distance between the two line segments.
+    """
+    # Check if the inputs are LineString instances
+    if not isinstance(line1, LineString):
+        raise TypeError("The first argument must be a LineString object.")
+    if not isinstance(line2, LineString):
+        raise TypeError("The second argument must be a LineString object.")
+
+    return line1.distance(line2)

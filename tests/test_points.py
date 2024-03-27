@@ -1,8 +1,9 @@
-import pytest
 import numpy as np
+import pytest
+from shapely.geometry import LineString
 from sleap_roots import Series
 from sleap_roots.lengths import get_max_length_pts
-from sleap_roots.points import get_count, join_pts
+from sleap_roots.points import filter_plants_with_unexpected_ct, get_count, join_pts
 from sleap_roots.points import (
     get_all_pts_array,
     get_nodes,
@@ -10,6 +11,9 @@ from sleap_roots.points import (
     get_left_normalized_vector,
     get_right_normalized_vector,
     get_line_equation_from_points,
+    associate_lateral_to_primary,
+    flatten_associated_points,
+    filter_roots_with_nans,
 )
 
 
@@ -355,3 +359,382 @@ def test_get_line_equation_from_points(pts1, pts2, expected):
 def test_get_line_equation_input_errors(pts1, pts2):
     with pytest.raises(ValueError):
         get_line_equation_from_points(pts1, pts2)
+
+
+def test_associate_basic():
+    # Tests basic association between one primary and one lateral root.
+    primary_pts = np.array([[[0, 0], [0, 1]]])
+    lateral_pts = np.array([[[0, 1], [0, 2]]])
+
+    expected = {0: {"primary_points": primary_pts[0], "lateral_points": lateral_pts}}
+    result = associate_lateral_to_primary(primary_pts, lateral_pts)
+
+    # Ensure the keys match
+    assert set(result.keys()) == set(expected.keys())
+
+    # Loop through the result and the expected dictionary to compare the numpy arrays within
+    for key in expected:
+        # Ensure both dictionaries have the same keys (e.g., 'primary_points', 'lateral_points')
+        assert set(result[key].keys()) == set(expected[key].keys())
+
+        # Now compare the NumPy arrays for each key within the dictionaries
+        for sub_key in expected[key]:
+            np.testing.assert_array_equal(result[key][sub_key], expected[key][sub_key])
+
+
+def test_associate_no_primary():
+    # Tests that an empty dictionary is returned when there are no primary roots.
+    primary_pts = np.empty((0, 6, 2))  # Empty array representing no primary roots
+    lateral_pts = np.array([[[0, 1], [0, 2]]])  # Some lateral roots for the test
+
+    expected = {}  # Expect an empty dictionary when there are no primary roots
+    result = associate_lateral_to_primary(primary_pts, lateral_pts)
+
+    assert result == expected
+
+
+def test_associate_no_lateral():
+    # Tests that correct association is made when there are no lateral roots.
+    primary_pts = np.array([[[0, 0], [0, 1]]])
+    lateral_pts = np.empty((0, 2, 2))  # No lateral roots
+
+    expected = {
+        0: {
+            "primary_points": primary_pts[0],
+            "lateral_points": np.full((1, 2, 2), np.nan),
+        }
+    }
+    result = associate_lateral_to_primary(primary_pts, lateral_pts)
+
+    # Ensure the keys match
+    assert set(result.keys()) == set(expected.keys())
+
+    # Loop through the result and the expected dictionary to compare the numpy arrays within
+    for key in expected:
+        # Ensure both dictionaries have the same keys (e.g., 'primary_points', 'lateral_points')
+        assert set(result[key].keys()) == set(expected[key].keys())
+
+        # Now compare the NumPy arrays for each key within the dictionaries
+        for sub_key in expected[key]:
+            np.testing.assert_array_equal(result[key][sub_key], expected[key][sub_key])
+
+
+def test_associate_invalid_input_type():
+    # Tests that the function raises a ValueError with invalid input types.
+    primary_pts = [[[0, 0], [0, 1]]]
+    lateral_pts = [[[0, 1], [0, 2]]]
+
+    with pytest.raises(ValueError):
+        associate_lateral_to_primary(primary_pts, lateral_pts)
+
+
+def test_associate_incorrect_dimensions():
+    # Tests the function raises a ValueError when input dimensions are incorrect.
+    primary_pts = np.array([[0, 0], [0, 1]])  # Missing a dimension
+    lateral_pts = np.array([[[0, 1], [0, 2]]])
+
+    with pytest.raises(ValueError):
+        associate_lateral_to_primary(primary_pts, lateral_pts)
+
+
+def test_associate_incorrect_coordinate_dimensions():
+    # Tests that the function handles incorrect coordinate dimensions.
+    primary_pts = np.array([[[0, 0, 0], [0, 1, 1]]])
+    lateral_pts = np.array([[[0, 1, 1], [0, 2, 2]]])
+
+    with pytest.raises(ValueError):
+        associate_lateral_to_primary(primary_pts, lateral_pts)
+
+
+def test_associate_lateral_to_primary_valid_input():
+    """Ensures correct associations are made with valid input."""
+    primary_pts = np.array([[[0, 0], [0, 10]], [[10, 0], [10, 10]]])
+    lateral_pts = np.array([[[5, 5], [5, 6]], [[11, 0], [11, 1]]])
+    filtered_primary = filter_roots_with_nans(primary_pts)
+    filtered_lateral = filter_roots_with_nans(lateral_pts)
+    associations = associate_lateral_to_primary(filtered_primary, filtered_lateral)
+    assert len(associations) == 2
+    # Check that the first lateral root is associated with the first primary root
+    assert np.array_equal(
+        associations[0]["lateral_points"], np.array([[[5, 5], [5, 6]]])
+    )
+    # Check that the second lateral root is associated with the second primary root
+    assert np.array_equal(
+        associations[1]["lateral_points"], np.array([[[11, 0], [11, 1]]])
+    )
+
+
+def test_associate_lateral_to_primary_all_nan_laterals():
+    """Ensures lateral roots with NaNs are ignored."""
+    primary_pts = np.array([[[0, 0], [0, 10]]])
+    lateral_pts = np.array([[[np.nan, np.nan], [np.nan, np.nan]]])
+    filtered_primary = filter_roots_with_nans(primary_pts)
+    filtered_lateral = filter_roots_with_nans(lateral_pts)
+    associations = associate_lateral_to_primary(filtered_primary, filtered_lateral)
+    # Expect an empty array for lateral points due to NaN filtering
+    assert np.isnan(associations[0]["lateral_points"]).all()
+
+
+def test_flatten_associated_points_single_primary_no_lateral():
+    # Given a single primary root with no lateral roots,
+    # the function should return a dictionary with a flattened array of the primary points.
+    associations = {
+        0: {
+            "primary_points": np.array([[1, 2], [3, 4]]),
+            "lateral_points": np.full(
+                (1, 2, 2), np.nan
+            ),  # Assuming this represents no lateral points
+        }
+    }
+    expected = {0: np.array([1, 2, 3, 4])}
+    # When
+    result = flatten_associated_points(associations)
+    # Then
+    np.testing.assert_array_equal(result[0], expected[0])
+
+
+def test_flatten_associated_points_single_primary_single_lateral():
+    # Given a single primary root with one lateral root,
+    # the function should return a flattened array combining both primary and lateral points.
+    associations = {
+        0: {
+            "primary_points": np.array([[1, 2], [3, 4]]),
+            "lateral_points": np.array([[[5, 6], [7, 8]]]),
+        }
+    }
+    expected = {0: np.array([1, 2, 3, 4, 5, 6, 7, 8])}
+    # When
+    result = flatten_associated_points(associations)
+    # Then
+    np.testing.assert_array_equal(result[0], expected[0])
+
+
+def test_associate_lateral_to_primary_valid_input():
+    """Test associate_lateral_to_primary with valid input arrays."""
+    primary_pts = np.array([[[0, 0], [0, 10]], [[10, 0], [10, 10]]])
+    lateral_pts = np.array([[[5, 5], [5, 6]], [[11, 0], [11, 1]]])
+    associations = associate_lateral_to_primary(primary_pts, lateral_pts)
+    assert len(associations) == 2
+    assert len(associations[0]["lateral_points"]) == 1
+    assert len(associations[1]["lateral_points"]) == 1
+    assert np.array_equal(associations[0]["lateral_points"], [[[5, 5], [5, 6]]])
+    assert np.array_equal(associations[1]["lateral_points"], [[[11, 0], [11, 1]]])
+
+
+def test_associate_lateral_to_primary_nan_values():
+    """Test associate_lateral_to_primary with NaN values in lateral roots."""
+    primary_pts = np.array([[[0, 0], [0, 10]]])
+    lateral_pts = np.array([[[np.nan, np.nan], [1, 1]]])
+    associations = associate_lateral_to_primary(primary_pts, lateral_pts)
+    assert len(associations) == 1
+    assert len(associations[0]["lateral_points"]) == 1
+
+
+def test_associate_lateral_to_primary_invalid_input_type():
+    """Test associate_lateral_to_primary with invalid input types."""
+    with pytest.raises(ValueError):
+        associate_lateral_to_primary(None, None)
+
+
+def test_associate_lateral_to_primary_invalid_input_shape():
+    """Test associate_lateral_to_primary with invalid input shapes."""
+    primary_pts = np.array([0, 0])  # Invalid shape
+    lateral_pts = np.array([[[1, 1], [2, 2]]])
+    with pytest.raises(ValueError):
+        associate_lateral_to_primary(primary_pts, lateral_pts)
+
+
+def test_associate_lateral_to_primary_large_dataset():
+    """Test associate_lateral_to_primary with a larger dataset to check performance and correctness."""
+    np.random.seed(0)
+    primary_pts = np.random.randint(0, 100, (10, 5, 2))
+    lateral_pts = np.random.randint(0, 100, (20, 5, 2))
+    associations = associate_lateral_to_primary(primary_pts, lateral_pts)
+    assert (
+        len(associations) == 10
+    )  # Assuming all primary roots have at least one lateral root associated
+
+
+def test_flatten_associated_points_multiple_primaries_multiple_laterals():
+    # Given multiple primary roots, each with one or more lateral roots,
+    # the function should return a dictionary with keys as primary root indices
+    # and values as flattened arrays of their associated primary and lateral points.
+    associations = {
+        0: {
+            "primary_points": np.array([[1, 2], [3, 4]]),
+            "lateral_points": np.array([[[5, 6], [7, 8]]]),
+        },
+        1: {
+            "primary_points": np.array([[17, 18], [19, 20]]),
+            "lateral_points": np.concatenate(
+                ([[[9, 10], [11, 12]]], [[[13, 14], [15, 16]]])
+            ),
+        },
+    }
+    expected = {
+        0: np.array([1, 2, 3, 4, 5, 6, 7, 8]),
+        1: np.array([17, 18, 19, 20, 9, 10, 11, 12, 13, 14, 15, 16]),
+    }
+    # When
+    result = flatten_associated_points(associations)
+    # Then
+    for key in expected:
+        np.testing.assert_array_equal(result[key], expected[key])
+
+
+def test_flatten_associated_points_empty_input():
+    # Given an empty dictionary for associations,
+    # the function should return an empty dictionary.
+    associations = {}
+    expected = {}
+    # When
+    result = flatten_associated_points(associations)
+    # Then
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "associations, expected",
+    [
+        (
+            {
+                0: {
+                    "primary_points": np.array([[1, 2]]),
+                    "lateral_points": np.array([[[5, 6]]]),
+                }
+            },
+            {0: np.array([1, 2, 5, 6])},
+        ),
+        ({}, {}),
+    ],
+)
+def test_flatten_associated_points_parametrized(associations, expected):
+    # This parametrized test checks the function with various combinations
+    # of associations.
+    # When
+    result = flatten_associated_points(associations)
+    # Then
+    for key in expected:
+        np.testing.assert_array_equal(result[key], expected[key])
+
+
+def test_filter_roots_with_nans_no_nans():
+    """Test with an array that contains no NaN values."""
+    pts = np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+    expected = pts
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_filter_roots_with_nans_nan_in_one_instance():
+    """Test with an array where one instance contains NaN values."""
+    pts = np.array([[[1, 2], [3, 4]], [[np.nan, 6], [7, 8]]])
+    expected = np.array([[[1, 2], [3, 4]]])
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_filter_roots_with_nans_all_nans_in_one_instance():
+    """Test with an array where one instance is entirely NaN."""
+    pts = np.array([[[np.nan, np.nan], [np.nan, np.nan]], [[5, 6], [7, 8]]])
+    expected = np.array([[[5, 6], [7, 8]]])
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_filter_roots_with_nans_nan_across_multiple_instances():
+    """Test with NaN values scattered across multiple instances."""
+    pts = np.array([[[1, np.nan], [3, 4]], [[5, 6], [np.nan, 8]], [[9, 10], [11, 12]]])
+    expected = np.array([[[9, 10], [11, 12]]])
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_filter_roots_with_nans_all_instances_contain_nans():
+    """Test with an array where all instances contain at least one NaN value."""
+    pts = np.array(
+        [[[np.nan, 2], [3, 4]], [[5, np.nan], [7, 8]], [[9, 10], [np.nan, 12]]]
+    )
+    expected = np.empty((0, pts.shape[1], 2))
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_filter_roots_with_nans_empty_array():
+    """Test with an empty array."""
+    pts = np.empty((0, 0, 2))
+    expected = np.empty((0, 0, 2))
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_filter_roots_with_nans_single_instance_with_nans():
+    """Test with a single instance that contains NaN values."""
+    pts = np.array([[[np.nan, np.nan], [np.nan, np.nan]]])
+    expected = np.empty((0, pts.shape[1], 2))
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_filter_roots_with_nans_single_instance_without_nans():
+    """Test with a single instance that does not contain NaN values."""
+    pts = np.array([[[1, 2], [3, 4]]])
+    expected = pts
+    result = filter_roots_with_nans(pts)
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_filter_plants_with_unexpected_ct_valid_input_matching_count():
+    """Test with valid input where the number of primary roots matches the expected count."""
+    primary_pts = np.random.rand(5, 10, 2)
+    lateral_pts = np.random.rand(5, 10, 2)
+    expected_count = 5.0
+    filtered_primary, filtered_lateral = filter_plants_with_unexpected_ct(
+        primary_pts, lateral_pts, expected_count
+    )
+    assert np.array_equal(filtered_primary, primary_pts)
+    assert np.array_equal(filtered_lateral, lateral_pts)
+
+
+def test_filter_plants_with_unexpected_ct_valid_input_non_matching_count():
+    """Test with valid input where the number of primary roots does not match the expected count."""
+    primary_pts = np.random.rand(5, 10, 2)
+    lateral_pts = np.random.rand(5, 10, 2)
+    expected_count = 3.0  # Non-matching count
+    filtered_primary, filtered_lateral = filter_plants_with_unexpected_ct(
+        primary_pts, lateral_pts, expected_count
+    )
+    assert filtered_primary.shape == (0, primary_pts.shape[1], 2)
+    assert filtered_lateral.shape == (0, lateral_pts.shape[1], 2)
+
+
+def test_filter_plants_with_unexpected_ct_nan_expected_count():
+    """Test with NaN as the expected count, which should skip filtering."""
+    primary_pts = np.random.rand(5, 10, 2)
+    lateral_pts = np.random.rand(5, 10, 2)
+    expected_count = np.nan
+    filtered_primary, filtered_lateral = filter_plants_with_unexpected_ct(
+        primary_pts, lateral_pts, expected_count
+    )
+    assert np.array_equal(filtered_primary, primary_pts)
+    assert np.array_equal(filtered_lateral, lateral_pts)
+
+
+def test_filter_plants_with_unexpected_ct_incorrect_input_types():
+    """Test with incorrect input types to ensure ValueError is raised."""
+    primary_pts = "not a numpy array"
+    lateral_pts = np.random.rand(5, 10, 2)
+    expected_count = 5.0
+    with pytest.raises(ValueError):
+        filter_plants_with_unexpected_ct(primary_pts, lateral_pts, expected_count)
+
+    primary_pts = np.random.rand(5, 10, 2)
+    lateral_pts = "not a numpy array"
+    with pytest.raises(ValueError):
+        filter_plants_with_unexpected_ct(primary_pts, lateral_pts, expected_count)
+
+    primary_pts = np.random.rand(5, 10, 2)
+    lateral_pts = np.random.rand(5, 10, 2)
+    expected_count = "not a float"
+    with pytest.raises(ValueError):
+        filter_plants_with_unexpected_ct(primary_pts, lateral_pts, expected_count)
