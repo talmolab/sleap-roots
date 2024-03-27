@@ -116,9 +116,18 @@ warnings.filterwarnings(
 
 
 class NumpyArrayEncoder(json.JSONEncoder):
-    """Custom encoder for NumPy array types."""
+    """Custom encoder for NumPy array types.
+
+    This encoder is used to serialize NumPy arrays to JSON."""
 
     def default(self, obj):
+        """Serialize NumPy arrays to lists.
+
+        Args:
+            obj: The object to serialize.
+
+        Returns:
+            A list representation of the NumPy array."""
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         # Let the base class default method raise the TypeError
@@ -1975,10 +1984,7 @@ class OlderMonocotPipeline(Pipeline):
 
 @attrs.define
 class MultipleDicotPipeline(Pipeline):
-    """Pipeline for computing traits for multiple dicot plants.
-
-    Attributes:
-    """
+    """Pipeline for computing traits for multiple dicot plants."""
 
     def define_traits(self) -> List[TraitDef]:
         """Define the trait computation pipeline for primary roots."""

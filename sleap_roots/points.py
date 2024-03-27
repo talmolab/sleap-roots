@@ -501,8 +501,9 @@ def flatten_associated_points(associations: dict) -> dict:
 
     Args:
         associations: A dictionary where each key is an index of a primary root and each value
-                      is a dictionary containing 'primary_points' as the points of the primary root
-                      and 'lateral_points' as an array of lateral root points that are closest to that primary root.
+            is a dictionary containing 'primary_points' as the points of the primary root
+            and 'lateral_points' as an array of lateral root points that are closest to
+            that primary root.
 
     Returns:
         A dictionary with the same keys as associations. Each key corresponds to a flattened
@@ -534,7 +535,9 @@ def flatten_associated_points(associations: dict) -> dict:
 
 
 def plot_root_associations(associations: dict):
-    """Plots the associations between primary and lateral roots, including the line
+    """Plots the associations between primary and lateral roots.
+
+    Plots the associations between primary and lateral roots, including the line
     connecting the closest points between each lateral root and its closest primary root,
     and ensures the color map does not include red. Adds explanations in the legend and
     inverts the y-axis for image coordinate system.
