@@ -116,9 +116,7 @@ warnings.filterwarnings(
 
 
 class NumpyArrayEncoder(json.JSONEncoder):
-    """Custom encoder for NumPy array types.
-
-    This encoder is used to serialize NumPy arrays to JSON."""
+    """Custom encoder for NumPy array types."""
 
     def default(self, obj):
         """Serialize NumPy arrays to lists.
@@ -127,7 +125,8 @@ class NumpyArrayEncoder(json.JSONEncoder):
             obj: The object to serialize.
 
         Returns:
-            A list representation of the NumPy array."""
+            A list representation of the NumPy array.
+        """
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         # Let the base class default method raise the TypeError
