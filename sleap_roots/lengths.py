@@ -5,7 +5,6 @@ from typing import Union
 from shapely.geometry import LineString
 
 
-
 def get_max_length_pts(pts: np.ndarray) -> np.ndarray:
     """Points of the root with maximum length (intended for primary root traits).
 
@@ -24,20 +23,23 @@ def get_max_length_pts(pts: np.ndarray) -> np.ndarray:
     if len(pts) == 0:
         return np.array([[np.nan, np.nan]])
 
-    # Check if pts has the correct shape for processing multiple instances, raise error if it does not
+    # Check if pts has the correct shape for processing multiple instances
     if pts.ndim != 3 or pts.shape[2] != 2:
-        raise ValueError("Input array should have shape (instances, nodes, 2) for multiple instances")
+        raise ValueError(
+            "Input array should have shape (instances, nodes, 2) for multiple instances"
+        )
 
     # Calculate the differences between consecutive points in each root
     segment_diffs = np.diff(pts, axis=1)
 
-    # Calculate the length of each segment (the Euclidean distance between consecutive points)
+    # Calculate the length of each segment
     segment_lengths = np.linalg.norm(segment_diffs, axis=-1)
 
     # Sum the lengths of the segments for each root
     total_lengths = np.nansum(segment_lengths, axis=-1)
 
-    # Handle roots where all segment lengths are NaN, recording NaN in place of the total length for these roots
+    # Handle roots where all segment lengths are NaN,
+    # recording NaN in place of the total length for these roots
     total_lengths[np.isnan(segment_lengths).all(axis=-1)] = np.nan
 
     # Return NaN points if all total lengths are NaN
