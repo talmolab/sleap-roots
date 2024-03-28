@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from sleap_roots.trait_pipelines import (
     DicotPipeline,
     YoungerMonocotPipeline,
@@ -138,14 +139,24 @@ def test_older_monocot_pipeline(rice_main_10do_h5, rice_10do_folder):
 
 
 def test_multiple_dicot_pipeline(
-    multiple_arabidopsis_11do_h5, multiple_arabidopsis_11do_folder
+    multiple_arabidopsis_11do_h5,
+    multiple_arabidopsis_11do_folder,
+    multiple_arabidopsis_11do_csv,
 ):
     arabidopsis = Series.load(
-        multiple_arabidopsis_11do_h5, primary_name="primary", lateral_name="lateral"
+        multiple_arabidopsis_11do_h5,
+        primary_name="primary",
+        lateral_name="lateral",
+        csv_path=multiple_arabidopsis_11do_csv,
     )
     arabidopsis_series_all = find_all_series(multiple_arabidopsis_11do_folder)
     series_all = [
-        Series.load(series, primary_name="primary", lateral_name="lateral")
+        Series.load(
+            series,
+            primary_name="primary",
+            lateral_name="lateral",
+            csv_path=multiple_arabidopsis_11do_csv,
+        )
         for series in arabidopsis_series_all
     ]
 
@@ -154,7 +165,7 @@ def test_multiple_dicot_pipeline(
     all_traits = pipeline.compute_batch_multiple_dicots_traits(series_all)
 
     # Dataframe shape assertions
-    assert len(arabidopsis_traits) == 3
+    assert pd.DataFrame(arabidopsis_traits["summary_stats"]).shape == (1, 316)
     assert all_traits.shape == (4, 316)
 
     # Dataframe dtype assertions
@@ -172,3 +183,8 @@ def test_multiple_dicot_pipeline(
     assert (
         all_traits["curve_index_median"] >= 0
     ).all(), "curve_index in all_traits contains negative values"
+
+    # Check that series dictionary
+    assert isinstance(arabidopsis_traits, dict)
+    assert arabidopsis_traits["series"] == "997_1"
+    assert arabidopsis_traits["group"] == "997"

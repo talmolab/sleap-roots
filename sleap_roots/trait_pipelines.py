@@ -3,7 +3,7 @@
 import json
 import warnings
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import attrs
 import networkx as nx
@@ -129,6 +129,8 @@ class NumpyArrayEncoder(json.JSONEncoder):
         """
         if isinstance(obj, np.ndarray):
             return obj.tolist()
+        elif isinstance(obj, np.int64):
+            return int(obj)
         # Let the base class default method raise the TypeError
         return json.JSONEncoder.default(self, obj)
 
@@ -399,10 +401,15 @@ class Pipeline:
             csv_suffix: The suffix to append to the CSV file name. Default is ".all_frames_summary.csv".
 
         Returns:
-            A dictionary containing the series name and the aggregated traits and summary statistics.
+            A dictionary containing the series name, group, aggregated traits, and summary statistics.
         """
-        # Initialize the return structure with the series name
-        result = {"series": series.series_name, "traits": {}, "summary_stats": {}}
+        # Initialize the return structure with the series name and group
+        result = {
+            "series": series.series_name,
+            "group": series.group,
+            "traits": {},
+            "summary_stats": {},
+        }
 
         # Check if the series has frames to process
         if len(series) == 0:
@@ -488,9 +495,120 @@ class Pipeline:
         # Return the final result structure
         return result
 
+    def compute_multiple_dicots_traits_for_groups(
+        self,
+        series_list: List[Series],
+        write_json: bool = False,
+        json_suffix: str = ".grouped_traits.json",
+        write_csv: bool = False,
+        csv_suffix: str = ".grouped_summary.csv",
+    ) -> List[
+        Dict[str, Union[str, List[str], Dict[str, Union[List[float], np.ndarray]]]]
+    ]:
+        """Aggregates plant traits over groups of samples.
+
+        Args:
+            series_list: A list of Series objects containing the primary and lateral root points for each sample.
+            write_json: Whether to write the aggregated traits to a JSON file. Default is False.
+            json_suffix: The suffix to append to the JSON file name. Default is ".grouped_traits.json".
+            write_csv: Whether to write the summary statistics to a CSV file. Default is False.
+            csv_suffix: The suffix to append to the CSV file name. Default is ".grouped_summary.csv".
+
+        Returns:
+            A list of dictionaries containing the aggregated traits and summary statistics for each group.
+        """
+        # Input Validation
+        if not isinstance(series_list, list) or not all(
+            isinstance(series, Series) for series in series_list
+        ):
+            raise ValueError("series_list must be a list of Series objects.")
+
+        grouped_results = []
+
+        # Group series by their group property
+        series_groups = {}
+        for series in series_list:
+            print(f"Grouping series '{series.series_name}'")
+            group_name = str(series.group)
+            if group_name not in series_groups:
+                series_groups[group_name] = {"names": [], "series": []}
+            # Store series names and objects in the dictionary
+            series_groups[group_name]["names"].append(str(series.series_name))
+            series_groups[group_name]["series"].append(series)  # Store Series objects
+
+        for group_name, group_data in series_groups.items():
+            print(f"Initializing group '{group_name}'")
+            # Initialize the return structure with the group name
+            group_result = {
+                "group": group_name,
+                "series": group_data["names"],  # Use series names
+                "traits": {},
+            }
+
+            # Aggregate traits over all samples in the group
+            aggregated_traits = {}
+            for series in group_data["series"]:
+                print(f"Processing series '{series.series_name}'")
+                result = self.compute_multiple_dicots_traits(
+                    series=series, write_json=False, write_csv=False
+                )
+                for trait, values in result["traits"].items():
+                    if trait not in aggregated_traits:
+                        aggregated_traits[trait] = [np.atleast_1d(values)]
+                    else:
+                        aggregated_traits[trait].append([np.atleast_1d(values)])
+            group_result["traits"] = aggregated_traits
+            print(f"Group results: {group_result}")
+
+            # Write to JSON if requested
+            if write_json:
+                json_name = f"{group_name}{json_suffix}"
+                try:
+                    with open(json_name, "w") as f:
+                        json.dump(
+                            group_result,
+                            f,
+                            cls=NumpyArrayEncoder,
+                            ensure_ascii=False,
+                            indent=4,
+                        )
+                    print(
+                        f"Aggregated traits for group {group_name} saved to {json_name}"
+                    )
+                except IOError as e:
+                    print(f"Error writing JSON file '{json_name}': {e}")
+
+            # Compute summary statistics
+            summary_stats = {}
+            for trait, trait_values in aggregated_traits.items():
+                trait_stats = get_summary(trait_values, prefix=f"{trait}_")
+                summary_stats.update(trait_stats)
+
+            group_result["summary_stats"] = summary_stats
+
+            grouped_results.append(group_result)
+            print(f"Finished processing group '{group_name}'")
+
+            # Write summary stats to CSV if requested
+            if write_csv:
+                csv_name = f"{group_name}{csv_suffix}"
+                try:
+                    summary_df = pd.DataFrame([summary_stats])
+                    summary_df.insert(0, "group", group_name)
+                    summary_df.to_csv(csv_name, index=False)
+                    print(
+                        f"Summary statistics for group {group_name} saved to {csv_name}"
+                    )
+                except IOError as e:
+                    print(f"Failed to write CSV file '{csv_name}': {e}")
+
+        return grouped_results
+
     def compute_batch_traits(
         self,
         plants: List[Series],
+        write_json_per_series: bool = False,
+        json_suffix: str = ".all_frames_traits.json",
         write_csv: bool = False,
         csv_path: str = "traits.csv",
     ) -> pd.DataFrame:
@@ -498,6 +616,10 @@ class Pipeline:
 
         Args:
             plants: List of `Series` objects.
+            write_json_per_series: If `True`, write the computed traits to a JSON file
+                for each series.
+            json_suffix: The suffix to append to the JSON file name. Default is
+                ".all_frames_traits.json".
             write_csv: If `True`, write the computed traits to a CSV file.
             csv_path: Path to write the CSV file to.
 

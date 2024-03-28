@@ -113,3 +113,9 @@ def multiple_arabidopsis_11do_primary_slp():
 def multiple_arabidopsis_11do_lateral_slp():
     """Path to lateral root predictions for 11 day old arabidopsis."""
     return "tests/data/multiple_arabidopsis_11do/997_1.lateral.predictions.slp"
+
+
+@pytest.fixture
+def multiple_arabidopsis_11do_csv():
+    """Path to the CSV file with expected count and group information."""
+    return "tests/data/multiple_arabidopsis_11do/merged_proofread_samples_03122024.csv"

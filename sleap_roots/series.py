@@ -146,6 +146,20 @@ class Series:
             print(f"No expected count found for series {self.series_name} in CSV.")
             return np.nan
 
+    @property
+    def group(self) -> str:
+        """Group name for the series from the CSV."""
+        if not self.csv_path or not Path(self.csv_path).exists():
+            print("CSV path is not set or the file does not exist.")
+            return np.nan
+        df = pd.read_csv(self.csv_path)
+        try:
+            # Match the series_name (or plant_qr_code in the CSV) to fetch the group
+            return df[df["plant_qr_code"] == self.series_name]["genotype"].iloc[0]
+        except IndexError:
+            print(f"No group found for series {self.series_name} in CSV.")
+            return np.nan
+
     def __len__(self) -> int:
         """Length of the series (number of images)."""
         return len(self.video)
