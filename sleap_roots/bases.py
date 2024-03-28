@@ -276,10 +276,10 @@ def get_root_widths(
         raise ValueError("The last dimension should contain x and y coordinates")
 
     # Initialize default return values with shapes that match the expected output
-    default_dists = np.array([])
+    default_dists = np.full((0,), np.nan)  # Array filled with NaN values
     default_indices = [(np.nan, np.nan)]
-    default_left_bases = np.empty((0, 2))
-    default_right_bases = np.empty((0, 2))
+    default_left_bases = np.full((0, 2), np.nan)  # 2D array filled with NaN values
+    default_right_bases = np.full((0, 2), np.nan)  # 2D array filled with NaN values
 
     # Check for minimum length, or all NaNs in arrays
     if (
