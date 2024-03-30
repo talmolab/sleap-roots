@@ -165,7 +165,7 @@ def test_multiple_dicot_pipeline(
     all_traits = pipeline.compute_batch_multiple_dicots_traits(series_all)
 
     # Dataframe shape assertions
-    assert pd.DataFrame(arabidopsis_traits["summary_stats"]).shape == (1, 316)
+    assert pd.DataFrame([arabidopsis_traits["summary_stats"]]).shape == (1, 315)
     assert all_traits.shape == (4, 316)
 
     # Dataframe dtype assertions
