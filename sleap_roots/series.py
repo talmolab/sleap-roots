@@ -6,6 +6,7 @@ import sleap_io as sio
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
 
 from typing import Dict, Optional, Tuple, List, Union
 from pathlib import Path
@@ -21,6 +22,7 @@ class Series:
         lateral_labels: Optional `sio.Labels` corresponding to the lateral root predictions.
         crown_labels: Optional `sio.Labels` corresponding to the crown predictions.
         video: Optional `sio.Video` corresponding to the image series.
+        csv_path: Optional path to the CSV file containing the expected plant count.
 
     Methods:
         load: Load a set of predictions for this series.
@@ -35,6 +37,7 @@ class Series:
 
     Properties:
         series_name: Name of the series derived from the HDF5 filename.
+        expected_count: Fetch the expected plant count for this series from the CSV.
     """
 
     h5_path: Optional[str] = None
@@ -42,6 +45,7 @@ class Series:
     lateral_labels: Optional[sio.Labels] = None
     crown_labels: Optional[sio.Labels] = None
     video: Optional[sio.Video] = None
+    csv_path: Optional[str] = None
 
     @classmethod
     def load(
@@ -50,6 +54,7 @@ class Series:
         primary_name: Optional[str] = None,
         lateral_name: Optional[str] = None,
         crown_name: Optional[str] = None,
+        csv_path: Optional[str] = None,
     ) -> "Series":
         """Load a set of predictions for this series.
 
@@ -61,6 +66,7 @@ class Series:
                 the file is expected to be named "{h5_path}.{lateral_name}.predictions.slp".
             crown_name: Optional name of the crown predictions file. If provided,
                 the file is expected to be named "{h5_path}.{crown_name}.predictions.slp".
+            csv_path: Optional path to the CSV file containing the expected plant count.
 
         Returns:
             An instance of Series loaded with the specified predictions.
@@ -116,12 +122,43 @@ class Series:
             lateral_labels=lateral_labels,
             crown_labels=crown_labels,
             video=video,
+            csv_path=csv_path,
         )
 
     @property
     def series_name(self) -> str:
         """Name of the series derived from the HDF5 filename."""
         return Path(self.h5_path).name.split(".")[0]
+
+    @property
+    def expected_count(self) -> Union[float, int]:
+        """Fetch the expected plant count for this series from the CSV."""
+        if not self.csv_path or not Path(self.csv_path).exists():
+            print("CSV path is not set or the file does not exist.")
+            return np.nan
+        df = pd.read_csv(self.csv_path)
+        try:
+            # Match the series_name (or plant_qr_code in the CSV) to fetch the expected count
+            return df[df["plant_qr_code"] == self.series_name][
+                "number_of_plants_cylinder"
+            ].iloc[0]
+        except IndexError:
+            print(f"No expected count found for series {self.series_name} in CSV.")
+            return np.nan
+
+    @property
+    def group(self) -> str:
+        """Group name for the series from the CSV."""
+        if not self.csv_path or not Path(self.csv_path).exists():
+            print("CSV path is not set or the file does not exist.")
+            return np.nan
+        df = pd.read_csv(self.csv_path)
+        try:
+            # Match the series_name (or plant_qr_code in the CSV) to fetch the group
+            return df[df["plant_qr_code"] == self.series_name]["genotype"].iloc[0]
+        except IndexError:
+            print(f"No group found for series {self.series_name} in CSV.")
+            return np.nan
 
     def __len__(self) -> int:
         """Length of the series (number of images)."""
@@ -224,6 +261,9 @@ class Series:
         Returns:
             Primary root points as array of shape `(n_instances, n_nodes, 2)`.
         """
+        # Check that self.primary_labels is not None
+        if self.primary_labels is None:
+            raise ValueError("Primary labels are not available.")
         # Retrieve all available frames
         frames = self.get_frame(frame_idx)
         # Get the primary labeled frame
@@ -247,6 +287,9 @@ class Series:
         Returns:
             Lateral root points as array of shape `(n_instances, n_nodes, 2)`.
         """
+        # Check that self.lateral_labels is not None
+        if self.lateral_labels is None:
+            raise ValueError("Lateral labels are not available.")
         # Retrieve all available frames
         frames = self.get_frame(frame_idx)
         # Get the lateral labeled frame
@@ -270,6 +313,9 @@ class Series:
         Returns:
             Crown root points as array of shape `(n_instances, n_nodes, 2)`.
         """
+        # Check that self.crown_labels is not None
+        if self.crown_labels is None:
+            raise ValueError("Crown labels are not available.")
         # Retrieve all available frames
         frames = self.get_frame(frame_idx)
         # Get the crown labeled frame

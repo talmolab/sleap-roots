@@ -376,13 +376,23 @@ def test_root_width_canola(canola_h5):
             np.array([[0, 0], [1, 1]]),
             np.array([[[0, 0], [1, 1]], [[1, 1], [2, 2]]]),
             0.02,
-            (np.array([]), [(np.nan, np.nan)], np.empty((0, 2)), np.empty((0, 2))),
+            (
+                np.nan,
+                [(np.nan, np.nan)],
+                np.full((1, 2), np.nan),
+                np.full((1, 2), np.nan),
+            ),
         ),
         (
             np.array([[np.nan, np.nan], [np.nan, np.nan]]),
             np.array([[[0, 0], [1, 1]], [[1, 1], [2, 2]]]),
             0.02,
-            (np.array([]), [(np.nan, np.nan)], np.empty((0, 2)), np.empty((0, 2))),
+            (
+                np.nan,
+                [(np.nan, np.nan)],
+                np.full((1, 2), np.nan),
+                np.full((1, 2), np.nan),
+            ),
         ),
     ],
 )
@@ -416,27 +426,27 @@ def test_get_root_widths_invalid_cases():
 
     # Minimum length
     result = get_root_widths(np.array([[0, 0]]), np.array([[[0, 0]]]))
-    assert np.array_equal(result, np.array([]))
+    assert np.isnan(result)
 
     # Return default values with return_inds=True
     result = get_root_widths(np.array([[0, 0]]), np.array([[[0, 0]]]), return_inds=True)
     # Checks if both arrays are exactly the same
-    assert np.array_equal(result[0], np.array([]))
+    assert np.isnan(result[0])
     # Continue to check the other parts of the tuple
     assert result[1] == [(np.nan, np.nan)]
     # Check the other NumPy arrays in the tuple
-    assert np.array_equal(result[2], np.empty((0, 2)))
-    assert np.array_equal(result[3], np.empty((0, 2)))
+    assert np.all(np.isnan(result[2]))
+    assert np.all(np.isnan(result[3]))
 
     # All NaNs in input arrays
     result = get_root_widths(
         np.array([[np.nan, np.nan], [np.nan, np.nan]]),
         np.array([[[np.nan, np.nan], [np.nan, np.nan]]]),
     )
-    assert np.array_equal(result, np.array([]))
+    assert np.isnan(result)
 
     # All lateral roots on the same side
     result = get_root_widths(
         np.array([[0, 0], [1, 1]]), np.array([[[0, 0], [1, 1]], [[0, 0], [1, 1]]])
     )
-    assert np.array_equal(result, np.array([]))
+    assert np.isnan(result)

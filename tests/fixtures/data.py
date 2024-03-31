@@ -89,3 +89,33 @@ def soy_primary_slp():
 def soy_lateral_slp():
     """Path to lateral root predictions for 6 day old soy."""
     return "tests/data/soy_6do/6PR6AA22JK.lateral__nodes.predictions.slp"
+
+
+@pytest.fixture
+def multiple_arabidopsis_11do_folder():
+    """Path to a folder with the predictions for 3, 11 day old arabidopsis."""
+    return "tests/data/multiple_arabidopsis_11do"
+
+
+@pytest.fixture
+def multiple_arabidopsis_11do_h5():
+    """Path to image stack for 11 day old arabidopsis."""
+    return "tests/data/multiple_arabidopsis_11do/997_1.h5"
+
+
+@pytest.fixture
+def multiple_arabidopsis_11do_primary_slp():
+    """Path to primary root predictions for 11 day old arabidopsis."""
+    return "tests/data/multiple_arabidopsis_11do/997_1.primary.predictions.slp"
+
+
+@pytest.fixture
+def multiple_arabidopsis_11do_lateral_slp():
+    """Path to lateral root predictions for 11 day old arabidopsis."""
+    return "tests/data/multiple_arabidopsis_11do/997_1.lateral.predictions.slp"
+
+
+@pytest.fixture
+def multiple_arabidopsis_11do_csv():
+    """Path to the CSV file with expected count and group information."""
+    return "tests/data/multiple_arabidopsis_11do/merged_proofread_samples_03122024.csv"

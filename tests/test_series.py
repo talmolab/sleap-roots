@@ -7,6 +7,12 @@ from typing import Literal
 
 
 @pytest.fixture
+def series_instance():
+    # Create a Series instance with dummy data
+    return Series(h5_path="dummy.h5")
+
+
+@pytest.fixture
 def dummy_video_path(tmp_path):
     video_path = tmp_path / "dummy_video.mp4"
     video_path.write_text("This is a dummy video file.")
@@ -41,6 +47,16 @@ def dummy_series(dummy_video_path, dummy_labels_path):
     return Series.load(**kwargs)
 
 
+@pytest.fixture
+def csv_path(tmp_path):
+    # Create a dummy CSV file
+    csv_path = tmp_path / "dummy.csv"
+    csv_path.write_text(
+        "plant_qr_code,number_of_plants_cylinder,genotype\ndummy,10,1100\nseries2,15,Kitaake-X\n"
+    )
+    return csv_path
+
+
 def test_series_name(dummy_series):
     expected_name = "dummy_video"  # Based on the dummy_video_path fixture
     assert dummy_series.series_name == expected_name
@@ -58,6 +74,15 @@ def test_get_frame(dummy_series):
 def test_series_name_property():
     series = Series(h5_path="mock_path/file_name.h5")
     assert series.series_name == "file_name"
+
+
+def test_series_name(series_instance):
+    assert series_instance.series_name == "dummy"
+
+
+def test_expected_count(series_instance, csv_path):
+    series_instance.csv_path = csv_path
+    assert series_instance.expected_count == 10
 
 
 def test_len():
