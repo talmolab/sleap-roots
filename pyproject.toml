@@ -37,7 +37,7 @@ readme = {file = ["README.md"], content-type="text/markdown"}
 
 [tool.setuptools.packages.find]
 include = ["sleap_roots"]  # Include only the sleap_roots package
-exclude = ["notebooks"]  # Exclude the notebooks and tests directories
+exclude = ["notebooks"]  # Exclude the notebooks directory
 namespaces = false
 
 [project.optional-dependencies]
