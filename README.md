@@ -30,8 +30,8 @@ import sleap_roots as sr
 
 plant = sr.Series.load(
     "tests/data/canola_7do/919QDUH.h5",
-    primary_name="primary_multi_day",
-    lateral_name="lateral_3_nodes"
+    primary_name="primary",
+    lateral_name="lateral"
 )
 pipeline = sr.DicotPipeline()
 traits = pipeline.compute_plant_traits(plant, write_csv=True)
@@ -46,8 +46,8 @@ plant_paths = sr.find_all_series("tests/data/soy_6do")
 plants = [
     sr.Series.load(
         plant_path,
-        primary_name="primary_multi_day",
-        lateral_name="lateral__nodes",
+        primary_name="primary",
+        lateral_name="lateral",
     ) for plant_path in plant_paths]
 
 pipeline = sr.DicotPipeline()
@@ -59,15 +59,18 @@ all_traits = pipeline.compute_batch_traits(plants, write_csv=True)
 ```py
 import sleap_roots as sr
 import numpy as np
+from sleap_roots.points import get_all_pts_array
 
 plant = sr.Series.load(
     "tests/data/canola_7do/919QDUH.h5",
-    primary_name="primary_multi_day",
-    lateral_name="lateral_3_nodes"
+    primary_name="primary",
+    lateral_name="lateral"
 )
 
-primary, lateral = plant[10]
-pts = np.concatenate([primary.numpy(), lateral.numpy()], axis=0).reshape(-1, 2)
+frame_index = 0
+primary_pts = plant.get_primary_points(frame_index)
+lateral_pts = plant.get_lateral_points(frame_index)
+pts = get_all_pts_array(primary_pts, lateral_pts)
 convex_hull = sr.convhull.get_convhull(pts)
 ```
 
@@ -80,8 +83,8 @@ import sleap_roots as sr
 
 plant = sr.Series.load(
     "tests/data/rice_3do/0K9E8BI.h5",
-    primary_name="longest_3do_6nodes",
-    lateral_name="main_3do_6nodes"
+    primary_name="primary",
+    lateral_name="crown"
 )
 pipeline = sr.YoungerMonocotPipeline()
 traits = pipeline.compute_plant_traits(plant, write_csv=True)
@@ -96,8 +99,8 @@ plant_paths = sr.find_all_series("tests/data/rice_3do")
 plants = [
     sr.Series.load(
         plant_path,
-        primary_name="longest_3do_6nodes",
-        lateral_name="main_3do_6nodes"
+        primary_name="primary",
+        lateral_name="crown"
     ) for plant_path in plant_paths]
 
 pipeline = sr.YoungerMonocotPipeline()
@@ -109,15 +112,18 @@ all_traits = pipeline.compute_batch_traits(plants, write_csv=True)
 ```py
 import sleap_roots as sr
 import numpy as np
+from sleap_roots.points import get_all_pts_array
 
 plant = sr.Series.load(
     "tests/data/rice_3do/0K9E8BI.h5",
-    primary_name="longest_3do_6nodes",
-    lateral_name="main_3do_6nodes"
+    primary_name="primary",
+    lateral_name="crown"
 )
 
-primary, lateral = plant[10]
-pts = np.concatenate([primary.numpy(), lateral.numpy()], axis=0).reshape(-1, 2)
+frame_index = 0
+primary_pts = plant.get_primary_points(frame_index)
+lateral_pts = plant.get_lateral_points(frame_index)
+pts = get_all_pts_array(primary_pts, lateral_pts)
 convex_hull = sr.convhull.get_convhull(pts)
 ```
 
@@ -128,7 +134,6 @@ To use them, add Jupyter Lab to your conda environment (recommended):
 
 ```
 conda activate sleap-roots
-pip install sleap-roots
 pip install jupyterlab
 ```
 
@@ -189,4 +194,6 @@ This repository was created by the [Talmo Lab](https://talmolab.org) and [Busch 
 
 ### Citation
 
-*Coming soon.*
+E.M. Berrigan, L. Wang, H. Carrillo, K. Echegoyen, M. Kappes, J. Torres, A. Ai-Perreira, E. McCoy, E. Shane, C.D. Copeland, L. Ragel, C. Georgousakis, S. Lee, D. Reynolds,    
+A. Talgo, J. Gonzalez, L. Zhang, A.B. Rajurkar, M. Ruiz, E. Daniels, L. Maree, S. Pariyar, W. Busch, T.D. Pereira. "Fast and Efficient Root Phenotyping via Pose Estimation"     
+*Plant Phenomics* 0: DOI:[10.34133/plantphenomics.0175](https://doi.org/10.34133/plantphenomics.0175).
