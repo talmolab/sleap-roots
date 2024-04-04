@@ -21,6 +21,10 @@ pip install sleap-roots
 
 ## Usage
 
+Detailed trait documentation per pipeline is available here:
+[sleap-roots HackMD](https://hackmd.io/DMiXO2kXQhKH8AIIcIy--g)
+
+
 ### `DicotPipeline`
 
 **1. Computing traits for a single plant:**
