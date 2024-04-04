@@ -47,6 +47,7 @@ plant_paths = sr.find_all_series("tests/data/soy_6do")
 plants = [
     sr.Series.load(
         plant_path,
+        # Specify the names of the primary and lateral roots for trait calculation
         primary_name="primary",
         lateral_name="lateral",
     ) for plant_path in plant_paths]
