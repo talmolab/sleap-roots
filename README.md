@@ -198,6 +198,6 @@ This repository was created by the [Talmo Lab](https://talmolab.org) and [Busch 
 
 ### Citation
 
-E.M. Berrigan, L. Wang, H. Carrillo, K. Echegoyen, M. Kappes, J. Torres, A. Ai-Perreira, E. McCoy, E. Shane, C.D. Copeland, L. Ragel, C. Georgousakis, S. Lee, D. Reynolds,    
-A. Talgo, J. Gonzalez, L. Zhang, A.B. Rajurkar, M. Ruiz, E. Daniels, L. Maree, S. Pariyar, W. Busch, T.D. Pereira. "Fast and Efficient Root Phenotyping via Pose Estimation"     
-*Plant Phenomics* 0: DOI:[10.34133/plantphenomics.0175](https://doi.org/10.34133/plantphenomics.0175).
+E.M. Berrigan, L. Wang, H. Carrillo, K. Echegoyen, M. Kappes, J. Torres, A. Ai-Perreira, E. McCoy, E. Shane, C.D. Copeland, L. Ragel, 
+C. Georgousakis, S. Lee, D. Reynolds, A. Talgo, J. Gonzalez, L. Zhang, A.B. Rajurkar, M. Ruiz, E. Daniels, L. Maree, S. Pariyar, W. Busch, T.D. Pereira.  
+"Fast and Efficient Root Phenotyping via Pose Estimation", *Plant Phenomics* 0: DOI:[10.34133/plantphenomics.0175](https://doi.org/10.34133/plantphenomics.0175).
