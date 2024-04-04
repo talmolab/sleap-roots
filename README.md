@@ -61,6 +61,8 @@ all_traits = pipeline.compute_batch_traits(plants, write_csv=True)
 ```py
 import sleap_roots as sr
 import numpy as np
+import numpy as np
+# Import utility for combining primary and lateral root points
 from sleap_roots.points import get_all_pts_array
 
 plant = sr.Series.load(
