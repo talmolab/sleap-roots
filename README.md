@@ -145,7 +145,7 @@ jupyter lab
 ```
 
 Go through the commands in the notebooks to learn about each pipeline. 
-You can use the test data located at `tests/data` or copy the notebooks elsewhere for use on your own data!
+You can use the test data located at `tests/data` or copy the notebooks elsewhere for use with your own data!
 
 
 ## Development
