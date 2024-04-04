@@ -38,27 +38,7 @@ class Series:
     Properties:
         series_name: Name of the series derived from the HDF5 filename.
         expected_count: Fetch the expected plant count for this series from the CSV.
-@property
-def group(self) -> str:
-   """Group name for the series from the CSV.
-   
-   This property retrieves the group name (e.g., genotype) associated with the series,
-   based on the series name matched against the 'plant_qr_code' in the CSV file.
-   
-   Returns:
-       The group name as a string, or np.nan if the CSV path is not set or the group name
-       cannot be found.
-   """
-    if not self.csv_path or not Path(self.csv_path).exists():
-        print("CSV path is not set or the file does not exist.")
-        return np.nan
-    df = pd.read_csv(self.csv_path)
-    try:
-        # Match the series_name (or plant_qr_code in the CSV) to fetch the group
-        return df[df["plant_qr_code"] == self.series_name]["genotype"].iloc[0]
-    except IndexError:
-        print(f"No group found for series {self.series_name} in CSV.")
-        return np.nan
+        group: Group name for the series from the CSV.
     """
 
     h5_path: Optional[str] = None
