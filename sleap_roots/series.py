@@ -38,6 +38,7 @@ class Series:
     Properties:
         series_name: Name of the series derived from the HDF5 filename.
         expected_count: Fetch the expected plant count for this series from the CSV.
+        group: Group name for the series from the CSV.
     """
 
     h5_path: Optional[str] = None
