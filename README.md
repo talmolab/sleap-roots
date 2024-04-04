@@ -121,6 +121,28 @@ pts = np.concatenate([primary.numpy(), lateral.numpy()], axis=0).reshape(-1, 2)
 convex_hull = sr.convhull.get_convhull(pts)
 ```
 
+## Tutorials
+Jupyter notebooks are located in this repo at `sleap-roots/notebooks`.
+
+To use them, add Jupyter Lab to your conda environment (recommended):
+
+```
+conda activate sleap-roots
+pip install sleap-roots
+pip install jupyterlab
+```
+
+Then you can change directories to the location of the notebooks, and open Jupyter Lab:
+
+```
+cd notebooks
+jupyter lab
+```
+
+Go through the commands in the notebooks to learn about each pipeline. 
+You can use the test data located at `tests/data` or copy the notebooks elsewhere for use on your own data!
+
+
 ## Development
 For development, first clone the repository:
 ```
