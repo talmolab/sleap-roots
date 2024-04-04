@@ -30,6 +30,7 @@ import sleap_roots as sr
 
 plant = sr.Series.load(
     "tests/data/canola_7do/919QDUH.h5",
+    # Specify the names of the primary and lateral roots for trait calculation
     primary_name="primary",
     lateral_name="lateral"
 )
