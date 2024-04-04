@@ -1,3 +1,6 @@
 *.h5 filter=lfs diff=lfs merge=lfs -text
 *.slp filter=lfs diff=lfs merge=lfs -text
 *.type filter=lfs diff=lfs merge=lfs -text
+
+# Exclude jupyter notebooks from language statistics
+*.ipynb linguist-detectable=false
