@@ -144,6 +144,11 @@ To use them, add Jupyter Lab to your conda environment (recommended):
 conda activate sleap-roots
 pip install jupyterlab
 ```
+Clone this repository if you haven't already:
+
+```
+git clone https://github.com/talmolab/sleap-roots.git && cd sleap-roots
+```
 
 Then you can change directories to the location of the notebooks, and open Jupyter Lab:
 
