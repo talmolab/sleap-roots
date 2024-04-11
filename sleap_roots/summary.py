@@ -28,7 +28,7 @@ def get_summary(
 
     X = np.atleast_1d(X)
 
-    if len(X) == 0:
+    if len(X) == 0 or np.all(np.isnan(X)):
         return {
             f"{prefix}min": np.nan,
             f"{prefix}max": np.nan,
@@ -40,7 +40,7 @@ def get_summary(
             f"{prefix}p75": np.nan,
             f"{prefix}p95": np.nan,
         }
-    else:
+    elif np.issubdtype(X.dtype, np.number):
         return {
             f"{prefix}min": np.nanmin(X),
             f"{prefix}max": np.nanmax(X),
@@ -51,4 +51,17 @@ def get_summary(
             f"{prefix}p25": np.nanpercentile(X, 25),
             f"{prefix}p75": np.nanpercentile(X, 75),
             f"{prefix}p95": np.nanpercentile(X, 95),
+        }
+    else:
+        print("X contains non-numeric values")
+        return {
+            f"{prefix}min": np.nan,
+            f"{prefix}max": np.nan,
+            f"{prefix}mean": np.nan,
+            f"{prefix}median": np.nan,
+            f"{prefix}std": np.nan,
+            f"{prefix}p5": np.nan,
+            f"{prefix}p25": np.nan,
+            f"{prefix}p75": np.nan,
+            f"{prefix}p95": np.nan,
         }
