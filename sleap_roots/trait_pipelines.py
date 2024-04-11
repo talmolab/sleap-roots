@@ -647,6 +647,7 @@ class Pipeline:
         """
         all_traits = []
         for plant in plants:
+            print(f"Processing series: {plant.series_name}")
             # Compute frame level traits for the plant.
             plant_traits = self.compute_plant_traits(plant)
 
@@ -664,6 +665,7 @@ class Pipeline:
 
         if write_csv:
             all_traits.to_csv(csv_path, index=False)
+            print(f"Batch traits saved to {csv_path}")
         return all_traits
 
     def compute_batch_multiple_dicots_traits(
