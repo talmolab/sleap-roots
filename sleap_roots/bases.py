@@ -201,7 +201,7 @@ def get_base_median_ratio(lateral_base_ys, primary_tip_pt_y):
         lateral_base_ys: Y-coordinates of the base points of lateral roots of shape
             `(instances,)`.
         primary_tip_pt_y: Y-coordinate of the tip point of the primary root of shape
-            `(1)`.
+            `(1)` or a scalar.
 
     Return:
         Scalar of base median ratio. If all y-coordinates of the lateral root bases are
