@@ -100,10 +100,6 @@ def get_base_ys(base_pts: np.ndarray) -> np.ndarray:
     Return:
         An array of the y-coordinates of bases (instances,).
     """
-    # If the input is a single number (float or integer), return np.nan
-    if isinstance(base_pts, (np.floating, float, np.integer, int)):
-        return np.nan
-
     # Check for the 2D shape of the input array
     if base_pts.ndim == 1:
         # If shape is `(2,)`, then reshape it to `(1, 2)` for consistency
