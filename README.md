@@ -138,12 +138,12 @@ convex_hull = sr.convhull.get_convhull(pts)
 ## Tutorials
 Jupyter notebooks are located in this repo at `sleap-roots/notebooks`.
 
-To use them, add Jupyter Lab to your conda environment (recommended):
+To use them, activate your conda environment which includes JupyterLab (recommended):
 
 ```
 conda activate sleap-roots
-pip install jupyterlab
 ```
+
 Clone this repository if you haven't already:
 
 ```
