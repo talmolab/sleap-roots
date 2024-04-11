@@ -146,11 +146,16 @@ def test_get_tip_ys_standard(pts_standard):
 
 # test get_tip_ys with no tips
 def test_get_tip_ys_no_tip(pts_no_tips):
+    # `pts_no_tips` is a 2x2x2 array with the second point in each frame being `np.nan`
+    # Get the tips from the no tips points
+    # `tips` should be [[np.nan, np.nan], [np.nan, np.nan]]
     tips = get_tips(pts_no_tips)
+    assert tips.shape == (2, 2)
+    np.testing.assert_array_equal(tips, [[np.nan, np.nan], [np.nan, np.nan]])
+    # Get the tip y-coordinates
+    # `tip_ys` should be [np.nan, np.nan]
     tip_ys = get_tip_ys(tips)
     assert tip_ys.shape[0] == 2
     np.testing.assert_almost_equal(tip_ys[1], np.nan, decimal=3)
-    assert type(tip_ys) == np.ndarray
-
-    tip_ys = get_tip_ys(tips[[0]])
+    np.testing.assert_almost_equal(tip_ys[0], np.nan, decimal=3)
     assert type(tip_ys) == np.ndarray
