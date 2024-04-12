@@ -103,7 +103,7 @@ jobs:
           pytest --cov=sleap_roots --cov-report=xml tests/
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         if: ${{ startsWith(matrix.os, 'ubuntu') && matrix.python == 3.9 }}
         with:
           fail_ci_if_error: true
