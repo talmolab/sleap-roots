@@ -39,6 +39,7 @@ class Series:
         series_name: Name of the series derived from the HDF5 filename.
         expected_count: Fetch the expected plant count for this series from the CSV.
         group: Group name for the series from the CSV.
+        qc_fail: Flag to indicate if the series failed QC from the CSV.
     """
 
     h5_path: Optional[str] = None
@@ -159,6 +160,20 @@ class Series:
             return df[df["plant_qr_code"] == self.series_name]["genotype"].iloc[0]
         except IndexError:
             print(f"No group found for series {self.series_name} in CSV.")
+            return np.nan
+
+    @property
+    def qc_fail(self) -> bool:
+        """Flag to indicate if the series failed QC from the CSV."""
+        if not self.csv_path or not Path(self.csv_path).exists():
+            print("CSV path is not set or the file does not exist.")
+            return np.nan
+        df = pd.read_csv(self.csv_path)
+        try:
+            # Match the series_name (or plant_qr_code in the CSV) to fetch the QC flag
+            return df[df["plant_qr_code"] == self.series_name]["qc_cylinder"].iloc[0]
+        except IndexError:
+            print(f"No QC flag found for series {self.series_name} in CSV.")
             return np.nan
 
     def __len__(self) -> int:
