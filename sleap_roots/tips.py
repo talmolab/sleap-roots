@@ -76,4 +76,3 @@ def get_tip_ys(tip_pts: np.ndarray) -> np.ndarray:
         return tip_ys[0]
 
     return tip_ys
-
