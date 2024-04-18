@@ -3,9 +3,50 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
-from shapely.geometry import LineString
+from shapely.geometry import Point, MultiPoint, LineString, GeometryCollection
 from shapely.ops import nearest_points
 from typing import List, Optional, Tuple
+
+
+def extract_points_from_geometry(geometry):
+    """Extracts coordinates as a list of numpy arrays from any given Shapely geometry object.
+    
+    This function supports Point, MultiPoint, LineString, and GeometryCollection types. 
+    It recursively extracts coordinates from complex geometries and aggregates them into a single list. 
+    For unsupported geometry types, it returns an empty list.
+    
+    Parameters:
+    - geometry (shapely.geometry.base.BaseGeometry): A Shapely geometry object from which to extract points.
+    
+    Returns:
+    - List[np.ndarray]: A list of numpy arrays, where each array represents the coordinates of a point. 
+      The list will be empty if the geometry type is unsupported or contains no coordinates.
+    
+    Raises:
+    - TypeError: If the input is not a recognized Shapely geometry type.
+    
+    Example:
+    >>> from shapely.geometry import Point, MultiPoint, LineString, GeometryCollection
+    >>> point = Point(1, 2)
+    >>> multipoint = MultiPoint([(1, 2), (3, 4)])
+    >>> linestring = LineString([(0, 0), (1, 1), (2, 2)])
+    >>> geom_col = GeometryCollection([point, multipoint, linestring])
+    >>> extract_points_from_geometry(geom_col)
+    [array([1, 2]), array([1, 2]), array([3, 4]), array([0, 0]), array([1, 1]), array([2, 2])]
+    """
+    if isinstance(geometry, Point):
+        return [np.array([geometry.x, geometry.y])]
+    elif isinstance(geometry, MultiPoint):
+        return [np.array([point.x, point.y]) for point in geometry.geoms]
+    elif isinstance(geometry, LineString):
+        return [np.array([x, y]) for x, y in zip(*geometry.xy)]
+    elif isinstance(geometry, GeometryCollection):
+        points = []
+        for geom in geometry.geoms:
+            points.extend(extract_points_from_geometry(geom))
+        return points
+    else:
+        raise TypeError(f"Unsupported geometry type: {type(geometry).__name__}")
 
 
 def get_count(pts: np.ndarray):

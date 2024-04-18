@@ -4,7 +4,7 @@ import numpy as np
 from scipy.spatial import ConvexHull
 from scipy.spatial.distance import pdist
 from typing import Tuple, Optional, Union
-from sleap_roots.points import get_line_equation_from_points
+from sleap_roots.points import extract_points_from_geometry, get_line_equation_from_points
 from shapely import box, LineString, normalize, Polygon
 
 
@@ -382,13 +382,9 @@ def get_chull_areas_via_intersection(
     # Find the intersection between the hull perimeter and the extended line
     intersection = extended_line.intersection(hull_perimeter)
 
-    # Add intersection points to both lists
+    # Compute the intersection points and add to lists
     if not intersection.is_empty:
-        intersect_points = (
-            np.array([[point.x, point.y] for point in intersection.geoms])
-            if intersection.geom_type == "MultiPoint"
-            else np.array([[intersection.x, intersection.y]])
-        )
+        intersect_points = extract_points_from_geometry(intersection)
         above_line.extend(intersect_points)
         below_line.extend(intersect_points)
 
@@ -452,6 +448,10 @@ def get_chull_intersection_vectors(
     Raises:
         ValueError: If pts does not have the expected shape.
     """
+    if r0_pts.ndim == 1 or rn_pts.ndim == 1 or pts.ndim == 2:
+        print("Not enough instances or incorrect format to compute convex hull intersections.")
+        return (np.array([[np.nan, np.nan]]), np.array([[np.nan, np.nan]]))
+
     # Check for valid pts input
     if not isinstance(pts, np.ndarray) or pts.ndim != 3 or pts.shape[-1] != 2:
         raise ValueError("pts must be a numpy array of shape (instances, nodes, 2).")
@@ -460,7 +460,7 @@ def get_chull_intersection_vectors(
         raise ValueError("rn_pts must be a numpy array of shape (instances, 2).")
     # Ensure r0_pts is a numpy array of shape (instances, 2)
     if not isinstance(r0_pts, np.ndarray) or r0_pts.ndim != 2 or r0_pts.shape[-1] != 2:
-        raise ValueError("r0_pts must be a numpy array of shape (instances, 2).")
+        raise ValueError(f"r0_pts must be a numpy array of shape (instances, 2).")
 
     # Flatten pts to 2D array and remove NaN values
     flattened_pts = pts.reshape(-1, 2)
@@ -481,6 +481,9 @@ def get_chull_intersection_vectors(
 
     # Ensuring r0_pts does not contain NaN values
     r0_pts_valid = r0_pts[~np.isnan(r0_pts).any(axis=1)]
+    # Expect two vectors in the end
+    if len(r0_pts_valid) < 2:
+        return (np.array([[np.nan, np.nan]]), np.array([[np.nan, np.nan]]))
 
     # Get the vertices of the convex hull
     hull_vertices = hull.points[hull.vertices]
