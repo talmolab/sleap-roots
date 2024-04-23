@@ -52,7 +52,7 @@ def csv_path(tmp_path):
     # Create a dummy CSV file
     csv_path = tmp_path / "dummy.csv"
     csv_path.write_text(
-        "plant_qr_code,number_of_plants_cylinder,genotype\ndummy,10,1100\nseries2,15,Kitaake-X\n"
+        "plant_qr_code,number_of_plants_cylinder,genotype,qc_cylinder\ndummy,10,1100,0\nseries2,15,Kitaake-X,1\n"
     )
     return csv_path
 
@@ -83,6 +83,11 @@ def test_series_name(series_instance):
 def test_expected_count(series_instance, csv_path):
     series_instance.csv_path = csv_path
     assert series_instance.expected_count == 10
+
+
+def test_qc_cylinder(series_instance, csv_path):
+    series_instance.csv_path = csv_path
+    assert series_instance.qc_fail == 0
 
 
 def test_len():
