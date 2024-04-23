@@ -15,15 +15,12 @@ def extract_points_from_geometry(geometry):
     It recursively extracts coordinates from complex geometries and aggregates them into a single list.
     For unsupported geometry types, it returns an empty list.
 
-    Parameters:
-    - geometry (shapely.geometry.base.BaseGeometry): A Shapely geometry object from which to extract points.
+    Args:
+        geometry (shapely.geometry.base.BaseGeometry): A Shapely geometry object from which to extract points.
 
     Returns:
-    - List[np.ndarray]: A list of numpy arrays, where each array represents the coordinates of a point.
-      The list will be empty if the geometry type is unsupported or contains no coordinates.
-
-    Raises:
-    - TypeError: If the input is not a recognized Shapely geometry type.
+        List[np.ndarray]: A list of numpy arrays, where each array represents the coordinates of a point.
+        The list will be empty if the geometry type is unsupported or contains no coordinates.
 
     Example:
     >>> from shapely.geometry import Point, MultiPoint, LineString, GeometryCollection
