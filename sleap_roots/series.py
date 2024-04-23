@@ -163,7 +163,7 @@ class Series:
             return np.nan
 
     @property
-    def qc_fail(self) -> bool:
+    def qc_fail(self) -> Union[int, float]:
         """Flag to indicate if the series failed QC from the CSV."""
         if not self.csv_path or not Path(self.csv_path).exists():
             print("CSV path is not set or the file does not exist.")
