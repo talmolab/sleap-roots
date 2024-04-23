@@ -23,4 +23,4 @@ from sleap_roots.series import Series, find_all_series
 
 # Define package version.
 # This is read dynamically by setuptools in pyproject.toml to determine the release version.
-__version__ = "0.0.8"
+__version__ = "0.0.9"
