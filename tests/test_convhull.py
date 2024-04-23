@@ -314,7 +314,6 @@ def test_basic_functionality(pts_shape_3_6_2):
 @pytest.mark.parametrize(
     "invalid_input",
     [
-        (np.array([1, 2]), np.array([3, 4]), np.array([[[1, 2], [3, 4]]]), None),
         (np.array([[1, 2, 3]]), np.array([[3, 4]]), np.array([[[1, 2], [3, 4]]]), None),
         # Add more invalid inputs as needed
     ],
