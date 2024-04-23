@@ -401,12 +401,13 @@ class Pipeline:
             csv_suffix: The suffix to append to the CSV file name. Default is ".all_frames_summary.csv".
 
         Returns:
-            A dictionary containing the series name, group, aggregated traits, and summary statistics.
+            A dictionary containing the series name, group, qc_fail, aggregated traits, and summary statistics.
         """
         # Initialize the return structure with the series name and group
         result = {
             "series": str(series.series_name),
             "group": str(series.group),
+            "qc_fail": series.qc_fail,
             "traits": {},
             "summary_stats": {},
         }
@@ -528,6 +529,11 @@ class Pipeline:
         # Group series by their group property
         series_groups = {}
         for series in series_list:
+            # Exclude series with qc_fail flag set to 1
+            if int(series.qc_fail) == 1:
+                print(f"Skipping series '{series.series_name}' due to qc_fail flag.")
+                continue
+            # Get the group name from the series object
             group_name = str(series.group)
             if group_name not in series_groups:
                 series_groups[group_name] = {"names": [], "series": []}
@@ -733,7 +739,7 @@ class Pipeline:
 
         Returns:
             A pandas DataFrame of computed traits summarized over all frames of each
-            series. The resulting dataframe will have a row for each series and a column
+            group. The resulting dataframe will have a row for each series and a column
             for each series-level summarized trait.
 
             Summarized traits are prefixed with the trait name and an underscore,
