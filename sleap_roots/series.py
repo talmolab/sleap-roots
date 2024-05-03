@@ -114,7 +114,9 @@ class Series:
         # Attempt to load the video, with error handling
         video = None
         try:
-            video = sio.Video.from_filename(h5_path) if Path(h5_path).exists() else None
+            if not Path(h5_path).exists():
+                raise FileNotFoundError(f"File not found")
+            video = sio.Video.from_filename(h5_path)
         except Exception as e:
             print(f"Error loading video file {h5_path}: {e}")
 
