@@ -58,6 +58,7 @@ def csv_path(tmp_path):
     )
     return csv_path
 
+
 def test_primary_prediction_not_found(tmp_path):
     dummy_video_path = tmp_path / "dummy_video.mp4"
     dummy_video_path.write_text("This is a dummy video file.")
@@ -73,7 +74,11 @@ def test_primary_prediction_not_found(tmp_path):
     filename_without_extension = path_obj.stem
     new_file_path = parent_dir / filename_without_extension
 
-    assert output.getvalue() == f"Primary prediction file not found: {new_file_path}.nonexistent.predictions.slp\n"
+    assert (
+        output.getvalue()
+        == f"Primary prediction file not found: {new_file_path}.nonexistent.predictions.slp\n"
+    )
+
 
 def test_lateral_prediction_not_found(tmp_path):
     dummy_video_path = tmp_path / "dummy_video.mp4"
@@ -90,7 +95,11 @@ def test_lateral_prediction_not_found(tmp_path):
     filename_without_extension = path_obj.stem
     new_file_path = parent_dir / filename_without_extension
 
-    assert output.getvalue() == f"Lateral prediction file not found: {new_file_path}.nonexistent.predictions.slp\n"
+    assert (
+        output.getvalue()
+        == f"Lateral prediction file not found: {new_file_path}.nonexistent.predictions.slp\n"
+    )
+
 
 def test_crown_prediction_not_found(tmp_path):
     dummy_video_path = tmp_path / "dummy_video.mp4"
@@ -107,7 +116,11 @@ def test_crown_prediction_not_found(tmp_path):
     filename_without_extension = path_obj.stem
     new_file_path = parent_dir / filename_without_extension
 
-    assert output.getvalue() == f"Crown prediction file not found: {new_file_path}.nonexistent.predictions.slp\n"
+    assert (
+        output.getvalue()
+        == f"Crown prediction file not found: {new_file_path}.nonexistent.predictions.slp\n"
+    )
+
 
 def test_video_loading_error(tmp_path):
     # Create a dummy Series instance with an invalid video file path
@@ -118,7 +131,11 @@ def test_video_loading_error(tmp_path):
         Series.load(h5_path=str(invalid_video_path))
 
     # Check if the correct error message is output
-    assert output.getvalue() == f"Error loading video file {invalid_video_path}: File not found\n"
+    assert (
+        output.getvalue()
+        == f"Error loading video file {invalid_video_path}: File not found\n"
+    )
+
 
 def test_series_name(dummy_series):
     expected_name = "dummy_video"  # Based on the dummy_video_path fixture
