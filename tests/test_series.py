@@ -69,7 +69,7 @@ def test_primary_prediction_not_found(tmp_path):
         Series.load(h5_path=str(dummy_video_path), primary_name="nonexistent")
 
     # format file path string for assert statement
-    new_file_path = Path(dummy_video_path).with_suffix('')
+    new_file_path = Path(dummy_video_path).with_suffix("")
 
     assert (
         output.getvalue()
@@ -87,7 +87,7 @@ def test_lateral_prediction_not_found(tmp_path):
         Series.load(h5_path=str(dummy_video_path), lateral_name="nonexistent")
 
     # format file path string for assert statement
-    new_file_path = Path(dummy_video_path).with_suffix('')
+    new_file_path = Path(dummy_video_path).with_suffix("")
 
     assert (
         output.getvalue()
@@ -105,7 +105,7 @@ def test_crown_prediction_not_found(tmp_path):
         Series.load(h5_path=str(dummy_video_path), crown_name="nonexistent")
 
     # format file path string for assert statement
-    new_file_path = Path(dummy_video_path).with_suffix('')
+    new_file_path = Path(dummy_video_path).with_suffix("")
 
     assert (
         output.getvalue()
