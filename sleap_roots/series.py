@@ -17,6 +17,7 @@ class Series:
     """Data and predictions for a single image series.
 
     Attributes:
+        series_name: Unique identifier for the series.
         h5_path: Optional path to the HDF5-formatted image series.
         primary_labels: Optional `sio.Labels` corresponding to the primary root predictions.
         lateral_labels: Optional `sio.Labels` corresponding to the lateral root predictions.
@@ -36,12 +37,12 @@ class Series:
         get_crown_points: Get crown root points.
 
     Properties:
-        series_name: Name of the series derived from the HDF5 filename.
-        expected_count: Fetch the expected plant count for this series from the CSV.
+        expected_count: Expected plant count for this series from the CSV.
         group: Group name for the series from the CSV.
         qc_fail: Flag to indicate if the series failed QC from the CSV.
     """
 
+    series_name: str
     h5_path: Optional[str] = None
     primary_labels: Optional[sio.Labels] = None
     lateral_labels: Optional[sio.Labels] = None
@@ -52,7 +53,8 @@ class Series:
     @classmethod
     def load(
         cls,
-        h5_path: str,
+        series_name: Optional[str] = None,
+        h5_path: Optional[str] = None,
         primary_name: Optional[str] = None,
         lateral_name: Optional[str] = None,
         crown_name: Optional[str] = None,
@@ -61,18 +63,34 @@ class Series:
         """Load a set of predictions for this series.
 
         Args:
-            h5_path: Path to the HDF5-formatted image series.
-            primary_name: Optional name of the primary root predictions file. If provided,
-                the file is expected to be named "{h5_path}.{primary_name}.predictions.slp".
-            lateral_name: Optional name of the lateral root predictions file. If provided,
-                the file is expected to be named "{h5_path}.{lateral_name}.predictions.slp".
-            crown_name: Optional name of the crown predictions file. If provided,
-                the file is expected to be named "{h5_path}.{crown_name}.predictions.slp".
+            series_name: Unique identifier for the scan. The prediction files are
+                expected to be named "{series_name}.{prediction_name}.slp".
+            h5_path: Path to the HDF5-formatted image series. If the video in any of the
+                labels is not found, the path will be used to replace the filename. This
+                is necessary for plotting (if the video in the labels is not found).
+            primary_name: Optional path to primary prediction file ending with .slp. If
+                a string is provided that does not end with .slp, the string is assumed
+                to be the ending of predictions filewith the format
+                "{series_name}.{primary_name}.slp".
+            lateral_name: Optional path to lateral prediction file ending with .slp. If
+                a string is provided that does not end with .slp, the string is assumed
+                to be the ending of predictions file with the format
+                "{series_name}.{lateral_name}.slp".
+            crown_name: Optional path to crown prediction file ending with .slp. If a
+                string is provided that does not end with .slp, the string is assumed to
+                be the ending of predictions file with the format
+                "{series_name}.{crown_name}.slp".
             csv_path: Optional path to the CSV file containing the expected plant count.
 
         Returns:
             An instance of Series loaded with the specified predictions.
         """
+        if series_name is None:
+            if h5_path is not None:
+                series_name = Path(h5_path).name.split(".")[0]
+            else:
+                raise ValueError("series_name or h5_path must be provided.")
+
         # Initialize the labels as None
         primary_labels, lateral_labels, crown_labels = None, None, None
 
@@ -80,9 +98,7 @@ class Series:
         try:
             if primary_name:
                 primary_path = (
-                    Path(h5_path)
-                    .with_suffix(f".{primary_name}.predictions.slp")
-                    .as_posix()
+                    Path(series_name).with_suffix(f".{primary_name}.slp").as_posix()
                 )
                 if Path(primary_path).exists():
                     primary_labels = sio.load_slp(primary_path)
@@ -90,9 +106,7 @@ class Series:
                     print(f"Primary prediction file not found: {primary_path}")
             if lateral_name:
                 lateral_path = (
-                    Path(h5_path)
-                    .with_suffix(f".{lateral_name}.predictions.slp")
-                    .as_posix()
+                    Path(series_name).with_suffix(f".{lateral_name}.slp").as_posix()
                 )
                 if Path(lateral_path).exists():
                     lateral_labels = sio.load_slp(lateral_path)
@@ -100,9 +114,7 @@ class Series:
                     print(f"Lateral prediction file not found: {lateral_path}")
             if crown_name:
                 crown_path = (
-                    Path(h5_path)
-                    .with_suffix(f".{crown_name}.predictions.slp")
-                    .as_posix()
+                    Path(series_name).with_suffix(f".{crown_name}.slp").as_posix()
                 )
                 if Path(crown_path).exists():
                     crown_labels = sio.load_slp(crown_path)
@@ -111,14 +123,22 @@ class Series:
         except Exception as e:
             print(f"Error loading prediction files: {e}")
 
+        # Replace the filename in the labels with the h5_path if it is provided.
+        if h5_path is not None:
+            for labels in [primary_labels, lateral_labels, crown_labels]:
+                if not labels.video.exists():
+                    labels.video.replace_filename(h5_path)
+
         # Attempt to load the video, with error handling
         video = None
-        try:
-            video = sio.Video.from_filename(h5_path) if Path(h5_path).exists() else None
-        except Exception as e:
-            print(f"Error loading video file {h5_path}: {e}")
+        for labels in [primary_labels, lateral_labels, crown_labels]:
+            if labels is not None:
+                if labels.video.exists():
+                    video = labels.video
+                    break
 
         return cls(
+            series_name=series_name,
             h5_path=h5_path,
             primary_labels=primary_labels,
             lateral_labels=lateral_labels,
@@ -126,11 +146,6 @@ class Series:
             video=video,
             csv_path=csv_path,
         )
-
-    @property
-    def series_name(self) -> str:
-        """Name of the series derived from the HDF5 filename."""
-        return Path(self.h5_path).name.split(".")[0]
 
     @property
     def expected_count(self) -> Union[float, int]:
@@ -236,6 +251,10 @@ class Series:
             scale: Relative size of the visualized image. Useful for plotting smaller
                 images within notebooks.
         """
+        # Check if the video is available
+        if self.video is None:
+            raise ValueError("Video is not available. Specify the h5_path to load it.")
+
         # Retrieve all available frames
         frames = self.get_frame(frame_idx)
 
