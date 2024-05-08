@@ -6,13 +6,19 @@ from sleap_roots.trait_pipelines import (
     OlderMonocotPipeline,
     MultipleDicotPipeline,
 )
-from sleap_roots.series import Series, find_all_series
+from sleap_roots.series import Series, find_all_h5_series, find_all_slp_series
 
 
 def test_dicot_pipeline(canola_h5, soy_h5):
     # Load the data
-    canola = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
-    soy = Series.load(soy_h5, primary_name="primary", lateral_name="lateral")
+    canola = Series.load(
+        h5_path=canola_h5,
+        primary_name="primary.predictions",
+        lateral_name="lateral.predictions",
+    )
+    soy = Series.load(
+        soy_h5, primary_name="primary.predictions", lateral_name="lateral.predictions"
+    )
 
     pipeline = DicotPipeline()
     canola_traits = pipeline.compute_plant_traits(canola)
@@ -25,7 +31,7 @@ def test_dicot_pipeline(canola_h5, soy_h5):
 
 
 def test_OlderMonocot_pipeline(rice_main_10do_h5):
-    rice = Series.load(rice_main_10do_h5, crown_name="crown")
+    rice = Series.load(h5_path=rice_main_10do_h5, crown_name="crown.predictions")
 
     pipeline = OlderMonocotPipeline()
     rice_10dag_traits = pipeline.compute_plant_traits(rice)
@@ -34,10 +40,16 @@ def test_OlderMonocot_pipeline(rice_main_10do_h5):
 
 
 def test_younger_monocot_pipeline(rice_h5, rice_folder):
-    rice = Series.load(rice_h5, primary_name="primary", crown_name="crown")
-    rice_series_all = find_all_series(rice_folder)
+    rice = Series.load(
+        h5_path=rice_h5,
+        primary_name="primary.predictions",
+        crown_name="crown.predictions",
+    )
+    rice_series_all = find_all_h5_series(rice_folder)
     series_all = [
-        Series.load(series, primary_name="primary", crown_name="crown")
+        Series.load(
+            series, primary_name="primary.predictions", crown_name="crown.predictions"
+        )
         for series in rice_series_all
     ]
 
@@ -91,9 +103,12 @@ def test_younger_monocot_pipeline(rice_h5, rice_folder):
 
 
 def test_older_monocot_pipeline(rice_main_10do_h5, rice_10do_folder):
-    rice = Series.load(rice_main_10do_h5, crown_name="crown")
-    rice_series_all = find_all_series(rice_10do_folder)
-    series_all = [Series.load(series, crown_name="crown") for series in rice_series_all]
+    rice = Series.load(h5_path=rice_main_10do_h5, crown_name="crown.predictions")
+    rice_series_all = find_all_h5_series(rice_10do_folder)
+    series_all = [
+        Series.load(series, crown_name="crown.predictions")
+        for series in rice_series_all
+    ]
 
     pipeline = OlderMonocotPipeline()
     rice_traits = pipeline.compute_plant_traits(rice)
@@ -144,17 +159,17 @@ def test_multiple_dicot_pipeline(
     multiple_arabidopsis_11do_csv,
 ):
     arabidopsis = Series.load(
-        multiple_arabidopsis_11do_h5,
-        primary_name="primary",
-        lateral_name="lateral",
+        h5_path=multiple_arabidopsis_11do_h5,
+        primary_name="primary.predictions",
+        lateral_name="lateral.predictions",
         csv_path=multiple_arabidopsis_11do_csv,
     )
-    arabidopsis_series_all = find_all_series(multiple_arabidopsis_11do_folder)
+    arabidopsis_series_all = find_all_h5_series(multiple_arabidopsis_11do_folder)
     series_all = [
         Series.load(
-            series,
-            primary_name="primary",
-            lateral_name="lateral",
+            h5_path=series,
+            primary_name="primary.predictions",
+            lateral_name="lateral.predictions",
             csv_path=multiple_arabidopsis_11do_csv,
         )
         for series in arabidopsis_series_all
