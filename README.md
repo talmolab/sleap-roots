@@ -14,7 +14,7 @@ pip install sleap-roots
 
 If you are using conda (recommended):
 ```
-conda create -n sleap-roots python=3.9
+conda create -n sleap-roots python=3.11
 conda activate sleap-roots
 pip install sleap-roots
 ```
