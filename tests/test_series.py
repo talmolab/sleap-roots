@@ -84,7 +84,7 @@ def test_lateral_prediction_not_found(tmp_path):
     # Create a dummy Series instance with a non-existent primary prediction file
     output = io.StringIO()
     with redirect_stdout(output):
-        Series.load(h5_path=str(dummy_video_path), lateral_name="nonexistent")
+        Series.load(h5_path=dummy_video_path, lateral_name="nonexistent")
 
     # format file path string for assert statement
     new_file_path = Path(dummy_video_path).with_suffix("")
@@ -102,7 +102,7 @@ def test_crown_prediction_not_found(tmp_path):
     # Create a dummy Series instance with a non-existent primary prediction file
     output = io.StringIO()
     with redirect_stdout(output):
-        Series.load(h5_path=str(dummy_video_path), crown_name="nonexistent")
+        Series.load(h5_path=dummy_video_path, crown_name="nonexistent")
 
     # format file path string for assert statement
     new_file_path = Path(dummy_video_path).with_suffix("")
@@ -119,7 +119,7 @@ def test_video_loading_error(tmp_path):
 
     output = io.StringIO()
     with redirect_stdout(output):
-        Series.load(h5_path=str(invalid_video_path))
+        Series.load(h5_path=invalid_video_path)
 
     # Check if the correct error message is output
     assert (
