@@ -366,7 +366,7 @@ class Series:
         return crown_pts
 
 
-def find_all_series(data_folders: Union[str, List[str]]) -> List[str]:
+def find_all_h5_series(data_folders: Union[str, List[str]]) -> List[str]:
     """Find all .h5 series from a list of folders.
 
     Args:
@@ -382,6 +382,10 @@ def find_all_series(data_folders: Union[str, List[str]]) -> List[str]:
     for data_folder in data_folders:
         h5_series.extend([Path(p).as_posix() for p in Path(data_folder).glob("*.h5")])
     return h5_series
+
+
+def find_all_slp_series(data_folders: Union[str, List[str]]) -> List[str]:
+    """Find all .slp series from a list of folders."""
 
 
 def imgfig(
