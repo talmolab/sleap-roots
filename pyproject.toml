@@ -16,7 +16,9 @@ license = {text = "BSD-3-Clause"}
 classifiers = [
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9"
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11"
 ]
 dependencies = [
     "numpy",
@@ -25,7 +27,7 @@ dependencies = [
     "pandas",
     "matplotlib",
     "seaborn",
-    "sleap-io>=0.0.11",
+    "sleap-io>=0.1.0",
     "scikit-image",
     "shapely"
 ]
