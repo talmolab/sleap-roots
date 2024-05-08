@@ -60,7 +60,7 @@ def csv_path(tmp_path):
 
 
 def test_primary_prediction_not_found(tmp_path):
-    dummy_video_path = tmp_path / "dummy_video.mp4"
+    dummy_video_path = Path(tmp_path) / "dummy_video.mp4"
     dummy_video_path.write_text("This is a dummy video file.")
 
     # Create a dummy Series instance with a non-existent primary prediction file
@@ -78,7 +78,7 @@ def test_primary_prediction_not_found(tmp_path):
 
 
 def test_lateral_prediction_not_found(tmp_path):
-    dummy_video_path = tmp_path / "dummy_video.mp4"
+    dummy_video_path = Path(tmp_path) / "dummy_video.mp4"
     dummy_video_path.write_text("This is a dummy video file.")
 
     # Create a dummy Series instance with a non-existent primary prediction file
@@ -96,7 +96,7 @@ def test_lateral_prediction_not_found(tmp_path):
 
 
 def test_crown_prediction_not_found(tmp_path):
-    dummy_video_path = tmp_path / "dummy_video.mp4"
+    dummy_video_path = Path(tmp_path) / "dummy_video.mp4"
     dummy_video_path.write_text("This is a dummy video file.")
 
     # Create a dummy Series instance with a non-existent primary prediction file
@@ -115,7 +115,7 @@ def test_crown_prediction_not_found(tmp_path):
 
 def test_video_loading_error(tmp_path):
     # Create a dummy Series instance with an invalid video file path
-    invalid_video_path = tmp_path / "invalid_video.mp4"
+    invalid_video_path = Path(tmp_path) / "invalid_video.mp4"
 
     output = io.StringIO()
     with redirect_stdout(output):
