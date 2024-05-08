@@ -67,7 +67,7 @@ class Series:
                 expected to be named "{series_name}.{prediction_name}.slp".
             h5_path: Path to the HDF5-formatted image series. If the video in any of the
                 labels is not found, the path will be used to replace the filename. This
-                is necessary for plotting (if the video in the labels is not found).
+                is necessary for plotting.
             primary_name: Optional path to primary prediction file ending with .slp. If
                 a string is provided that does not end with .slp, the string is assumed
                 to be the ending of predictions filewith the format
@@ -135,8 +135,9 @@ class Series:
         # Replace the filename in the labels with the h5_path if it is provided.
         if h5_path is not None:
             for labels in [primary_labels, lateral_labels, crown_labels]:
-                if not labels.video.exists():
-                    labels.video.replace_filename(h5_path)
+                if labels is not None:
+                    if not labels.video.exists():
+                        labels.video.replace_filename(h5_path)
 
         # Attempt to load the video, with error handling
         video = None
