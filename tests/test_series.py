@@ -1,7 +1,7 @@
 import sleap_io as sio
 import numpy as np
 import pytest
-from sleap_roots.series import Series, find_all_series
+from sleap_roots.series import Series, find_all_h5_series, find_all_slp_series
 from pathlib import Path
 from typing import Literal
 
@@ -14,7 +14,7 @@ def series_instance():
 
 @pytest.fixture
 def dummy_video_path(tmp_path):
-    video_path = tmp_path / "dummy_video.mp4"
+    video_path = tmp_path / "dummy_video.h5"
     video_path.write_text("This is a dummy video file.")
     return str(video_path)
 
@@ -100,8 +100,8 @@ def test_series_load_canola(canola_h5: Literal["tests/data/canola_7do/919QDUH.h5
     assert len(series) == 72
 
 
-def test_find_all_series_canola(canola_folder: Literal["tests/data/canola_7do"]):
-    all_series_files = find_all_series(canola_folder)
+def test_find_all_h5_series_canola(canola_folder: Literal["tests/data/canola_7do"]):
+    all_series_files = find_all_h5_series(canola_folder)
     assert len(all_series_files) == 1
 
 
@@ -139,13 +139,15 @@ def test_get_frame_rice_10do(
     assert series.series_name == "0K9E8BI"
 
 
-def test_find_all_series_rice_10do(rice_10do_folder: Literal["tests/data/rice_10do"]):
+def test_find_all_h5_series_rice_10do(
+    rice_10do_folder: Literal["tests/data/rice_10do"],
+):
     series_h5_path = Path(rice_10do_folder) / "0K9E8BI.h5"
-    all_series_files = find_all_series(rice_10do_folder)
+    all_series_files = find_all_h5_series(rice_10do_folder)
     assert len(all_series_files) == 1
     assert series_h5_path.as_posix() == "tests/data/rice_10do/0K9E8BI.h5"
 
 
-def test_find_all_series_rice(rice_folder: Literal["tests/data/rice_3do"]):
-    all_series_files = find_all_series(rice_folder)
+def test_find_all_h5_series_rice(rice_folder: Literal["tests/data/rice_3do"]):
+    all_series_files = find_all_h5_series(rice_folder)
     assert len(all_series_files) == 2
