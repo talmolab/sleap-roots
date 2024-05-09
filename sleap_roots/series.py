@@ -98,7 +98,7 @@ class Series:
         try:
             if primary_name:
                 if Path(primary_name).as_posix().endswith(".slp"):
-                    primary_path = primary_name
+                    primary_path = Path(primary_name).as_posix()
                 else:
                     primary_path = (
                         Path(series_name).with_suffix(f".{primary_name}.slp").as_posix()
@@ -108,8 +108,8 @@ class Series:
                 else:
                     print(f"Primary prediction file not found: {primary_path}")
             if lateral_name:
-                if lateral_name.endswith(".slp"):
-                    lateral_path = lateral_name
+                if Path(lateral_name).as_posix().endswith(".slp"):
+                    lateral_path = Path(lateral_name).as_posix()
                 else:
                     lateral_path = (
                         Path(series_name).with_suffix(f".{lateral_name}.slp").as_posix()
@@ -119,8 +119,8 @@ class Series:
                 else:
                     print(f"Lateral prediction file not found: {lateral_path}")
             if crown_name:
-                if crown_name.endswith(".slp"):
-                    crown_path = crown_name
+                if Path(crown_name).as_posix().endswith(".slp"):
+                    crown_path = Path(crown_name).as_posix()
                 else:
                     crown_path = (
                         Path(series_name).with_suffix(f".{crown_name}.slp").as_posix()
@@ -203,7 +203,7 @@ class Series:
 
     def __len__(self) -> int:
         """Length of the series (number of images)."""
-        return len(self.video)
+        return len(self)
 
     def __getitem__(self, idx: int) -> Dict[str, Optional[sio.LabeledFrame]]:
         """Return labeled frames for primary and/or lateral and/or crown predictions."""
