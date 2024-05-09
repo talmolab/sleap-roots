@@ -17,7 +17,9 @@ def test_dicot_pipeline(canola_h5, soy_h5):
         lateral_name="lateral.predictions",
     )
     soy = Series.load(
-        soy_h5, primary_name="primary.predictions", lateral_name="lateral.predictions"
+        h5_path=soy_h5,
+        primary_name="primary.predictions",
+        lateral_name="lateral.predictions",
     )
 
     pipeline = DicotPipeline()

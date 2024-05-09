@@ -9,7 +9,7 @@ from typing import Literal
 @pytest.fixture
 def series_instance():
     # Create a Series instance with dummy data
-    return Series(h5_path="dummy.h5")
+    return Series(series_name="dummy", video=["frame1", "frame2"])
 
 
 @pytest.fixture
@@ -71,11 +71,6 @@ def test_get_frame(dummy_series):
     assert "crown" in frames
 
 
-def test_series_name_property():
-    series = Series(h5_path="mock_path/file_name.h5")
-    assert series.series_name == "file_name"
-
-
 def test_series_name(series_instance):
     assert series_instance.series_name == "dummy"
 
@@ -90,13 +85,12 @@ def test_qc_cylinder(series_instance, csv_path):
     assert series_instance.qc_fail == 0
 
 
-def test_len():
-    series = Series(video=["frame1", "frame2"])
-    assert len(series) == 2
-
-
 def test_series_load_canola(canola_h5: Literal["tests/data/canola_7do/919QDUH.h5"]):
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        h5_path=canola_h5,
+        primary_name="primary.predictions",
+        lateral_name="lateral.predictions",
+    )
     assert len(series) == 72
 
 
