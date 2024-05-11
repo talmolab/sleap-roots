@@ -204,12 +204,45 @@ def test_series_load_canola(
     assert len(series) == 72
 
 
-def test_find_all_series_from_h5s_canola(
-    canola_folder: Literal["tests/data/canola_7do"],
+def test_find_all_series_from_slps(
+    sleap_roots_pipeline_output_folder: Literal[
+        "/tests/data/sleap-roots-pipeline-output"
+    ],
 ):
-    h5_paths = find_all_h5_paths(canola_folder)
-    all_series = load_series_from_h5s(h5_paths)
+    slp_paths = find_all_slp_paths(sleap_roots_pipeline_output_folder)
+    all_series = load_series_from_slps(slp_paths)
+    assert len(slp_paths) == 2
     assert len(all_series) == 1
+
+    # Test the first series
+    series = all_series[0]
+    assert series.series_name == "scan6791737"
+    assert series.h5_path == None
+    assert (
+        series.primary_path
+        == Path(
+            "tests\data\sleap-roots-pipeline-outputs\scan6791737.model230104_182346.multi_instance.n=720.rootprimary.slp"
+        ).as_posix()
+    )
+    assert series.lateral_path == None
+    assert (
+        series.crown_path
+        == Path(
+            "tests\data\sleap-roots-pipeline-outputs\scan6791737.model220821_163331.multi_instance.n=867.rootcrown.slp"
+        ).as_posix()
+    )
+
+    # Test the first frame of the first series
+    frame_index = 0
+    labeled_frames = series.get_frame(frame_index)
+    primary_points = series.get_primary_points(frame_index)
+    crown_points = series.get_crown_points(frame_index)
+    assert len(labeled_frames) == 3
+    assert "primary" in labeled_frames
+    assert labeled_frames["lateral"] == None
+    assert "crown" in labeled_frames
+    assert primary_points.shape == (1, 6, 2)
+    assert crown_points.shape == (1, 6, 2)
 
 
 def test_load_rice_10do(
