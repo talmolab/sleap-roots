@@ -6,7 +6,13 @@ from sleap_roots.trait_pipelines import (
     OlderMonocotPipeline,
     MultipleDicotPipeline,
 )
-from sleap_roots.series import Series, find_all_series
+from sleap_roots.series import (
+    Series,
+    find_all_h5_paths,
+    find_all_slp_paths,
+    load_series_from_h5s,
+    load_series_from_slps,
+)
 
 
 def test_dicot_pipeline(canola_h5, soy_h5):
