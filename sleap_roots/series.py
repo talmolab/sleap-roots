@@ -93,32 +93,34 @@ class Series:
                 primary_path = Path(primary_path)
                 # Check if the file exists
                 if primary_path.exists():
+                    # Make the primary_path POSIX-compliant
+                    primary_path = primary_path.as_posix()
                     # Load the primary predictions
-                    primary_labels = sio.load_slp(primary_path.as_posix())
+                    primary_labels = sio.load_slp(primary_path)
                 else:
-                    print(
-                        f"Primary prediction file not found: {primary_path.as_posix()}"
-                    )
+                    print(f"Primary prediction file not found: {primary_path}")
             if lateral_path:
                 # Make path object
                 lateral_path = Path(lateral_path)
                 # Check if the file exists
                 if lateral_path.exists():
+                    # Make the lateral_path POSIX-compliant
+                    lateral_path = lateral_path.as_posix()
                     # Load the lateral predictions
-                    lateral_labels = sio.load_slp(lateral_path.as_posix())
+                    lateral_labels = sio.load_slp(lateral_path)
                 else:
-                    print(
-                        f"Lateral prediction file not found: {lateral_path.as_posix()}"
-                    )
+                    print(f"Lateral prediction file not found: {lateral_path}")
             if crown_path:
                 # Make path object
                 crown_path = Path(crown_path)
                 # Check if the file exists
                 if crown_path.exists():
+                    # Make the crown_path POSIX-compliant
+                    crown_path = crown_path.as_posix()
                     # Load the crown predictions
-                    crown_labels = sio.load_slp(crown_path.as_posix())
+                    crown_labels = sio.load_slp(crown_path)
                 else:
-                    print(f"Crown prediction file not found: {crown_path.as_posix()}")
+                    print(f"Crown prediction file not found: {crown_path}")
         except Exception as e:
             print(f"Error loading prediction files: {e}")
 
@@ -466,7 +468,7 @@ def load_series_from_h5s(
 
 
 def load_series_from_slps(
-    slp_paths: List[str], h5s: bool, csv_path: Optional[str] = None
+    slp_paths: List[str], h5s: bool = False, csv_path: Optional[str] = None
 ) -> List[Series]:
     """Load a list of Series from a list of .slp paths.
 
@@ -483,7 +485,7 @@ def load_series_from_slps(
 
     Args:
         slp_paths: List of paths to .slp files.
-        h5s: Boolean flag to indicate if the .h5 files are available.
+        h5s: Boolean flag to indicate if the .h5 files are available. Default is False.
         csv_path: Optional path to the CSV file containing the expected plant count.
     """
     series_list = []
