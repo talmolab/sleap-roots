@@ -306,13 +306,21 @@ def test_get_frame_rice_10do_no_video(
     assert series.series_name == "0K9E8BI"
 
 
-def test_find_all_series_rice_10do(rice_10do_folder: Literal["tests/data/rice_10do"]):
+def test_find_all_series_from_h5s_rice_10do(
+    rice_10do_folder: Literal["tests/data/rice_10do"],
+):
+    """Test finding and loading all `Series` from a folder with h5 files.
+
+    To load the `Series`, the files must be named with the following convention:
+    h5_path: '/path/to/scan/series_name.h5'
+    primary_path: '/path/to/scan/series_name.model{model_id}.rootprimary.slp'
+    lateral_path: '/path/to/scan/series_name.model{model_id}.rootlateral.slp'
+    crown_path: '/path/to/scan/series_name.model{model_id}.rootcrown.slp'
+    """
     series_h5_path = Path(rice_10do_folder) / "0K9E8BI.h5"
-    all_series_files = find_all_series(rice_10do_folder)
-    assert len(all_series_files) == 1
-    assert series_h5_path.as_posix() == "tests/data/rice_10do/0K9E8BI.h5"
+    h5_paths = find_all_h5_paths(rice_10do_folder)
+    all_series = load_series_from_h5s(h5_paths, model_id="123")
 
-
-def test_find_all_series_rice(rice_folder: Literal["tests/data/rice_3do"]):
-    all_series_files = find_all_series(rice_folder)
-    assert len(all_series_files) == 2
+    assert len(h5_paths) == 1
+    assert len(all_series) == 1
+    assert all_series[0].h5_path == series_h5_path.as_posix()
