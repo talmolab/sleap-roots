@@ -88,7 +88,7 @@ def soy_primary_slp():
 @pytest.fixture
 def soy_lateral_slp():
     """Path to lateral root predictions for 6 day old soy."""
-    return "tests/data/soy_6do/6PR6AA22JK.lateral__nodes.predictions.slp"
+    return "tests/data/soy_6do/6PR6AA22JK.lateral.predictions.slp"
 
 
 @pytest.fixture
