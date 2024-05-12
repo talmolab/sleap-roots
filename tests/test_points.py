@@ -23,11 +23,16 @@ from sleap_roots.points import (
 
 
 # test get_count function with canola
-def test_get_lateral_count(canola_h5):
+def test_get_lateral_count(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set frame index to 0
     frame_idx = 0
     # Load the series
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the lateral points
     lateral_points = series.get_lateral_points(frame_idx)
     # Get the count of lateral roots
@@ -104,11 +109,16 @@ def test_join_pts_mixed_shapes():
 
 
 # test get_all_pts_array function
-def test_get_all_pts_array(canola_h5):
+def test_get_all_pts_array(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set frame index to 0
     frame_idx = 0
     # Load the series
-    plant = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    plant = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the primary points
     primary_pts = plant.get_primary_points(frame_idx)
     # Get primary length
@@ -120,15 +130,20 @@ def test_get_all_pts_array(canola_h5):
 
 
 # test get_all_pts_array function
-def test_get_all_pts_array_rice(rice_h5):
+def test_get_all_pts_array_rice(rice_h5, rice_long_slp, rice_main_slp):
     # Set frame index to 0
     frame_idx = 0
     # Load the series
-    plant = Series.load(rice_h5, primary_name="primary", lateral_name="crown")
+    plant = Series.load(
+        series_name="rice_test",
+        h5_path=rice_h5,
+        primary_path=rice_long_slp,
+        crown_path=rice_main_slp,
+    )
     # Get the lateral points
-    lateral_pts = plant.get_lateral_points(frame_idx)
+    crown_pts = plant.get_crown_points(frame_idx)
     # Get the flattened array with all of the points
-    pts_all_array = get_all_pts_array(lateral_pts)
+    pts_all_array = get_all_pts_array(crown_pts)
     assert pts_all_array.shape[0] == 12
 
 

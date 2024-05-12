@@ -121,11 +121,16 @@ def lateral_pts():
 
 
 # test get_convhull function using canola
-def test_get_convhull_canola(canola_h5):
+def test_get_convhull_canola(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set frame index to 0
     frame_index = 0
     # Load the series from the canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the primary and lateral root from the series
     primary_pts = series.get_primary_points(frame_index)
     lateral_pts = series.get_lateral_points(frame_index)
@@ -137,12 +142,19 @@ def test_get_convhull_canola(canola_h5):
     assert type(convex_hull) == ConvexHull
 
 
-# test canola model
-def test_get_convhull_features_canola(canola_h5):
+# test canola convex hull features
+def test_get_convhull_features_canola(
+    canola_h5, canola_primary_slp, canola_lateral_slp
+):
     # Set the frame index to 0
     frame_index = 0
     # Load the series from the canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the primary and lateral root from the series
     primary_pts = series.get_primary_points(frame_index)
     lateral_pts = series.get_lateral_points(frame_index)
@@ -163,12 +175,17 @@ def test_get_convhull_features_canola(canola_h5):
     np.testing.assert_almost_equal(max_height, 876.5622253417969, decimal=3)
 
 
-# test rice model
-def test_get_convhull_features_rice(rice_h5):
+# test rice convex hull features
+def test_get_convhull_features_rice(rice_h5, rice_long_slp, rice_main_slp):
     # Set the frame index to 0
     frame_index = 0
     # Load the series from the rice dataset
-    series = Series.load(rice_h5, primary_name="primary", crown_name="crown")
+    series = Series.load(
+        series_name="rice_test",
+        h5_path=rice_h5,
+        primary_path=rice_long_slp,
+        crown_path=rice_main_slp,
+    )
     # Get the crown root from the series
     crown_pts = series.get_crown_points(frame_index)
     # Get the convex hull from the points
@@ -221,11 +238,16 @@ def test_get_chull_perimeter(lateral_pts):
 
 
 # test get_chull_line_lengths with canola
-def test_get_chull_line_lengths(canola_h5):
+def test_get_chull_line_lengths(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index to 0
     frame_index = 0
     # Load the series from the canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the primary and lateral root from the series
     primary_pts = series.get_primary_points(frame_index)
     lateral_pts = series.get_lateral_points(frame_index)

@@ -11,11 +11,24 @@ from sleap_roots.points import get_all_pts_array
 from typing import Literal
 
 
-def test_get_ellipse(canola_h5: Literal["tests/data/canola_7do/919QDUH.h5"]):
+def test_get_ellipse(
+    canola_h5: Literal["tests/data/canola_7do/919QDUH.h5"],
+    canola_primary_slp: Literal[
+        "tests/data/canola_7do/919QDUH.primary.predictions.slp"
+    ],
+    canola_lateral_slp: Literal[
+        "tests/data/canola_7do/919QDUH.lateral.predictions.slp"
+    ],
+):
     # Set the frame index = 0
     frame_index = 0
     # Load the canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     primary_pts = series.get_primary_points(frame_index)
     # only test ellipse for primary root points
     a, b, ratio = fit_ellipse(primary_pts)
@@ -34,11 +47,24 @@ def test_get_ellipse(canola_h5: Literal["tests/data/canola_7do/919QDUH.h5"]):
     assert np.isnan(ratio)
 
 
-def test_get_ellipse_all_points(canola_h5: Literal["tests/data/canola_7do/919QDUH.h5"]):
+def test_get_ellipse_all_points(
+    canola_h5: Literal["tests/data/canola_7do/919QDUH.h5"],
+    canola_primary_slp: Literal[
+        "tests/data/canola_7do/919QDUH.primary.predictions.slp"
+    ],
+    canola_lateral_slp: Literal[
+        "tests/data/canola_7do/919QDUH.lateral.predictions.slp"
+    ],
+):
     # Set the frame index = 0
     frame_index = 0
     # Load the canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     primary_pts = series.get_primary_points(frame_index)
     primary_max_length_pts = get_max_length_pts(primary_pts)
     lateral_pts = series.get_lateral_points(frame_index)

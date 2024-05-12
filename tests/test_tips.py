@@ -81,11 +81,16 @@ def test_tips_one_tip(pts_one_tip):
 
 
 # test get_tip_xs with canola
-def test_get_tip_xs_canola(canola_h5):
+def test_get_tip_xs_canola(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index to 0
     frame_index = 0
     # Load the series with a canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the lateral roots from the series
     lateral_pts = series.get_lateral_points(frame_index)
     # Get the tips from the lateral roots
@@ -120,11 +125,16 @@ def test_get_tip_xs_no_tip(pts_no_tips):
 
 
 # test get_tip_ys with canola
-def test_get_tip_ys_canola(canola_h5):
+def test_get_tip_ys_canola(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index to 0
     frame_index = 0
     # Load the series with a canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the lateral root points from the series
     lateral_pts = series.get_lateral_points(frame_index)
     # Get the tips from the lateral roots

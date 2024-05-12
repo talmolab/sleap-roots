@@ -171,11 +171,16 @@ def test_min_distance_line_to_line():
 
 
 # tests for get_curve_index function
-def test_get_curve_index_canola(canola_h5):
+def test_get_curve_index_canola(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index to 0
     frame_idx = 0
     # Load the series from the canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the primary points from the first frame
     primary_pts = series.get_primary_points(frame_idx)
     # Get the points from the root with maximum length
@@ -310,11 +315,16 @@ def test_curve_index_mixed_invalid():
     )
 
 
-def test_get_root_lengths(canola_h5):
+def test_get_root_lengths(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index to 0
     frame_idx = 0
     # Load the series from the canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the primary points from the first frame
     primary_pts = series.get_primary_points(frame_idx)
     assert primary_pts.shape == (1, 6, 2)
@@ -347,11 +357,16 @@ def test_get_root_lengths_one_point(pts_one_base):
     )
 
 
-def test_get_max_length_pts(canola_h5):
+def test_get_max_length_pts(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index to 0
     frame_idx = 0
     # Load the series from the canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the primary points from the first frame
     primary_pts = series.get_primary_points(frame_idx)
     # Get the points from the root with maximum length
