@@ -241,15 +241,15 @@ def test_get_root_angle_proximal_rice(rice_h5, rice_main_slp, rice_long_slp):
         primary_path=rice_long_slp,
         crown_path=rice_main_slp,
     )
-    # Get the primary root points
-    primary_points = series.get_primary_points(frame_index)
+    # Get the crown root points
+    crown_points = series.get_crown_points(frame_index)
     # Set the proximal flag to True
     proximal = True
     # Get the proximal node index
-    node_ind = get_node_ind(primary_points, proximal)
-    angs = get_root_angle(primary_points, node_ind, proximal)
+    node_ind = get_node_ind(crown_points, proximal)
+    angs = get_root_angle(crown_points, node_ind, proximal)
+    assert crown_points.shape == (2, 6, 2)
     assert angs.shape == (2,)
-    assert primary_points.shape == (2, 6, 2)
     np.testing.assert_almost_equal(angs, [17.3180819, 3.2692877], decimal=3)
 
 
