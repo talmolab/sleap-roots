@@ -140,11 +140,16 @@ def test_get_vector_angle_from_gravity(vector, expected_angle):
 
 
 # test get_node_ind function
-def test_get_node_ind(canola_h5):
+def test_get_node_ind(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index to 0
     frame_index = 0
     # Load the series from the canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the primary root points
     primary_points = series.get_primary_points(frame_index)
     # Set the proximal flag to True
@@ -204,11 +209,16 @@ def test_get_node_ind_5node_proximal(pts_nan32_5node):
 
 
 # test canola get_root_angle function (base node to distal node angle)
-def test_get_root_angle_distal(canola_h5):
+def test_get_root_angle_distal(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index to 0
     frame_index = 0
     # Load the series from the canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the primary root points
     primary_points = series.get_primary_points(frame_index)
     # Set the proximal flag to False
@@ -221,20 +231,25 @@ def test_get_root_angle_distal(canola_h5):
 
 
 # test rice get_root_angle function (base node to proximal node angle)
-def test_get_root_angle_proximal_rice(rice_h5):
+def test_get_root_angle_proximal_rice(rice_h5, rice_main_slp, rice_long_slp):
     # Set the frame index to 0
     frame_index = 0
     # Load the series from the rice dataset
-    series = Series.load(rice_h5, primary_name="crown", lateral_name="primary")
-    # Get the primary root points
-    primary_points = series.get_primary_points(frame_index)
+    series = Series.load(
+        series_name="rice_test",
+        h5_path=rice_h5,
+        primary_path=rice_long_slp,
+        crown_path=rice_main_slp,
+    )
+    # Get the crown root points
+    crown_points = series.get_crown_points(frame_index)
     # Set the proximal flag to True
     proximal = True
     # Get the proximal node index
-    node_ind = get_node_ind(primary_points, proximal)
-    angs = get_root_angle(primary_points, node_ind, proximal)
+    node_ind = get_node_ind(crown_points, proximal)
+    angs = get_root_angle(crown_points, node_ind, proximal)
+    assert crown_points.shape == (2, 6, 2)
     assert angs.shape == (2,)
-    assert primary_points.shape == (2, 6, 2)
     np.testing.assert_almost_equal(angs, [17.3180819, 3.2692877], decimal=3)
 
 

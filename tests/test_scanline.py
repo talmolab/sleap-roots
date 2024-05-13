@@ -56,11 +56,18 @@ def pts_nan3():
     )
 
 
-def test_count_scanline_intersections_canola(canola_h5):
+def test_count_scanline_intersections_canola(
+    canola_h5, canola_primary_slp, canola_lateral_slp
+):
     # Set the frame number to 0
     frame = 0
     # Load the series from canola
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the primary and lateral roots
     primary_pts = series.get_primary_points(frame)
     primary_pts = get_max_length_pts(primary_pts)
@@ -73,11 +80,16 @@ def test_count_scanline_intersections_canola(canola_h5):
     np.testing.assert_equal(n_inter[14], 1)
 
 
-def test_count_scanline_intersections_rice(rice_h5):
+def test_count_scanline_intersections_rice(rice_h5, rice_long_slp, rice_main_slp):
     # Set the frame number to 0
     frame = 0
     # Load the series from rice
-    series = Series.load(rice_h5, primary_name="primary", crown_name="crown")
+    series = Series.load(
+        series_name="rice_test",
+        h5_path=rice_h5,
+        primary_path=rice_long_slp,
+        crown_path=rice_main_slp,
+    )
     crown_pts = series.get_crown_points(frame)
     depth = 1080
     n_line = 50
@@ -119,11 +131,16 @@ def test_count_scanline_intersections_different_params():
 
 
 # test get_scanline_first_ind with canola
-def test_get_scanline_first_ind(canola_h5):
+def test_get_scanline_first_ind(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame number to 0
     frame = 0
     # Load the series from canola
-    plant = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    plant = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     primary_pts = plant.get_primary_points(frame)
     primary_pts = get_max_length_pts(primary_pts)
     lateral_pts = plant.get_lateral_points(frame)
@@ -140,11 +157,16 @@ def test_get_scanline_first_ind(canola_h5):
 
 
 # test get_scanline_last_ind with canola
-def test_get_scanline_last_ind(canola_h5):
+def test_get_scanline_last_ind(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame number to 0
     frame = 0
     # Load the series from canola
-    plant = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    plant = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     primary_pts = plant.get_primary_points(frame)
     primary_pts = get_max_length_pts(primary_pts)
     lateral_pts = plant.get_lateral_points(frame)

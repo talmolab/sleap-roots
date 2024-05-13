@@ -26,11 +26,16 @@ def pts_nan3():
     )
 
 
-def test_get_bbox(canola_h5):
+def test_get_bbox(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index = 0
     frame_index = 0
     # Load the series from canola
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     primary_pts = series.get_primary_points(frame_index)
     lateral_pts = series.get_lateral_points(frame_index)
     pts_all_array = get_all_pts_array(primary_pts, lateral_pts)
@@ -40,11 +45,16 @@ def test_get_bbox(canola_h5):
     )
 
 
-def test_get_bbox_rice(rice_h5):
+def test_get_bbox_rice(rice_h5, rice_long_slp, rice_main_slp):
     # Set the frame index = 0
     frame_index = 0
     # Load the series from rice
-    series = Series.load(rice_h5, crown_name="crown", primary_name="primary")
+    series = Series.load(
+        series_name="rice_test",
+        h5_path=rice_h5,
+        primary_path=rice_long_slp,
+        crown_path=rice_main_slp,
+    )
     crown_pts = series.get_crown_points(frame_index)
     bbox = get_bbox(crown_pts)
     np.testing.assert_almost_equal(
@@ -60,21 +70,33 @@ def test_get_bbox_nan(pts_nan3):
     )
 
 
-def test_get_network_width_depth_ratio(canola_h5):
+def test_get_network_width_depth_ratio(
+    canola_h5, canola_primary_slp, canola_lateral_slp
+):
     # Set the frame index = 0
     frame_index = 0
     # Load the series from canola
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     primary_pts = series.get_primary_points(frame_index)
     ratio = get_network_width_depth_ratio(primary_pts)
     np.testing.assert_almost_equal(ratio, 0.2191607471467916, decimal=7)
 
 
-def test_get_network_width_depth_ratio_rice(rice_h5):
+def test_get_network_width_depth_ratio_rice(rice_h5, rice_long_slp, rice_main_slp):
     # Set the frame index = 0
     frame_index = 0
     # Load the series from rice
-    series = Series.load(rice_h5, crown_name="crown", primary_name="primary")
+    series = Series.load(
+        series_name="rice_test",
+        h5_path=rice_h5,
+        primary_path=rice_long_slp,
+        crown_path=rice_main_slp,
+    )
     crown_pts = series.get_crown_points(frame_index)
     ratio = get_network_width_depth_ratio(crown_pts)
     np.testing.assert_almost_equal(ratio, 0.0899001182996162, decimal=7)
@@ -141,11 +163,16 @@ def test_get_network_distribution_different_fraction():
     assert result == 8  # Both line segments are in the lower part of the bounding box
 
 
-def test_get_network_length(canola_h5):
+def test_get_network_length(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index = 0
     frame_index = 0
     # Load the series from canola
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     primary_pts = series.get_primary_points(frame_index)
     # get primary length
     primary_max_length_pts = get_max_length_pts(primary_pts)
@@ -157,21 +184,31 @@ def test_get_network_length(canola_h5):
     np.testing.assert_almost_equal(length, 1173.0531992388217, decimal=7)
 
 
-def test_get_network_length_rice(rice_h5):
+def test_get_network_length_rice(rice_h5, rice_long_slp, rice_main_slp):
     # Set the frame index = 0
     frame_index = 0
-    series = Series.load(rice_h5, primary_name="primary", crown_name="crown")
+    series = Series.load(
+        series_name="rice_test",
+        h5_path=rice_h5,
+        primary_path=rice_long_slp,
+        crown_path=rice_main_slp,
+    )
     crown_pts = series.get_crown_points(frame_index)
     crown_lengths = get_root_lengths(crown_pts)
     length = get_network_length(crown_lengths)
     np.testing.assert_almost_equal(length, 798.5726441151357, decimal=7)
 
 
-def test_get_network_solidity(canola_h5):
+def test_get_network_solidity(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index = 0
     frame_index = 0
     # Load the series from canola
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     primary_pts = series.get_primary_points(frame_index)
     # get primary length
     primary_max_length_pts = get_max_length_pts(primary_pts)
@@ -190,11 +227,16 @@ def test_get_network_solidity(canola_h5):
     np.testing.assert_almost_equal(ratio, 0.012578941125511587, decimal=7)
 
 
-def test_get_network_solidity_rice(rice_h5):
+def test_get_network_solidity_rice(rice_h5, rice_long_slp, rice_main_slp):
     # Set the frame index = 0
     frame_index = 0
     # Load the series from rice
-    series = Series.load(rice_h5, primary_name="primary", crown_name="crown")
+    series = Series.load(
+        series_name="rice_test",
+        h5_path=rice_h5,
+        primary_path=rice_long_slp,
+        crown_path=rice_main_slp,
+    )
     crown_pts = series.get_crown_points(frame_index)
     crown_lengths = get_root_lengths(crown_pts)
     network_length = get_network_length(crown_lengths)
@@ -291,11 +333,16 @@ def test_get_network_distribution_different_fraction():
     assert network_length == pytest.approx(expected_length)
 
 
-def test_get_network_distribution(canola_h5):
+def test_get_network_distribution(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index = 0
     frame_index = 0
     # Load the series from canola
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     primary_pts = series.get_primary_points(frame_index)
     primary_max_length_pts = get_max_length_pts(primary_pts)
     lateral_pts = series.get_lateral_points(frame_index)
@@ -307,11 +354,16 @@ def test_get_network_distribution(canola_h5):
     np.testing.assert_almost_equal(root_length, 589.4322131363684, decimal=7)
 
 
-def test_get_network_distribution_rice(rice_h5):
+def test_get_network_distribution_rice(rice_h5, rice_long_slp, rice_main_slp):
     # Set the frame index = 0
     frame_index = 0
     # Load the series from rice
-    series = Series.load(rice_h5, primary_name="primary", crown_name="crown")
+    series = Series.load(
+        series_name="rice_test",
+        h5_path=rice_h5,
+        primary_path=rice_long_slp,
+        crown_path=rice_main_slp,
+    )
     crown_pts = series.get_crown_points(frame_index)
     bbox = get_bbox(crown_pts)
     fraction = 2 / 3
@@ -319,11 +371,18 @@ def test_get_network_distribution_rice(rice_h5):
     np.testing.assert_almost_equal(root_length, 477.77168597561507, decimal=7)
 
 
-def test_get_network_distribution_ratio(canola_h5):
+def test_get_network_distribution_ratio(
+    canola_h5, canola_primary_slp, canola_lateral_slp
+):
     # Set the frame index = 0
     frame_index = 0
     # Load the series from canola
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     primary_pts = series.get_primary_points(frame_index)
     # get primary length
     primary_max_length_pts = get_max_length_pts(primary_pts)
@@ -347,11 +406,16 @@ def test_get_network_distribution_ratio(canola_h5):
     np.testing.assert_almost_equal(ratio, 0.5024769665338648, decimal=7)
 
 
-def test_get_network_distribution_ratio_rice(rice_h5):
+def test_get_network_distribution_ratio_rice(rice_h5, rice_long_slp, rice_main_slp):
     # Set the frame index = 0
     frame_index = 0
     # Load the series from rice
-    series = Series.load(rice_h5, primary_name="primary", crown_name="crown")
+    series = Series.load(
+        series_name="rice_test",
+        h5_path=rice_h5,
+        primary_path=rice_long_slp,
+        crown_path=rice_main_slp,
+    )
     fraction = 2 / 3
     crown_pts = series.get_crown_points(frame_index)
     crown_lengths = get_root_lengths(crown_pts)

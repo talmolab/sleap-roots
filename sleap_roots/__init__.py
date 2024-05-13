@@ -19,7 +19,13 @@ from sleap_roots.trait_pipelines import (
     OlderMonocotPipeline,
     MultipleDicotPipeline,
 )
-from sleap_roots.series import Series, find_all_series
+from sleap_roots.series import (
+    Series,
+    find_all_h5_paths,
+    find_all_slp_paths,
+    load_series_from_h5s,
+    load_series_from_slps,
+)
 
 # Define package version.
 # This is read dynamically by setuptools in pyproject.toml to determine the release version.

@@ -26,6 +26,18 @@ def canola_lateral_slp():
 
 
 @pytest.fixture
+def rice_pipeline_output_folder():
+    """Path to the folder with the output of the rice pipeline."""
+    return "tests/data/rice_3do_pipeline_output"
+
+
+@pytest.fixture
+def rice_10do_pipeline_output_folder():
+    """Path to the folder with the output of the 10 day old rice pipeline."""
+    return "tests/data/rice_10do_pipeline_output"
+
+
+@pytest.fixture
 def rice_folder():
     """Path to a folder with the predictions for 3 day old rice."""
     return "tests/data/rice_3do"
@@ -88,7 +100,7 @@ def soy_primary_slp():
 @pytest.fixture
 def soy_lateral_slp():
     """Path to lateral root predictions for 6 day old soy."""
-    return "tests/data/soy_6do/6PR6AA22JK.lateral__nodes.predictions.slp"
+    return "tests/data/soy_6do/6PR6AA22JK.lateral.predictions.slp"
 
 
 @pytest.fixture
@@ -119,3 +131,9 @@ def multiple_arabidopsis_11do_lateral_slp():
 def multiple_arabidopsis_11do_csv():
     """Path to the CSV file with expected count and group information."""
     return "tests/data/multiple_arabidopsis_11do/merged_proofread_samples_03122024.csv"
+
+
+@pytest.fixture
+def sleap_roots_pipeline_output_folder():
+    """Path to the folder with the output of the sleap_roots pipeline."""
+    return "tests/data/sleap-roots-pipeline-outputs"

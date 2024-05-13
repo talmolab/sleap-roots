@@ -215,11 +215,16 @@ def test_get_base_tip_dist_no_roots(pts_no_roots):
 
 
 # test get_base_xs with canola
-def test_get_base_xs_canola(canola_h5):
+def test_get_base_xs_canola(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame idx to 0
     frame_idx = 0
     # Load a series from a canola dataset
-    plant = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    plant = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the labeled frame
     lateral_points = plant.get_lateral_points(frame_idx)
     # Get the lateral root bases
@@ -269,11 +274,16 @@ def test_get_base_ys_no_roots(pts_no_roots):
 
 
 # test get_base_length with canola
-def test_get_base_length_canola(canola_h5):
+def test_get_base_length_canola(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index to 0
     frame_idx = 0
     # Load a series from a canola dataset
-    plant = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    plant = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the lateral points
     lateral_pts = plant.get_lateral_points(frame_idx)
     # Get the bases of the lateral roots
@@ -309,11 +319,16 @@ def test_get_base_ct_density(primary_pts, lateral_pts):
 
 
 # test get_base_ct_density function with canola example
-def test_get_base_ct_density_canola(canola_h5):
+def test_get_base_ct_density_canola(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index to 0
     frame_idx = 0
     # Load a series from a canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the primary and lateral points
     primary_pts = series.get_primary_points(frame_idx)
     lateral_pts = series.get_lateral_points(frame_idx)
@@ -328,11 +343,16 @@ def test_get_base_ct_density_canola(canola_h5):
 
 
 # test get_base_length_ratio with canola
-def test_get_base_length_ratio(canola_h5):
+def test_get_base_length_ratio(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index to 0
     frame_idx = 0
     # Load a series from a canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the primary and lateral points
     primary_pts = series.get_primary_points(frame_idx)
     lateral_pts = series.get_lateral_points(frame_idx)
@@ -350,11 +370,16 @@ def test_get_base_length_ratio(canola_h5):
     np.testing.assert_almost_equal(base_length_ratio, 0.086, decimal=3)
 
 
-def test_root_width_canola(canola_h5):
+def test_root_width_canola(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index to 0
     frame_idx = 0
     # Load a series from a canola dataset
-    series = Series.load(canola_h5, primary_name="primary", lateral_name="lateral")
+    series = Series.load(
+        series_name="canola_test",
+        h5_path=canola_h5,
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+    )
     # Get the primary points
     primary_pts = series.get_primary_points(frame_idx)
     # Get the primary points with the maximum length
