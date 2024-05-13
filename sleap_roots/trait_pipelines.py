@@ -329,6 +329,7 @@ class Pipeline:
         self,
         plant: Series,
         write_csv: bool = False,
+        output_dir: str = ".",
         csv_suffix: str = ".traits.csv",
         return_non_scalar: bool = False,
     ) -> pd.DataFrame:
@@ -338,6 +339,7 @@ class Pipeline:
             plant: The plant image series as a `Series` object.
             write_csv: A boolean value. If True, it writes per plant detailed
                 CSVs with traits for every instance on every frame.
+            output_dir: The directory to write the CSV files to.
             csv_suffix: If `write_csv` is `True`, a CSV file will be saved with the same
                 name as the plant's `{plant.series_name}{csv_suffix}`.
             return_non_scalar: If `True`, return all non-scalar traits as well as the
@@ -373,7 +375,7 @@ class Pipeline:
         traits = pd.concat([plant_name, frame_idx, traits], axis=1)
 
         if write_csv:
-            csv_name = Path(plant.h5_path).with_suffix(csv_suffix)
+            csv_name = Path(output_dir) / f"{plant.series_name}{csv_suffix}"
             traits[["plant_name", "frame_idx"] + self.csv_traits].to_csv(
                 csv_name, index=False
             )
