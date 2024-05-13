@@ -209,14 +209,15 @@ class Series:
 
     def __len__(self) -> int:
         """Length of the series (number of images)."""
-        if self.video is None:
+        if self.video is not None:
+            return len(self.video)
+        else:
+            # Check all labels if video is None
             for labels in [self.primary_labels, self.lateral_labels, self.crown_labels]:
                 if labels is not None:
                     return len(labels)
-                else:
-                    return 0
-        else:
-            return len(self.video)
+            # If all labels are None, return 0
+            return 0
 
     def __getitem__(self, idx: int) -> Dict[str, Optional[sio.LabeledFrame]]:
         """Return labeled frames for primary and/or lateral and/or crown predictions."""
