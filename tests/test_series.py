@@ -221,14 +221,14 @@ def test_find_all_series_from_slps(
     assert (
         series.primary_path
         == Path(
-            "tests\data\sleap-roots-pipeline-outputs\scan6791737.model230104_182346.multi_instance.n=720.rootprimary.slp"
+            "tests/data/sleap-roots-pipeline-outputs/scan6791737.model230104_182346.multi_instance.n=720.rootprimary.slp"
         ).as_posix()
     )
     assert series.lateral_path == None
     assert (
         series.crown_path
         == Path(
-            "tests\data\sleap-roots-pipeline-outputs\scan6791737.model220821_163331.multi_instance.n=867.rootcrown.slp"
+            "tests/data/sleap-roots-pipeline-outputs/scan6791737.model220821_163331.multi_instance.n=867.rootcrown.slp"
         ).as_posix()
     )
 
