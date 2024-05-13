@@ -26,6 +26,18 @@ def canola_lateral_slp():
 
 
 @pytest.fixture
+def rice_pipeline_output_folder():
+    """Path to the folder with the output of the rice pipeline."""
+    return "tests/data/rice_3do_pipeline_output"
+
+
+@pytest.fixture
+def rice_10do_pipeline_output_folder():
+    """Path to the folder with the output of the 10 day old rice pipeline."""
+    return "tests/data/rice_10do_pipeline_output"
+
+
+@pytest.fixture
 def rice_folder():
     """Path to a folder with the predictions for 3 day old rice."""
     return "tests/data/rice_3do"
