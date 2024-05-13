@@ -548,18 +548,21 @@ def get_chull_intersection_vectors(
 
     # Get the intersection points
     if not intersection.is_empty:
-        intersect_points = (
-            np.array([[point.x, point.y] for point in intersection.geoms])
-            if intersection.geom_type == "MultiPoint"
-            else np.array([[intersection.x, intersection.y]])
-        )
+        intersect_points = extract_points_from_geometry(intersection)
     else:
         # Return two vectors of NaNs if there is no intersection
         return leftmost_vector, rightmost_vector
 
-    # Get the leftmost and rightmost intersection points
-    leftmost_intersect = intersect_points[np.argmin(intersect_points[:, 0])]
-    rightmost_intersect = intersect_points[np.argmax(intersect_points[:, 0])]
+    # Convert the list of NumPy arrays to a 2D NumPy array
+    intersection_points_array = np.vstack(intersect_points)
+
+    # Find the leftmost and rightmost intersection points
+    leftmost_intersect = intersection_points_array[
+        np.argmin(intersection_points_array[:, 0])
+    ]
+    rightmost_intersect = intersection_points_array[
+        np.argmax(intersection_points_array[:, 0])
+    ]
 
     # Make a vector from the leftmost r0 point to the leftmost intersection point
     leftmost_vector = (leftmost_intersect - leftmost_r0).reshape(1, -1)

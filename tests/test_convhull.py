@@ -327,7 +327,7 @@ def test_basic_functionality(pts_shape_3_6_2):
         r0_pts, r1_pts, pts, hull
     )
 
-    # Assertions depend on the expected outcome, which you'll need to calculate based on your function's logic
+    # TODO: Add more specific tests as needed
     assert not np.isnan(left_vector).any(), "Left vector should not contain NaNs"
     assert not np.isnan(right_vector).any(), "Right vector should not contain NaNs"
 

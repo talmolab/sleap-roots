@@ -8,7 +8,7 @@ from shapely.ops import nearest_points
 from typing import List, Optional, Tuple
 
 
-def extract_points_from_geometry(geometry):
+def extract_points_from_geometry(geometry) -> List[np.ndarray]:
     """Extracts coordinates as a list of numpy arrays from any given Shapely geometry object.
 
     This function supports Point, MultiPoint, LineString, and GeometryCollection types.
