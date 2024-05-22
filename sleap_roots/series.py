@@ -432,10 +432,11 @@ def load_series_from_h5s(
     """Load a list of Series from a list of .h5 paths.
 
     To load the `Series`, the files must be named with the following convention:
-    h5_path: '/path/to/scan/series_name.h5'
-    primary_path: '/path/to/scan/series_name.model{model_id}.rootprimary.slp'
-    lateral_path: '/path/to/scan/series_name.model{model_id}.rootlateral.slp'
-    crown_path: '/path/to/scan/series_name.model{model_id}.rootcrown.slp'
+    h5_path: '/path/to/scan/{series_name}.h5'
+    primary_path: '/path/to/scan/{series_name}.model{model_id}.rootprimary.slp'
+    lateral_path: '/path/to/scan/{series_name}.model{model_id}.rootlateral.slp'
+    crown_path: '/path/to/scan/{series_name}.model{model_id}.rootcrown.slp'
+    Note that everything is expected to be in the same folder.
 
     Our pipeline outputs prediction files with this format:
     /<output_folder>/scan{scan_id}.model{model_id}.root{model_type}.slp
@@ -474,20 +475,23 @@ def load_series_from_slps(
     """Load a list of Series from a list of .slp paths.
 
     To load the `Series`, the files must be named with the following convention:
-    h5_path: '/path/to/scan/series_name.h5'
-    primary_path: '/path/to/scan/series_name.model{model_id}.rootprimary.slp'
-    lateral_path: '/path/to/scan/series_name.model{model_id}.rootlateral.slp'
-    crown_path: '/path/to/scan/series_name.model{model_id}.rootcrown.slp'
-    Note that everything is expected to be in the same folder.
 
-    Our pipeline outputs prediction files with this format:
-    /<output_folder>/scan{scan_id}.model{model_id}.root{model_type}.slp
+        h5_path: '/path/to/scan/{series_name}.h5'
+        primary_path: '/path/to/scan/{series_name}.{any_suffix_containing_"primary"}.slp'
+        lateral_path: '/path/to/scan/{series_name}.{any_suffix_containing_"lateral"}.slp'
+        crown_path: '/path/to/scan/{series_name}.{any_suffix_containing_"crown"}.slp'
+        Note that everything is expected to be in the same folder.
 
+        Our pipeline outputs prediction files with this format:
+        /<output_folder>/scan{scan_id}.model{model_id}.root{model_type}.slp
 
     Args:
         slp_paths: List of paths to .slp files.
         h5s: Boolean flag to indicate if the .h5 files are available. Default is False.
         csv_path: Optional path to the CSV file containing the expected plant count.
+
+    Returns:
+        A list of Series loaded with the specified .slp files.
     """
     series_list = []
     series_names = list(set([Path(p).name.split(".")[0] for p in slp_paths]))
