@@ -288,7 +288,6 @@ def test_invalid_scalar_values():
     assert np.isnan(get_curve_index(0, 8))
 
 
-# tests for `get_root_lengths`
 def test_curve_index_float():
     assert get_curve_index(10.0, 5.0) == 0.5
 

@@ -125,7 +125,7 @@ def get_curve_index(
         & (~np.isnan(base_tip_dists))
         & (lengths > 0)
         & (lengths >= base_tip_dists),
-        (lengths - base_tip_dists) / lengths,
+        (lengths - base_tip_dists) / np.where(lengths != 0, lengths, np.nan),
         np.nan,
     )
 
