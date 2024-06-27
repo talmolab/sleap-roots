@@ -473,11 +473,10 @@ def load_series_from_slps(
 ) -> List[Series]:
     """Load a list of Series from a list of .slp paths.
 
-    To load the `Series`, the files must be named with the following convention:
+    To load the `Series`, the files must be named with the following convention.
+    The `slp_paths` are expeted to have the `series_name` in the filename and "primary",
+    "lateral", or "crown" in the filename to differentiate the predictions.
     h5_path: '/path/to/scan/series_name.h5'
-    primary_path: '/path/to/scan/series_name.model{model_id}.rootprimary.slp'
-    lateral_path: '/path/to/scan/series_name.model{model_id}.rootlateral.slp'
-    crown_path: '/path/to/scan/series_name.model{model_id}.rootcrown.slp'
     Note that everything is expected to be in the same folder.
 
     Our pipeline outputs prediction files with this format:
@@ -500,7 +499,7 @@ def load_series_from_slps(
         if h5s:
             # Get directory of the h5s
             h5_dir = Path(slp_paths[0]).parent
-            # Generate the path to the .h5 file
+            # Create path to the .h5 file
             h5_path = h5_dir / f"{series_name}.h5"
         else:
             h5_path = None
