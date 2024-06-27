@@ -280,7 +280,12 @@ def test_get_frame_rice_10do(
     # Get the crown labeled frame
     crown_lf = frames.get("crown")
 
-    assert crown_lf == expected_labeled_frame
+    # Compare the attributes of the labeled frames
+    assert crown_lf.frame_idx == expected_labeled_frame.frame_idx
+    assert crown_lf.instances == expected_labeled_frame.instances
+    assert crown_lf.video.filename == expected_labeled_frame.video.filename
+    assert crown_lf.video.shape == expected_labeled_frame.video.shape
+    assert crown_lf.video.backend == expected_labeled_frame.video.backend
     assert series.series_name == "0K9E8BI"
 
 
@@ -302,7 +307,12 @@ def test_get_frame_rice_10do_no_video(
     # Get the crown labeled frame
     crown_lf = frames.get("crown")
 
-    assert crown_lf == expected_labeled_frame
+    # Compare the attributes of the labeled frames
+    assert crown_lf.frame_idx == expected_labeled_frame.frame_idx
+    assert crown_lf.instances == expected_labeled_frame.instances
+    assert crown_lf.video.filename == expected_labeled_frame.video.filename
+    assert crown_lf.video.shape == expected_labeled_frame.video.shape
+    assert crown_lf.video.backend == expected_labeled_frame.video.backend
     assert series.series_name == "0K9E8BI"
 
 
