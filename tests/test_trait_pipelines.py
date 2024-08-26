@@ -1,10 +1,14 @@
 import numpy as np
 import pandas as pd
+import json
+import pytest
+
 from sleap_roots.trait_pipelines import (
     DicotPipeline,
     YoungerMonocotPipeline,
     OlderMonocotPipeline,
     MultipleDicotPipeline,
+    NumpyArrayEncoder,
 )
 from sleap_roots.series import (
     Series,
@@ -13,6 +17,47 @@ from sleap_roots.series import (
     load_series_from_h5s,
     load_series_from_slps,
 )
+
+
+def test_numpy_array_serialization():
+    array = np.array([1, 2, 3])
+    expected = [1, 2, 3]
+    json_str = json.dumps(array, cls=NumpyArrayEncoder)
+    assert json.loads(json_str) == expected
+
+
+def test_numpy_int64_serialization():
+    int64_value = np.int64(42)
+    expected = 42
+    json_str = json.dumps(int64_value, cls=NumpyArrayEncoder)
+    assert json.loads(json_str) == expected
+
+
+def test_unsupported_type_serialization():
+    class UnsupportedType:
+        pass
+
+    with pytest.raises(TypeError):
+        json.dumps(UnsupportedType(), cls=NumpyArrayEncoder)
+
+
+def test_mixed_data_serialization():
+    data = {
+        "array": np.array([1, 2, 3]),
+        "int64": np.int64(42),
+        "regular_int": 99,
+        "list": [4, 5, 6],
+        "dict": {"key": "value"},
+    }
+    expected = {
+        "array": [1, 2, 3],
+        "int64": 42,
+        "regular_int": 99,
+        "list": [4, 5, 6],
+        "dict": {"key": "value"},
+    }
+    json_str = json.dumps(data, cls=NumpyArrayEncoder)
+    assert json.loads(json_str) == expected
 
 
 def test_dicot_pipeline(
@@ -107,12 +152,17 @@ def test_younger_monocot_pipeline(rice_pipeline_output_folder):
     assert (
         rice_traits["curve_index"].fillna(0) >= 0
     ).all(), "curve_index in rice_traits contains negative values"
+    assert rice_traits["curve_index"].fillna(0).max() <= 1, "curve_index in rice_traits contains values greater than 1"
     assert (
         all_traits["curve_index_median"] >= 0
     ).all(), "curve_index in all_traits contains negative values"
+    assert all_traits["curve_index_median"].max() <= 1, "curve_index in all_traits contains values greater than 1"
     assert (
         all_traits["crown_curve_indices_mean_median"] >= 0
     ).all(), "crown_curve_indices_mean_median in all_traits contains negative values"
+    assert (
+        all_traits["crown_curve_indices_mean_median"] <= 1
+    ).all(), "crown_curve_indices_mean_median in all_traits contains values greater than 1"
     assert (
         (0 <= rice_traits["crown_angles_proximal_p95"])
         & (rice_traits["crown_angles_proximal_p95"] <= 180)
@@ -169,6 +219,9 @@ def test_older_monocot_pipeline(rice_10do_pipeline_output_folder):
     assert (
         all_traits["crown_curve_indices_mean_median"] >= 0
     ).all(), "crown_curve_indices_mean_median in all_traits contains negative values"
+    assert (
+        all_traits["crown_curve_indices_mean_median"] <= 1
+    ).all(), "crown_curve_indices_mean_median in all_traits contains values greater than 1"
     assert (
         (0 <= rice_traits["crown_angles_proximal_p95"])
         & (rice_traits["crown_angles_proximal_p95"] <= 180)
