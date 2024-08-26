@@ -1597,8 +1597,8 @@ class YoungerMonocotPipeline(Pipeline):
             ),
             TraitDef(
                 name="crown_curve_indices",
-                fn=get_base_tip_dist,
-                input_traits=["crown_base_pts", "crown_tip_pts"],
+                fn=get_curve_index,
+                input_traits=["crown_lengths", "crown_base_tip_dists"],
                 scalar=False,
                 include_in_csv=True,
                 kwargs={},
