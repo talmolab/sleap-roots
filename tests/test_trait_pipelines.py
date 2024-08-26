@@ -152,17 +152,23 @@ def test_younger_monocot_pipeline(rice_pipeline_output_folder):
     assert (
         rice_traits["curve_index"].fillna(0) >= 0
     ).all(), "curve_index in rice_traits contains negative values"
-    assert rice_traits["curve_index"].fillna(0).max() <= 1, "curve_index in rice_traits contains values greater than 1"
+    assert (
+        rice_traits["curve_index"].fillna(0).max() <= 1
+    ), "curve_index in rice_traits contains values greater than 1"
     assert (
         all_traits["curve_index_median"] >= 0
     ).all(), "curve_index in all_traits contains negative values"
-    assert all_traits["curve_index_median"].max() <= 1, "curve_index in all_traits contains values greater than 1"
+    assert (
+        all_traits["curve_index_median"].max() <= 1
+    ), "curve_index in all_traits contains values greater than 1"
     assert (
         all_traits["crown_curve_indices_mean_median"] >= 0
     ).all(), "crown_curve_indices_mean_median in all_traits contains negative values"
     assert (
         all_traits["crown_curve_indices_mean_median"] <= 1
-    ).all(), "crown_curve_indices_mean_median in all_traits contains values greater than 1"
+    ).all(), (
+        "crown_curve_indices_mean_median in all_traits contains values greater than 1"
+    )
     assert (
         (0 <= rice_traits["crown_angles_proximal_p95"])
         & (rice_traits["crown_angles_proximal_p95"] <= 180)
@@ -221,7 +227,9 @@ def test_older_monocot_pipeline(rice_10do_pipeline_output_folder):
     ).all(), "crown_curve_indices_mean_median in all_traits contains negative values"
     assert (
         all_traits["crown_curve_indices_mean_median"] <= 1
-    ).all(), "crown_curve_indices_mean_median in all_traits contains values greater than 1"
+    ).all(), (
+        "crown_curve_indices_mean_median in all_traits contains values greater than 1"
+    )
     assert (
         (0 <= rice_traits["crown_angles_proximal_p95"])
         & (rice_traits["crown_angles_proximal_p95"] <= 180)
