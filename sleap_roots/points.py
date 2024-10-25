@@ -43,7 +43,8 @@ def extract_points_from_geometry(geometry) -> List[np.ndarray]:
             points.extend(extract_points_from_geometry(geom))
         return points
     else:
-        raise TypeError(f"Unsupported geometry type: {type(geometry).__name__}")
+        print(f"Unsupported geometry type: {type(geometry).__name__}")
+        return []
 
 
 def get_count(pts: np.ndarray):
