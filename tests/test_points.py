@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from shapely.geometry import Point, MultiPoint, LineString, GeometryCollection
+from shapely.geometry import Point, MultiPoint, LineString, GeometryCollection, MultiLineString
 from sleap_roots import Series
 from sleap_roots.lengths import get_max_length_pts
 from sleap_roots.points import (
@@ -779,6 +779,13 @@ def test_extract_from_linestring():
     results = extract_points_from_geometry(linestring)
     assert all(np.array_equal(result, exp) for result, exp in zip(results, expected))
 
+def test_extract_from_multilinestring():
+    multilinestring = MultiLineString([[(0, 0), (1, 1)], [(2, 2), (3, 3)]])
+    # Multilinestring is not supported, so it should return an empty list
+    expected = []
+    results = extract_points_from_geometry(multilinestring)
+    assert all(np.array_equal(result, exp) for result, exp in zip(results, expected))
+
 
 def test_extract_from_geometrycollection():
     geom_collection = GeometryCollection([Point(1, 2), LineString([(0, 0), (1, 1)])])
@@ -803,10 +810,35 @@ def test_extract_from_unsupported_type():
     with pytest.raises(NameError):
         extract_points_from_geometry(
             Polygon([(0, 0), (1, 1), (1, 0)])
-        )  # Polygon is unsupported
+        )  # Polygon is unsupported type and not imported from shapely.geometry
 
 
 def test_extract_from_empty_geometrycollection():
     empty_geom_collection = GeometryCollection()
     expected = []
     assert extract_points_from_geometry(empty_geom_collection) == expected
+
+
+@pytest.mark.parametrize(
+    "geometry, expected",
+    [
+
+        (MultiLineString([[(0, 0), (1, 1)], [(2, 2), (3, 3)]]), []),
+        (GeometryCollection([Point(1, 2), LineString([(0, 0), (1, 1)]), MultiLineString([[(0, 0), (1, 1)], [(2, 2), (3, 3)]])]), [np.array([1, 2]), np.array([0, 0]), np.array([1, 1])]), # GeometryCollection with MultiLineString
+    ],
+)
+def test_extract_from_multilinestring(geometry, expected):
+    results = extract_points_from_geometry(geometry)
+    assert all(np.array_equal(result, exp) for result, exp in zip(results, expected))
+
+
+@pytest.mark.parametrize(
+    "unexpected_input, expected_output",
+    [
+        ("24", []),
+        (None, []),
+        (5, []),
+    ],
+)
+def test_extract_from_unsupported_geometry(unexpected_input, expected_output):
+    assert extract_points_from_geometry(unexpected_input) == expected_output
