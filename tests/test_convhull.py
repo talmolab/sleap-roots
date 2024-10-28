@@ -1,4 +1,8 @@
 from scipy.spatial import ConvexHull
+
+import numpy as np
+import pytest
+
 from sleap_roots import Series
 from sleap_roots.convhull import (
     get_convhull,
@@ -13,8 +17,7 @@ from sleap_roots.convhull import (
 )
 from sleap_roots.lengths import get_max_length_pts
 from sleap_roots.points import get_all_pts_array, get_nodes
-import numpy as np
-import pytest
+from sleap_roots.bases import get_bases
 
 
 @pytest.fixture
