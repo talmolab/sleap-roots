@@ -30,13 +30,13 @@ def get_convhull(pts: np.ndarray) -> Optional[ConvexHull]:
 
     # Check for infinite values
     if np.isinf(pts).any():
-        print("Cannot compute convex hull: input contains infinite values.")
+        logging.info("Cannot compute convex hull: input contains infinite values.")
         return None
 
     # Ensure there are at least 3 unique non-collinear points
     unique_pts = np.unique(pts, axis=0)
     if len(unique_pts) < 3:
-        print("Cannot compute convex hull: not enough unique points.")
+        logging.info("Cannot compute convex hull: not enough unique points.")
         return None
 
     try:
@@ -475,6 +475,7 @@ def get_chull_intersection_vectors(
 
     # Check for a valid or existing convex hull
     if hull is None or len(unique_pts) < 3:
+        logging.debug("Not enough unique points to compute convex hull intersections.")
         # Return two vectors of NaNs if not valid hull
         return (np.array([[np.nan, np.nan]]), np.array([[np.nan, np.nan]]))
 
@@ -482,12 +483,14 @@ def get_chull_intersection_vectors(
     rn_pts_valid = rn_pts[~np.isnan(rn_pts).any(axis=1)]
     # Need at least two points to define a line
     if len(rn_pts_valid) < 2:
+        logging.debug("Not enough valid rn points to compute convex hull intersections.")
         return (np.array([[np.nan, np.nan]]), np.array([[np.nan, np.nan]]))
 
     # Ensuring r0_pts does not contain NaN values
     r0_pts_valid = r0_pts[~np.isnan(r0_pts).any(axis=1)]
     # Expect two vectors in the end
     if len(r0_pts_valid) < 2:
+        logging.debug("Not enough valid r0 points to compute convex hull intersections.")
         return (np.array([[np.nan, np.nan]]), np.array([[np.nan, np.nan]]))
 
     # Get the vertices of the convex hull
@@ -518,6 +521,7 @@ def get_chull_intersection_vectors(
         rightmost_rn = rn_pts[np.argmax(rn_pts[:, 0])]
         m, b = get_line_equation_from_points(leftmost_rn, rightmost_rn)
     except Exception:
+        logging.debug("Could not find line equation between leftmost and rightmost rn points.")
         # If line equation cannot be found, return NaNs
         return leftmost_vector, rightmost_vector
 
