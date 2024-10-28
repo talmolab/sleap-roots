@@ -1,6 +1,7 @@
 """Convex hull fitting and derived trait calculation."""
 
 import numpy as np
+import logging
 from scipy.spatial import ConvexHull
 from scipy.spatial.distance import pdist
 from typing import Tuple, Optional, Union
@@ -384,16 +385,25 @@ def get_chull_areas_via_intersection(
 
     # Find the intersection between the hull perimeter and the extended line
     intersection = extended_line.intersection(hull_perimeter)
+    logging.debug(f"Intersection: {intersection}")
 
     # Compute the intersection points and add to lists
-    if not intersection.is_empty:
+    if intersection and not intersection.is_empty:
+        logging.debug("Intersection points found between the convex hull and the line.")
         intersect_points = extract_points_from_geometry(intersection)
-        above_line.extend(intersect_points)
-        below_line.extend(intersect_points)
+        if not intersect_points: # Ensure it's not an empty list
+            return np.nan, np.nan
+    else:
+        logging.debug("No intersection points found between the convex hull and the line.")
+        return np.nan, np.nan
 
+    # Add intersection points to the lists
+    above_line.extend(intersect_points)
+    below_line.extend(intersect_points)
+    
     # Calculate areas using get_chull_area
-    area_above_line = get_chull_area(np.array(above_line)) if above_line else 0.0
-    area_below_line = get_chull_area(np.array(below_line)) if below_line else 0.0
+    area_above_line = get_chull_area(np.array(above_line)) if above_line else np.nan
+    area_below_line = get_chull_area(np.array(below_line)) if below_line else np.nan
 
     return area_above_line, area_below_line
 
@@ -512,6 +522,7 @@ def get_chull_intersection_vectors(
     leftmost_vector = np.array([[np.nan, np.nan]])
     rightmost_vector = np.array([[np.nan, np.nan]])
     if not is_leftmost_on_hull and not is_rightmost_on_hull:
+        logging.debug("Leftmost and rightmost r0 points are not on the convex hull.")
         # If leftmost and rightmost r0 points are not on the convex hull return NaNs
         return leftmost_vector, rightmost_vector
 
@@ -549,11 +560,17 @@ def get_chull_intersection_vectors(
 
     # Find the intersection between the hull perimeter and the extended line
     intersection = extended_line.intersection(hull_perimeter)
+    logging.debug(f"Intersection: {intersection}")
 
     # Get the intersection points
-    if not intersection.is_empty:
+    if intersection and not intersection.is_empty:
+        logging.debug(f"Intersection points found between the convex hull and the line: {intersection}.")
         intersect_points = extract_points_from_geometry(intersection)
+        if not intersect_points:  # Ensure it's not an empty list
+            logging.debug("No intersection points found after extraction.")
+            return leftmost_vector, rightmost_vector
     else:
+        logging.debug("No intersection points found between the convex hull and the line.")
         # Return two vectors of NaNs if there is no intersection
         return leftmost_vector, rightmost_vector
 
