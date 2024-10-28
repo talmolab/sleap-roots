@@ -391,16 +391,18 @@ def get_chull_areas_via_intersection(
     if intersection and not intersection.is_empty:
         logging.debug("Intersection points found between the convex hull and the line.")
         intersect_points = extract_points_from_geometry(intersection)
-        if not intersect_points: # Ensure it's not an empty list
+        if not intersect_points:  # Ensure it's not an empty list
             return np.nan, np.nan
     else:
-        logging.debug("No intersection points found between the convex hull and the line.")
+        logging.debug(
+            "No intersection points found between the convex hull and the line."
+        )
         return np.nan, np.nan
 
     # Add intersection points to the lists
     above_line.extend(intersect_points)
     below_line.extend(intersect_points)
-    
+
     # Calculate areas using get_chull_area
     area_above_line = get_chull_area(np.array(above_line)) if above_line else np.nan
     area_below_line = get_chull_area(np.array(below_line)) if below_line else np.nan
@@ -493,14 +495,18 @@ def get_chull_intersection_vectors(
     rn_pts_valid = rn_pts[~np.isnan(rn_pts).any(axis=1)]
     # Need at least two points to define a line
     if len(rn_pts_valid) < 2:
-        logging.debug("Not enough valid rn points to compute convex hull intersections.")
+        logging.debug(
+            "Not enough valid rn points to compute convex hull intersections."
+        )
         return (np.array([[np.nan, np.nan]]), np.array([[np.nan, np.nan]]))
 
     # Ensuring r0_pts does not contain NaN values
     r0_pts_valid = r0_pts[~np.isnan(r0_pts).any(axis=1)]
     # Expect two vectors in the end
     if len(r0_pts_valid) < 2:
-        logging.debug("Not enough valid r0 points to compute convex hull intersections.")
+        logging.debug(
+            "Not enough valid r0 points to compute convex hull intersections."
+        )
         return (np.array([[np.nan, np.nan]]), np.array([[np.nan, np.nan]]))
 
     # Get the vertices of the convex hull
@@ -532,7 +538,9 @@ def get_chull_intersection_vectors(
         rightmost_rn = rn_pts[np.argmax(rn_pts[:, 0])]
         m, b = get_line_equation_from_points(leftmost_rn, rightmost_rn)
     except Exception:
-        logging.debug("Could not find line equation between leftmost and rightmost rn points.")
+        logging.debug(
+            "Could not find line equation between leftmost and rightmost rn points."
+        )
         # If line equation cannot be found, return NaNs
         return leftmost_vector, rightmost_vector
 
@@ -564,13 +572,17 @@ def get_chull_intersection_vectors(
 
     # Get the intersection points
     if intersection and not intersection.is_empty:
-        logging.debug(f"Intersection points found between the convex hull and the line: {intersection}.")
+        logging.debug(
+            f"Intersection points found between the convex hull and the line: {intersection}."
+        )
         intersect_points = extract_points_from_geometry(intersection)
         if not intersect_points:  # Ensure it's not an empty list
             logging.debug("No intersection points found after extraction.")
             return leftmost_vector, rightmost_vector
     else:
-        logging.debug("No intersection points found between the convex hull and the line.")
+        logging.debug(
+            "No intersection points found between the convex hull and the line."
+        )
         # Return two vectors of NaNs if there is no intersection
         return leftmost_vector, rightmost_vector
 
