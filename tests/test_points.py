@@ -846,6 +846,12 @@ def test_extract_from_multilinestring(geometry, expected):
         ("24", []),
         (None, []),
         (5, []),
+        (True, []),
+        ("", []),
+        ({"key": "value"}, []),
+        (np.array([1, 2]), []),
+        ((), []),
+        ([], []),
     ],
 )
 def test_extract_from_unsupported_geometry(unexpected_input, expected_output):
