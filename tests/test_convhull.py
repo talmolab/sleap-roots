@@ -365,3 +365,51 @@ def test_no_convex_hull():
     assert np.isnan(
         right_vector
     ).all(), "Expected NaN vector for right_vector when hull is None"
+
+
+# Test with stunted 10 day-old rice sample that gave `MultiLineString` geometry type as r1 intersection with convex hull
+def test_stunted_rice_10do_multilinestring(rice_10do_stunted_slp):
+    # Load the series from the rice dataset
+    series = Series.load(
+        series_name="stunted_rice_test",
+        crown_path=rice_10do_stunted_slp,
+    )
+    # Get the crown roots from the series
+    crown_pts = series.get_crown_points(3)  # Frame index 3 was the problematic frame
+    # Get the convex hull from the points
+    convex_hull = get_convhull(crown_pts)
+    r0_pts = get_bases(crown_pts)
+    r1_pts = get_nodes(crown_pts, 1)
+    left_vector, right_vector = get_chull_intersection_vectors(
+        r0_pts, r1_pts, crown_pts, convex_hull
+    )
+    # Expected vectors are NaN since the intersection is a `MultiLineString` geometry type
+    # Check if both left_vector and right_vector are all NaNs
+    assert np.all(
+        np.isnan(left_vector)
+    ), "Left vector does not contain all NaNs as expected."
+    assert np.all(
+        np.isnan(right_vector)
+    ), "Right vector does not contain all NaNs as expected."
+
+
+# Similarly, `get_chull_intersection_areas` can be tested with the same stunted 10 day-old rice sample
+# to check if the areas are NaN when the intersection is a `MultiLineString` geometry type
+def test_stunted_rice_10do_multilinestring_areas(rice_10do_stunted_slp):
+    # Load the series from the rice dataset
+    series = Series.load(
+        series_name="stunted_rice_test",
+        crown_path=rice_10do_stunted_slp,
+    )
+    # Get the crown roots from the series
+    crown_pts = series.get_crown_points(3)  # Frame index 3 was the problematic frame
+    # Get the convex hull from the points
+    convex_hull = get_convhull(crown_pts)
+    r1_pts = get_nodes(crown_pts, 1)
+    area_above, area_below = get_chull_areas_via_intersection(
+        r1_pts, crown_pts, convex_hull
+    )
+    # Expected areas are NaN since the intersection is a `MultiLineString` geometry type
+    # Check if both area_above and area_below are NaNs
+    assert np.isnan(area_above), "Area above line does not contain NaN as expected."
+    assert np.isnan(area_below), "Area below line does not contain NaN as expected."
