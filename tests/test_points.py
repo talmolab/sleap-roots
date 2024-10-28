@@ -779,13 +779,6 @@ def test_extract_from_linestring():
     results = extract_points_from_geometry(linestring)
     assert all(np.array_equal(result, exp) for result, exp in zip(results, expected))
 
-def test_extract_from_multilinestring():
-    multilinestring = MultiLineString([[(0, 0), (1, 1)], [(2, 2), (3, 3)]])
-    # Multilinestring is not supported, so it should return an empty list
-    expected = []
-    results = extract_points_from_geometry(multilinestring)
-    assert all(np.array_equal(result, exp) for result, exp in zip(results, expected))
-
 
 def test_extract_from_geometrycollection():
     geom_collection = GeometryCollection([Point(1, 2), LineString([(0, 0), (1, 1)])])
@@ -825,6 +818,7 @@ def test_extract_from_empty_geometrycollection():
 
         (MultiLineString([[(0, 0), (1, 1)], [(2, 2), (3, 3)]]), []),
         (GeometryCollection([Point(1, 2), LineString([(0, 0), (1, 1)]), MultiLineString([[(0, 0), (1, 1)], [(2, 2), (3, 3)]])]), [np.array([1, 2]), np.array([0, 0]), np.array([1, 1])]), # GeometryCollection with MultiLineString
+        (MultiLineString(), []),  # Empty MultiLineString
     ],
 )
 def test_extract_from_multilinestring(geometry, expected):
