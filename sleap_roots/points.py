@@ -50,7 +50,6 @@ def extract_points_from_geometry(geometry) -> List[np.ndarray]:
         return []
 
 
-
 def get_count(pts: np.ndarray):
     """Get number of roots.
 
