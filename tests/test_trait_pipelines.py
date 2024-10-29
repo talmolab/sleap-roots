@@ -237,6 +237,22 @@ def test_older_monocot_pipeline(rice_10do_pipeline_output_folder):
         (0 <= all_traits["crown_angles_proximal_median_p95"].dropna())
         & (all_traits["crown_angles_proximal_median_p95"].dropna() <= 180)
     ).all(), "angle_column in all_traits contains values out of range [0, 180]"
+    assert (
+        (0 <= rice_traits["angle_chull_r1_left_intersection_vector"].dropna())
+        & (rice_traits["angle_chull_r1_left_intersection_vector"].dropna() <= 180)
+    ).all(), "angle column in rice_traits contains values out of range [0, 180]"
+    assert (
+        (0 <= all_traits["angle_chull_r1_left_intersection_vector_p95"].dropna())
+        & (all_traits["angle_chull_r1_left_intersection_vector_p95"].dropna() <= 180)
+    ).all(), "angle column in all_traits contains values out of range [0, 180]"
+    assert (
+        (0 <= rice_traits["angle_chull_r1_right_intersection_vector"].dropna())
+        & (rice_traits["angle_chull_r1_right_intersection_vector"].dropna() <= 180)
+    ).all(), "angle column in rice_traits contains values out of range [0, 180]"
+    assert (
+        (0 <= all_traits["angle_chull_r1_right_intersection_vector_p95"].dropna())
+        & (all_traits["angle_chull_r1_right_intersection_vector_p95"].dropna() <= 180)
+    ).all(), "angle column in all_traits contains values out of range [0, 180]"
 
 
 def test_multiple_dicot_pipeline(
