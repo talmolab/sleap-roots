@@ -852,7 +852,10 @@ def test_extract_from_multilinestring(geometry, expected):
         (np.array([1, 2]), []),
         ((), []),
         ([], []),
-        (MultiLineString([[(np.nan, np.nan), (1, 1)]]), []),  # MultiLineString with invalid coordinates
+        (
+            MultiLineString([[(np.nan, np.nan), (1, 1)]]),
+            [],
+        ),  # MultiLineString with invalid coordinates
     ],
 )
 def test_extract_from_unsupported_geometry(unexpected_input, expected_output):

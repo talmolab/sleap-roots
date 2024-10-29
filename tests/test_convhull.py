@@ -2,6 +2,7 @@ from scipy.spatial import ConvexHull
 
 import numpy as np
 import pytest
+import logging
 
 from sleap_roots import Series
 from sleap_roots.convhull import (
@@ -38,7 +39,9 @@ def valid_input():
 
 @pytest.fixture
 def invalid_input_with_inf_values():
-    pts = np.array([[[0, 0], [2, 2], [4, 0], [2, -2], [0, -4], [4, -4], [np.inf, np.inf]]])
+    pts = np.array(
+        [[[0, 0], [2, 2], [4, 0], [2, -2], [0, -4], [4, -4], [np.inf, np.inf]]]
+    )
     return pts
 
 
@@ -134,7 +137,6 @@ def lateral_pts():
     )
 
 
-
 # test get_convhull with invalid input with inf values
 def test_infinite_values_logging(invalid_input_with_inf_values, caplog):
     with caplog.at_level(logging.INFO):  # This message is INFO level
@@ -228,15 +230,23 @@ def test_get_convhull_features_rice(rice_h5, rice_long_slp, rice_main_slp):
     max_height = get_chull_max_height(convex_hull)
 
     # Get the intersection vectors
-    left_vector = get_chull_intersection_vectors_left(get_chull_intersection_vectors(r0_pts, r1_pts, crown_pts, convex_hull))
-    right_vector = get_chull_intersection_vectors_right(get_chull_intersection_vectors(r0_pts, r1_pts, crown_pts, convex_hull))
+    left_vector = get_chull_intersection_vectors_left(
+        get_chull_intersection_vectors(r0_pts, r1_pts, crown_pts, convex_hull)
+    )
+    right_vector = get_chull_intersection_vectors_right(
+        get_chull_intersection_vectors(r0_pts, r1_pts, crown_pts, convex_hull)
+    )
     # Get angles from gravity
     left_angle = get_vector_angles_from_gravity(left_vector)
     right_angle = get_vector_angles_from_gravity(right_vector)
 
     # Get the intersection areas
-    area_above = get_chull_area_via_intersection_above(get_chull_areas_via_intersection(r1_pts, crown_pts, convex_hull))
-    area_below = get_chull_area_via_intersection_below(get_chull_areas_via_intersection(r1_pts, crown_pts, convex_hull))
+    area_above = get_chull_area_via_intersection_above(
+        get_chull_areas_via_intersection(r1_pts, crown_pts, convex_hull)
+    )
+    area_below = get_chull_area_via_intersection_below(
+        get_chull_areas_via_intersection(r1_pts, crown_pts, convex_hull)
+    )
 
     assert left_vector.shape == (1, 2)
     assert right_vector.shape == (1, 2)
