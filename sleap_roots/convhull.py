@@ -44,7 +44,7 @@ def get_convhull(pts: np.ndarray) -> Optional[ConvexHull]:
         # Compute and return the convex hull
         return ConvexHull(unique_pts)
     except Exception as e:
-        print(f"Cannot compute convex hull: {e}")
+        logging.info(f"Cannot compute convex hull: {e}")
         return None
 
 
