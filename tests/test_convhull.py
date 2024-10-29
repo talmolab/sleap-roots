@@ -32,6 +32,12 @@ def valid_input():
 
 
 @pytest.fixture
+def invalid_input_with_inf_values():
+    pts = np.array([[[0, 0], [2, 2], [4, 0], [2, -2], [0, -4], [4, -4], [np.inf, np.inf]]])
+    return pts
+
+
+@pytest.fixture
 def invalid_pts_shape():
     rn_pts = np.array([[0, 0], [1, 1]])
     pts = np.array([1, 2])  # Incorrect shape
@@ -120,6 +126,19 @@ def lateral_pts():
                 [816.71142578, 808.12585449],
             ],
         ]
+    )
+
+
+
+# test get_convhull with invalid input with inf values
+def test_infinite_values_logging(invalid_input_with_inf_values, caplog):
+    with caplog.at_level(logging.INFO):  # This message is INFO level
+        _ = get_convhull(invalid_input_with_inf_values)
+
+    # Check that the specific log message is in caplog
+    assert any(
+        "Cannot compute convex hull: input contains infinite values." in message
+        for message in caplog.messages
     )
 
 
