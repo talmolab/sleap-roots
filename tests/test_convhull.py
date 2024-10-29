@@ -1,4 +1,9 @@
 from scipy.spatial import ConvexHull
+
+import numpy as np
+import pytest
+import logging
+
 from sleap_roots import Series
 from sleap_roots.convhull import (
     get_convhull,
@@ -10,11 +15,15 @@ from sleap_roots.convhull import (
     get_chull_division_areas,
     get_chull_areas_via_intersection,
     get_chull_intersection_vectors,
+    get_chull_intersection_vectors_left,
+    get_chull_intersection_vectors_right,
+    get_chull_area_via_intersection_above,
+    get_chull_area_via_intersection_below,
 )
 from sleap_roots.lengths import get_max_length_pts
 from sleap_roots.points import get_all_pts_array, get_nodes
-import numpy as np
-import pytest
+from sleap_roots.bases import get_bases
+from sleap_roots.angle import get_vector_angles_from_gravity
 
 
 @pytest.fixture
@@ -26,6 +35,14 @@ def valid_input():
     expected_area_above = 16.0
     expected_area_below = 4.0
     return rn_pts, pts, hull, (expected_area_above, expected_area_below)
+
+
+@pytest.fixture
+def invalid_input_with_inf_values():
+    pts = np.array(
+        [[[0, 0], [2, 2], [4, 0], [2, -2], [0, -4], [4, -4], [np.inf, np.inf]]]
+    )
+    return pts
 
 
 @pytest.fixture
@@ -120,6 +137,18 @@ def lateral_pts():
     )
 
 
+# test get_convhull with invalid input with inf values
+def test_infinite_values_logging(invalid_input_with_inf_values, caplog):
+    with caplog.at_level(logging.INFO):  # This message is INFO level
+        _ = get_convhull(invalid_input_with_inf_values)
+
+    # Check that the specific log message is in caplog
+    assert any(
+        "Cannot compute convex hull: input contains infinite values." in message
+        for message in caplog.messages
+    )
+
+
 # test get_convhull function using canola
 def test_get_convhull_canola(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set frame index to 0
@@ -188,6 +217,11 @@ def test_get_convhull_features_rice(rice_h5, rice_long_slp, rice_main_slp):
     )
     # Get the crown root from the series
     crown_pts = series.get_crown_points(frame_index)
+
+    # Get the r0 and r1 nodes from the crown root
+    r0_pts = get_bases(crown_pts)
+    r1_pts = get_nodes(crown_pts, 1)
+
     # Get the convex hull from the points
     convex_hull = get_convhull(crown_pts)
     perimeter = get_chull_perimeter(convex_hull)
@@ -195,10 +229,36 @@ def test_get_convhull_features_rice(rice_h5, rice_long_slp, rice_main_slp):
     max_width = get_chull_max_width(convex_hull)
     max_height = get_chull_max_height(convex_hull)
 
+    # Get the intersection vectors
+    left_vector = get_chull_intersection_vectors_left(
+        get_chull_intersection_vectors(r0_pts, r1_pts, crown_pts, convex_hull)
+    )
+    right_vector = get_chull_intersection_vectors_right(
+        get_chull_intersection_vectors(r0_pts, r1_pts, crown_pts, convex_hull)
+    )
+    # Get angles from gravity
+    left_angle = get_vector_angles_from_gravity(left_vector)
+    right_angle = get_vector_angles_from_gravity(right_vector)
+
+    # Get the intersection areas
+    area_above = get_chull_area_via_intersection_above(
+        get_chull_areas_via_intersection(r1_pts, crown_pts, convex_hull)
+    )
+    area_below = get_chull_area_via_intersection_below(
+        get_chull_areas_via_intersection(r1_pts, crown_pts, convex_hull)
+    )
+
+    assert left_vector.shape == (1, 2)
+    assert right_vector.shape == (1, 2)
+
     np.testing.assert_almost_equal(perimeter, 1450.6365795858003, decimal=3)
     np.testing.assert_almost_equal(area, 23722.883102604676, decimal=3)
     np.testing.assert_almost_equal(max_width, 64.341064453125, decimal=3)
     np.testing.assert_almost_equal(max_height, 715.6949920654297, decimal=3)
+    np.testing.assert_almost_equal(left_angle, 166.08852115310046, decimal=3)
+    np.testing.assert_almost_equal(right_angle, 0.04343543279020469, decimal=3)
+    np.testing.assert_almost_equal(area_above, 1903.040353098403, decimal=3)
+    np.testing.assert_almost_equal(area_below, 21819.842749506273, decimal=3)
 
 
 # test plant with 2 roots/instances with nan nodes
@@ -362,3 +422,51 @@ def test_no_convex_hull():
     assert np.isnan(
         right_vector
     ).all(), "Expected NaN vector for right_vector when hull is None"
+
+
+# Test with stunted 10 day-old rice sample that gave `MultiLineString` geometry type as r1 intersection with convex hull
+def test_stunted_rice_10do_multilinestring(rice_10do_stunted_slp):
+    # Load the series from the rice dataset
+    series = Series.load(
+        series_name="stunted_rice_test",
+        crown_path=rice_10do_stunted_slp,
+    )
+    # Get the crown roots from the series
+    crown_pts = series.get_crown_points(3)  # Frame index 3 was the problematic frame
+    # Get the convex hull from the points
+    convex_hull = get_convhull(crown_pts)
+    r0_pts = get_bases(crown_pts)
+    r1_pts = get_nodes(crown_pts, 1)
+    left_vector, right_vector = get_chull_intersection_vectors(
+        r0_pts, r1_pts, crown_pts, convex_hull
+    )
+    # Expected vectors are NaN since the intersection is a `MultiLineString` geometry type
+    # Check if both left_vector and right_vector are all NaNs
+    assert np.all(
+        np.isnan(left_vector)
+    ), "Left vector does not contain all NaNs as expected."
+    assert np.all(
+        np.isnan(right_vector)
+    ), "Right vector does not contain all NaNs as expected."
+
+
+# Similarly, `get_chull_intersection_areas` can be tested with the same stunted 10 day-old rice sample
+# to check if the areas are NaN when the intersection is a `MultiLineString` geometry type
+def test_stunted_rice_10do_multilinestring_areas(rice_10do_stunted_slp):
+    # Load the series from the rice dataset
+    series = Series.load(
+        series_name="stunted_rice_test",
+        crown_path=rice_10do_stunted_slp,
+    )
+    # Get the crown roots from the series
+    crown_pts = series.get_crown_points(3)  # Frame index 3 was the problematic frame
+    # Get the convex hull from the points
+    convex_hull = get_convhull(crown_pts)
+    r1_pts = get_nodes(crown_pts, 1)
+    area_above, area_below = get_chull_areas_via_intersection(
+        r1_pts, crown_pts, convex_hull
+    )
+    # Expected areas are NaN since the intersection is a `MultiLineString` geometry type
+    # Check if both area_above and area_below are NaNs
+    assert np.isnan(area_above), "Area above line does not contain NaN as expected."
+    assert np.isnan(area_below), "Area below line does not contain NaN as expected."

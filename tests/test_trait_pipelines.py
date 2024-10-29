@@ -182,15 +182,14 @@ def test_younger_monocot_pipeline(rice_pipeline_output_folder):
 def test_older_monocot_pipeline(rice_10do_pipeline_output_folder):
     # Find slp paths in folder
     slp_paths = find_all_slp_paths(rice_10do_pipeline_output_folder)
-    assert len(slp_paths) == 1
+    assert len(slp_paths) == 2
     # Load series from slps
     rice_series_all = load_series_from_slps(
         slp_paths=slp_paths, h5s=False, csv_path=None
     )
-    assert len(rice_series_all) == 1
+    assert len(rice_series_all) == 2
     # Get first series
     rice_series = rice_series_all[0]
-    assert rice_series.series_name == "scan0K9E8BI"
 
     pipeline = OlderMonocotPipeline()
     all_traits = pipeline.compute_batch_traits(rice_series_all)
@@ -198,7 +197,7 @@ def test_older_monocot_pipeline(rice_10do_pipeline_output_folder):
 
     # Dataframe shape assertions
     assert rice_traits.shape == (72, 102)
-    assert all_traits.shape == (1, 901)
+    assert all_traits.shape == (2, 901)
 
     # Dataframe dtype assertions
     expected_rice_traits_dtypes = {
@@ -223,21 +222,37 @@ def test_older_monocot_pipeline(rice_10do_pipeline_output_folder):
 
     # Value range assertions for traits
     assert (
-        all_traits["crown_curve_indices_mean_median"] >= 0
+        all_traits["crown_curve_indices_mean_median"].dropna() >= 0
     ).all(), "crown_curve_indices_mean_median in all_traits contains negative values"
     assert (
-        all_traits["crown_curve_indices_mean_median"] <= 1
+        all_traits["crown_curve_indices_mean_median"].dropna() <= 1
     ).all(), (
         "crown_curve_indices_mean_median in all_traits contains values greater than 1"
     )
     assert (
-        (0 <= rice_traits["crown_angles_proximal_p95"])
-        & (rice_traits["crown_angles_proximal_p95"] <= 180)
+        (0 <= rice_traits["crown_angles_proximal_p95"].dropna())
+        & (rice_traits["crown_angles_proximal_p95"].dropna() <= 180)
     ).all(), "angle_column in rice_traits contains values out of range [0, 180]"
     assert (
-        (0 <= all_traits["crown_angles_proximal_median_p95"])
-        & (all_traits["crown_angles_proximal_median_p95"] <= 180)
+        (0 <= all_traits["crown_angles_proximal_median_p95"].dropna())
+        & (all_traits["crown_angles_proximal_median_p95"].dropna() <= 180)
     ).all(), "angle_column in all_traits contains values out of range [0, 180]"
+    assert (
+        (0 <= rice_traits["angle_chull_r1_left_intersection_vector"].dropna())
+        & (rice_traits["angle_chull_r1_left_intersection_vector"].dropna() <= 180)
+    ).all(), "angle column in rice_traits contains values out of range [0, 180]"
+    assert (
+        (0 <= all_traits["angle_chull_r1_left_intersection_vector_p95"].dropna())
+        & (all_traits["angle_chull_r1_left_intersection_vector_p95"].dropna() <= 180)
+    ).all(), "angle column in all_traits contains values out of range [0, 180]"
+    assert (
+        (0 <= rice_traits["angle_chull_r1_right_intersection_vector"].dropna())
+        & (rice_traits["angle_chull_r1_right_intersection_vector"].dropna() <= 180)
+    ).all(), "angle column in rice_traits contains values out of range [0, 180]"
+    assert (
+        (0 <= all_traits["angle_chull_r1_right_intersection_vector_p95"].dropna())
+        & (all_traits["angle_chull_r1_right_intersection_vector_p95"].dropna() <= 180)
+    ).all(), "angle column in all_traits contains values out of range [0, 180]"
 
 
 def test_multiple_dicot_pipeline(

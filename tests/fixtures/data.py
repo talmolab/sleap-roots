@@ -80,6 +80,12 @@ def rice_main_10do_slp():
 
 
 @pytest.fixture
+def rice_10do_stunted_slp():
+    """Path to stunted root predictions for 10 day old rice."""
+    return "tests/data/rice_10do_pipeline_output/scan_7859150.model_221208_113552.multi_instance.n=574.root_crown.slp"
+
+
+@pytest.fixture
 def soy_folder():
     """Path to a folder with the predictions for 6 day old soy."""
     return "tests/data/soy_6do"

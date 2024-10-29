@@ -1,6 +1,7 @@
 """Get traits related to the points."""
 
 import numpy as np
+import logging
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 from shapely.geometry import Point, MultiPoint, LineString, GeometryCollection
@@ -31,6 +32,8 @@ def extract_points_from_geometry(geometry) -> List[np.ndarray]:
     >>> extract_points_from_geometry(geom_col)
     [array([1, 2]), array([1, 2]), array([3, 4]), array([0, 0]), array([1, 1]), array([2, 2])]
     """
+    logging.debug(f"Geometry type: {type(geometry).__name__}")
+    logging.debug(f"Geometry: {geometry}")
     if isinstance(geometry, Point):
         return [np.array([geometry.x, geometry.y])]
     elif isinstance(geometry, MultiPoint):
@@ -43,7 +46,8 @@ def extract_points_from_geometry(geometry) -> List[np.ndarray]:
             points.extend(extract_points_from_geometry(geom))
         return points
     else:
-        raise TypeError(f"Unsupported geometry type: {type(geometry).__name__}")
+        logging.info(f"Unsupported geometry type: {type(geometry).__name__}")
+        return []
 
 
 def get_count(pts: np.ndarray):
