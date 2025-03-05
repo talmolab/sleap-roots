@@ -36,7 +36,7 @@ def get_bbox(pts: np.ndarray) -> Tuple[float, float, float, float]:
 
 
 def get_network_width_depth_ratio(
-    pts: Union[np.ndarray, Tuple[float, float, float, float]]
+    pts: Union[np.ndarray, Tuple[float, float, float, float]],
 ) -> float:
     """Return width to depth ratio of bounding box for root network.
 
