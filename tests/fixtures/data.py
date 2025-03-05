@@ -26,6 +26,18 @@ def canola_lateral_slp():
 
 
 @pytest.fixture
+def canola_traits_csv():
+    """Path to traits csv for 7 day old canola."""
+    return "tests/data/canola_7do/919QDUH.traits.csv"
+
+
+@pytest.fixture
+def canola_batch_traits_csv():
+    """Path to summarized traits csv for 7 day old canola."""
+    return "tests/data/canola_7d0/919QDUH.batch_traits.csv"
+
+
+@pytest.fixture
 def rice_pipeline_output_folder():
     """Path to the folder with the output of the rice pipeline."""
     return "tests/data/rice_3do_pipeline_output"
