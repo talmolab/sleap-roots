@@ -34,7 +34,7 @@ def canola_traits_csv():
 @pytest.fixture
 def canola_batch_traits_csv():
     """Path to computed batch traits csv for 7 day old canola."""
-    return "tests/data/canola_7d0/919QDUH.batch_traits.csv"
+    return "tests/data/canola_7do/919QDUH.batch_traits.csv"
 
 
 @pytest.fixture
@@ -124,13 +124,13 @@ def soy_lateral_slp():
 @pytest.fixture
 def soy_traits_csv():
     """Path to computed traits csv for 6 day old soy."""
-    return "tests/data/canola_7d0/6PR6AA22JK.traits.csv"
+    return "tests/data/soy_6do/6PR6AA22JK.traits.csv"
 
 
 @pytest.fixture
 def soy_batch_traits_csv():
     """Path to computed batch traits csv for 6 day old soy."""
-    return "tests/data/canola_7d0/6PR6AA22JK.batch_traits.csv"
+    return "tests/data/soy_6do/6PR6AA22JK.batch_traits.csv"
 
 
 @pytest.fixture
