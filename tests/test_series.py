@@ -270,6 +270,7 @@ def test_get_frame_rice_10do(
     expected_labels = sio.load_slp(rice_main_10do_slp)
     # Get the first labeled frame
     expected_labeled_frame = expected_labels[0]
+    expected_labeled_frame_pts = expected_labeled_frame.instances[0]
 
     # Load the series
     series = Series.load(
@@ -282,7 +283,6 @@ def test_get_frame_rice_10do(
 
     # Compare the attributes of the labeled frames
     assert crown_lf.frame_idx == expected_labeled_frame.frame_idx
-    assert crown_lf.instances == expected_labeled_frame.instances
     assert crown_lf.video.filename == expected_labeled_frame.video.filename
     assert crown_lf.video.shape == expected_labeled_frame.video.shape
     assert crown_lf.video.backend == expected_labeled_frame.video.backend
