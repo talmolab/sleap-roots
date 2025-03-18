@@ -182,7 +182,8 @@ def test_dicot_pipeline(
 
     angle_traits = (
         "primary_angle_proximal",
-        "primary_angle_distal" "lateral_angles_distal",
+        "primary_angle_distal",
+        "lateral_angles_distal",
         "lateral_angles_proximal",
     )
 
