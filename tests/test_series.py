@@ -270,7 +270,6 @@ def test_get_frame_rice_10do(
     expected_labels = sio.load_slp(rice_main_10do_slp)
     # Get the first labeled frame
     expected_labeled_frame = expected_labels[0]
-    expected_labeled_frame_pts = expected_labeled_frame.instances[0]
 
     # Load the series
     series = Series.load(

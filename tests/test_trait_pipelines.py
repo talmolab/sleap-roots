@@ -72,8 +72,6 @@ from sleap_roots.ellipse import (
     get_ellipse_ratio,
 )
 
-from sleap_roots.summary import get_summary
-
 
 def test_numpy_array_serialization():
     array = np.array([1, 2, 3])
@@ -128,6 +126,17 @@ def test_dicot_pipeline(
     soy_traits_csv,
     soy_batch_traits_csv,
 ):
+    """
+    Tests the DicotPipeline to ensure frame-level and plant-level traits are calculated
+    correctly. Manually calculated traits directly call the functions and use inputs
+    from the trait definition.
+
+    Compares:
+        - Manually calculated frame-level traits with the result of
+         `compute_plant_traits` and the fixture
+        - Manually calculated plant-level (batch) traits with the result of
+         `compute_batch_traits` and the fixture
+    """
 
     # Load the data
     canola = Series.load(
@@ -391,20 +400,17 @@ def test_dicot_pipeline(
                 trait_dict.update(trait_summary_dict)
 
             csv_traits_list = pipeline.csv_traits
-            integer_traits = (
-                "lateral_count",
-                "scanline_first_ind",
-                "scanline_last_ind",
-            )
+
             angle_traits = (
                 "primary_angle_proximal",
-                "primary_angle_distal" "lateral_angles_distal",
+                "primary_angle_distal",
+                "lateral_angles_distal",
                 "lateral_angles_proximal",
             )
 
             # Type and range check.
             for trait in trait_dict:
-                if not trait in csv_traits_list:
+                if trait not in csv_traits_list:
                     continue
 
                 trait_values = [
