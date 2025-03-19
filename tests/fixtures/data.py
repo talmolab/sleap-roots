@@ -26,6 +26,18 @@ def canola_lateral_slp():
 
 
 @pytest.fixture
+def canola_traits_csv():
+    """Path to computed traits csv for 7 day old canola."""
+    return "tests/data/canola_7do/919QDUH.traits.csv"
+
+
+@pytest.fixture
+def canola_batch_traits_csv():
+    """Path to computed batch traits csv for 7 day old canola."""
+    return "tests/data/canola_7do/919QDUH.batch_traits.csv"
+
+
+@pytest.fixture
 def rice_pipeline_output_folder():
     """Path to the folder with the output of the rice pipeline."""
     return "tests/data/rice_3do_pipeline_output"
@@ -107,6 +119,18 @@ def soy_primary_slp():
 def soy_lateral_slp():
     """Path to lateral root predictions for 6 day old soy."""
     return "tests/data/soy_6do/6PR6AA22JK.lateral.predictions.slp"
+
+
+@pytest.fixture
+def soy_traits_csv():
+    """Path to computed traits csv for 6 day old soy."""
+    return "tests/data/soy_6do/6PR6AA22JK.traits.csv"
+
+
+@pytest.fixture
+def soy_batch_traits_csv():
+    """Path to computed batch traits csv for 6 day old soy."""
+    return "tests/data/soy_6do/6PR6AA22JK.batch_traits.csv"
 
 
 @pytest.fixture

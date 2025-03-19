@@ -280,9 +280,39 @@ def test_get_frame_rice_10do(
     # Get the crown labeled frame
     crown_lf = frames.get("crown")
 
+    # Compare instances
+    for i in range(len(expected_labeled_frame.instances)):
+
+        crown_instance = crown_lf.instances[i]
+        expected_labeled_frame_instance = expected_labeled_frame.instances[i]
+
+        assert np.allclose(
+            crown_instance.numpy(),
+            expected_labeled_frame_instance.numpy(),
+            atol=1e-7,
+            equal_nan=True,
+        )
+
+        assert (
+            (crown_instance.track is None)
+            and (expected_labeled_frame_instance.track is None)
+        ) or (crown_instance.track is expected_labeled_frame_instance.track)
+
+        assert np.isclose(
+            crown_instance.score,
+            expected_labeled_frame_instance.score,
+            atol=1e-7,
+            equal_nan=True,
+        )
+        assert np.isclose(
+            crown_instance.tracking_score,
+            expected_labeled_frame_instance.tracking_score,
+            atol=1e-7,
+            equal_nan=True,
+        )
+
     # Compare the attributes of the labeled frames
     assert crown_lf.frame_idx == expected_labeled_frame.frame_idx
-    assert crown_lf.instances == expected_labeled_frame.instances
     assert crown_lf.video.filename == expected_labeled_frame.video.filename
     assert crown_lf.video.shape == expected_labeled_frame.video.shape
     assert crown_lf.video.backend == expected_labeled_frame.video.backend
@@ -307,9 +337,39 @@ def test_get_frame_rice_10do_no_video(
     # Get the crown labeled frame
     crown_lf = frames.get("crown")
 
+    # Compare instances
+    for i in range(len(expected_labeled_frame.instances)):
+
+        crown_instance = crown_lf.instances[i]
+        expected_labeled_frame_instance = expected_labeled_frame.instances[i]
+
+        assert np.allclose(
+            crown_instance.numpy(),
+            expected_labeled_frame_instance.numpy(),
+            atol=1e-7,
+            equal_nan=True,
+        )
+
+        assert (
+            (crown_instance.track is None)
+            and (expected_labeled_frame_instance.track is None)
+        ) or (crown_instance.track is expected_labeled_frame_instance.track)
+
+        assert np.isclose(
+            crown_instance.score,
+            expected_labeled_frame_instance.score,
+            atol=1e-7,
+            equal_nan=True,
+        )
+        assert np.isclose(
+            crown_instance.tracking_score,
+            expected_labeled_frame_instance.tracking_score,
+            atol=1e-7,
+            equal_nan=True,
+        )
+
     # Compare the attributes of the labeled frames
     assert crown_lf.frame_idx == expected_labeled_frame.frame_idx
-    assert crown_lf.instances == expected_labeled_frame.instances
     assert crown_lf.video.filename == expected_labeled_frame.video.filename
     assert crown_lf.video.shape == expected_labeled_frame.video.shape
     assert crown_lf.video.backend == expected_labeled_frame.video.backend

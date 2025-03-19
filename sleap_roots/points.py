@@ -264,7 +264,7 @@ def get_left_right_normalized_vectors(
 
 
 def get_left_normalized_vector(
-    normalized_vectors: Tuple[np.ndarray, np.ndarray]
+    normalized_vectors: Tuple[np.ndarray, np.ndarray],
 ) -> np.ndarray:
     """Get the normalized vector from r0 to r1 on the left side of a crown root system.
 
@@ -283,7 +283,7 @@ def get_left_normalized_vector(
 
 
 def get_right_normalized_vector(
-    normalized_vectors: Tuple[np.ndarray, np.ndarray]
+    normalized_vectors: Tuple[np.ndarray, np.ndarray],
 ) -> np.ndarray:
     """Get the normalized vector from r0 to r1 on the right side of a crown root system.
 

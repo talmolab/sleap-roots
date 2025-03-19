@@ -607,7 +607,7 @@ def get_chull_intersection_vectors(
 
 
 def get_chull_intersection_vectors_left(
-    vectors: Tuple[np.ndarray, np.ndarray]
+    vectors: Tuple[np.ndarray, np.ndarray],
 ) -> np.ndarray:
     """Get the vector from the top left point to the left intersection point.
 
@@ -623,7 +623,7 @@ def get_chull_intersection_vectors_left(
 
 
 def get_chull_intersection_vectors_right(
-    vectors: Tuple[np.ndarray, np.ndarray]
+    vectors: Tuple[np.ndarray, np.ndarray],
 ) -> np.ndarray:
     """Get the vector from the top right point to the right intersection point.
 
