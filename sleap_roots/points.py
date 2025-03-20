@@ -172,7 +172,7 @@ def get_nodes(pts: np.ndarray, node_index: int | np.ndarray) -> np.ndarray:
     # Handle multiple instances with shape (instances, nodes, 2)
     elif pts.ndim == 3:
         if isinstance(node_index, np.ndarray):
-            if node_index.shape != (pts.shape[0]):
+            if node_index.shape[0] != (pts.shape[0]):
                 raise ValueError(f"node_index array must have length {pts.shape[0]}")
             return pts[np.arange(pts.shape[0]), node_index, :]
         elif isinstance(node_index, int):
@@ -200,6 +200,10 @@ def get_root_vectors(start_nodes: np.ndarray, end_nodes: np.ndarray) -> np.ndarr
         An array of vectors with shape (instances, 2), representing the vector from start
         to end for each instance.
     """
+    # If start or end nodes is not a 2D array, make it one
+    start_nodes = np.atleast_2d(start_nodes)
+    end_nodes = np.atleast_2d(end_nodes)
+
     # Ensure that the start and end nodes have the same shapes
     if start_nodes.shape != end_nodes.shape:
         raise ValueError("start_nodes and end_nodes should have the same shape.")
