@@ -172,6 +172,8 @@ def get_nodes(pts: np.ndarray, node_index: int | np.ndarray) -> np.ndarray:
     # Handle multiple instances with shape (instances, nodes, 2)
     elif pts.ndim == 3:
         if isinstance(node_index, np.ndarray):
+            # If node indexes are not integers, convert them
+            node_index = node_index.astype(int)
             if node_index.shape[0] != (pts.shape[0]):
                 raise ValueError(f"node_index array must have length {pts.shape[0]}")
             return pts[np.arange(pts.shape[0]), node_index, :]
