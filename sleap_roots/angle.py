@@ -105,6 +105,10 @@ def get_vector_angles_from_gravity(vectors: np.ndarray) -> np.ndarray:
         between each vector and the downward-pointing gravity vector.
     """
     gravity_vector = np.array([0, 1])  # Downwards along the positive y-axis
+
+    # Identify near-zero vectors (up to 7 decimal places)
+    zero_mask = np.all(np.isclose(vectors, 0, atol=1e-7), axis=1)
+
     # Calculate the angle between the vectors and the gravity vectors
     angles = np.arctan2(vectors[:, 1], vectors[:, 0]) - np.arctan2(
         gravity_vector[1], gravity_vector[0]
@@ -113,6 +117,9 @@ def get_vector_angles_from_gravity(vectors: np.ndarray) -> np.ndarray:
     # Normalize angles to the range [0, 180] since direction doesn't matter
     angles = np.abs(angles)
     angles[angles > 180] = 360 - angles[angles > 180]
+
+    # Assign np.nan to zero vectors
+    angles[zero_mask] = np.nan
 
     # If only one root, return a scalar instead of a single-element array
     if angles.shape[0] == 1:

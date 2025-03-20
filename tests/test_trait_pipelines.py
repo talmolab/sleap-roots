@@ -19,7 +19,13 @@ from sleap_roots.series import (
 )
 from sleap_roots.lengths import get_max_length_pts, get_root_lengths, get_curve_index
 
-from sleap_roots.points import get_count, join_pts, get_all_pts_array
+from sleap_roots.points import (
+    get_count,
+    join_pts,
+    get_all_pts_array,
+    get_nodes,
+    get_root_vectors,
+)
 
 from sleap_roots.bases import (
     get_root_widths,
@@ -45,7 +51,11 @@ from sleap_roots.scanline import (
     get_scanline_last_ind,
 )
 
-from sleap_roots.angle import get_root_angle, get_node_ind
+from sleap_roots.angle import (
+    get_root_angle,
+    get_node_ind,
+    get_vector_angles_from_gravity,
+)
 
 from sleap_roots.networklength import (
     get_network_solidity,
@@ -267,18 +277,6 @@ def test_dicot_pipeline(
             trait_dict["primary_tip_pt"] = get_tips(
                 trait_dict["primary_max_length_pts"]
             )
-            trait_dict["lateral_angles_proximal"] = get_root_angle(
-                trait_dict["lateral_pts"],
-                trait_dict["lateral_proximal_node_inds"],
-                proximal=True,
-                base_ind=0,
-            )
-            trait_dict["lateral_angles_distal"] = get_root_angle(
-                trait_dict["lateral_pts"],
-                trait_dict["lateral_distal_node_inds"],
-                proximal=False,
-                base_ind=0,
-            )
             trait_dict["lateral_base_xs"] = get_base_xs(trait_dict["lateral_base_pts"])
             trait_dict["lateral_base_ys"] = get_base_ys(trait_dict["lateral_base_pts"])
             trait_dict["lateral_tip_xs"] = get_tip_xs(trait_dict["lateral_tip_pts"])
@@ -288,18 +286,6 @@ def test_dicot_pipeline(
             trait_dict["convex_hull"] = get_convhull(trait_dict["pts_all_array"])
             trait_dict["scanline_intersection_counts"] = count_scanline_intersections(
                 trait_dict["pts_list"]
-            )
-            trait_dict["primary_angle_proximal"] = get_root_angle(
-                trait_dict["primary_max_length_pts"],
-                trait_dict["primary_proximal_node_ind"],
-                proximal=True,
-                base_ind=0,
-            )
-            trait_dict["primary_angle_distal"] = get_root_angle(
-                trait_dict["primary_max_length_pts"],
-                trait_dict["primary_distal_node_ind"],
-                proximal=False,
-                base_ind=0,
             )
             trait_dict["base_ct_density"] = get_base_ct_density(
                 trait_dict["primary_length"], trait_dict["lateral_base_pts"]
@@ -355,6 +341,44 @@ def test_dicot_pipeline(
             )
             trait_dict["network_solidity"] = get_network_solidity(
                 trait_dict["network_length"], trait_dict["chull_area"]
+            )
+            trait_dict["primary_proximal_node_pt"] = get_nodes(
+                trait_dict["primary_max_length_pts"],
+                trait_dict["primary_proximal_node_ind"],
+            )
+            trait_dict["primary_distal_node_pt"] = get_nodes(
+                trait_dict["primary_max_length_pts"],
+                trait_dict["primary_distal_node_ind"],
+            )
+            trait_dict["lateral_proximal_node_pts"] = get_nodes(
+                trait_dict["lateral_pts"], trait_dict["lateral_proximal_node_inds"]
+            )
+            trait_dict["lateral_distal_node_pts"] = get_nodes(
+                trait_dict["lateral_pts"], trait_dict["lateral_distal_node_inds"]
+            )
+            trait_dict["primary_proximal_root_vector"] = get_root_vectors(
+                trait_dict["primary_proximal_node_pt"], trait_dict["primary_base_pt"]
+            )
+            trait_dict["primary_distal_root_vector"] = get_root_vectors(
+                trait_dict["primary_distal_node_pt"], trait_dict["primary_base_pt"]
+            )
+            trait_dict["lateral_proximal_root_vectors"] = get_root_vectors(
+                trait_dict["lateral_proximal_node_pts"], trait_dict["lateral_base_pts"]
+            )
+            trait_dict["lateral_distal_root_vectors"] = get_root_vectors(
+                trait_dict["lateral_distal_node_pts"], trait_dict["lateral_base_pts"]
+            )
+            trait_dict["primary_angle_proximal"] = get_vector_angles_from_gravity(
+                trait_dict["primary_proximal_root_vector"]
+            )
+            trait_dict["primary_angle_distal"] = get_vector_angles_from_gravity(
+                trait_dict["primary_distal_root_vector"]
+            )
+            trait_dict["lateral_angles_proximal"] = get_vector_angles_from_gravity(
+                trait_dict["lateral_proximal_root_vectors"]
+            )
+            trait_dict["lateral_angles_distal"] = get_vector_angles_from_gravity(
+                trait_dict["lateral_distal_root_vectors"]
             )
 
             # Add summary traits to trait dict.
