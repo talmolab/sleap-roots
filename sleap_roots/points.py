@@ -139,7 +139,7 @@ def get_all_pts_array(pts0: np.ndarray, *args: Optional[np.ndarray]) -> np.ndarr
     return np.concatenate(concatenated_pts, axis=0)
 
 
-def get_nodes(pts: np.ndarray, node_index: int) -> np.ndarray:
+def get_nodes(pts: np.ndarray, node_index: int | np.ndarray) -> np.ndarray:
     """Extracts the (x, y) coordinates of a specified node.
 
     Args:
@@ -160,16 +160,26 @@ def get_nodes(pts: np.ndarray, node_index: int) -> np.ndarray:
     if pts.ndim == 2:
         if not 0 <= node_index < pts.shape[0]:
             raise ValueError("node_index is out of bounds for the number of nodes.")
+        # if an array of indices is passed, it should have 1 element
+        if isinstance(node_index, np.ndarray) and len(node_index) != 1:
+            raise ValueError(
+                "node_index attempts to index incorrect number of instances."
+            )
+
         # Return a (2,) shape array for the node coordinates in a single instance
         return pts[node_index, :]
 
     # Handle multiple instances with shape (instances, nodes, 2)
     elif pts.ndim == 3:
-        if not 0 <= node_index < pts.shape[1]:
-            raise ValueError("node_index is out of bounds for the number of nodes.")
-        # Return (instances, 2) shape array for the node coordinates across instances
-        return pts[:, node_index, :]
-
+        if isinstance(node_index, np.ndarray):
+            if node_index.shape != (pts.shape[0]):
+                raise ValueError(f"node_index array must have length {pts.shape[0]}")
+            return pts[np.arange(pts.shape[0]), node_index, :]
+        elif isinstance(node_index, int):
+            if not 0 <= node_index < pts.shape[1]:
+                raise ValueError("node_index is out of bounds for the number of nodes.")
+            # Return (instances, 2) shape array for the node coordinates across instances
+            return pts[:, node_index, :]
     else:
         raise ValueError(
             "Input array should have shape (nodes, 2) for a single instance "
