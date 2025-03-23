@@ -14,8 +14,6 @@ from sleap_roots.points import (
     filter_plants_with_unexpected_ct,
     get_count,
     join_pts,
-)
-from sleap_roots.points import (
     get_all_pts_array,
     get_nodes,
     get_left_right_normalized_vectors,
@@ -25,6 +23,7 @@ from sleap_roots.points import (
     associate_lateral_to_primary,
     flatten_associated_points,
     filter_roots_with_nans,
+    get_root_vectors,
 )
 
 
@@ -860,3 +859,165 @@ def test_extract_from_multilinestring(geometry, expected):
 )
 def test_extract_from_unsupported_geometry(unexpected_input, expected_output):
     assert extract_points_from_geometry(unexpected_input) == expected_output
+
+
+def test_get_root_vectors_valid_input():
+    # Both inputs of shape (2,)
+    vec1 = np.array([1, 1])
+    vec2 = np.array([1, 1])
+    assert np.array_equal(get_root_vectors(vec1, vec2), np.array([[0, 0]]))
+
+    # Mixed shape inputs: (1,2) and (2,)
+    vec1 = np.array([2, 2])
+    vec2 = np.array([[3, 3]])
+    assert np.array_equal(get_root_vectors(vec1, vec2), np.array([[-1, -1]]))
+
+    # Both inputs of shape (1,2)
+    vec1 = np.array([[2, 2]])
+    vec2 = np.array([[3, 3]])
+    assert np.array_equal(get_root_vectors(vec1, vec2), np.array([[-1, -1]]))
+
+    # Both inputs have 4 instances
+    inst1 = np.array([[4, np.nan], [2, 2], [10, 10], [1.5, 10.5]])
+    inst2 = np.array([[np.nan, 4], [4, 4], [10, 10], [2.5, 5.5]])
+
+    assert np.allclose(
+        get_root_vectors(inst1, inst2),
+        np.array([[np.nan, np.nan], [-2, -2], [0, 0], [-1.0, 5.0]]),
+        equal_nan=True,
+    )
+
+    # Inputs have np.nan
+    vec1 = np.array([[4, np.nan]])
+    vec2 = np.array([[np.nan, 4]])
+    assert np.allclose(
+        get_root_vectors(vec1, vec2), np.array([[np.nan, np.nan]]), equal_nan=True
+    )
+
+
+def test_get_root_vectors_invalid_input():
+    # Empty input
+    with pytest.raises(ValueError):
+        vec1 = np.array([[]])
+        vec2 = np.array([[]])
+        get_root_vectors(vec1, vec2)
+
+    # Coordinate has more than 2 dimensions
+    with pytest.raises(ValueError):
+        vec1 = np.array([[2, 2]])
+        vec2 = np.array([[3, 3, 3]])
+        get_root_vectors(vec1, vec2)
+
+    # Coordinate has less than 2 dimensions
+    with pytest.raises(ValueError):
+        vec1 = np.array([[2, 2]])
+        vec2 = np.array([[3]])
+        get_root_vectors(vec1, vec2)
+
+    # Input has different number of instances
+    with pytest.raises(ValueError):
+        vec1 = np.array([[2, 2], [4, 4], [6, 6]])
+        vec2 = np.array([[3, 3]])
+        get_root_vectors(vec1, vec2)
+
+    # Input has 3 or more dimensions
+    with pytest.raises(ValueError):
+        vec1 = np.array([[[2, 2], [4, 4], [6, 6]]])
+        vec2 = np.array([[3, 3]])
+        get_root_vectors(vec1, vec2)
+
+
+@pytest.fixture
+def pts_nan32_5node():
+    return np.array(
+        [
+            [
+                [852.17755127, 216.95648193],
+                [np.nan, np.nan],
+                [np.nan, np.nan],
+                [828.87963867, 692.72009277],
+                [816.71142578, 808.12585449],
+            ],
+            [
+                [852.17755127, 216.95648193],
+                [np.nan, np.nan],
+                [837.03405762, 588.5123291],
+                [828.87963867, 692.72009277],
+                [816.71142578, 808.12585449],
+            ],
+        ]
+    )
+
+
+@pytest.fixture
+def pts_2d():
+    return np.array(
+        [
+            [852.17755127, 216.95648193],
+            [np.nan, np.nan],
+            [np.nan, np.nan],
+            [828.87963867, 692.72009277],
+            [816.71142578, 808.12585449],
+        ]
+    )
+
+
+def test_get_nodes_valid_input(pts_2d, pts_nan32_5node):
+    # Single instance, 5 nodes, integer index
+    assert np.allclose(
+        get_nodes(pts_2d, node_index=3),
+        np.array([[828.87963867, 692.72009277]]),
+        equal_nan=True,
+    )
+
+    # Single instance, 5 nodes, length 1 array index
+    assert np.allclose(
+        get_nodes(pts_2d, node_index=np.array([3])),
+        np.array([[828.87963867, 692.72009277]]),
+        equal_nan=True,
+    )
+
+    # Multiple instances, 5 nodes, integer index
+    assert np.allclose(
+        get_nodes(pts_nan32_5node, node_index=2),
+        np.array([[np.nan, np.nan], [837.03405762, 588.5123291]]),
+        equal_nan=True,
+    )
+
+    # Multiple instances, 5 nodes, indexing different node per instance
+    ind = np.array([3, 1])
+    assert np.allclose(
+        get_nodes(pts_nan32_5node, node_index=ind),
+        np.array([[828.87963867, 692.72009277], [np.nan, np.nan]]),
+        equal_nan=True,
+    )
+
+
+def test_get_nodes_invalid_input(pts_2d, pts_nan32_5node):
+    # Single instance, 5 node, integer index out of bounds
+    with pytest.raises(ValueError):
+        get_nodes(pts_2d, node_index=5)
+
+    # Single instance, 5 node, integer index out of bounds
+    with pytest.raises(ValueError):
+        get_nodes(pts_2d, node_index=-1)
+
+    # Float index
+    with pytest.raises(TypeError):
+        get_nodes(pts_2d, node_index=2.25)
+
+    # Single instance, 5 node, array indexes out of bounds
+    with pytest.raises(ValueError):
+        get_nodes(pts_2d, node_index=np.array([6]))
+
+    # Single instance, 5 node, array indexes more instances than exist
+    with pytest.raises(ValueError):
+        get_nodes(pts_2d, node_index=np.array([1, 1]))
+
+    # Multiple instance, 5 node, array indexes more instances than exist
+    with pytest.raises(ValueError):
+        get_nodes(pts_nan32_5node, node_index=np.array([1, 1, 1, 1]))
+
+    # Multiple instance, 5 node, array does not index enough instances
+    with pytest.raises(ValueError):
+        get_nodes(pts_nan32_5node, node_index=np.array([1]))
