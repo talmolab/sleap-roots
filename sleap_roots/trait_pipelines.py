@@ -933,7 +933,7 @@ class DicotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},
-                description="",  # TODO: Add description
+                description="Array of lateral distal points `(instances, nodes, 2)`.",
             ),
             TraitDef(
                 name="lateral_distal_root_vectors",
@@ -942,7 +942,7 @@ class DicotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},
-                description="",  # TODO: Add description
+                description="Array of lateral distal vectors `(instances, 2)`.",
             ),
             TraitDef(
                 name="lateral_angles_distal",
@@ -960,7 +960,7 @@ class DicotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},
-                description="",
+                description="Array of lateral proximal node points `(instances, nodes, 2)`",
             ),
             TraitDef(
                 name="lateral_proximal_root_vectors",
@@ -969,7 +969,7 @@ class DicotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},
-                description="",
+                description="Array of lateral proximal root vectors `(instances, 2)`.",
             ),
             TraitDef(
                 name="lateral_angles_proximal",
@@ -1036,7 +1036,7 @@ class DicotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},
-                description="",  # TODO: Add description.
+                description="Array of primary proximal node points `(instances, nodes, 2)`.",
             ),
             TraitDef(
                 name="primary_proximal_root_vector",
@@ -1045,7 +1045,7 @@ class DicotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},
-                description="",  # TODO: Add description.
+                description="Array of primary proximal root vectors `(instances, 2)`.",
             ),
             TraitDef(
                 name="primary_angle_proximal",
@@ -1073,7 +1073,7 @@ class DicotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},
-                description="",  # TODO: Add description.
+                description="Array of primary distal points `(instances, nodes, 2)`.",
             ),
             TraitDef(
                 name="primary_distal_root_vector",
@@ -1082,7 +1082,7 @@ class DicotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},
-                description="",  # TODO: Add description.
+                description="Array of primary distal points `(instances, 2)`.",
             ),
             TraitDef(
                 name="primary_angle_distal",
