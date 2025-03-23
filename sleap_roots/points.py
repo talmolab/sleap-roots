@@ -157,9 +157,13 @@ def get_nodes(pts: np.ndarray, node_index: int | np.ndarray) -> np.ndarray:
         ValueError: If node_index is out of bounds for the number of nodes.
         TypeEror: If node_index is not an integer or array of integers.
     """
+    # Handle case where node_index is a list, convert to np.array
+    if isinstance(node_index, list):
+        node_index = np.array(node_index)
+
     # Adjust for a single instance with shape (nodes, 2)
     if pts.ndim == 2:
-        if not 0 <= node_index < pts.shape[0]:
+        if isinstance(node_index, int) and (not 0 <= node_index < pts.shape[0]):
             raise ValueError("node_index is out of bounds for the number of nodes.")
         # If an array of indices is passed, it should have 1 element
         if isinstance(node_index, np.ndarray) and len(node_index) != 1:
@@ -172,8 +176,12 @@ def get_nodes(pts: np.ndarray, node_index: int | np.ndarray) -> np.ndarray:
         ):
             raise TypeError("node_index must be an array of integers.")
 
+        # Handle case where node_index is 0.0, convert to int
         if isinstance(node_index, float):
-            raise TypeError("node_index must be an integer.")
+            if node_index == float(0):
+                node_index = 0
+            else:
+                raise TypeError("node_index must be an integer.")
 
         # Return a (2,) shape array for the node coordinates in a single instance
         return pts[node_index, :]
@@ -184,7 +192,7 @@ def get_nodes(pts: np.ndarray, node_index: int | np.ndarray) -> np.ndarray:
             # Handle special case where input is array of 0.0
             if len(node_index) == 1 and node_index[0] == 0.0:
                 node_index = node_index.astype(int)
-            # If node indexes are not integers, convert them
+            # Check if node indexes are not integers
             if not (np.issubdtype(node_index.dtype, np.integer)):
                 raise ValueError("node_index must be a list of integers")
             if node_index.shape[0] != (pts.shape[0]):
