@@ -920,6 +920,12 @@ def test_get_root_vectors_invalid_input():
         vec2 = np.array([[3, 3]])
         get_root_vectors(vec1, vec2)
 
+    # Input has shape greater than 2 dimensions
+    with pytest.raises(ValueError):
+        vec1 = np.array([[[2, 2], [4, 4], [6, 6]]])
+        vec2 = np.array([[3, 3]])
+        get_root_vectors(vec1, vec2)
+
 
 @pytest.fixture
 def pts_nan32_5node():
