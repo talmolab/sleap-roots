@@ -157,7 +157,6 @@ def get_nodes(pts: np.ndarray, node_index: int | np.ndarray) -> np.ndarray:
         ValueError: If node_index is out of bounds for the number of nodes.
         TypeEror: If node_index is not an integer or array of integers.
     """
-
     # Adjust for a single instance with shape (nodes, 2)
     if pts.ndim == 2:
         if isinstance(node_index, int) and (not 0 <= node_index < pts.shape[0]):
