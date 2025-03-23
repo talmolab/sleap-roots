@@ -970,6 +970,13 @@ def test_get_nodes_valid_input(pts_2d, pts_nan32_5node):
         equal_nan=True,
     )
 
+    # Single instance, 5 nodes, 0.0 index
+    assert np.allclose(
+        get_nodes(pts_2d, node_index=0.0),
+        np.array([[852.17755127, 216.95648193]]),
+        equal_nan=True,
+    )
+
     # Single instance, 5 nodes, length 1 array index
     assert np.allclose(
         get_nodes(pts_2d, node_index=np.array([3])),
