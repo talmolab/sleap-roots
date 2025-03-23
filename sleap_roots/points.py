@@ -206,14 +206,22 @@ def get_root_vectors(start_nodes: np.ndarray, end_nodes: np.ndarray) -> np.ndarr
     start_nodes = np.atleast_2d(start_nodes)
     end_nodes = np.atleast_2d(end_nodes)
 
+    # Handle too many dimensions
+    if start_nodes.ndim > 2 or end_nodes.ndim > 2:
+        raise ValueError(
+            "start_nodes and end_nodes should have maximum dimension of 2."
+        )
+
     # Ensure that the start and end nodes have the same shapes
-    if start_nodes.shape != end_nodes.shape:
-        raise ValueError("start_nodes and end_nodes should have the same shape.")
-    # Handle single instances with shape (2,)
-    if start_nodes.ndim == 1:
-        start_nodes = start_nodes[np.newaxis, :]
-    if end_nodes.ndim == 1:
-        end_nodes = end_nodes[np.newaxis, :]
+    if start_nodes.shape[0] != end_nodes.shape[0]:
+        raise ValueError(
+            "start_nodes and end_nodes should have the same number of instances."
+        )
+    if start_nodes.shape[1] != 2 or end_nodes.shape[1] != 2:
+        raise ValueError(
+            "start_nodes and end_nodes coordinates should have 2-dimensional coordinates."
+        )
+
     # Calculate the vectors from start to end for each instance
     vectors = start_nodes - end_nodes
     return vectors
