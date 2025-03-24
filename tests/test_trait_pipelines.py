@@ -52,7 +52,6 @@ from sleap_roots.scanline import (
 )
 
 from sleap_roots.angle import (
-    get_root_angle,
     get_node_ind,
     get_vector_angles_from_gravity,
 )
