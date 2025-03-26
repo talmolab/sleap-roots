@@ -158,7 +158,7 @@ def get_nodes(pts: np.ndarray, node_index: int | np.ndarray[int]) -> np.ndarray:
         ValueError: If node_index is out of bounds for the number of nodes.
         TypeError: If node_index is not an integer or array of integers.
     """
-    if pts.ndim != 2 and pts.ndim != 3:
+    if pts.ndim < 2 or pts.ndim > 3:
         raise ValueError(
             "Input array should have shape (nodes, 2) for a single instance "
             "or (instances, nodes, 2) for multiple instances."
@@ -173,40 +173,42 @@ def get_nodes(pts: np.ndarray, node_index: int | np.ndarray[int]) -> np.ndarray:
     ):
         raise TypeError("node_index must be an integer or an array of integers.")
 
-    # Keep track if pts input is shape (nodes, 2).
     expanded_dim = False
-
-    # Convert pts of shape (nodes, 2) to shape (1, nodes, 2).
+    # Convert all inputs to shape (instances, nodes, 2).
     if pts.ndim == 2:
         pts = pts[np.newaxis, :, :]
-        expanded_dim = True
 
-    # Check that node index is within range.
+    # Convert single length numpy arrays to integers.
+    # if isinstance(node_index, np.ndarray) and len(node_index) == 1:
+    #    node_index = int(node_index[0])
+
+    # Check if node_index is within range.
     if ((isinstance(node_index, int)) and (not 0 <= node_index < pts.shape[1])) or (
         isinstance(node_index, np.ndarray)
-        and (not np.all((node_index >= 0) & (node_index < pts.shape[1])))
+        and (np.any((node_index < 0) | (node_index >= pts.shape[1])))
     ):
         raise ValueError("node_index is out of bounds for the number of nodes.")
 
-    # Handle node_index integer cases.
-    if isinstance(node_index, int):
+    # Check if array input for node_index indexes the correct number of instances.
+    if isinstance(node_index, np.ndarray) and (node_index.shape[0] != pts.shape[0]):
+        raise ValueError(
+            f"node_index length must match the number of instances ({pts.shape[0]}), got {node_index.shape[0]}"
+        )
 
-        # Extract points at the given index, where pts is shape (instances, nodes, 2).
-        indexed_points = pts[:, node_index, :]
+    # Extract points at the given index or array of indices.
+    indexed_points = (
+        pts[np.arange(pts.shape[0]), node_index, :]
+        if isinstance(node_index, np.ndarray)
+        else pts[:, node_index, :]
+    )
 
-        # If pts input was shape (nodes, 2), convert the output to match input dimension.
-        if expanded_dim:
-            return np.squeeze(indexed_points)
-        else:
-            return indexed_points
+    # Remove extra dimensions for single instances to obtain shape (2,).
+    if pts.shape[0] == 1 and expanded_dim:
+        indexed_points = indexed_points.flatten()
 
-    # Handle node_index array cases.
-    if isinstance(node_index, np.ndarray):
-        # Array of node indices should reference every instance.
-        if len(node_index) != (pts.shape[0]):
-            raise ValueError(f"node_index array must be of length {pts.shape[0]}")
+    # flatten to match input: test_older_monocot_pipeline
 
-        return pts[np.arange(pts.shape[0]), node_index, :]
+    return indexed_points
 
 
 def get_root_vectors(start_nodes: np.ndarray, end_nodes: np.ndarray) -> np.ndarray:
