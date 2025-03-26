@@ -139,14 +139,15 @@ def get_all_pts_array(pts0: np.ndarray, *args: Optional[np.ndarray]) -> np.ndarr
     return np.concatenate(concatenated_pts, axis=0)
 
 
-def get_nodes(pts: np.ndarray, node_index: int | np.ndarray) -> np.ndarray:
+def get_nodes(pts: np.ndarray, node_index: int | np.ndarray[int]) -> np.ndarray:
     """Extracts the (x, y) coordinates of a specified node.
 
     Args:
         pts: An array of points. For multiple instances, the shape should be
-            (instances, nodes, 2). For a single instance,the shape should be (nodes, 2).
+            (instances, nodes, 2). For a single instance, the shape should be (nodes, 2).
         node_index: The index (or indices) of the node(s) for which to extract the coordinates, based on
-            the node's position in the sequence of connected nodes (0-based indexing).
+            the node's position in the sequence of connected nodes (0-based indexing). If node_index
+            is passed as an array of integers, the length must equal the number of instances in pts.
 
     Returns:
         np.ndarray: An array of (x, y) coordinates for the specified node. For multiple
@@ -157,53 +158,51 @@ def get_nodes(pts: np.ndarray, node_index: int | np.ndarray) -> np.ndarray:
         ValueError: If node_index is out of bounds for the number of nodes.
         TypeError: If node_index is not an integer or array of integers.
     """
-    # Adjust for a single instance with shape (nodes, 2)
-    if pts.ndim == 2:
-        if isinstance(node_index, int) and (not 0 <= node_index < pts.shape[0]):
-            raise ValueError("node_index is out of bounds for the number of nodes.")
-        # If an array of indices is passed, it should have 1 element
-        if isinstance(node_index, np.ndarray) and len(node_index) != 1:
-            raise ValueError(
-                "node_index attempts to index incorrect number of instances."
-            )
-        # If an array of indices is passed, it should contain integers
-        if isinstance(node_index, np.ndarray) and not np.issubdtype(
-            node_index.dtype, np.integer
-        ):
-            raise TypeError("node_index must be an array of integers.")
-
-        # Handle case where node_index is 0.0, convert to int
-        if isinstance(node_index, float):
-            if node_index == float(0):
-                node_index = 0
-            else:
-                raise TypeError("node_index must be an integer.")
-
-        # Return a (2,) shape array for the node coordinates in a single instance
-        return pts[node_index, :]
-
-    # Handle multiple instances with shape (instances, nodes, 2)
-    elif pts.ndim == 3:
-        if isinstance(node_index, np.ndarray):
-            # Handle special case where input is array of 0.0
-            if len(node_index) == 1 and node_index[0] == 0.0:
-                node_index = node_index.astype(int)
-            # Check if node indexes are not integers
-            if not (np.issubdtype(node_index.dtype, np.integer)):
-                raise ValueError("node_index must be a list of integers")
-            if node_index.shape[0] != (pts.shape[0]):
-                raise ValueError(f"node_index array must have length {pts.shape[0]}")
-            return pts[np.arange(pts.shape[0]), node_index, :]
-        elif isinstance(node_index, int):
-            if not 0 <= node_index < pts.shape[1]:
-                raise ValueError("node_index is out of bounds for the number of nodes.")
-            # Return (instances, 2) shape array for the node coordinates across instances
-            return pts[:, node_index, :]
-    else:
+    if pts.ndim != 2 and pts.ndim != 3:
         raise ValueError(
             "Input array should have shape (nodes, 2) for a single instance "
             "or (instances, nodes, 2) for multiple instances."
         )
+
+    # Keep track if pts input is shape (nodes, 2).
+    expanded_dim = False
+
+    # Convert pts of shape (nodes, 2) to shape (1, nodes, 2).
+    if pts.ndim == 2:
+        pts = pts[np.newaxis, :, :]
+        expanded_dim = True
+
+    # Handle node_index integer cases.
+    if isinstance(node_index, int):
+        if not 0 <= node_index < pts.shape[1]:
+            raise ValueError("node_index is out-of-bounds for the number of nodes.")
+        if isinstance(node_index, float):
+            raise TypeError("node_index must be of type integer.")
+
+        # Extract points at the given index, where pts is shape (instances, nodes, 2).
+        indexed_points = pts[:, node_index, :]
+
+        # If pts input was shape (nodes, 2), convert the output to match input dimension.
+        if expanded_dim:
+            return np.squeeze(indexed_points)
+        else:
+            return indexed_points
+
+    # Handle node_index array cases.
+    if isinstance(node_index, np.ndarray):
+        # Array of node indices should reference every instance.
+        if len(node_index) != (pts.shape[0]):
+            raise ValueError(f"node_index array must be of length {pts.shape[0]}")
+
+        # Indices should be in range [0, pts.shape[1]).
+        if not np.all((0 <= node_index) & (node_index < pts.shape[1])):
+            raise ValueError("node_index is out-of-bounds for the number of nodes.")
+
+        # Node indices should all be integers.
+        if not np.issubdtype(node_index.dtype, np.integer):
+            raise TypeError("node_index must be an array of integers.")
+
+        return pts[np.arange(pts.shape[0]), node_index, :]
 
 
 def get_root_vectors(start_nodes: np.ndarray, end_nodes: np.ndarray) -> np.ndarray:
@@ -219,28 +218,21 @@ def get_root_vectors(start_nodes: np.ndarray, end_nodes: np.ndarray) -> np.ndarr
         An array of vectors with shape (instances, 2), representing the vector from start
         to end for each instance.
     """
-    # If start or end nodes is not a 2D array, make it one
+
+    # Convert both inputs to shape (instances, 2)
     start_nodes = np.atleast_2d(start_nodes)
     end_nodes = np.atleast_2d(end_nodes)
 
     # Handle too many dimensions
     if start_nodes.ndim > 2 or end_nodes.ndim > 2:
-        raise ValueError(
-            "start_nodes and end_nodes should have maximum dimension of 2."
-        )
+        raise ValueError("start_nodes and end_nodes should have maximum dimension 2.")
 
     # Ensure that the start and end nodes have the same shapes
-    if start_nodes.shape[0] != end_nodes.shape[0]:
-        raise ValueError(
-            "start_nodes and end_nodes should have the same number of instances."
-        )
-    if start_nodes.shape[1] != 2 or end_nodes.shape[1] != 2:
-        raise ValueError(
-            "start_nodes and end_nodes coordinates should have 2-dimensional coordinates."
-        )
+    if start_nodes.shape != end_nodes.shape:
+        raise ValueError(f"start_nodes and end_nodes do not have the same shape.")
 
     # Calculate the vectors from start to end for each instance
-    vectors = start_nodes - end_nodes
+    vectors = end_nodes - start_nodes
     return vectors
 
 

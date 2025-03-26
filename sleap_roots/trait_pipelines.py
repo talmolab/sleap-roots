@@ -938,7 +938,7 @@ class DicotPipeline(Pipeline):
             TraitDef(
                 name="lateral_distal_root_vectors",
                 fn=get_root_vectors,
-                input_traits=["lateral_distal_node_pts", "lateral_base_pts"],
+                input_traits=["lateral_base_pts", "lateral_distal_node_pts"],
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},
@@ -965,7 +965,7 @@ class DicotPipeline(Pipeline):
             TraitDef(
                 name="lateral_proximal_root_vectors",
                 fn=get_root_vectors,
-                input_traits=["lateral_proximal_node_pts", "lateral_base_pts"],
+                input_traits=["lateral_base_pts", "lateral_proximal_node_pts"],
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},
@@ -1041,7 +1041,7 @@ class DicotPipeline(Pipeline):
             TraitDef(
                 name="primary_proximal_root_vector",
                 fn=get_root_vectors,
-                input_traits=["primary_proximal_node_pt", "primary_base_pt"],
+                input_traits=["primary_base_pt", "primary_proximal_node_pt"],
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},
@@ -1078,7 +1078,7 @@ class DicotPipeline(Pipeline):
             TraitDef(
                 name="primary_distal_root_vector",
                 fn=get_root_vectors,
-                input_traits=["primary_distal_node_pt", "primary_base_pt"],
+                input_traits=["primary_base_pt", "primary_distal_node_pt"],
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},

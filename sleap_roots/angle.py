@@ -3,7 +3,7 @@
 import numpy as np
 
 
-def get_node_ind(pts: np.ndarray, proximal: bool = True) -> np.ndarray:
+def get_node_ind(pts: np.ndarray, proximal: bool = True) -> np.ndarray[int]:
     """Find proximal/distal node index.
 
     Args:
@@ -29,9 +29,9 @@ def get_node_ind(pts: np.ndarray, proximal: bool = True) -> np.ndarray:
     # Identify where NaN values exist
     is_nan = np.isnan(pts).any(axis=-1)  # (n_instances, n_nodes)
 
-    # If only NaN values, return NaN
+    # If only NaN values, return an array of zeros.
     if is_nan.all():
-        return np.zeros((n_instances,))
+        return np.zeros((n_instances,), dtype=int)
 
     if proximal:
         # Proximal nodes are in the first half of the root.
@@ -44,7 +44,7 @@ def get_node_ind(pts: np.ndarray, proximal: bool = True) -> np.ndarray:
         node_ind = n_nodes - node_ind - 1
 
     # If the selected index is missing originally, return 0.
-    node_ind = np.where(is_nan.all(axis=-1), 0, node_ind)
+    node_ind = np.where(is_nan.all(axis=-1), np.int8(0), node_ind).astype(int)
 
     return node_ind
 
@@ -97,16 +97,17 @@ def get_vector_angles_from_gravity(vectors: np.ndarray) -> np.ndarray:
     """Calculate the angle of given vectors from the gravity vector.
 
     Args:
-        vectors: An array of vectorss with shape (instances, 2), each representing a vector
+        vectors: An array of vectors with shape (instances, 2), each representing a vector
                 from start to end in an instance.
 
     Returns:
         An array of angles in degrees with shape (instances,), representing the angle
-        between each vector and the downward-pointing gravity vector.
+        between each vector and the downward-pointing gravity vector in the image
+        coordinate system where the y-axis increases downwards.
     """
     gravity_vector = np.array([0, 1])  # Downwards along the positive y-axis
 
-    # Identify near-zero vectors (up to 7 decimal places)
+    # Identify indices of zero-length vectors to replace them with np.nan after subtraction
     zero_mask = np.all(np.isclose(vectors, 0, atol=1e-7), axis=1)
 
     # Calculate the angle between the vectors and the gravity vectors
@@ -118,7 +119,7 @@ def get_vector_angles_from_gravity(vectors: np.ndarray) -> np.ndarray:
     angles = np.abs(angles)
     angles[angles > 180] = 360 - angles[angles > 180]
 
-    # Assign np.nan to zero vectors
+    # Make sure zero length vectors result in np.nan angles
     angles[zero_mask] = np.nan
 
     # If only one root, return a scalar instead of a single-element array

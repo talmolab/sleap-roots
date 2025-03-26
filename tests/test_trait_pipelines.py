@@ -356,16 +356,16 @@ def test_dicot_pipeline(
                 trait_dict["lateral_pts"], trait_dict["lateral_distal_node_inds"]
             )
             trait_dict["primary_proximal_root_vector"] = get_root_vectors(
-                trait_dict["primary_proximal_node_pt"], trait_dict["primary_base_pt"]
+                trait_dict["primary_base_pt"], trait_dict["primary_proximal_node_pt"]
             )
             trait_dict["primary_distal_root_vector"] = get_root_vectors(
-                trait_dict["primary_distal_node_pt"], trait_dict["primary_base_pt"]
+                trait_dict["primary_base_pt"], trait_dict["primary_distal_node_pt"]
             )
             trait_dict["lateral_proximal_root_vectors"] = get_root_vectors(
-                trait_dict["lateral_proximal_node_pts"], trait_dict["lateral_base_pts"]
+                trait_dict["lateral_base_pts"], trait_dict["lateral_proximal_node_pts"]
             )
             trait_dict["lateral_distal_root_vectors"] = get_root_vectors(
-                trait_dict["lateral_distal_node_pts"], trait_dict["lateral_base_pts"]
+                trait_dict["lateral_base_pts"], trait_dict["lateral_distal_node_pts"]
             )
             trait_dict["primary_angle_proximal"] = get_vector_angles_from_gravity(
                 trait_dict["primary_proximal_root_vector"]

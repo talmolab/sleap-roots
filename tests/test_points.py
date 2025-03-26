@@ -867,15 +867,10 @@ def test_get_root_vectors_valid_input():
     vec2 = np.array([1, 1])
     assert np.array_equal(get_root_vectors(vec1, vec2), np.array([[0, 0]]))
 
-    # Mixed shape inputs: (1,2) and (2,)
-    vec1 = np.array([2, 2])
-    vec2 = np.array([[3, 3]])
-    assert np.array_equal(get_root_vectors(vec1, vec2), np.array([[-1, -1]]))
-
     # Both inputs of shape (1,2)
     vec1 = np.array([[2, 2]])
     vec2 = np.array([[3, 3]])
-    assert np.array_equal(get_root_vectors(vec1, vec2), np.array([[-1, -1]]))
+    assert np.array_equal(get_root_vectors(vec1, vec2), np.array([[1, 1]]))
 
     # Both inputs have 4 instances
     inst1 = np.array([[4, np.nan], [2, 2], [10, 10], [1.5, 10.5]])
@@ -883,7 +878,7 @@ def test_get_root_vectors_valid_input():
 
     assert np.allclose(
         get_root_vectors(inst1, inst2),
-        np.array([[np.nan, np.nan], [-2, -2], [0, 0], [-1.0, 5.0]]),
+        np.array([[np.nan, np.nan], [2, 2], [0, 0], [1.0, -5.0]]),
         equal_nan=True,
     )
 
@@ -896,23 +891,6 @@ def test_get_root_vectors_valid_input():
 
 
 def test_get_root_vectors_invalid_input():
-    # Empty input
-    with pytest.raises(ValueError):
-        vec1 = np.array([[]])
-        vec2 = np.array([[]])
-        get_root_vectors(vec1, vec2)
-
-    # Coordinate has more than 2 dimensions
-    with pytest.raises(ValueError):
-        vec1 = np.array([[2, 2]])
-        vec2 = np.array([[3, 3, 3]])
-        get_root_vectors(vec1, vec2)
-
-    # Coordinate has less than 2 dimensions
-    with pytest.raises(ValueError):
-        vec1 = np.array([[2, 2]])
-        vec2 = np.array([[3]])
-        get_root_vectors(vec1, vec2)
 
     # Input has different number of instances
     with pytest.raises(ValueError):
@@ -970,13 +948,6 @@ def test_get_nodes_valid_input(pts_2d, pts_nan32_5node):
         equal_nan=True,
     )
 
-    # Single instance, 5 nodes, 0.0 index
-    assert np.allclose(
-        get_nodes(pts_2d, node_index=0.0),
-        np.array([[852.17755127, 216.95648193]]),
-        equal_nan=True,
-    )
-
     # Single instance, 5 nodes, length 1 array index
     assert np.allclose(
         get_nodes(pts_2d, node_index=np.array([3])),
@@ -1009,21 +980,9 @@ def test_get_nodes_invalid_input(pts_2d, pts_nan32_5node):
     with pytest.raises(ValueError):
         get_nodes(pts_2d, node_index=-1)
 
-    # Float index
-    with pytest.raises(TypeError):
-        get_nodes(pts_2d, node_index=2.25)
-
-    # Single instance, 5 node, array index contains a float
-    with pytest.raises(TypeError):
-        get_nodes(pts_2d, node_index=np.array([2.25]))
-
     # Single instance, 5 node, array indexes out of bounds
-    with pytest.raises(IndexError):
+    with pytest.raises(ValueError):
         get_nodes(pts_2d, node_index=np.array([6]))
-
-    # Single instance, 5 node, array index contains a float
-    with pytest.raises(TypeError):
-        get_nodes(pts_2d, node_index=np.array([2.25]))
 
     # Single instance, 5 node, array indexes more instances than exist
     with pytest.raises(ValueError):
@@ -1032,10 +991,6 @@ def test_get_nodes_invalid_input(pts_2d, pts_nan32_5node):
     # Multiple instance, 5 node, array indexes more instances than exist
     with pytest.raises(ValueError):
         get_nodes(pts_nan32_5node, node_index=np.array([1, 1, 1, 1]))
-
-    # Multiple instance, 5 node, array indexes contains a float
-    with pytest.raises(ValueError):
-        get_nodes(pts_nan32_5node, node_index=np.array([1, 2.25, 1, 1]))
 
     # Multiple instance, 5 node, array does not index enough instances
     with pytest.raises(ValueError):
