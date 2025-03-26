@@ -164,6 +164,15 @@ def get_nodes(pts: np.ndarray, node_index: int | np.ndarray[int]) -> np.ndarray:
             "or (instances, nodes, 2) for multiple instances."
         )
 
+    if not (
+        isinstance(node_index, int)
+        or (
+            isinstance(node_index, np.ndarray)
+            and np.issubdtype(node_index.dtype, np.integer)
+        )
+    ):
+        raise TypeError("node_index must be an integer or an array of integers.")
+
     # Keep track if pts input is shape (nodes, 2).
     expanded_dim = False
 
@@ -172,12 +181,15 @@ def get_nodes(pts: np.ndarray, node_index: int | np.ndarray[int]) -> np.ndarray:
         pts = pts[np.newaxis, :, :]
         expanded_dim = True
 
+    # Check that node index is within range.
+    if ((isinstance(node_index, int)) and (not 0 <= node_index < pts.shape[1])) or (
+        isinstance(node_index, np.ndarray)
+        and (not np.all((node_index >= 0) & (node_index < pts.shape[1])))
+    ):
+        raise ValueError("node_index is out of bounds for the number of nodes.")
+
     # Handle node_index integer cases.
     if isinstance(node_index, int):
-        if not 0 <= node_index < pts.shape[1]:
-            raise ValueError("node_index is out-of-bounds for the number of nodes.")
-        if isinstance(node_index, float):
-            raise TypeError("node_index must be of type integer.")
 
         # Extract points at the given index, where pts is shape (instances, nodes, 2).
         indexed_points = pts[:, node_index, :]
@@ -193,14 +205,6 @@ def get_nodes(pts: np.ndarray, node_index: int | np.ndarray[int]) -> np.ndarray:
         # Array of node indices should reference every instance.
         if len(node_index) != (pts.shape[0]):
             raise ValueError(f"node_index array must be of length {pts.shape[0]}")
-
-        # Indices should be in range [0, pts.shape[1]).
-        if not np.all((0 <= node_index) & (node_index < pts.shape[1])):
-            raise ValueError("node_index is out-of-bounds for the number of nodes.")
-
-        # Node indices should all be integers.
-        if not np.issubdtype(node_index.dtype, np.integer):
-            raise TypeError("node_index must be an array of integers.")
 
         return pts[np.arange(pts.shape[0]), node_index, :]
 
@@ -218,7 +222,6 @@ def get_root_vectors(start_nodes: np.ndarray, end_nodes: np.ndarray) -> np.ndarr
         An array of vectors with shape (instances, 2), representing the vector from start
         to end for each instance.
     """
-
     # Convert both inputs to shape (instances, 2)
     start_nodes = np.atleast_2d(start_nodes)
     end_nodes = np.atleast_2d(end_nodes)
@@ -229,7 +232,7 @@ def get_root_vectors(start_nodes: np.ndarray, end_nodes: np.ndarray) -> np.ndarr
 
     # Ensure that the start and end nodes have the same shapes
     if start_nodes.shape != end_nodes.shape:
-        raise ValueError(f"start_nodes and end_nodes do not have the same shape.")
+        raise ValueError("start_nodes and end_nodes do not have the same shape.")
 
     # Calculate the vectors from start to end for each instance
     vectors = end_nodes - start_nodes

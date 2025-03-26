@@ -1082,7 +1082,7 @@ class DicotPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},
-                description="Array of primary distal points `(instances, 2)`.",
+                description="Array of primary distal root vectors `(instances, 2)`.",
             ),
             TraitDef(
                 name="primary_angle_distal",
