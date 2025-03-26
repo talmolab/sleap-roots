@@ -1054,8 +1054,7 @@ class DicotPipeline(Pipeline):
                 scalar=True,
                 include_in_csv=True,
                 kwargs={},
-                description="Array of primary proximal angles in degrees "
-                "`(instances,)`.",
+                description="Primary proximal angle in degrees.",
             ),
             TraitDef(
                 name="primary_distal_node_ind",
@@ -1091,7 +1090,7 @@ class DicotPipeline(Pipeline):
                 scalar=True,
                 include_in_csv=True,
                 kwargs={},
-                description="Array of primary distal angles in degrees `(instances,)`.",
+                description="Primary distal angle in degrees.",
             ),
             TraitDef(
                 name="primary_length",

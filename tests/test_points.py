@@ -980,6 +980,10 @@ def test_get_nodes_invalid_input(pts_2d, pts_nan32_5node):
     with pytest.raises(ValueError):
         get_nodes(pts_2d, node_index=-1)
 
+    # Single instance, 5 node, float index
+    with pytest.raises(TypeError):
+        get_nodes(pts_2d, node_index=2.25)
+
     # Single instance, 5 node, array indexes out of bounds
     with pytest.raises(ValueError):
         get_nodes(pts_2d, node_index=np.array([6]))
@@ -991,6 +995,10 @@ def test_get_nodes_invalid_input(pts_2d, pts_nan32_5node):
     # Multiple instance, 5 node, array indexes more instances than exist
     with pytest.raises(ValueError):
         get_nodes(pts_nan32_5node, node_index=np.array([1, 1, 1, 1]))
+
+    # Multiple instance, 5 node, array indexes contains float values
+    with pytest.raises(TypeError):
+        get_nodes(pts_nan32_5node, node_index=np.array([1, 1.5]))
 
     # Multiple instance, 5 node, array does not index enough instances
     with pytest.raises(ValueError):
