@@ -595,89 +595,17 @@ def test_OlderMonocot_pipeline(rice_main_10do_h5, rice_main_10do_slp):
     assert rice_10dag_traits.shape == (72, 102)
 
 
-def test_younger_monocot_pipeline(rice_pipeline_output_folder):
-    # Find slp paths in folder
-    slp_paths = find_all_slp_paths(rice_pipeline_output_folder)
-    assert len(slp_paths) == 4
-    # Load series from slps
-    rice_series_all = load_series_from_slps(
-        slp_paths=slp_paths, h5s=False, csv_path=None
-    )
-    assert len(rice_series_all) == 2
-    # Get first series
-    rice_series = rice_series_all[0]
-    # Initialize pipeline for younger monocot
-    pipeline = YoungerMonocotPipeline()
-    # Get traits for the first series using the pipeline
-    rice_traits = pipeline.compute_plant_traits(rice_series)
-    # Get all traits for all series using the pipeline
-    all_traits = pipeline.compute_batch_traits(rice_series_all)
-
-    # Dataframe shape assertions
-    assert rice_traits.shape == (72, 104)
-    assert all_traits.shape == (2, 919)
-
-    # Dataframe dtype assertions
-    expected_rice_traits_dtypes = {
-        "frame_idx": "int64",
-        "crown_count": "int64",
-    }
-
-    expected_all_traits_dtypes = {
-        "crown_count_min": "int64",
-        "crown_count_max": "int64",
-    }
-
-    for col, expected_dtype in expected_rice_traits_dtypes.items():
-        assert (
-            rice_traits[col].dtype == expected_dtype
-        ), f"Unexpected dtype for column {col} in rice_traits"
-
-    for col, expected_dtype in expected_all_traits_dtypes.items():
-        assert (
-            all_traits[col].dtype == expected_dtype
-        ), f"Unexpected dtype for column {col} in all_traits"
-
-    # Value range assertions for traits
-    assert (
-        rice_traits["curve_index"].fillna(0) >= 0
-    ).all(), "curve_index in rice_traits contains negative values"
-    assert (
-        rice_traits["curve_index"].fillna(0).max() <= 1
-    ), "curve_index in rice_traits contains values greater than 1"
-    assert (
-        all_traits["curve_index_median"] >= 0
-    ).all(), "curve_index in all_traits contains negative values"
-    assert (
-        all_traits["curve_index_median"].max() <= 1
-    ), "curve_index in all_traits contains values greater than 1"
-    assert (
-        all_traits["crown_curve_indices_mean_median"] >= 0
-    ).all(), "crown_curve_indices_mean_median in all_traits contains negative values"
-    assert (
-        all_traits["crown_curve_indices_mean_median"] <= 1
-    ).all(), (
-        "crown_curve_indices_mean_median in all_traits contains values greater than 1"
-    )
-    assert (
-        (0 <= rice_traits["crown_angles_proximal_p95"])
-        & (rice_traits["crown_angles_proximal_p95"] <= 180)
-    ).all(), "angle_column in rice_traits contains values out of range [0, 180]"
-    assert (
-        (0 <= all_traits["crown_angles_proximal_median_p95"])
-        & (all_traits["crown_angles_proximal_median_p95"] <= 180)
-    ).all(), "angle_column in all_traits contains values out of range [0, 180]"
-
-    # TODO: Remove duplicate code above this line.
-
-    folder_path = (
-        "tests/data/rice_3do"  # Location of h5 files and predictions for young monocots
-    )
+def test_younger_monocot_pipeline(
+    rice_pipeline_output_folder,
+    rice_3do_0K9E8B1_traits_csv,
+    rice_3do_YR39SJX_traits_csv,
+    rice_3do_batch_traits_csv,
+):
+    folder_path = "tests/data/rice_3do"
 
     all_slp_paths = sr.find_all_slp_paths(folder_path)
-    all_h5_paths = sr.find_all_h5_paths(folder_path)
 
-    # List, length 2. Contains 2 Series objects
+    # List of length 2 containing 2 Series objects.
     all_series = sr.load_series_from_slps(slp_paths=all_slp_paths, h5s=True)
 
     series_YR39SJX = all_series[1]
@@ -685,16 +613,20 @@ def test_younger_monocot_pipeline(rice_pipeline_output_folder):
 
     pipeline = YoungerMonocotPipeline()
 
-    traits_computed_YR39SJX = pipeline.compute_plant_traits(series_YR39SJX)
     traits_computed_0K9E8BI = pipeline.compute_plant_traits(series_0K9E8BI)
-
-    computed_batch_traits = pipeline.compute_batch_traits(
-        [series_YR39SJX, series_0K9E8BI]
+    traits_computed_YR39SJX = pipeline.compute_plant_traits(series_YR39SJX)
+    batch_traits_computed = pipeline.compute_batch_traits(
+        [series_0K9E8BI, series_YR39SJX]
     )
 
-    # TODO: Create fixtures of traits and batch traits (csvs) and load the dataframes here.
+    # Shape check.
+    assert traits_computed_0K9E8BI.shape == (72, 104)
+    assert traits_computed_YR39SJX.shape == (72, 104)
+    assert batch_traits_computed.shape == (2, 919)
 
-    monocot_dfs = []
+    expected_dtypes = (int, float, np.integer, np.floating)
+
+    monocot_dfs = {}
 
     for series in all_series:
         traits_records = []
@@ -823,8 +755,6 @@ def test_younger_monocot_pipeline(rice_pipeline_output_folder):
                 trait_dict["network_length"], trait_dict["chull_area"]
             )
 
-            # TODO: Add type and range check.
-
             # Add summary traits to traits dict.
             for trait in pipeline.summary_traits:
                 X = np.atleast_1d(trait_dict[trait])
@@ -867,31 +797,74 @@ def test_younger_monocot_pipeline(rice_pipeline_output_folder):
 
                 trait_dict.update(trait_summary_dict)
 
+            angle_traits = (
+                "primary_angle_proximal",
+                "primary_angle_distal",
+                "lateral_angles_distal",
+                "lateral_angles_proximal",
+            )
+
+            ratio_traits = ("curve_index", "crown_curve_indices")
+
+            # Type and range check for traits at the current frame.
+            for trait in pipeline.csv_traits:
+
+                if trait in {"plant_name", "frame_idx"}:
+                    continue
+
+                # Type check.
+                assert isinstance(trait_dict[trait], expected_dtypes)
+
+                # No range check for standard deviation.
+                if trait.endswith("_std"):
+                    continue
+
+                # All traits must be nonnegative.
+                assert (trait_dict[trait] >= 0) or np.isnan(trait_dict[trait])
+
+                # Angle traits must be in range [0, 180].
+                if trait.startswith(angle_traits):
+                    assert (0 <= trait_dict[trait] <= 180) or np.isnan(
+                        trait_dict[trait]
+                    )
+
+                # Ratio traits must be in range [0, 1].
+                if trait.startswith(ratio_traits):
+                    assert (0 <= trait_dict[trait] <= 1) or np.isnan(trait_dict[trait])
+
             # Construct traits dataframe row by row, with metadata.
-            temp_dict = {
+            csv_traits_dict = {
                 "plant_name": series.series_name,
                 "frame_idx": frame_idx,
             }
             for trait in pipeline.csv_traits:
-                temp_dict[trait] = trait_dict[trait]
+                csv_traits_dict[trait] = trait_dict[trait]
 
-            traits_records.append(temp_dict)
+            traits_records.append(csv_traits_dict)
 
         curr_monocot_df = pd.DataFrame.from_records(traits_records)
-        monocot_dfs.append(curr_monocot_df)
+        monocot_dfs[series.series_name] = curr_monocot_df
 
-    # Compare first manually calculated traits dataframe with computed output, 0K9E8BI
+    # 0K9E8BI: Compare manual traits calculation with computed traits
     pd.testing.assert_frame_equal(
-        monocot_dfs[0], traits_computed_0K9E8BI, check_exact=False
+        monocot_dfs["0K9E8BI"],
+        traits_computed_0K9E8BI,
+        check_exact=False,
+        check_dtype=True,
     )
 
     # Compare second manually calculated traits dataframe with computed output, YR39SJX
     pd.testing.assert_frame_equal(
-        monocot_dfs[1], traits_computed_YR39SJX, check_exact=False
+        monocot_dfs["YR39SJX"],
+        traits_computed_YR39SJX,
+        check_exact=False,
+        check_dtype=True,
     )
 
     # Combine traits dataframes and aggregate to obtain batch traits.
-    batch_df = pd.concat(monocot_dfs, ignore_index=True).drop(columns={"frame_idx"})
+    batch_traits_manual = pd.concat(monocot_dfs.values(), ignore_index=True).drop(
+        columns={"frame_idx"}
+    )
 
     agg_funcs = [
         lambda x: np.nanmin(x),
@@ -905,8 +878,10 @@ def test_younger_monocot_pipeline(rice_pipeline_output_folder):
         lambda x: np.nanpercentile(x, 95),
     ]
 
-    batch_df = batch_df.groupby("plant_name").agg(agg_funcs)
-    batch_df.columns = ["_".join(map(str, col)).strip() for col in batch_df.columns]
+    batch_traits_manual = batch_traits_manual.groupby("plant_name").agg(agg_funcs)
+    batch_traits_manual.columns = [
+        "_".join(map(str, col)).strip() for col in batch_traits_manual.columns
+    ]
 
     colname_update = {
         "<lambda_0>": "min",
@@ -920,15 +895,23 @@ def test_younger_monocot_pipeline(rice_pipeline_output_folder):
         "<lambda_8>": "p95",
     }
 
-    batch_df.columns = (
-        batch_df.columns.to_series().replace(colname_update, regex=True).values
+    batch_traits_manual.columns = (
+        batch_traits_manual.columns.to_series()
+        .replace(colname_update, regex=True)
+        .values
     )
 
-    # TODO: Add range check over the batch traits.
-
     # Sort batch dataframes before comparing.
-    batch_df = batch_df.reset_index().sort_values("plant_name").reset_index(drop=True)
-    computed_batch_traits = computed_batch_traits.sort_values("plant_name")
+    batch_traits_manual = batch_traits_manual.reset_index().sort_values("plant_name")
+    batch_traits_computed = batch_traits_computed.sort_values("plant_name")
+
+    pd.testing.assert_frame_equal(
+        batch_traits_computed,
+        batch_traits_manual,
+        check_exact=False,
+        atol=1e-8,
+        check_dtype=True,
+    )
 
 
 def test_older_monocot_pipeline(rice_10do_pipeline_output_folder):
