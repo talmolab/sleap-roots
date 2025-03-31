@@ -607,8 +607,12 @@ def test_younger_monocot_pipeline(
     # List of length 2 containing 2 Series objects.
     all_series = sr.load_series_from_slps(slp_paths=all_slp_paths, h5s=True)
 
-    series_YR39SJX = all_series[1]
-    series_0K9E8BI = all_series[0]
+    series_YR39SJX = [
+        series for series in all_series if series.series_name == "YR39SJX"
+    ][0]
+    series_0K9E8BI = [
+        series for series in all_series if series.series_name == "0K9E8BI"
+    ][0]
 
     pipeline = YoungerMonocotPipeline()
 
