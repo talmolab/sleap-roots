@@ -596,14 +596,13 @@ def test_OlderMonocot_pipeline(rice_main_10do_h5, rice_main_10do_slp):
 
 
 def test_younger_monocot_pipeline(
-    rice_pipeline_output_folder,
+    rice_folder,
     rice_3do_0K9E8B1_traits_csv,
     rice_3do_YR39SJX_traits_csv,
     rice_3do_batch_traits_csv,
 ):
-    folder_path = "tests/data/rice_3do"
 
-    all_slp_paths = sr.find_all_slp_paths(folder_path)
+    all_slp_paths = sr.find_all_slp_paths(rice_folder)
 
     # List of length 2 containing 2 Series objects.
     all_series = sr.load_series_from_slps(slp_paths=all_slp_paths, h5s=True)
