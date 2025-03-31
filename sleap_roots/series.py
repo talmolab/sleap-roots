@@ -311,6 +311,14 @@ class Series:
                 # Plot the instances
                 plot_instances(labeled_frame.instances, cmap=[color], **kwargs)
 
+        # Get the current figure and display it
+        fig = plt.gcf()
+
+        # Close one window to prevent plot from displaying twice
+        plt.close(1)
+
+        return fig
+
     def get_primary_points(self, frame_idx: int) -> np.ndarray:
         """Get primary root points.
 
