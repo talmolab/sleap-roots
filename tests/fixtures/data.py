@@ -100,7 +100,7 @@ def rice_10do_traits_csv():
 @pytest.fixture
 def rice_10do_batch_traits_csv():
     """Path to computed batch traits csv for 10 day old rice."""
-    return "tests/data/rice_10do/rice_10do.traits.csv"
+    return "tests/data/rice_10do/rice_10do.batch_traits.csv"
 
 
 @pytest.fixture
