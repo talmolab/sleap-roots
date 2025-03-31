@@ -618,9 +618,13 @@ def test_younger_monocot_pipeline(
 
     traits_computed_0K9E8BI = pipeline.compute_plant_traits(series_0K9E8BI)
     traits_computed_YR39SJX = pipeline.compute_plant_traits(series_YR39SJX)
+    traits_csv_0K9E8BI = pd.read_csv(rice_3do_0K9E8B1_traits_csv)
+    traits_csv_YR39SJX = pd.read_csv(rice_3do_YR39SJX_traits_csv)
+
     batch_traits_computed = pipeline.compute_batch_traits(
         [series_0K9E8BI, series_YR39SJX]
     )
+    batch_traits_csv = pd.read_csv(rice_3do_batch_traits_csv)
 
     # Shape check.
     assert traits_computed_0K9E8BI.shape == (72, 104)
@@ -848,7 +852,7 @@ def test_younger_monocot_pipeline(
         curr_monocot_df = pd.DataFrame.from_records(traits_records)
         monocot_dfs[series.series_name] = curr_monocot_df
 
-    # 0K9E8BI: Compare manual traits calculation with computed traits
+    # Sample 0K9E8BI: Manual calculation compared to computed pipeline output.
     pd.testing.assert_frame_equal(
         monocot_dfs["0K9E8BI"],
         traits_computed_0K9E8BI,
@@ -856,10 +860,42 @@ def test_younger_monocot_pipeline(
         check_dtype=True,
     )
 
-    # Compare second manually calculated traits dataframe with computed output, YR39SJX
+    # Sample 0K9E8BI: Manual calculation compared to csv fixture.
+    pd.testing.assert_frame_equal(
+        monocot_dfs["0K9E8BI"],
+        traits_csv_0K9E8BI,
+        check_exact=False,
+        check_dtype=True,
+    )
+
+    # Sample 0K9E8BI: Computed pipeline output compared to csv fixture.
+    pd.testing.assert_frame_equal(
+        traits_computed_0K9E8BI,
+        traits_csv_0K9E8BI,
+        check_exact=False,
+        check_dtype=True,
+    )
+
+    # Sample YR39SJX: Manual calculation compared to computed pipeline output.
     pd.testing.assert_frame_equal(
         monocot_dfs["YR39SJX"],
         traits_computed_YR39SJX,
+        check_exact=False,
+        check_dtype=True,
+    )
+
+    # Sample YR39SJX: Manual calculation compared to csv fixture.
+    pd.testing.assert_frame_equal(
+        monocot_dfs["YR39SJX"],
+        traits_computed_YR39SJX,
+        check_exact=False,
+        check_dtype=True,
+    )
+
+    # Sample YR39SJX: Computed pipeline output compared to csv fixture.
+    pd.testing.assert_frame_equal(
+        traits_computed_YR39SJX,
+        traits_csv_YR39SJX,
         check_exact=False,
         check_dtype=True,
     )
@@ -907,10 +943,21 @@ def test_younger_monocot_pipeline(
     # Sort batch dataframes before comparing.
     batch_traits_manual = batch_traits_manual.reset_index().sort_values("plant_name")
     batch_traits_computed = batch_traits_computed.sort_values("plant_name")
+    batch_traits_csv = batch_traits_csv.sort_values("plant_name")
 
+    # Compare manual batch traits calculation and computed pipeline output.
     pd.testing.assert_frame_equal(
         batch_traits_computed,
         batch_traits_manual,
+        check_exact=False,
+        atol=1e-8,
+        check_dtype=True,
+    )
+
+    # Compare computed pipeline output and csv fixture.
+    pd.testing.assert_frame_equal(
+        batch_traits_computed,
+        batch_traits_csv,
         check_exact=False,
         atol=1e-8,
         check_dtype=True,
