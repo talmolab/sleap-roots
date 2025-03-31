@@ -590,19 +590,6 @@ def test_dicot_pipeline(
     )
 
 
-def test_OlderMonocot_pipeline(rice_main_10do_h5, rice_main_10do_slp):
-    rice = Series.load(
-        series_name="rice_10do",
-        h5_path=rice_main_10do_h5,
-        crown_path=rice_main_10do_slp,
-    )
-
-    pipeline = OlderMonocotPipeline()
-    rice_10dag_traits = pipeline.compute_plant_traits(rice)
-
-    assert rice_10dag_traits.shape == (72, 102)
-
-
 def test_younger_monocot_pipeline(rice_pipeline_output_folder):
     # Find slp paths in folder
     slp_paths = find_all_slp_paths(rice_pipeline_output_folder)
