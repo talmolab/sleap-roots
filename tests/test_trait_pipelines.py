@@ -664,7 +664,7 @@ def test_younger_monocot_pipeline(
             trait_dict["crown_angles_distal"] = get_root_angle(
                 trait_dict["crown_pts"],
                 trait_dict["crown_distal_node_inds"],
-                proximal=True,
+                proximal=False,
                 base_ind=0,
             )
             trait_dict["crown_angles_proximal"] = get_root_angle(
@@ -803,8 +803,8 @@ def test_younger_monocot_pipeline(
             angle_traits = (
                 "primary_angle_proximal",
                 "primary_angle_distal",
-                "lateral_angles_distal",
-                "lateral_angles_proximal",
+                "crown_angles_distal",
+                "crown_angles_proximal",
             )
 
             ratio_traits = ("curve_index", "crown_curve_indices")

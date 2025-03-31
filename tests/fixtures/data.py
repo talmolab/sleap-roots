@@ -76,7 +76,7 @@ def rice_main_slp():
 @pytest.fixture
 def rice_3do_0K9E8B1_traits_csv():
     """Path to computed traits csv for one sample of 3 day old rice."""
-    return "tests/data/rice_3do/OK9E8BI.traits.csv"
+    return "tests/data/rice_3do/0K9E8BI.traits.csv"
 
 
 @pytest.fixture
