@@ -677,14 +677,14 @@ def test_younger_monocot_pipeline(
                 proximal=True,
                 base_ind=0,
             )
-            trait_dict["bounding_box"] = get_bbox(trait_dict["crown_pts"])
+            trait_dict["bounding_box"] = get_bbox(trait_dict["pts_all_array"])
             trait_dict["network_length_lower"] = get_network_distribution(
                 trait_dict["crown_pts"],
                 trait_dict["bounding_box"],
                 fraction=pipeline.network_fraction,
             )
-            trait_dict["ellipse"] = fit_ellipse(trait_dict["crown_pts"])
-            trait_dict["convex_hull"] = get_convhull(trait_dict["crown_pts"])
+            trait_dict["ellipse"] = fit_ellipse(trait_dict["pts_all_array"])
+            trait_dict["convex_hull"] = get_convhull(trait_dict["pts_all_array"])
             trait_dict["primary_proximal_node_ind"] = get_node_ind(
                 trait_dict["primary_max_length_pts"], proximal=True
             )
