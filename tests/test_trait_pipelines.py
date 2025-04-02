@@ -700,7 +700,7 @@ def test_younger_monocot_pipeline(
             trait_dict["primary_angle_distal"] = get_root_angle(
                 trait_dict["primary_max_length_pts"],
                 trait_dict["primary_distal_node_ind"],
-                proximal=True,
+                proximal=False,
                 base_ind=0,
             )
             trait_dict["primary_length"] = get_root_lengths(
