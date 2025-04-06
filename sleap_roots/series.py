@@ -319,10 +319,10 @@ class Series:
         # Capture the current plot after calling plot_img and plot_instances.
         fig = plt.gcf()
 
-        # Close all current open plots to avoid duplicate rending from Jupyter.
-        plt.close("all")
+        # Close the captured fig to avoid duplicate rendering from Jupyter.
+        plt.close(fig)
 
-        # Jupyter automatically renders plots when Figure objects are returned from functions.
+        # Return the figure. In a cell, Jupyter will automatically render the plot.
         return fig
 
     def get_primary_points(self, frame_idx: int) -> np.ndarray:
