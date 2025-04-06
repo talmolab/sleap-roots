@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Literal
 from contextlib import redirect_stdout
 import io
+import matplotlib.figure
 
 
 @pytest.fixture
@@ -394,3 +395,36 @@ def test_find_all_series_from_h5s_rice_10do(
     assert len(h5_paths) == 1
     assert len(all_series) == 1
     assert all_series[0].h5_path == series_h5_path.as_posix()
+
+
+def test_series_plot(
+    rice_h5,
+    rice_long_slp,
+    rice_main_slp,
+    canola_h5,
+    canola_primary_slp,
+    canola_lateral_slp,
+):
+    """Test return type of the Series `plot` method."""
+    # Younger Monocot, rice_3do, YR39SJX
+    rice_3do = Series.load(
+        series_name="rice",
+        primary_path=rice_long_slp,
+        crown_path=rice_main_slp,
+        h5_path=rice_h5,
+    )
+
+    # Dicot, canola_7do, 919QDUH
+    canola = rice_3do = Series.load(
+        series_name="canola",
+        primary_path=canola_primary_slp,
+        lateral_path=canola_lateral_slp,
+        h5_path=canola_h5,
+    )
+
+    series_examples = [rice_3do, canola]
+
+    for series in series_examples:
+        for frame_idx in range(len(series)):
+            plt = series.plot(frame_idx)
+            assert isinstance(plt, matplotlib.figure.Figure)
