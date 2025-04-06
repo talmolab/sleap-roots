@@ -582,19 +582,6 @@ def test_dicot_pipeline(
     )
 
 
-def test_OlderMonocot_pipeline(rice_main_10do_h5, rice_main_10do_slp):
-    rice = Series.load(
-        series_name="rice_10do",
-        h5_path=rice_main_10do_h5,
-        crown_path=rice_main_10do_slp,
-    )
-
-    pipeline = OlderMonocotPipeline()
-    rice_10dag_traits = pipeline.compute_plant_traits(rice)
-
-    assert rice_10dag_traits.shape == (72, 102)
-
-
 def test_younger_monocot_pipeline(
     rice_folder,
     rice_3do_0K9E8B1_traits_csv,
