@@ -707,7 +707,6 @@ def test_older_monocot_pipeline(
                 "crown_pts": series.get_crown_points(frame_idx),
             }
 
-            trait_dict["pts_all_array"] = get_all_pts_array(trait_dict["crown_pts"])
             trait_dict["crown_count"] = get_count(trait_dict["crown_pts"])
             trait_dict["crown_proximal_node_inds"] = get_node_ind(
                 trait_dict["crown_pts"], proximal=True
@@ -735,7 +734,7 @@ def test_older_monocot_pipeline(
                 proximal=True,
                 base_ind=0,
             )
-            trait_dict["bounding_box"] = get_bbox(trait_dict["crown_pts"])
+            trait_dict["bounding_box"] = get_bbox(trait_dict["pts_all_array"])
             trait_dict["network_length_lower"] = get_network_distribution(
                 trait_dict["crown_pts"],
                 trait_dict["bounding_box"],
