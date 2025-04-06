@@ -267,13 +267,18 @@ class Series:
 
         return frames
 
-    def plot(self, frame_idx: int, scale: float = 1.0, **kwargs):
+    def plot(
+        self, frame_idx: int, scale: float = 1.0, **kwargs
+    ) -> matplotlib.figure.Figure:
         """Plot predictions on top of the image.
 
         Args:
             frame_idx: Frame index to visualize.
             scale: Relative size of the visualized image. Useful for plotting smaller
                 images within notebooks.
+
+        Returns:
+            matplotlib.figure.Figure object that shows predictions on top of images.
         """
         # Check if the video is available
         if self.video is None:
@@ -311,12 +316,14 @@ class Series:
                 # Plot the instances
                 plot_instances(labeled_frame.instances, cmap=[color], **kwargs)
 
-        # Get the current figure and display it
+        # Get the current figure and assign it to a variable.
         fig = plt.gcf()
 
-        # Close one window to prevent plot from displaying twice
-        plt.close(1)
+        # plot_img and plot_instances do not return matplotlib.Figure objects but a plot is rendered in cells.
+        # Close all current open plots to avoid duplication.
+        plt.close("all")
 
+        # Jupyter automatically renders plots when Figure objects are returned from functions.
         return fig
 
     def get_primary_points(self, frame_idx: int) -> np.ndarray:
