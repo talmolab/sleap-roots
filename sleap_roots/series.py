@@ -316,11 +316,10 @@ class Series:
                 # Plot the instances
                 plot_instances(labeled_frame.instances, cmap=[color], **kwargs)
 
-        # Get the current figure and assign it to a variable.
+        # Capture the current plot after calling plot_img and plot_instances.
         fig = plt.gcf()
 
-        # plot_img and plot_instances do not return matplotlib.Figure objects but a plot is rendered in cells.
-        # Close all current open plots to avoid duplication.
+        # Close all current open plots to avoid duplicate rending from Jupyter.
         plt.close("all")
 
         # Jupyter automatically renders plots when Figure objects are returned from functions.
