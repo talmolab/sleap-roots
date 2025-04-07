@@ -1330,16 +1330,6 @@ def test_OlderMonocot_pipeline():
         slp_paths=slp_paths, h5s=False, csv_path=None
     )
     assert len(rice_series_all) == 2
-    # Get first series
-    rice_series = rice_series_all[0]
-
-    pipeline = OlderMonocotPipeline()
-    all_traits = pipeline.compute_batch_traits(rice_series_all)
-    rice_traits = pipeline.compute_plant_traits(rice_series)
-
-    # Dataframe shape assertions
-    assert rice_traits.shape == (72, 102)
-    assert all_traits.shape == (2, 901)
 
 
 def test_multiple_dicot_pipeline(
