@@ -591,7 +591,7 @@ def test_dicot_pipeline(
         atol=1e-7,
     )
 
-    
+
 def test_younger_monocot_pipeline(
     rice_folder,
     rice_3do_0K9E8B1_traits_csv,
@@ -1030,7 +1030,7 @@ def test_older_monocot_pipeline(
                 proximal=True,
                 base_ind=0,
             )
-            trait_dict["bounding_box"] = get_bbox(trait_dict["pts_all_array"])
+            trait_dict["bounding_box"] = get_bbox(trait_dict["crown_pts"])
             trait_dict["network_length_lower"] = get_network_distribution(
                 trait_dict["crown_pts"],
                 trait_dict["bounding_box"],
