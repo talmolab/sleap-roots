@@ -74,6 +74,24 @@ def rice_main_slp():
 
 
 @pytest.fixture
+def rice_3do_0K9E8B1_traits_csv():
+    """Path to computed traits csv for one sample of 3 day old rice."""
+    return "tests/data/rice_3do/0K9E8BI.traits.csv"
+
+
+@pytest.fixture
+def rice_3do_YR39SJX_traits_csv():
+    """Path to computed traits csv for one sample of 3 day old rice."""
+    return "tests/data/rice_3do/YR39SJX.traits.csv"
+
+
+@pytest.fixture
+def rice_3do_batch_traits_csv():
+    """Path to computed batch traits csv for 3 day old rice."""
+    return "tests/data/rice_3do/rice_3do.batch_traits.csv"
+
+
+@pytest.fixture
 def rice_10do_folder():
     """Path to a folder with the predictions for 10 day old rice."""
     return "tests/data/rice_10do"
