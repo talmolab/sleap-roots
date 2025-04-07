@@ -1319,19 +1319,6 @@ def test_older_monocot_pipeline(
     )
 
 
-def test_OlderMonocot_pipeline():
-
-    rice_10do_pipeline_output_folder = "tests/data/rice_10do_pipeline_output"
-    # Find slp paths in folder
-    slp_paths = find_all_slp_paths(rice_10do_pipeline_output_folder)
-    assert len(slp_paths) == 2
-    # Load series from slps
-    rice_series_all = load_series_from_slps(
-        slp_paths=slp_paths, h5s=False, csv_path=None
-    )
-    assert len(rice_series_all) == 2
-
-
 def test_multiple_dicot_pipeline(
     multiple_arabidopsis_11do_h5,
     multiple_arabidopsis_11do_folder,
