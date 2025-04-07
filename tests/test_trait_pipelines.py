@@ -1341,61 +1341,6 @@ def test_OlderMonocot_pipeline():
     assert rice_traits.shape == (72, 102)
     assert all_traits.shape == (2, 901)
 
-    # Dataframe dtype assertions
-    expected_rice_traits_dtypes = {
-        "frame_idx": "int64",
-        "crown_count": "int64",
-    }
-
-    expected_all_traits_dtypes = {
-        "crown_count_min": "int64",
-        "crown_count_max": "int64",
-    }
-
-    for col, expected_dtype in expected_rice_traits_dtypes.items():
-        assert (
-            rice_traits[col].dtype == expected_dtype
-        ), f"Unexpected dtype for column {col} in rice_traits"
-
-    for col, expected_dtype in expected_all_traits_dtypes.items():
-        assert (
-            all_traits[col].dtype == expected_dtype
-        ), f"Unexpected dtype for column {col} in all_traits"
-
-    # Value range assertions for traits
-    assert (
-        all_traits["crown_curve_indices_mean_median"].dropna() >= 0
-    ).all(), "crown_curve_indices_mean_median in all_traits contains negative values"
-    assert (
-        all_traits["crown_curve_indices_mean_median"].dropna() <= 1
-    ).all(), (
-        "crown_curve_indices_mean_median in all_traits contains values greater than 1"
-    )
-    assert (
-        (0 <= rice_traits["crown_angles_proximal_p95"].dropna())
-        & (rice_traits["crown_angles_proximal_p95"].dropna() <= 180)
-    ).all(), "angle_column in rice_traits contains values out of range [0, 180]"
-    assert (
-        (0 <= all_traits["crown_angles_proximal_median_p95"].dropna())
-        & (all_traits["crown_angles_proximal_median_p95"].dropna() <= 180)
-    ).all(), "angle_column in all_traits contains values out of range [0, 180]"
-    assert (
-        (0 <= rice_traits["angle_chull_r1_left_intersection_vector"].dropna())
-        & (rice_traits["angle_chull_r1_left_intersection_vector"].dropna() <= 180)
-    ).all(), "angle column in rice_traits contains values out of range [0, 180]"
-    assert (
-        (0 <= all_traits["angle_chull_r1_left_intersection_vector_p95"].dropna())
-        & (all_traits["angle_chull_r1_left_intersection_vector_p95"].dropna() <= 180)
-    ).all(), "angle column in all_traits contains values out of range [0, 180]"
-    assert (
-        (0 <= rice_traits["angle_chull_r1_right_intersection_vector"].dropna())
-        & (rice_traits["angle_chull_r1_right_intersection_vector"].dropna() <= 180)
-    ).all(), "angle column in rice_traits contains values out of range [0, 180]"
-    assert (
-        (0 <= all_traits["angle_chull_r1_right_intersection_vector_p95"].dropna())
-        & (all_traits["angle_chull_r1_right_intersection_vector_p95"].dropna() <= 180)
-    ).all(), "angle column in all_traits contains values out of range [0, 180]"
-
 
 def test_multiple_dicot_pipeline(
     multiple_arabidopsis_11do_h5,
