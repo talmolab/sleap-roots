@@ -426,5 +426,5 @@ def test_series_plot(
 
     for series in series_examples:
         for frame_idx in range(len(series)):
-            plt = series.plot(frame_idx)
-            assert isinstance(plt, matplotlib.figure.Figure)
+            fig = series.plot(frame_idx)
+            assert isinstance(fig, matplotlib.figure.Figure)
