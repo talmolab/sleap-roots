@@ -19,7 +19,7 @@ from sleap_roots.series import (
 )
 from sleap_roots.lengths import get_max_length_pts, get_root_lengths, get_curve_index
 
-from sleap_roots.points import get_count, join_pts, get_all_pts_array
+from sleap_roots.points import get_count, join_pts, get_all_pts_array, get_nodes
 
 from sleap_roots.bases import (
     get_root_widths,
@@ -45,7 +45,11 @@ from sleap_roots.scanline import (
     get_scanline_last_ind,
 )
 
-from sleap_roots.angle import get_root_angle, get_node_ind
+from sleap_roots.angle import (
+    get_root_angle,
+    get_node_ind,
+    get_vector_angles_from_gravity,
+)
 
 from sleap_roots.networklength import (
     get_network_solidity,
@@ -63,6 +67,12 @@ from sleap_roots.convhull import (
     get_chull_max_height,
     get_chull_max_width,
     get_chull_line_lengths,
+    get_chull_intersection_vectors,
+    get_chull_intersection_vectors_left,
+    get_chull_intersection_vectors_right,
+    get_chull_areas_via_intersection,
+    get_chull_area_via_intersection_above,
+    get_chull_area_via_intersection_below,
 )
 
 from sleap_roots.ellipse import (
@@ -582,26 +592,12 @@ def test_dicot_pipeline(
     )
 
 
-def test_OlderMonocot_pipeline(rice_main_10do_h5, rice_main_10do_slp):
-    rice = Series.load(
-        series_name="rice_10do",
-        h5_path=rice_main_10do_h5,
-        crown_path=rice_main_10do_slp,
-    )
-
-    pipeline = OlderMonocotPipeline()
-    rice_10dag_traits = pipeline.compute_plant_traits(rice)
-
-    assert rice_10dag_traits.shape == (72, 102)
-
-
 def test_younger_monocot_pipeline(
     rice_folder,
     rice_3do_0K9E8B1_traits_csv,
     rice_3do_YR39SJX_traits_csv,
     rice_3do_batch_traits_csv,
 ):
-
     all_slp_paths = sr.find_all_slp_paths(rice_folder)
 
     # List of length 2 containing 2 Series objects.
@@ -964,80 +960,363 @@ def test_younger_monocot_pipeline(
     )
 
 
-def test_older_monocot_pipeline(rice_10do_pipeline_output_folder):
+def test_older_monocot_pipeline(
+    rice_10do_folder, rice_10do_traits_csv, rice_10do_batch_traits_csv
+):
+
     # Find slp paths in folder
-    slp_paths = find_all_slp_paths(rice_10do_pipeline_output_folder)
-    assert len(slp_paths) == 2
+    slp_paths = find_all_slp_paths(rice_10do_folder)
+    assert len(slp_paths) == 1
+
     # Load series from slps
-    rice_series_all = load_series_from_slps(
-        slp_paths=slp_paths, h5s=False, csv_path=None
-    )
-    assert len(rice_series_all) == 2
+    all_series = load_series_from_slps(slp_paths=slp_paths, h5s=True, csv_path=None)
+    assert len(all_series) == 1
+
     # Get first series
-    rice_series = rice_series_all[0]
+    rice_series = all_series[0]
 
     pipeline = OlderMonocotPipeline()
-    all_traits = pipeline.compute_batch_traits(rice_series_all)
-    rice_traits = pipeline.compute_plant_traits(rice_series)
+    computed_traits = pipeline.compute_plant_traits(rice_series)
+    computed_batch_traits = pipeline.compute_batch_traits(all_series)
+
+    traits_csv = pd.read_csv(rice_10do_traits_csv)
+    batch_traits_csv = pd.read_csv(rice_10do_batch_traits_csv)
 
     # Dataframe shape assertions
-    assert rice_traits.shape == (72, 102)
-    assert all_traits.shape == (2, 901)
+    assert computed_traits.shape == (72, 102)
+    assert computed_batch_traits.shape == (1, 901)
 
-    # Dataframe dtype assertions
-    expected_rice_traits_dtypes = {
-        "frame_idx": "int64",
-        "crown_count": "int64",
-    }
+    assert traits_csv.shape == (72, 102)
+    assert batch_traits_csv.shape == (1, 901)
 
-    expected_all_traits_dtypes = {
-        "crown_count_min": "int64",
-        "crown_count_max": "int64",
-    }
+    expected_dtypes = (int, float, np.integer, np.floating)
 
-    for col, expected_dtype in expected_rice_traits_dtypes.items():
-        assert (
-            rice_traits[col].dtype == expected_dtype
-        ), f"Unexpected dtype for column {col} in rice_traits"
+    monocot_dfs = {}
 
-    for col, expected_dtype in expected_all_traits_dtypes.items():
-        assert (
-            all_traits[col].dtype == expected_dtype
-        ), f"Unexpected dtype for column {col} in all_traits"
+    for series in all_series:
+        traits_records = []
+        for frame_idx in range(72):
+            # Calculate traits.
+            trait_dict = {
+                "plant_name": series.series_name,
+                "frame_idx": frame_idx,
+                "crown_pts": series.get_crown_points(frame_idx),
+            }
 
-    # Value range assertions for traits
-    assert (
-        all_traits["crown_curve_indices_mean_median"].dropna() >= 0
-    ).all(), "crown_curve_indices_mean_median in all_traits contains negative values"
-    assert (
-        all_traits["crown_curve_indices_mean_median"].dropna() <= 1
-    ).all(), (
-        "crown_curve_indices_mean_median in all_traits contains values greater than 1"
+            trait_dict["crown_count"] = get_count(trait_dict["crown_pts"])
+            trait_dict["crown_proximal_node_inds"] = get_node_ind(
+                trait_dict["crown_pts"], proximal=True
+            )
+            trait_dict["crown_distal_node_inds"] = get_node_ind(
+                trait_dict["crown_pts"], proximal=False
+            )
+            trait_dict["crown_lengths"] = get_root_lengths(trait_dict["crown_pts"])
+            trait_dict["crown_base_pts"] = get_bases(trait_dict["crown_pts"])
+            trait_dict["crown_tip_pts"] = get_tips(trait_dict["crown_pts"])
+            trait_dict["scanline_intersection_counts"] = count_scanline_intersections(
+                trait_dict["crown_pts"],
+                height=pipeline.img_height,
+                n_line=pipeline.n_scanlines,
+            )
+            trait_dict["crown_angles_distal"] = get_root_angle(
+                trait_dict["crown_pts"],
+                trait_dict["crown_distal_node_inds"],
+                proximal=False,
+                base_ind=0,
+            )
+            trait_dict["crown_angles_proximal"] = get_root_angle(
+                trait_dict["crown_pts"],
+                trait_dict["crown_proximal_node_inds"],
+                proximal=True,
+                base_ind=0,
+            )
+            trait_dict["bounding_box"] = get_bbox(trait_dict["crown_pts"])
+            trait_dict["network_length_lower"] = get_network_distribution(
+                trait_dict["crown_pts"],
+                trait_dict["bounding_box"],
+                fraction=pipeline.network_fraction,
+            )
+            trait_dict["ellipse"] = fit_ellipse(trait_dict["crown_pts"])
+            trait_dict["convex_hull"] = get_convhull(trait_dict["crown_pts"])
+
+            trait_dict["crown_tip_xs"] = get_tip_xs(trait_dict["crown_tip_pts"])
+            trait_dict["crown_tip_ys"] = get_tip_ys(trait_dict["crown_tip_pts"])
+            trait_dict["network_length"] = get_network_length(
+                trait_dict["crown_lengths"]
+            )
+            trait_dict["network_distribution_ratio"] = get_network_distribution_ratio(
+                trait_dict["network_length"], trait_dict["network_length_lower"]
+            )
+            trait_dict["crown_base_tip_dists"] = get_base_tip_dist(
+                trait_dict["crown_base_pts"], trait_dict["crown_tip_pts"]
+            )
+            trait_dict["crown_curve_indices"] = get_curve_index(
+                trait_dict["crown_lengths"], trait_dict["crown_base_tip_dists"]
+            )
+            trait_dict["ellipse_a"] = get_ellipse_a(trait_dict["ellipse"])
+            trait_dict["ellipse_b"] = get_ellipse_b(trait_dict["ellipse"])
+            trait_dict["network_width_depth_ratio"] = get_network_width_depth_ratio(
+                trait_dict["bounding_box"]
+            )
+            trait_dict["chull_perimeter"] = get_chull_perimeter(
+                trait_dict["convex_hull"]
+            )
+            trait_dict["chull_area"] = get_chull_area(trait_dict["convex_hull"])
+            trait_dict["chull_max_width"] = get_chull_max_width(
+                trait_dict["convex_hull"]
+            )
+            trait_dict["chull_max_height"] = get_chull_max_height(
+                trait_dict["convex_hull"]
+            )
+            trait_dict["chull_line_lengths"] = get_chull_line_lengths(
+                trait_dict["convex_hull"]
+            )
+
+            trait_dict["ellipse_ratio"] = get_ellipse_ratio(trait_dict["ellipse"])
+            trait_dict["scanline_last_ind"] = get_scanline_last_ind(
+                trait_dict["scanline_intersection_counts"]
+            )
+            trait_dict["scanline_first_ind"] = get_scanline_first_ind(
+                trait_dict["scanline_intersection_counts"]
+            )
+
+            trait_dict["crown_r1_pts"] = get_nodes(
+                trait_dict["crown_pts"], node_index=1
+            )
+
+            trait_dict["chull_r1_intersection_vectors"] = (
+                get_chull_intersection_vectors(
+                    trait_dict["crown_base_pts"],
+                    trait_dict["crown_r1_pts"],
+                    trait_dict["crown_pts"],
+                    trait_dict["convex_hull"],
+                )
+            )
+
+            trait_dict["chull_r1_left_intersection_vector"] = (
+                get_chull_intersection_vectors_left(
+                    trait_dict["chull_r1_intersection_vectors"]
+                )
+            )
+
+            trait_dict["chull_r1_right_intersection_vector"] = (
+                get_chull_intersection_vectors_right(
+                    trait_dict["chull_r1_intersection_vectors"]
+                )
+            )
+
+            trait_dict["angle_chull_r1_left_intersection_vector"] = (
+                get_vector_angles_from_gravity(
+                    trait_dict["chull_r1_left_intersection_vector"]
+                )
+            )
+
+            trait_dict["angle_chull_r1_right_intersection_vector"] = (
+                get_vector_angles_from_gravity(
+                    trait_dict["chull_r1_right_intersection_vector"]
+                )
+            )
+
+            trait_dict["chull_areas_r1_intersection"] = (
+                get_chull_areas_via_intersection(
+                    trait_dict["crown_r1_pts"],
+                    trait_dict["crown_pts"],
+                    trait_dict["convex_hull"],
+                )
+            )
+
+            trait_dict["chull_area_above_r1_intersection"] = (
+                get_chull_area_via_intersection_above(
+                    trait_dict["chull_areas_r1_intersection"]
+                )
+            )
+            trait_dict["chull_area_below_r1_intersection"] = (
+                get_chull_area_via_intersection_below(
+                    trait_dict["chull_areas_r1_intersection"]
+                )
+            )
+
+            trait_dict["network_solidity"] = get_network_solidity(
+                trait_dict["network_length"], trait_dict["chull_area"]
+            )
+
+            # Add summary traits to traits dict.
+            for trait in pipeline.summary_traits:
+                X = np.atleast_1d(trait_dict[trait])
+                if len(X) == 0 or np.all(np.isnan(X)):
+                    trait_summary_dict = {
+                        f"{trait}_min": np.nan,
+                        f"{trait}_max": np.nan,
+                        f"{trait}_mean": np.nan,
+                        f"{trait}_median": np.nan,
+                        f"{trait}_std": np.nan,
+                        f"{trait}_p5": np.nan,
+                        f"{trait}_p25": np.nan,
+                        f"{trait}_p75": np.nan,
+                        f"{trait}_p95": np.nan,
+                    }
+                elif np.issubdtype(X.dtype, np.number):
+                    trait_summary_dict = {
+                        f"{trait}_min": np.nanmin(X),
+                        f"{trait}_max": np.nanmax(X),
+                        f"{trait}_mean": np.nanmean(X),
+                        f"{trait}_median": np.nanmedian(X),
+                        f"{trait}_std": np.nanstd(X),
+                        f"{trait}_p5": np.nanpercentile(X, 5),
+                        f"{trait}_p25": np.nanpercentile(X, 25),
+                        f"{trait}_p75": np.nanpercentile(X, 75),
+                        f"{trait}_p95": np.nanpercentile(X, 95),
+                    }
+                else:
+                    trait_summary_dict = {
+                        f"{trait}_min": np.nan,
+                        f"{trait}_max": np.nan,
+                        f"{trait}_mean": np.nan,
+                        f"{trait}_median": np.nan,
+                        f"{trait}_std": np.nan,
+                        f"{trait}_p5": np.nan,
+                        f"{trait}_p25": np.nan,
+                        f"{trait}_p75": np.nan,
+                        f"{trait}_p95": np.nan,
+                    }
+
+                trait_dict.update(trait_summary_dict)
+
+            ratio_traits = "crown_curve_indices_mean_median"
+            angle_traits = (
+                "crown_angles_proximal_p95",
+                "crown_angles_proximal_median_p95",
+                "angle_chull_r1_left_intersection_vector",
+                "angle_chull_r1_left_intersection_vector_p95",
+                "angle_chull_r1_right_intersection_vector",
+                "angle_chull_r1_right_intersection_vector_p95",
+            )
+
+            # Type and range check for traits at the current frame.
+            for trait in pipeline.csv_traits:
+
+                if trait in {"plant_name", "frame_idx"}:
+                    continue
+
+                # Type check.
+                assert isinstance(trait_dict[trait], expected_dtypes)
+
+                # No range check for standard deviation.
+                if trait.endswith("_std"):
+                    continue
+
+                # All traits must be nonnegative.
+                assert (trait_dict[trait] >= 0) or np.isnan(trait_dict[trait])
+
+                # Angle traits must be in range [0, 180].
+                if trait.startswith(angle_traits):
+                    assert (0 <= trait_dict[trait] <= 180) or np.isnan(
+                        trait_dict[trait]
+                    )
+
+                # Ratio traits must be in range [0, 1].
+                if trait.startswith(ratio_traits):
+                    assert (0 <= trait_dict[trait] <= 1) or np.isnan(trait_dict[trait])
+
+            # Construct traits dataframe row by row, with metadata.
+            csv_traits_dict = {
+                "plant_name": series.series_name,
+                "frame_idx": frame_idx,
+            }
+            for trait in pipeline.csv_traits:
+                csv_traits_dict[trait] = trait_dict[trait]
+
+            traits_records.append(csv_traits_dict)
+
+        curr_monocot_df = pd.DataFrame.from_records(traits_records)
+        monocot_dfs[series.series_name] = curr_monocot_df
+
+    # Sample 0K9E8BI: Manual calculation compared to computed pipeline output.
+    pd.testing.assert_frame_equal(
+        monocot_dfs["0K9E8BI"],
+        computed_traits,
+        check_exact=False,
+        check_dtype=True,
     )
-    assert (
-        (0 <= rice_traits["crown_angles_proximal_p95"].dropna())
-        & (rice_traits["crown_angles_proximal_p95"].dropna() <= 180)
-    ).all(), "angle_column in rice_traits contains values out of range [0, 180]"
-    assert (
-        (0 <= all_traits["crown_angles_proximal_median_p95"].dropna())
-        & (all_traits["crown_angles_proximal_median_p95"].dropna() <= 180)
-    ).all(), "angle_column in all_traits contains values out of range [0, 180]"
-    assert (
-        (0 <= rice_traits["angle_chull_r1_left_intersection_vector"].dropna())
-        & (rice_traits["angle_chull_r1_left_intersection_vector"].dropna() <= 180)
-    ).all(), "angle column in rice_traits contains values out of range [0, 180]"
-    assert (
-        (0 <= all_traits["angle_chull_r1_left_intersection_vector_p95"].dropna())
-        & (all_traits["angle_chull_r1_left_intersection_vector_p95"].dropna() <= 180)
-    ).all(), "angle column in all_traits contains values out of range [0, 180]"
-    assert (
-        (0 <= rice_traits["angle_chull_r1_right_intersection_vector"].dropna())
-        & (rice_traits["angle_chull_r1_right_intersection_vector"].dropna() <= 180)
-    ).all(), "angle column in rice_traits contains values out of range [0, 180]"
-    assert (
-        (0 <= all_traits["angle_chull_r1_right_intersection_vector_p95"].dropna())
-        & (all_traits["angle_chull_r1_right_intersection_vector_p95"].dropna() <= 180)
-    ).all(), "angle column in all_traits contains values out of range [0, 180]"
+
+    # Sample 0K9E8BI: Manual calculation compared to csv fixture.
+    pd.testing.assert_frame_equal(
+        monocot_dfs["0K9E8BI"],
+        traits_csv,
+        check_exact=False,
+        check_dtype=True,
+    )
+
+    # Sample 0K9E8BI: Computed pipeline output compared to csv fixture.
+    pd.testing.assert_frame_equal(
+        computed_traits,
+        traits_csv,
+        check_exact=False,
+        check_dtype=True,
+    )
+
+    # Combine traits dataframes and aggregate to obtain batch traits.
+    batch_traits_manual = pd.concat(monocot_dfs.values(), ignore_index=True).drop(
+        columns={"frame_idx"}
+    )
+
+    agg_funcs = [
+        lambda x: np.nanmin(x),
+        lambda x: np.nanmax(x),
+        lambda x: np.nanmean(x),
+        lambda x: np.nanmedian(x),
+        lambda x: np.nanstd(x),
+        lambda x: np.nanpercentile(x, 5),
+        lambda x: np.nanpercentile(x, 25),
+        lambda x: np.nanpercentile(x, 75),
+        lambda x: np.nanpercentile(x, 95),
+    ]
+
+    batch_traits_manual = batch_traits_manual.groupby("plant_name").agg(agg_funcs)
+    batch_traits_manual.columns = [
+        "_".join(map(str, col)).strip() for col in batch_traits_manual.columns
+    ]
+
+    colname_update = {
+        "<lambda_0>": "min",
+        "<lambda_1>": "max",
+        "<lambda_2>": "mean",
+        "<lambda_3>": "median",
+        "<lambda_4>": "std",
+        "<lambda_5>": "p5",
+        "<lambda_6>": "p25",
+        "<lambda_7>": "p75",
+        "<lambda_8>": "p95",
+    }
+
+    batch_traits_manual.columns = (
+        batch_traits_manual.columns.to_series()
+        .replace(colname_update, regex=True)
+        .values
+    )
+
+    # Sort batch dataframes before comparing.
+    batch_traits_manual = batch_traits_manual.reset_index().sort_values("plant_name")
+    computed_batch_traits = computed_batch_traits.sort_values("plant_name")
+    batch_traits_csv = batch_traits_csv.sort_values("plant_name")
+
+    # Compare manual batch traits calculation and computed pipeline output.
+    pd.testing.assert_frame_equal(
+        computed_batch_traits,
+        batch_traits_manual,
+        check_exact=False,
+        atol=1e-8,
+        check_dtype=True,
+    )
+
+    # Compare computed pipeline output and csv fixture.
+    pd.testing.assert_frame_equal(
+        computed_batch_traits,
+        batch_traits_csv,
+        check_exact=False,
+        atol=1e-8,
+        check_dtype=True,
+    )
 
 
 def test_multiple_dicot_pipeline(

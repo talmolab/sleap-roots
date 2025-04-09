@@ -110,6 +110,18 @@ def rice_main_10do_slp():
 
 
 @pytest.fixture
+def rice_10do_traits_csv():
+    """Path to computed traits csv for 10 day old rice."""
+    return "tests/data/rice_10do/0K9E8BI.traits.csv"
+
+
+@pytest.fixture
+def rice_10do_batch_traits_csv():
+    """Path to computed batch traits csv for 10 day old rice."""
+    return "tests/data/rice_10do/rice_10do.batch_traits.csv"
+
+
+@pytest.fixture
 def rice_10do_stunted_slp():
     """Path to stunted root predictions for 10 day old rice."""
     return "tests/data/rice_10do_pipeline_output/scan_7859150.model_221208_113552.multi_instance.n=574.root_crown.slp"
