@@ -1334,6 +1334,8 @@ def test_older_monocot_pipeline(
 def test_multiple_dicot_pipeline(
     multiple_arabidopsis_11do_folder,
     multiple_arabidopsis_11do_csv,
+    multiple_arabidopsis_11do_batch_traits_csv,
+    multiple_arabidopsis_11do_group_batch_traits_csv,
 ):
 
     all_slps = sr.find_all_slp_paths(multiple_arabidopsis_11do_folder)
@@ -1607,6 +1609,8 @@ def test_multiple_dicot_pipeline(
 
     # Check batch calculations for all series.
 
+    batch_df_fixture = pd.read_csv(multiple_arabidopsis_11do_batch_traits_csv)
+
     batch_df_rows = []
 
     for series in all_series_summaries:
@@ -1620,11 +1624,46 @@ def test_multiple_dicot_pipeline(
             all_series=all_multiple_dicot_series
         )
     )
-    assert computed_batch_traits.shape == (4, 316)
     assert batch_df.shape == (4, 316)
-    pd.testing.assert_frame_equal(batch_df, computed_batch_traits, check_exact=False)
+    assert computed_batch_traits.shape == (4, 316)
+    assert batch_df_fixture.shape == (4, 316)
+
+    # Ensure series_name column is of type string. Then, sort dataframes before comparing.
+    batch_df["series_name"] = batch_df["series_name"].astype(str)
+    computed_batch_traits["series_name"] = computed_batch_traits["series_name"].astype(
+        str
+    )
+    batch_df_fixture["series_name"] = batch_df_fixture["series_name"].astype(str)
+
+    batch_df = batch_df.sort_values(by="series_name").reset_index(drop=True)
+    computed_batch_traits = computed_batch_traits.sort_values(
+        by="series_name"
+    ).reset_index(drop=True)
+    batch_df_fixture = batch_df_fixture.sort_values(by="series_name").reset_index(
+        drop=True
+    )
+
+    pd.testing.assert_frame_equal(
+        batch_df,
+        computed_batch_traits,
+        check_exact=False,
+    )
+    pd.testing.assert_frame_equal(
+        batch_df,
+        batch_df_fixture,
+        check_exact=False,
+    )
+    pd.testing.assert_frame_equal(
+        computed_batch_traits,
+        batch_df_fixture,
+        check_exact=False,
+    )
 
     # Check back calculations per group.
+    group_batch_df_fixture = pd.read_csv(
+        multiple_arabidopsis_11do_group_batch_traits_csv
+    )
+
     group_batch_df_rows = []
 
     for series in all_series_summaries:
@@ -1643,5 +1682,23 @@ def test_multiple_dicot_pipeline(
     )
     assert computed_group_batch_traits.shape == (3, 316)
     assert group_batch_df.shape == (3, 316)
+    assert group_batch_df_fixture.shape == (3, 316)
 
-    pd.testing.assert_frame_equal(computed_group_batch_traits, group_batch_df)
+    # Ensure genotype column is of type string. Then, sort dataframes before comparing.
+    group_batch_df["genotype"] = group_batch_df["genotype"].astype(str)
+    computed_group_batch_traits["genotype"] = computed_group_batch_traits[
+        "genotype"
+    ].astype(str)
+    group_batch_df_fixture["genotype"] = group_batch_df_fixture["genotype"].astype(str)
+
+    group_batch_df = group_batch_df.sort_values(by="genotype").reset_index(drop=True)
+    computed_group_batch_traits = computed_group_batch_traits.sort_values(
+        by="genotype"
+    ).reset_index(drop=True)
+    group_batch_df_fixture = group_batch_df_fixture.sort_values(
+        by="genotype"
+    ).reset_index(drop=True)
+
+    pd.testing.assert_frame_equal(group_batch_df, computed_group_batch_traits)
+    pd.testing.assert_frame_equal(group_batch_df, group_batch_df_fixture)
+    pd.testing.assert_frame_equal(computed_group_batch_traits, group_batch_df_fixture)
