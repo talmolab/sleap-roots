@@ -1338,14 +1338,16 @@ def test_multiple_dicot_pipeline(
 
     all_slps = sr.find_all_slp_paths(multiple_arabidopsis_11do_folder)
 
-    df = pd.read_csv(multiple_arabidopsis_11do_csv)
-
+    # Load arabidopsis examples.
     all_multiple_dicot_series = sr.load_series_from_slps(
         slp_paths=all_slps, h5s=True, csv_path=multiple_arabidopsis_11do_csv
     )
 
+    assert len(all_multiple_dicot_series) == 4
+
     multiple_dicot_pipeline = MultipleDicotPipeline()
 
+    # Extract each series out in a variable.
     series_997_1 = [
         series for series in all_multiple_dicot_series if series.series_name == "997_1"
     ][0]
@@ -1364,6 +1366,7 @@ def test_multiple_dicot_pipeline(
     assert series_6039_1.qc_fail == 1
     assert series_9535_1.qc_fail == 0
 
+    # Compute traits for each sample.
     computed_traits_997_1 = multiple_dicot_pipeline.compute_multiple_dicots_traits(
         series_997_1
     )
@@ -1412,10 +1415,10 @@ def test_multiple_dicot_pipeline(
 
     for series in all_multiple_dicot_series:
 
-        # Compute traits for the series.
+        # Compute traits for the current series.
         computed_traits = multiple_dicot_pipeline.compute_multiple_dicots_traits(series)
 
-        # Manually create traits per series.
+        # Manually create dictionary storing traits for all frames.
         result = {
             "series": str(series.series_name),
             "group": str(series.group),
@@ -1501,18 +1504,16 @@ def test_multiple_dicot_pipeline(
             summary_stats.update(trait_stats)
         result["summary_stats"] = summary_stats
 
-        ############# Comparing calculated results with manual calculation.
-
         # Assert manually calculated and computed traits have the same keys.
         result.keys() == computed_traits.keys()
 
-        # Assert manually calculated and computed traits have the same traits.
+        # Assert manually calculated and computed traits have the same trait names.
         result["traits"].keys() == computed_traits["traits"].keys()
 
-        # Assert manually calculated and computed traits have the same summary traits.
+        # Assert manually calculated and computed traits have the same summary trait names.
         result["summary_stats"].keys() == computed_traits["summary_stats"].keys()
 
-        # Check that the values of the traits are the same.
+        # Check that the trait values for manually calculated traits and computed traits are the same.
         for key in result["traits"].keys():
             curr_trait_val = result["traits"][key]
             if isinstance(curr_trait_val, np.ndarray):
@@ -1522,18 +1523,15 @@ def test_multiple_dicot_pipeline(
             else:
                 assert curr_trait_val == computed_traits[key]
 
-        # Check that the values of the summary traits are the same.
+        # Check that the summary trait values for manually calculated traits and computed traits are the same.
         for key in result["summary_stats"].keys():
-            left = result["summary_stats"][key]
-            right = computed_traits["summary_stats"][key]
-
             assert np.isclose(
                 result["summary_stats"][key],
                 computed_traits["summary_stats"][key],
                 equal_nan=True,
             )
 
-        ########## Type and Range Check.
+        # Type and Range Check over the traits.
         for key in computed_traits["traits"].keys():
 
             arr1 = computed_traits["traits"][key]
@@ -1567,5 +1565,28 @@ def test_multiple_dicot_pipeline(
                 assert np.all(
                     (arr2 >= 0) | np.isnan(arr2)
                 ), "Array contains negative values."
+
+        # Type and Range Check over the summary traits.
+        for key in computed_traits["summary_stats"].keys():
+            if key.endswith("_std"):
+                continue
+            elif key.startswith(angle_traits):
+                assert (
+                    (result["summary_stats"][key] >= 0)
+                    and (result["summary_stats"][key] <= 180)
+                ) or result["summary_stats"][key], "Angle trait is out of range."
+                assert (
+                    (computed_traits["summary_stats"][key] >= 0)
+                    and (computed_traits["summary_stats"][key] <= 180)
+                ) or computed_traits["summary_stats"][
+                    key
+                ], "Angle trait is out of range."
+            else:
+                assert (result["summary_stats"][key] >= 0) or result["summary_stats"][
+                    key
+                ], f"Trait {key} is a negative value."
+                assert (computed_traits["summary_stats"][key] >= 0) or computed_traits[
+                    "summary_stats"
+                ][key], f"Trait {key} is a negative value."
 
     # TODO: Add batch series test here.
