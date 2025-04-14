@@ -1366,7 +1366,7 @@ def test_multiple_dicot_pipeline(
     assert series_6039_1.qc_fail == 1
     assert series_9535_1.qc_fail == 0
 
-    # Compute traits for each sample.
+    # Compute traits using compute_multiple_dicots_trait for each sample.
     computed_traits_997_1 = multiple_dicot_pipeline.compute_multiple_dicots_traits(
         series_997_1
     )
@@ -1378,6 +1378,17 @@ def test_multiple_dicot_pipeline(
     )
     computed_traits_9535_1 = multiple_dicot_pipeline.compute_multiple_dicots_traits(
         series_9535_1
+    )
+
+    # Compute traits per group.
+    computed_grouped_traits = (
+        multiple_dicot_pipeline.compute_multiple_dicots_traits_for_groups(
+            all_multiple_dicot_series
+        )
+    )
+
+    assert (
+        isinstance(computed_grouped_traits, list) and len(computed_grouped_traits) == 3
     )
 
     assert isinstance(computed_traits_997_1, dict)
@@ -1412,6 +1423,8 @@ def test_multiple_dicot_pipeline(
     )
 
     expected_dtypes = (int, float, np.integer, np.floating)
+
+    all_series_summaries = []
 
     for series in all_multiple_dicot_series:
 
@@ -1531,6 +1544,9 @@ def test_multiple_dicot_pipeline(
                 equal_nan=True,
             )
 
+        # Append the current dictionary to the all_series_summaries list.
+        all_series_summaries.append(result)
+
         # Type and Range Check over the traits.
         for key in computed_traits["traits"].keys():
 
@@ -1538,8 +1554,8 @@ def test_multiple_dicot_pipeline(
             arr2 = result["traits"][key]
 
             # Trait values should be stored as an array.
-            assert isinstance(arr1, np.ndarray), "No array found."
-            assert isinstance(arr2, np.ndarray), "No array found."
+            assert isinstance(arr1, np.ndarray), "Trait value is not an array."
+            assert isinstance(arr2, np.ndarray), "Trait value is not an array."
 
             # Type check.
             assert np.all(
@@ -1589,4 +1605,43 @@ def test_multiple_dicot_pipeline(
                     "summary_stats"
                 ][key], f"Trait {key} is a negative value."
 
-    # TODO: Add batch series test here.
+    # Check batch calculations for all series.
+
+    batch_df_rows = []
+
+    for series in all_series_summaries:
+        series_summary = {"series_name": series["series"], **series["summary_stats"]}
+        batch_df_rows.append(series_summary)
+
+    batch_df = pd.DataFrame(batch_df_rows)
+
+    computed_batch_traits = (
+        multiple_dicot_pipeline.compute_batch_multiple_dicots_traits(
+            all_series=all_multiple_dicot_series
+        )
+    )
+    assert computed_batch_traits.shape == (4, 316)
+    assert batch_df.shape == (4, 316)
+    pd.testing.assert_frame_equal(batch_df, computed_batch_traits, check_exact=False)
+
+    # Check back calculations per group.
+    group_batch_df_rows = []
+
+    for series in all_series_summaries:
+        if series["qc_fail"] == 1:
+            continue
+        else:
+            series_summary = {"genotype": series["group"], **series["summary_stats"]}
+            group_batch_df_rows.append(series_summary)
+
+    group_batch_df = pd.DataFrame(group_batch_df_rows)
+
+    computed_group_batch_traits = (
+        multiple_dicot_pipeline.compute_batch_multiple_dicots_traits_for_groups(
+            all_series=all_multiple_dicot_series
+        )
+    )
+    assert computed_group_batch_traits.shape == (3, 316)
+    assert group_batch_df.shape == (3, 316)
+
+    pd.testing.assert_frame_equal(computed_group_batch_traits, group_batch_df)
