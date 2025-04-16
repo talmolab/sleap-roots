@@ -632,6 +632,10 @@ class Pipeline:
 
         return grouped_results
 
+    def computed_primary_root_traits():
+        # TODO: Implement.
+        raise NotImplementedError
+
     def compute_batch_traits(
         self,
         plants: List[Series],
@@ -2297,3 +2301,158 @@ class MultipleDicotPipeline(Pipeline):
             "lateral_pts": lateral_pts,
             "expected_plant_ct": expected_plant_ct,
         }
+
+
+@attrs.define
+class PrimaryRootPipeline(Pipeline):
+    """Pipeline for computing traits for a single primary root."""
+
+    def define_traits(self) -> List[TraitDef]:
+        """Define the trait computation pipeline for primary roots."""
+        trait_definitions = [
+            TraitDef(
+                name="primary_max_length_pts",
+                fn=get_max_length_pts,
+                input_traits=["primary_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="",
+            ),
+            TraitDef(
+                name="primary_proximal_node_ind",
+                fn=get_node_ind,
+                input_traits=["primary_max_length_pts"],
+                scalar=True,
+                include_in_csv=False,
+                kwargs={"proximal": True},
+                description="Get the indices of the proximal nodes of primary root.",
+            ),
+            TraitDef(
+                name="primary_distal_node_ind",
+                fn=get_node_ind,
+                input_traits=["primary_max_length_pts"],
+                scalar=True,
+                include_in_csv=False,
+                kwargs={"proximal": False},
+                description="Get the indices of the distal nodes of primary roots.",
+            ),
+            TraitDef(
+                name="primary_angle_proximal",
+                fn=get_root_angle,
+                input_traits=["primary_max_length_pts", "primary_proximal_node_ind"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Array of primary proximal angles in degrees "
+                "`(instances,)`.",
+            ),
+            TraitDef(
+                name="primary_angle_distal",
+                fn=get_root_angle,
+                input_traits=["primary_max_length_pts", "primary_distal_node_ind"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Array of primary distal angles in degrees `(instances,)`.",
+            ),
+            TraitDef(
+                name="primary_length",
+                fn=get_root_lengths,
+                input_traits=["primary_max_length_pts"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of primary root length.",
+            ),
+            TraitDef(
+                name="primary_base_pt",
+                fn=get_bases,
+                input_traits=["primary_max_length_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Primary root base point.",
+            ),
+            TraitDef(
+                name="primary_tip_pt",
+                fn=get_tips,
+                input_traits=["primary_max_length_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Primary root tip point.",
+            ),
+            TraitDef(
+                name="primary_base_pt_y",
+                fn=get_base_ys,
+                input_traits=["primary_base_pt"],
+                scalar=True,
+                include_in_csv=False,
+                kwargs={},
+                description="Y-coordinate of the primary root base node.",
+            ),
+            TraitDef(
+                name="primary_tip_pt_y",
+                fn=get_tip_ys,
+                input_traits=["primary_tip_pt"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Y-coordinate of the primary root tip node.",
+            ),
+            TraitDef(
+                name="primary_base_tip_dist",
+                fn=get_base_tip_dist,
+                input_traits=["primary_base_pt", "primary_tip_pt"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of distance from primary root base to tip.",
+            ),
+            TraitDef(
+                name="curve_index",
+                fn=get_curve_index,
+                input_traits=["primary_length", "primary_base_tip_dist"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of primary root curvature index.",
+            ),
+        ]
+        return trait_definitions
+
+    def get_initial_frame_traits(self, plant: Series, frame_idx: int) -> Dict[str, Any]:
+        """Return initial traits for a plant frame
+
+        Args:
+            Args:
+            plant: The plant `Series` object.
+            frame_idx: The index of the current frame.
+
+        Returns:
+            A dictionary of initial traits with key:
+                - "primary_pts": Array of primary root points.
+        """
+        primary_pts = plant.get_primary_points(frame_idx)
+        return {"primary_pts": primary_pts}
+
+
+class MultiplePrimaryRootPipeline(Pipeline):
+
+    # TODO: Implement. Are there any new TraitDefs here?
+
+    def get_initial_frame_traits(self, plant: Series, frame_idx: int) -> Dict[str, Any]:
+        """Return initial traits for a plant frame
+
+        Args:
+            Args:
+            plant: The plant `Series` object.
+            frame_idx: The index of the current frame.
+
+        Returns:
+            A dictionary of initial traits with key:
+                - "primary_pts": Array of primary root points.
+        """
+        primary_pts = plant.get_primary_points(frame_idx)
+        return {"primary_pts": primary_pts}
