@@ -69,7 +69,7 @@ def get_base_tip_dist(
     return distances
 
 
-def get_base_xs(base_pts: np.ndarray) -> np.ndarray:
+def get_base_xs(base_pts: np.ndarray) -> np.ndarray | np.floating:
     """Get x coordinates of the base of each lateral root.
 
     Args:
@@ -77,20 +77,28 @@ def get_base_xs(base_pts: np.ndarray) -> np.ndarray:
             only one root, as is the case for primary roots.
 
     Return:
-        An array of base x-coordinates (instances,) or (1,) when there is only one root.
+        An array of base x-coordinates (instances,) or a scalar when there is only one root.
     """
-    if base_pts.ndim not in (1, 2):
-        raise ValueError(
-            "Input array must be 2-dimensional (instances, 2) or 1-dimensional (2,)."
-        )
-    if base_pts.shape[-1] != 2:
-        raise ValueError("Last dimension must be (x, y).")
+    # Check for the 2D shape of the input array
+    if base_pts.ndim == 1:
+        # If shape is `(2,)`, then reshape it to `(1, 2)` for consistency
+        base_pts = base_pts.reshape(1, 2)
+    elif base_pts.ndim != 2:
+        raise ValueError("Input array must be of shape `(instances, 2)` or `(2, )`.")
 
-    base_xs = base_pts[..., 0]
+    # At this point, `base_pts` should be of shape `(instances, 2)`.
+    # Get the base x-value
+    base_xs = base_pts[:, 0]
+
+    # For a single array of 1 item, return the value.
+    if base_xs.shape == (1,):
+        # Return a scalar
+        return base_xs[0]
+
     return base_xs
 
 
-def get_base_ys(base_pts: np.ndarray) -> np.ndarray:
+def get_base_ys(base_pts: np.ndarray) -> np.ndarray | np.floating:
     """Get y coordinates of the base of each root.
 
     Args:
@@ -98,7 +106,7 @@ def get_base_ys(base_pts: np.ndarray) -> np.ndarray:
             when there is only one root, as is the case for primary roots.
 
     Return:
-        An array of the y-coordinates of bases (instances,).
+        An array of the y-coordinates of bases (instances,) or a scalar when there is only one root.
     """
     # Check for the 2D shape of the input array
     if base_pts.ndim == 1:
