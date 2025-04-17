@@ -2434,15 +2434,6 @@ class PrimaryRootPipeline(Pipeline):
                 description="Scalar of primary root curvature index.",
             ),
             TraitDef(
-                name="pts_list",
-                fn=get_all_pts_array,
-                input_traits=["primary_max_length_pts"],
-                scalar=False,
-                include_in_csv=False,
-                kwargs={},
-                description="",
-            ),
-            TraitDef(
                 name="bounding_box",
                 fn=get_bbox,
                 input_traits=["primary_max_length_pts"],
