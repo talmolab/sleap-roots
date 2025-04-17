@@ -632,10 +632,6 @@ class Pipeline:
 
         return grouped_results
 
-    def computed_primary_root_traits():
-        # TODO: Implement.
-        raise NotImplementedError
-
     def compute_batch_traits(
         self,
         plants: List[Series],
@@ -2384,13 +2380,31 @@ class PrimaryRootPipeline(Pipeline):
                 description="Primary root tip point.",
             ),
             TraitDef(
+                name="primary_base_pt_x",
+                fn=get_base_xs,
+                input_traits=["primary_base_pt"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="X-coordinate of the primary root base node.",
+            ),
+            TraitDef(
                 name="primary_base_pt_y",
                 fn=get_base_ys,
                 input_traits=["primary_base_pt"],
                 scalar=True,
-                include_in_csv=False,
+                include_in_csv=True,
                 kwargs={},
                 description="Y-coordinate of the primary root base node.",
+            ),
+            TraitDef(
+                name="primary_tip_pt_x",
+                fn=get_tip_xs,
+                input_traits=["primary_tip_pt"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="X-coordinate of the primary root tip node.",
             ),
             TraitDef(
                 name="primary_tip_pt_y",
@@ -2418,6 +2432,24 @@ class PrimaryRootPipeline(Pipeline):
                 include_in_csv=True,
                 kwargs={},
                 description="Scalar of primary root curvature index.",
+            ),
+            TraitDef(
+                name="pts_list",
+                fn=get_all_pts_array,
+                input_traits=["primary_max_length_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="",
+            ),
+            TraitDef(
+                name="bounding_box",
+                fn=get_bbox,
+                input_traits=["primary_max_length_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="",
             ),
         ]
         return trait_definitions
