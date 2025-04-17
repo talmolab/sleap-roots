@@ -108,7 +108,13 @@ def get_base_ys(base_pts: np.ndarray) -> np.ndarray:
         raise ValueError("Input array must be of shape `(instances, 2)` or `(2, )`.")
 
     # At this point, `base_pts` should be of shape `(instances, 2)`.
+    # Get the base y-value
     base_ys = base_pts[:, 1]
+    # Now it has shape `(instances,)`
+    if base_ys.shape == (1,):
+        # Return a scalar
+        return base_ys[0]
+
     return base_ys
 
 
