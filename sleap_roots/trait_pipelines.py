@@ -2459,23 +2459,3 @@ class PrimaryRootPipeline(Pipeline):
         """
         primary_pts = plant.get_primary_points(frame_idx)
         return {"primary_pts": primary_pts}
-
-
-class MultiplePrimaryRootPipeline(Pipeline):
-
-    # TODO: Implement. Are there any new TraitDefs here?
-
-    def get_initial_frame_traits(self, plant: Series, frame_idx: int) -> Dict[str, Any]:
-        """Return initial traits for a plant frame
-
-        Args:
-            Args:
-            plant: The plant `Series` object.
-            frame_idx: The index of the current frame.
-
-        Returns:
-            A dictionary of initial traits with key:
-                - "primary_pts": Array of primary root points.
-        """
-        primary_pts = plant.get_primary_points(frame_idx)
-        return {"primary_pts": primary_pts}
