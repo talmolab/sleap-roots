@@ -2446,7 +2446,7 @@ class PrimaryRootPipeline(Pipeline):
         return trait_definitions
 
     def get_initial_frame_traits(self, plant: Series, frame_idx: int) -> Dict[str, Any]:
-        """Return initial traits for a plant frame
+        """Return initial traits for a plant frame.
 
         Args:
             Args:
