@@ -2313,7 +2313,7 @@ class PrimaryRootPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},
-                description="",
+                description="Points of the primary root with maximum length.",
             ),
             TraitDef(
                 name="primary_proximal_node_ind",
@@ -2340,8 +2340,7 @@ class PrimaryRootPipeline(Pipeline):
                 scalar=True,
                 include_in_csv=True,
                 kwargs={},
-                description="Array of primary proximal angles in degrees "
-                "`(instances,)`.",
+                description="Scalar of the primary proximal angle in degrees",
             ),
             TraitDef(
                 name="primary_angle_distal",
@@ -2350,7 +2349,7 @@ class PrimaryRootPipeline(Pipeline):
                 scalar=True,
                 include_in_csv=True,
                 kwargs={},
-                description="Array of primary distal angles in degrees `(instances,)`.",
+                description="Scalar of the primary proximal angle in degrees",
             ),
             TraitDef(
                 name="primary_length",
@@ -2359,7 +2358,7 @@ class PrimaryRootPipeline(Pipeline):
                 scalar=True,
                 include_in_csv=True,
                 kwargs={},
-                description="Scalar of primary root length.",
+                description="Scalar of the primary root length.",
             ),
             TraitDef(
                 name="primary_base_pt",
@@ -2431,7 +2430,7 @@ class PrimaryRootPipeline(Pipeline):
                 scalar=True,
                 include_in_csv=True,
                 kwargs={},
-                description="Scalar of primary root curvature index.",
+                description="Scalar of the primary root curvature index.",
             ),
             TraitDef(
                 name="bounding_box",
@@ -2440,7 +2439,7 @@ class PrimaryRootPipeline(Pipeline):
                 scalar=False,
                 include_in_csv=False,
                 kwargs={},
-                description="",
+                description="Tuple of four parameters in bounding box.",
             ),
         ]
         return trait_definitions
