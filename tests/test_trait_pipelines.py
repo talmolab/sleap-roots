@@ -9,6 +9,7 @@ from sleap_roots.trait_pipelines import (
     OlderMonocotPipeline,
     MultipleDicotPipeline,
     NumpyArrayEncoder,
+    PrimaryRootPipeline,
 )
 from sleap_roots.series import (
     Series,
@@ -1368,3 +1369,124 @@ def test_multiple_dicot_pipeline(
     assert isinstance(arabidopsis_traits, dict)
     assert arabidopsis_traits["series"] == "997_1"
     assert arabidopsis_traits["group"] == "997"
+
+
+def test_primary_root_pipeline(
+    canola_folder,
+    canola_traits_csv,
+    canola_batch_traits_csv,
+    soy_folder,
+    soy_traits_csv,
+    soy_batch_traits_csv,
+    rice_folder,
+    rice_3do_0K9E8B1_traits_csv,
+    rice_3do_YR39SJX_traits_csv,
+    rice_3do_batch_traits_csv,
+):
+
+    # Dicot data (canola_7do, soy_6do).
+    canola_slps = sr.find_all_slp_paths(canola_folder)
+    canola = sr.load_series_from_slps(canola_slps, h5s=True)[0]
+
+    soy_slps = sr.find_all_slp_paths(soy_folder)
+    soy = sr.load_series_from_slps(soy_slps, h5s=True)[0]
+
+    canola_traits_fixture = pd.read_csv(canola_traits_csv)
+    canola_batch_traits_fixture = pd.read_csv(canola_batch_traits_csv)
+
+    soy_traits_fixture = pd.read_csv(soy_traits_csv)
+    soy_batch_traits_fixture = pd.read_csv(soy_batch_traits_csv)
+
+    # Younger monocot data (rice_3do).
+    rice_slps = sr.find_all_slp_paths(rice_folder)
+    rice_all_series = sr.load_series_from_slps(rice_slps)
+    rice_YR39SJX = [
+        series for series in rice_all_series if series.series_name == "YR39SJX"
+    ][0]
+    rice_0K9E8BI = [
+        series for series in rice_all_series if series.series_name == "0K9E8BI"
+    ][0]
+    rice_YR39SJX_traits_fixture = pd.read_csv(rice_3do_YR39SJX_traits_csv)
+    rice_0K9E8BI_traits_fixture = pd.read_csv(rice_3do_0K9E8B1_traits_csv)
+    rice_batch_traits_fixture = pd.read_csv(rice_3do_batch_traits_csv)
+
+    trait_cols = [
+        "plant_name",
+        "curve_index",
+        "primary_angle_distal",
+        "primary_angle_proximal",
+        "primary_base_tip_dist",
+        "primary_length",
+        "primary_tip_pt_y",
+    ]
+
+    pipeline = PrimaryRootPipeline()
+
+    # Compare computed traits to fixtures.
+    canola_computed_traits = pipeline.compute_plant_traits(canola)
+    soy_computed_traits = pipeline.compute_plant_traits(soy)
+    rice_YR39SJX_computed_traits = pipeline.compute_plant_traits(rice_YR39SJX)
+    rice_0K9E8BI_computed_traits = pipeline.compute_plant_traits(rice_0K9E8BI)
+
+    pd.testing.assert_frame_equal(
+        canola_computed_traits[trait_cols], canola_traits_fixture[trait_cols]
+    )
+    pd.testing.assert_frame_equal(
+        soy_computed_traits[trait_cols], soy_traits_fixture[trait_cols]
+    )
+    pd.testing.assert_frame_equal(
+        rice_YR39SJX_computed_traits[trait_cols],
+        rice_YR39SJX_traits_fixture[trait_cols],
+    )
+    pd.testing.assert_frame_equal(
+        rice_0K9E8BI_computed_traits[trait_cols],
+        rice_0K9E8BI_traits_fixture[trait_cols],
+    )
+
+    # Compare computed batch traits to fixtures.
+    summary_suffixes = [
+        "min",
+        "max",
+        "median",
+        "mean",
+        "std",
+        "p5",
+        "p25",
+        "p75",
+        "p95",
+    ]
+
+    # Match each trait name with the summary statistic suffix in a list, execept plant_name.
+    batch_trait_cols = [
+        "plant_name" if trait == "plant_name" else f"{trait}_{suffix}"
+        for trait in trait_cols
+        for suffix in summary_suffixes
+    ]
+
+    canola_computed_batch_traits = pipeline.compute_batch_traits([canola])
+    soy_computed_batch_traits = pipeline.compute_batch_traits([soy])
+    rice_computed_batch_traits = pipeline.compute_batch_traits(
+        [rice_YR39SJX, rice_0K9E8BI]
+    )
+
+    pd.testing.assert_frame_equal(
+        canola_computed_batch_traits[batch_trait_cols],
+        canola_batch_traits_fixture[batch_trait_cols],
+    )
+    pd.testing.assert_frame_equal(
+        soy_computed_batch_traits[batch_trait_cols],
+        soy_batch_traits_fixture[batch_trait_cols],
+    )
+
+    # Sort dataframe before comparing since there are 2 samples.
+    rice_computed_batch_traits = rice_computed_batch_traits.sort_values(
+        "plant_name"
+    ).reset_index()
+    rice_batch_traits_fixture = rice_batch_traits_fixture.sort_values(
+        "plant_name"
+    ).reset_index()
+
+    pd.testing.assert_frame_equal(
+        rice_computed_batch_traits[batch_trait_cols],
+        rice_batch_traits_fixture[batch_trait_cols],
+    )
