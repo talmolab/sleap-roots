@@ -29,7 +29,7 @@ def get_tips(pts: np.ndarray) -> np.ndarray:
     return tip_pts
 
 
-def get_tip_xs(tip_pts: np.ndarray) -> np.ndarray:
+def get_tip_xs(tip_pts: np.ndarray) -> np.ndarray | np.floating:
     """Get x coordinates of tip points.
 
     Args:
@@ -37,20 +37,28 @@ def get_tip_xs(tip_pts: np.ndarray) -> np.ndarray:
             is only one tip.
 
     Return:
-        An array of tip x-coordinates (instances,) or (1,) when there is only one root.
+        An array of tip x-coordinates (instances,) or a scalar when there is only one root.
     """
-    if tip_pts.ndim not in (1, 2):
-        raise ValueError(
-            "Input array must be 2-dimensional (instances, 2) or 1-dimensional (2,)."
-        )
-    if tip_pts.shape[-1] != 2:
-        raise ValueError("Last dimension must be (x, y).")
+    # Check for the 2D shape of the input array
+    if tip_pts.ndim == 1:
+        # If shape is `(2,)`, then reshape it to `(1, 2)` for consistency
+        tip_pts = tip_pts.reshape(1, 2)
+    elif tip_pts.ndim != 2:
+        raise ValueError("Input array must be of shape `(instances, 2)` or `(2, )`.")
 
-    tip_xs = tip_pts[..., 0]
+    # At this point, `tip_pts` should be of shape `(instances, 2)`.
+    # Get the tip x-value
+    tip_xs = tip_pts[:, 0]
+
+    # Now it has shape `(instances,)`
+    if tip_xs.shape == (1,):
+        # Return a scalar
+        return tip_xs[0]
+
     return tip_xs
 
 
-def get_tip_ys(tip_pts: np.ndarray) -> np.ndarray:
+def get_tip_ys(tip_pts: np.ndarray) -> np.ndarray | np.floating:
     """Get y coordinates of tip points.
 
     Args:
@@ -58,7 +66,7 @@ def get_tip_ys(tip_pts: np.ndarray) -> np.ndarray:
             is only one tip.
 
     Return:
-        An array of tip y-coordinates (instances,) or a scalar value when there is only one root.
+        An array of tip y-coordinates (instances,) or a scalar when there is only one root.
     """
     # Check for the 2D shape of the input array
     if tip_pts.ndim == 1:
