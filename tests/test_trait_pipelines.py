@@ -10,6 +10,7 @@ from sleap_roots.trait_pipelines import (
     MultipleDicotPipeline,
     NumpyArrayEncoder,
     PrimaryRootPipeline,
+    MultiplePrimaryRootPipeline,
 )
 from sleap_roots.series import (
     Series,
@@ -20,7 +21,13 @@ from sleap_roots.series import (
 )
 from sleap_roots.lengths import get_max_length_pts, get_root_lengths, get_curve_index
 
-from sleap_roots.points import get_count, join_pts, get_all_pts_array, get_nodes
+from sleap_roots.points import (
+    get_count,
+    join_pts,
+    get_all_pts_array,
+    get_nodes,
+    filter_primary_roots_with_unexpected_count,
+)
 
 from sleap_roots.bases import (
     get_root_widths,
@@ -82,6 +89,8 @@ from sleap_roots.ellipse import (
     get_ellipse_b,
     get_ellipse_ratio,
 )
+
+from sleap_roots.summary import get_summary
 
 import sleap_roots as sr
 
@@ -1490,3 +1499,271 @@ def test_primary_root_pipeline(
         rice_computed_batch_traits[batch_trait_cols],
         rice_batch_traits_fixture[batch_trait_cols],
     )
+
+
+def test_multiple_primary_root_pipeline(
+    multiple_arabidopsis_11do_folder, multiple_arabidopsis_11do_csv
+):
+
+    all_slps = sr.find_all_slp_paths(multiple_arabidopsis_11do_folder)
+
+    # Load arabidopsis examples.
+    all_multiple_dicot_series = sr.load_series_from_slps(
+        slp_paths=all_slps, h5s=True, csv_path=multiple_arabidopsis_11do_csv
+    )
+
+    assert len(all_multiple_dicot_series) == 4
+
+    multiple_primary_root_pipeline = MultiplePrimaryRootPipeline()
+
+    # Extract each series out in a variable.
+    series_997_1 = [
+        series for series in all_multiple_dicot_series if series.series_name == "997_1"
+    ][0]
+    series_7327_2 = [
+        series for series in all_multiple_dicot_series if series.series_name == "7327_2"
+    ][0]
+    series_6039_1 = [
+        series for series in all_multiple_dicot_series if series.series_name == "6039_1"
+    ][0]
+    series_9535_1 = [
+        series for series in all_multiple_dicot_series if series.series_name == "9535_1"
+    ][0]
+
+    assert series_997_1.qc_fail == 0
+    assert series_7327_2.qc_fail == 0
+    assert series_6039_1.qc_fail == 1
+    assert series_9535_1.qc_fail == 0
+
+    # Compute traits using compute_multiple_dicots_trait for each sample.
+    computed_traits_997_1 = (
+        multiple_primary_root_pipeline.compute_multiple_primary_roots_traits(
+            series_997_1
+        )
+    )
+    computed_traits_7327_2 = (
+        multiple_primary_root_pipeline.compute_multiple_primary_roots_traits(
+            series_7327_2
+        )
+    )
+    computed_traits_6039_1 = (
+        multiple_primary_root_pipeline.compute_multiple_primary_roots_traits(
+            series_6039_1
+        )
+    )
+    computed_traits_9535_1 = (
+        multiple_primary_root_pipeline.compute_multiple_primary_roots_traits(
+            series_9535_1
+        )
+    )
+
+    # Compute traits per group.
+    computed_grouped_traits = (
+        multiple_primary_root_pipeline.compute_multiple_primary_roots_traits_for_groups(
+            all_multiple_dicot_series
+        )
+    )
+
+    assert (
+        isinstance(computed_grouped_traits, list) and len(computed_grouped_traits) == 3
+    )
+
+    assert isinstance(computed_traits_997_1, dict)
+    assert computed_traits_997_1["series"] == "997_1"
+    assert computed_traits_997_1["group"] == "997"
+    assert pd.DataFrame([computed_traits_997_1["traits"]]).shape == (1, 9)
+    assert pd.DataFrame([computed_traits_997_1["summary_stats"]]).shape == (1, 81)
+
+    assert isinstance(computed_traits_7327_2, dict)
+    assert computed_traits_7327_2["series"] == "7327_2"
+    assert computed_traits_7327_2["group"] == "7327"
+    assert pd.DataFrame([computed_traits_7327_2["traits"]]).shape == (1, 9)
+    assert pd.DataFrame([computed_traits_7327_2["summary_stats"]]).shape == (1, 81)
+
+    assert isinstance(computed_traits_6039_1, dict)
+    assert computed_traits_6039_1["series"] == "6039_1"
+    assert computed_traits_6039_1["group"] == "6039"
+    assert pd.DataFrame([computed_traits_6039_1["traits"]]).shape == (1, 9)
+    assert pd.DataFrame([computed_traits_6039_1["summary_stats"]]).shape == (1, 81)
+
+    assert isinstance(computed_traits_9535_1, dict)
+    assert computed_traits_9535_1["series"] == "9535_1"
+    assert computed_traits_9535_1["group"] == "9535"
+    assert pd.DataFrame([computed_traits_6039_1["traits"]]).shape == (1, 9)
+    assert pd.DataFrame([computed_traits_9535_1["summary_stats"]]).shape == (1, 81)
+
+    angle_traits = (
+        "lateral_angles_proximal",
+        "lateral_angles_distal",
+        "primary_angle_distal",
+        "primary_angle_proximal",
+    )
+
+    expected_dtypes = (int, float, np.integer, np.floating)
+
+    multiple_primary_root_pipeline = MultiplePrimaryRootPipeline()
+
+    all_series_summaries = []
+
+    for series in all_multiple_dicot_series:
+
+        # Compute traits for the current series.
+        computed_traits = (
+            multiple_primary_root_pipeline.compute_multiple_primary_roots_traits(series)
+        )
+
+        # Manually create dictionary storing traits for all frames.
+        result = {
+            "series": str(series.series_name),
+            "group": str(series.group),
+            "qc_fail": series.qc_fail,
+            "traits": {},
+            "summary_stats": {},
+        }
+
+        aggregated_traits = {}
+
+        for frame in range(len(series)):
+
+            frame_traits = {
+                "primary_pts": series.get_primary_points(frame),
+                "expected_plant_ct": series.expected_count,
+            }
+
+            frame_traits["filtered_primary_pts_with_expected_ct"] = (
+                filter_primary_roots_with_unexpected_count(
+                    frame_traits["primary_pts"], frame_traits["expected_plant_ct"]
+                )
+            )
+
+            primary_root_pipeline = PrimaryRootPipeline()
+
+            # Retrive numpy ndarray of filtered_primary_pts (instances, nodes, 2)
+            primary_root_instances = frame_traits[
+                "filtered_primary_pts_with_expected_ct"
+            ]
+
+            for primary_root_inst in primary_root_instances:
+
+                # Get the initial frame traits for this plant using the filtered primary points
+                initial_frame_traits = {
+                    "primary_pts": primary_root_inst,
+                }
+
+                # Use the primary root pipeline to compute the plant traits on this frame
+                plant_traits = primary_root_pipeline.compute_frame_traits(
+                    initial_frame_traits
+                )
+
+                # For each plant's traits in the frame
+                for trait_name, trait_value in plant_traits.items():
+                    # Not all traits are added to the aggregated traits dictionary
+                    if trait_name in primary_root_pipeline.csv_traits_multiple_plants:
+                        if trait_name not in aggregated_traits:
+                            # Initialize the trait array if it's the first frame
+                            aggregated_traits[trait_name] = [np.atleast_1d(trait_value)]
+                        else:
+                            # Append new trait values for subsequent frames
+                            aggregated_traits[trait_name].append(
+                                np.atleast_1d(trait_value)
+                            )
+
+        # After processing, update the result dictionary with computed traits
+        for trait, arrays in aggregated_traits.items():
+            aggregated_traits[trait] = np.concatenate(arrays, axis=0)
+        result["traits"] = aggregated_traits
+
+        # Compute summary statistics and update result
+        summary_stats = {}
+        for trait_name, trait_values in aggregated_traits.items():
+            trait_stats = get_summary(trait_values, prefix=f"{trait_name}_")
+            summary_stats.update(trait_stats)
+        result["summary_stats"] = summary_stats
+
+        # Assert manually calculated and computed traits have the same keys.
+        result.keys() == computed_traits.keys()
+
+        # Assert manually calculated and computed traits have the same trait names.
+        result["traits"].keys() == computed_traits["traits"].keys()
+
+        # Assert manually calculated and computed traits have the same summary trait names.
+        result["summary_stats"].keys() == computed_traits["summary_stats"].keys()
+
+        # Check that the trait values for manually calculated traits and computed traits are the same.
+        for key in result["traits"].keys():
+            curr_trait_val = result["traits"][key]
+            if isinstance(curr_trait_val, np.ndarray):
+                np.testing.assert_almost_equal(
+                    curr_trait_val, computed_traits["traits"][key]
+                )
+            else:
+                assert curr_trait_val == computed_traits[key]
+
+        # Check that the summary trait values for manually calculated traits and computed traits are the same.
+        for key in result["summary_stats"].keys():
+            assert np.isclose(
+                result["summary_stats"][key],
+                computed_traits["summary_stats"][key],
+                equal_nan=True,
+            )
+
+        # Append the current dictionary to the all_series_summaries list.
+        all_series_summaries.append(result)
+
+        # Type and Range Check over the traits.
+        for key in computed_traits["traits"].keys():
+
+            arr1 = computed_traits["traits"][key]
+            arr2 = result["traits"][key]
+
+            # Trait values should be stored as an array.
+            assert isinstance(arr1, np.ndarray), "Trait value is not an array."
+            assert isinstance(arr2, np.ndarray), "Trait value is not an array."
+
+            # Type check.
+            assert np.all(
+                [isinstance(x, expected_dtypes) or np.isnan(x) for x in arr1.flat]
+            ), "Array contains invalid types."
+            assert np.all(
+                [isinstance(x, expected_dtypes) or np.isnan(x) for x in arr2.flat]
+            ), "Array contains invalid types."
+
+            # Range check.
+            if key in angle_traits:
+                assert np.all(
+                    ((arr1 >= 0) & (arr1 <= 180)) | np.isnan(arr1)
+                ), "Angle trait is out of range."
+                assert np.all(
+                    ((arr2 >= 0) & (arr2 <= 180)) | np.isnan(arr2)
+                ), "Angle trait is out of range."
+
+            else:
+                assert np.all(
+                    (arr1 >= 0) | np.isnan(arr1)
+                ), "Array contains negative values."
+                assert np.all(
+                    (arr2 >= 0) | np.isnan(arr2)
+                ), "Array contains negative values."
+
+        # Type and Range Check over the summary traits.
+        for key in computed_traits["summary_stats"].keys():
+            if key.endswith("_std"):
+                continue
+            elif key.startswith(angle_traits):
+                assert (
+                    (result["summary_stats"][key] >= 0)
+                    and (result["summary_stats"][key] <= 180)
+                ) or result["summary_stats"][key], "Angle trait is out of range."
+                assert (
+                    (computed_traits["summary_stats"][key] >= 0)
+                    and (computed_traits["summary_stats"][key] <= 180)
+                ) or computed_traits["summary_stats"][
+                    key
+                ], "Angle trait is out of range."
+            else:
+                assert (result["summary_stats"][key] >= 0) or result["summary_stats"][
+                    key
+                ], f"Trait {key} is a negative value."
+                assert (computed_traits["summary_stats"][key] >= 0) or computed_traits[
+                    "summary_stats"
+                ][key], f"Trait {key} is a negative value."
