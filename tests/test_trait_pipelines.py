@@ -83,6 +83,8 @@ from sleap_roots.ellipse import (
     get_ellipse_ratio,
 )
 
+from sleap_roots.summary import get_summary
+
 import sleap_roots as sr
 
 
@@ -1480,6 +1482,7 @@ def test_primary_root_pipeline(
             )
             trait_dict["bounding_box"] = get_bbox(trait_dict["primary_max_length_pts"])
 
+            # Add summary traits to trait dict.
             for summary_trait in pipeline.summary_traits:
                 trait_dict = trait_dict | get_summary(trait_dict[summary_trait])
 
@@ -1506,7 +1509,6 @@ def test_primary_root_pipeline(
                     )
 
                 # Ratio traits must be in range [0, 1]
-
                 if trait.startswith(ratio_traits):
                     assert (0 <= trait_dict[trait] <= 1) or np.isnan(trait_dict[trait])
 
