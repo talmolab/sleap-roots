@@ -1560,6 +1560,13 @@ def test_multiple_primary_root_pipeline(
         )
     )
 
+    summary_series_mapping = {
+        "997_1": "tests/data/multiple_arabidopsis_11do/multiple_primary_root_pipeline/997_1.MultiplePrimaryRootPipeline.all_frames_summary.csv",
+        "6039_1": "tests/data/multiple_arabidopsis_11do/multiple_primary_root_pipeline/6039_1.MultiplePrimaryRootPipeline.all_frames_summary.csv",
+        "7327_2": "tests/data/multiple_arabidopsis_11do/multiple_primary_root_pipeline/7327_2.MultiplePrimaryRootPipeline.all_frames_summary.csv",
+        "9535_1": "tests/data/multiple_arabidopsis_11do/multiple_primary_root_pipeline/9535_1.MultiplePrimaryRootPipeline.all_frames_summary.csv",
+    }
+
     # Compute traits per group.
     computed_grouped_traits = (
         multiple_primary_root_pipeline.compute_multiple_primary_roots_traits_for_groups(
@@ -1770,6 +1777,17 @@ def test_multiple_primary_root_pipeline(
                 assert (computed_traits["summary_stats"][key] >= 0) or computed_traits[
                     "summary_stats"
                 ][key], f"Trait {key} is a negative value."
+
+        # Obtain the fixture matching the current series.
+        curr_series_fixture_df = pd.read_csv(summary_series_mapping[series.series_name])
+
+        manual_df = pd.DataFrame([summary_stats])
+        manual_df.insert(0, "series", series.series_name)
+
+        # Compare the manual summary stats to the fixture summary stats.
+        pd.testing.assert_frame_equal(
+            manual_df, curr_series_fixture_df, check_exact=False
+        )
 
     # Check batch calculations for all series.
 

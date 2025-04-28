@@ -196,13 +196,13 @@ def multiple_arabidopsis_11do_csv():
 @pytest.fixture
 def multiple_arabidopsis_11do_batch_traits_MultiplePrimaryRootPipeline():
     """Path to the CSV file with expected count and group information."""
-    return "tests/data/multiple_arabidopsis_11do/MultiplePrimaryRootPipeline.batch_traits.csv"
+    return "tests/data/multiple_arabidopsis_11do/multiple_primary_root_pipeline/MultiplePrimaryRootPipeline.batch_traits.csv"
 
 
 @pytest.fixture
 def multiple_arabidopsis_11do_group_batch_traits_MultiplePrimaryRootPipeline():
     """Path to the CSV file with expected count and group information."""
-    return "tests/data/multiple_arabidopsis_11do/MultiplePrimaryRootPipeline.group_batch_traits.csv"
+    return "tests/data/multiple_arabidopsis_11do/multiple_primary_root_pipeline/MultiplePrimaryRootPipeline.group_batch_traits.csv"
 
 
 @pytest.fixture
