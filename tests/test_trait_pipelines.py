@@ -1334,8 +1334,8 @@ def test_older_monocot_pipeline(
 def test_multiple_dicot_pipeline(
     multiple_arabidopsis_11do_folder,
     multiple_arabidopsis_11do_csv,
-    multiple_arabidopsis_11do_batch_traits_csv,
-    multiple_arabidopsis_11do_group_batch_traits_csv,
+    multiple_arabidopsis_11do_batch_traits_csv_MultipleDicotPipeline,
+    multiple_arabidopsis_11do_group_batch_traits_csv_MultipleDicotPipeline,
 ):
 
     all_slps = sr.find_all_slp_paths(multiple_arabidopsis_11do_folder)
@@ -1388,6 +1388,13 @@ def test_multiple_dicot_pipeline(
             all_multiple_dicot_series
         )
     )
+
+    summary_series_mapping = {
+        "997_1": "tests/data/multiple_arabidopsis_11do/multiple_dicot_pipeline/997_1.MultipleDicotPipeline.all_frames_summary.csv",
+        "6039_1": "tests/data/multiple_arabidopsis_11do/multiple_dicot_pipeline/6039_1.MultipleDicotPipeline.all_frames_summary.csv",
+        "7327_2": "tests/data/multiple_arabidopsis_11do/multiple_dicot_pipeline/7327_2.MultipleDicotPipeline.all_frames_summary.csv",
+        "9535_1": "tests/data/multiple_arabidopsis_11do/multiple_dicot_pipeline/9535_1.MultipleDicotPipeline.all_frames_summary.csv",
+    }
 
     assert (
         isinstance(computed_grouped_traits, list) and len(computed_grouped_traits) == 3
@@ -1607,9 +1614,21 @@ def test_multiple_dicot_pipeline(
                     "summary_stats"
                 ][key], f"Trait {key} is a negative value."
 
-    # Check batch calculations for all series.
+        # Obtain the fixture matching the current series.
+        curr_series_fixture_df = pd.read_csv(summary_series_mapping[series.series_name])
 
-    batch_df_fixture = pd.read_csv(multiple_arabidopsis_11do_batch_traits_csv)
+        manual_df = pd.DataFrame([summary_stats])
+        manual_df.insert(0, "series", series.series_name)
+
+        # Compare the manual summary stats to the fixture summary stats.
+        pd.testing.assert_frame_equal(
+            manual_df, curr_series_fixture_df, check_exact=False
+        )
+
+    # Check batch calculations for all series.
+    batch_df_fixture = pd.read_csv(
+        multiple_arabidopsis_11do_batch_traits_csv_MultipleDicotPipeline
+    )
 
     batch_df_rows = []
 
@@ -1661,7 +1680,7 @@ def test_multiple_dicot_pipeline(
 
     # Check back calculations per group.
     group_batch_df_fixture = pd.read_csv(
-        multiple_arabidopsis_11do_group_batch_traits_csv
+        multiple_arabidopsis_11do_group_batch_traits_csv_MultipleDicotPipeline
     )
 
     group_batch_df_rows = []
