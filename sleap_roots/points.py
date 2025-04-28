@@ -403,6 +403,37 @@ def filter_plants_with_unexpected_ct(
     return primary_pts, lateral_pts
 
 
+def filter_primary_roots_with_unexpected_count(
+    primary_pts: np.ndarray, expected_count: float
+) -> np.ndarray:
+    """Filter out primary roots if the number of detected roots doesn't match the expected count.
+
+    Args:
+        primary_pts: A numpy array of primary root points with shape
+            (instances, nodes, 2).
+        expected_count: The expected number of primary roots. If NaN, no filtering is applied.
+
+    Returns:
+        The filtered primary root points array. If the count doesn't match, an empty array is returned.
+    """
+    # Type check
+    if not isinstance(primary_pts, np.ndarray):
+        raise ValueError("primary_pts must be a numpy array.")
+    if not np.issubdtype(type(expected_count), np.number):
+        raise ValueError("expected_count must be a numeric type.")
+
+    # Handle NaN expected_count: Skip filtering if expected_count is NaN
+    if not np.isnan(expected_count):
+        # Round expected_count to the nearest integer for comparison
+        expected_count_rounded = round(expected_count)
+
+        if len(primary_pts) != expected_count_rounded:
+            # Adjusting primary roots to empty array of the same shape
+            primary_pts = np.empty((0, primary_pts.shape[1], 2))
+
+    return primary_pts
+
+
 def get_filtered_primary_pts(filtered_pts: Tuple[np.ndarray, np.ndarray]) -> np.ndarray:
     """Get the filtered primary root points from a tuple of filtered primary and lateral roots.
 

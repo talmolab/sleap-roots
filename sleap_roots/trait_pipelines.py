@@ -58,6 +58,7 @@ from sleap_roots.networklength import (
 from sleap_roots.points import (
     associate_lateral_to_primary,
     filter_plants_with_unexpected_ct,
+    filter_primary_roots_with_unexpected_count,
     filter_roots_with_nans,
     get_all_pts_array,
     get_count,
@@ -632,6 +633,256 @@ class Pipeline:
 
         return grouped_results
 
+    def compute_multiple_primary_roots_traits(
+        self,
+        series: Series,
+        write_json: bool = False,
+        json_suffix: str = ".all_frames_traits.json",
+        write_csv: bool = False,
+        csv_suffix: str = ".all_frames_summary.csv",
+    ):
+        """Computes plant traits for pipelines with multiple primary roots over all frames in a series.
+
+        Args:
+            series: The Series object containing the primary and lateral root points.
+            write_json: Whether to write the aggregated traits to a JSON file. Default is False.
+            json_suffix: The suffix to append to the JSON file name. Default is ".all_frames_traits.json".
+            write_csv: Whether to write the summary statistics to a CSV file. Default is False.
+            csv_suffix: The suffix to append to the CSV file name. Default is ".all_frames_summary.csv".
+
+        Returns:
+            A dictionary containing the series name, group, qc_fail, aggregated traits, and summary statistics.
+        """
+        # Initialize the return structure with the series name and group
+        result = {
+            "series": str(series.series_name),
+            "group": str(series.group),
+            "qc_fail": series.qc_fail,
+            "traits": {},
+            "summary_stats": {},
+        }
+
+        # Check if the series has frames to process
+        if len(series) == 0:
+            print(f"Series '{series.series_name}' contains no frames to process.")
+            # Return early with the initialized structure
+            return result
+
+        # Initialize a separate dictionary to hold the aggregated traits across all frames
+        aggregated_traits = {}
+
+        # Iterate over frames in series
+        for frame in range(len(series)):
+            # Get initial points and number of plants per frame
+            initial_frame_traits = self.get_initial_frame_traits(series, frame)
+            # Compute initial associations and perform filter operations
+            frame_traits = self.compute_frame_traits(initial_frame_traits)
+
+            # Instantiate PrimaryRootPipeline
+            primary_root_pipeline = PrimaryRootPipeline()
+
+            # Retrive numpy ndarray of filtered_primary_pts (instances, nodes, 2)
+            primary_root_instances = frame_traits[
+                "filtered_primary_pts_with_expected_ct"
+            ]
+
+            for primary_root_inst in primary_root_instances:
+
+                # Get the initial frame traits for this plant using the filtered primary points
+                initial_frame_traits = {
+                    "primary_pts": primary_root_inst,
+                }
+
+                # Use the primary root pipeline to compute the plant traits on this frame
+                plant_traits = primary_root_pipeline.compute_frame_traits(
+                    initial_frame_traits
+                )
+
+                # For each plant's traits in the frame
+                for trait_name, trait_value in plant_traits.items():
+                    # Not all traits are added to the aggregated traits dictionary
+                    if trait_name in primary_root_pipeline.csv_traits_multiple_plants:
+                        if trait_name not in aggregated_traits:
+                            # Initialize the trait array if it's the first frame
+                            aggregated_traits[trait_name] = [np.atleast_1d(trait_value)]
+                        else:
+                            # Append new trait values for subsequent frames
+                            aggregated_traits[trait_name].append(
+                                np.atleast_1d(trait_value)
+                            )
+
+        # After processing, update the result dictionary with computed traits
+        for trait, arrays in aggregated_traits.items():
+            aggregated_traits[trait] = np.concatenate(arrays, axis=0)
+        result["traits"] = aggregated_traits
+
+        # Write to JSON if requested
+        if write_json:
+            json_name = f"{series.series_name}{json_suffix}"
+            try:
+                with open(json_name, "w") as f:
+                    json.dump(
+                        result, f, cls=NumpyArrayEncoder, ensure_ascii=False, indent=4
+                    )
+                print(f"Aggregated traits saved to {json_name}")
+            except IOError as e:
+                print(f"Error writing JSON file '{json_name}': {e}")
+
+        # Compute summary statistics and update result
+        summary_stats = {}
+        for trait_name, trait_values in aggregated_traits.items():
+            trait_stats = get_summary(trait_values, prefix=f"{trait_name}_")
+            summary_stats.update(trait_stats)
+        result["summary_stats"] = summary_stats
+
+        # Optionally write summary stats to CSV
+        if write_csv:
+            csv_name = f"{series.series_name}{csv_suffix}"
+            try:
+                summary_df = pd.DataFrame([summary_stats])
+                summary_df.insert(0, "series", series.series_name)
+                summary_df.to_csv(csv_name, index=False)
+                print(f"Summary statistics saved to {csv_name}")
+            except IOError as e:
+                print(f"Failed to write CSV file '{csv_name}': {e}")
+
+        # Return the final result structure
+        return result
+
+    def compute_multiple_primary_roots_traits_for_groups(
+        self,
+        series_list: List[Series],
+        output_dir: str = "grouped_traits",
+        write_json: bool = False,
+        json_suffix: str = ".grouped_traits.json",
+        write_csv: bool = False,
+        csv_suffix: str = ".grouped_summary.csv",
+    ) -> List[
+        Dict[str, Union[str, List[str], Dict[str, Union[List[float], np.ndarray]]]]
+    ]:
+        """Aggregates plant traits over groups of samples.
+
+        Args:
+            series_list: A list of Series objects containing the primary root points for each sample.
+            output_dir: The directory to write the JSON and CSV files to. Default is "grouped_traits".
+            write_json: Whether to write the aggregated traits to a JSON file. Default is False.
+            json_suffix: The suffix to append to the JSON file name. Default is ".grouped_traits.json".
+            write_csv: Whether to write the summary statistics to a CSV file. Default is False.
+            csv_suffix: The suffix to append to the CSV file name. Default is ".grouped_summary.csv".
+
+        Returns:
+            A list of dictionaries containing the aggregated traits and summary statistics for each group.
+        """
+        # Input Validation
+        if not isinstance(series_list, list) or not all(
+            isinstance(series, Series) for series in series_list
+        ):
+            raise ValueError("series_list must be a list of Series objects.")
+
+        # Group series by their group property
+        series_groups = {}
+        for series in series_list:
+            # Exclude series with qc_fail flag set to 1
+            if int(series.qc_fail) == 1:
+                print(f"Skipping series '{series.series_name}' due to qc_fail flag.")
+                continue
+            # Get the group name from the series object
+            group_name = str(series.group)
+            if group_name not in series_groups:
+                series_groups[group_name] = {"names": [], "series": []}
+            # Store series names and objects in the dictionary
+            series_groups[group_name]["names"].append(str(series.series_name))
+            series_groups[group_name]["series"].append(series)  # Store Series objects
+
+        # Initialize the list to hold the results for each group
+        grouped_results = []
+        # Iterate over each group of series
+        for group_name, group_data in series_groups.items():
+            # Initialize the return structure with the group name
+            group_result = {
+                "group": group_name,
+                "series": group_data["names"],  # Use series names
+                "traits": {},
+            }
+
+            # Aggregate traits over all samples in the group
+            aggregated_traits = {}
+            # Iterate over each series in the group
+            for series in group_data["series"]:
+                print(f"Processing series '{series.series_name}'")
+                # Get the trait results for each series in the group
+                result = self.compute_multiple_primary_roots_traits(
+                    series=series, write_json=False, write_csv=False
+                )
+                # Aggregate the series traits into the group traits
+                for trait, values in result["traits"].items():
+                    # Ensure values are at least 1D
+                    values = np.atleast_1d(values)
+                    if trait not in aggregated_traits:
+                        aggregated_traits[trait] = values
+                    else:
+                        # Concatenate the current values with the existing array
+                        aggregated_traits[trait] = np.concatenate(
+                            (aggregated_traits[trait], values)
+                        )
+
+            group_result["traits"] = aggregated_traits
+            print(f"Finished processing group '{group_name}'")
+
+            # Write to JSON if requested
+            if write_json:
+                # Make the output directory if it doesn't exist
+                Path(output_dir).mkdir(parents=True, exist_ok=True)
+                # Construct the JSON file name
+                json_name = f"{group_name}{json_suffix}"
+                # Join the output directory with the JSON file name
+                json_path = Path(output_dir) / json_name
+                try:
+                    with open(json_path, "w") as f:
+                        json.dump(
+                            group_result,
+                            f,
+                            cls=NumpyArrayEncoder,
+                            ensure_ascii=False,
+                            indent=4,
+                        )
+                    print(
+                        f"Aggregated traits for group {group_name} saved to {str(json_path)}"
+                    )
+                except IOError as e:
+                    print(f"Error writing JSON file '{str(json_path)}': {e}")
+
+            # Compute summary statistics
+            summary_stats = {}
+            for trait, trait_values in aggregated_traits.items():
+                trait_stats = get_summary(trait_values, prefix=f"{trait}_")
+                summary_stats.update(trait_stats)
+
+            group_result["summary_stats"] = summary_stats
+
+            # Write summary stats to CSV if requested
+            if write_csv:
+                # Make the output directory if it doesn't exist
+                Path(output_dir).mkdir(parents=True, exist_ok=True)
+                # Construct the CSV file name
+                csv_name = f"{group_name}{csv_suffix}"
+                # Join the output directory with the CSV file name
+                csv_path = Path(output_dir) / csv_name
+                try:
+                    summary_df = pd.DataFrame([summary_stats])
+                    summary_df.insert(0, "genotype", group_name)
+                    summary_df.to_csv(csv_path, index=False)
+                    print(
+                        f"Summary statistics for group {group_name} saved to {str(csv_path)}"
+                    )
+                except IOError as e:
+                    print(f"Failed to write CSV file '{str(csv_path)}': {e}")
+
+            # Append the group result to the list of results
+            grouped_results.append(group_result)
+
+        return grouped_results
+
     def compute_batch_traits(
         self,
         plants: List[Series],
@@ -754,6 +1005,129 @@ class Pipeline:
         try:
             # Compute traits for each group of series
             grouped_results = self.compute_multiple_dicots_traits_for_groups(
+                all_series,
+                output_dir=output_dir,
+                write_json=write_json,
+                write_csv=False,
+            )
+        except Exception as e:
+            raise RuntimeError(f"Error computing traits for groups: {e}")
+
+        # Prepare the list of dictionaries for the DataFrame
+        all_group_summaries = []
+        for group_result in grouped_results:
+            # Validate the expected key exists in the result
+            if "summary_stats" not in group_result:
+                raise KeyError(
+                    "Expected key 'summary_stats' not found in group result."
+                )
+
+            # Assuming 'group' key exists in group_result and it indicates the genotype
+            genotype = group_result.get(
+                "group", "Unknown Genotype"
+            )  # Default to "Unknown Genotype" if not found
+
+            # Start with a dictionary containing the genotype
+            group_summary = {"genotype": genotype}
+
+            # Add each trait statistic from the summary_stats dictionary to the group_summary
+            # This assumes summary_stats is a dictionary where keys are trait names and values are the statistics
+            for trait, statistic in group_result["summary_stats"].items():
+                group_summary[trait] = statistic
+
+            all_group_summaries.append(group_summary)
+
+        # Create a DataFrame from the list of dictionaries
+        all_group_summaries_df = pd.DataFrame(all_group_summaries)
+
+        # Write to CSV if requested
+        if write_csv:
+            try:
+                all_group_summaries_df.to_csv(csv_path, index=False)
+                print(f"Computed traits for all groups saved to {csv_path}")
+            except Exception as e:
+                raise IOError(f"Failed to write computed traits to CSV: {e}")
+
+        return all_group_summaries_df
+
+    def compute_batch_multiple_primary_roots_traits(
+        self,
+        all_series: List[Series],
+        write_csv: bool = False,
+        csv_path: str = "traits.csv",
+    ) -> pd.DataFrame:
+        """Compute traits for a batch of series with multiple primary roots.
+
+        Args:
+            all_series: List of `Series` objects.
+            write_csv: If `True`, write the computed traits to a CSV file.
+            csv_path: Path to write the CSV file to.
+
+        Returns:
+            A pandas DataFrame of computed traits summarized over all frames of each
+            series. The resulting dataframe will have a row for each series and a column
+            for each series-level summarized trait.
+
+            Summarized traits are prefixed with the trait name and an underscore,
+            followed by the summary statistic.
+        """
+        all_series_summaries = []
+
+        for series in all_series:
+            print(f"Processing series '{series.series_name}'")
+            # Use the updated function and access its return value
+            series_result = self.compute_multiple_primary_roots_traits(
+                series, write_json=False, write_csv=False
+            )
+            # Prepare the series-level summary.
+            series_summary = {
+                "series_name": series_result["series"],
+                **series_result["summary_stats"],  # Unpack summary_stats
+            }
+            all_series_summaries.append(series_summary)
+
+        # Convert list of dictionaries to a DataFrame
+        all_series_summaries_df = pd.DataFrame(all_series_summaries)
+
+        # Write to CSV if requested
+        if write_csv:
+            all_series_summaries_df.to_csv(csv_path, index=False)
+            print(f"Computed traits for all series saved to {csv_path}")
+
+        return all_series_summaries_df
+
+    def compute_batch_multiple_primary_roots_traits_for_groups(
+        self,
+        all_series: List[Series],
+        output_dir: str = "grouped_traits",
+        write_json: bool = False,
+        write_csv: bool = False,
+        csv_path: str = "group_summarized_traits.csv",
+    ) -> pd.DataFrame:
+        """Compute traits for a batch of grouped series with multiple primary roots.
+
+        Args:
+            all_series: List of `Series` objects.
+            output_dir: The directory to write the JSON and CSV files to. Default is "grouped_traits".
+            write_json: If `True`, write each set of group traits to a JSON file.
+            write_csv: If `True`, write the computed traits to a CSV file.
+            csv_path: Path to write the CSV file to.
+
+        Returns:
+            A pandas DataFrame of computed traits summarized over all frames of each
+            group. The resulting dataframe will have a row for each series and a column
+            for each series-level summarized trait.
+
+            Summarized traits are prefixed with the trait name and an underscore,
+            followed by the summary statistic.
+        """
+        # Check if the input list is empty
+        if not all_series:
+            raise ValueError("The input list 'all_series' is empty.")
+
+        try:
+            # Compute traits for each group of series
+            grouped_results = self.compute_multiple_primary_roots_traits_for_groups(
                 all_series,
                 output_dir=output_dir,
                 write_json=write_json,
@@ -2458,3 +2832,40 @@ class PrimaryRootPipeline(Pipeline):
         """
         primary_pts = plant.get_primary_points(frame_idx)
         return {"primary_pts": primary_pts}
+
+
+@attrs.define
+class MultiplePrimaryRootPipeline(Pipeline):
+    """Pipeline for computing traits for multiple primary roots."""
+
+    def define_traits(self) -> List[TraitDef]:
+        """Define the trait computation pipeline for primary roots."""
+        trait_definitions = [
+            TraitDef(
+                name="filtered_primary_pts_with_expected_ct",
+                fn=filter_primary_roots_with_unexpected_count,
+                input_traits=["primary_pts", "expected_plant_ct"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Filtered points of the primary root with expected count.",
+            )
+        ]
+        return trait_definitions
+
+    def get_initial_frame_traits(self, plant: Series, frame_idx: int) -> Dict[str, Any]:
+        """Return initial traits for a plant frame.
+
+        Args:
+            Args:
+            plant: The plant `Series` object.
+            frame_idx: The index of the current frame.
+
+        Returns:
+            A dictionary of initial traits with key:
+                - "primary_pts": Array of primary root points.
+        """
+        primary_pts = plant.get_primary_points(frame_idx)
+        expected_plant_count = plant.expected_count
+
+        return {"primary_pts": primary_pts, "expected_plant_ct": expected_plant_count}
