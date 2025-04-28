@@ -436,7 +436,7 @@ class Pipeline:
             # Extract the plant associations for this frame
             associations = frame_traits["plant_associations_dict"]
 
-            for primary_idx in sorted(associations.keys()):
+            for primary_idx in associations.keys():
                 assoc = associations[primary_idx]
                 primary_pts = assoc["primary_points"]
                 lateral_pts = assoc["lateral_points"]
