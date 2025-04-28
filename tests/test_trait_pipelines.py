@@ -1611,8 +1611,6 @@ def test_multiple_primary_root_pipeline(
 
     expected_dtypes = (int, float, np.integer, np.floating)
 
-    multiple_primary_root_pipeline = MultiplePrimaryRootPipeline()
-
     all_series_summaries = []
 
     for series in all_multiple_dicot_series:
@@ -1691,13 +1689,13 @@ def test_multiple_primary_root_pipeline(
         result["summary_stats"] = summary_stats
 
         # Assert manually calculated and computed traits have the same keys.
-        result.keys() == computed_traits.keys()
+        assert result.keys() == computed_traits.keys()
 
         # Assert manually calculated and computed traits have the same trait names.
-        result["traits"].keys() == computed_traits["traits"].keys()
+        assert result["traits"].keys() == computed_traits["traits"].keys()
 
         # Assert manually calculated and computed traits have the same summary trait names.
-        result["summary_stats"].keys() == computed_traits["summary_stats"].keys()
+        assert result["summary_stats"].keys() == computed_traits["summary_stats"].keys()
 
         # Check that the trait values for manually calculated traits and computed traits are the same.
         for key in result["traits"].keys():
