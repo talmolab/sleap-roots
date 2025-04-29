@@ -1527,13 +1527,13 @@ def test_multiple_dicot_pipeline(
         result["summary_stats"] = summary_stats
 
         # Assert manually calculated and computed traits have the same keys.
-        result.keys() == computed_traits.keys()
+        assert result.keys() == computed_traits.keys()
 
         # Assert manually calculated and computed traits have the same trait names.
-        result["traits"].keys() == computed_traits["traits"].keys()
+        assert result["traits"].keys() == computed_traits["traits"].keys()
 
         # Assert manually calculated and computed traits have the same summary trait names.
-        result["summary_stats"].keys() == computed_traits["summary_stats"].keys()
+        assert result["summary_stats"].keys() == computed_traits["summary_stats"].keys()
 
         # Check that the trait values for manually calculated traits and computed traits are the same.
         for key in result["traits"].keys():
@@ -1647,13 +1647,7 @@ def test_multiple_dicot_pipeline(
     assert computed_batch_traits.shape == (4, 316)
     assert batch_df_fixture.shape == (4, 316)
 
-    # Ensure series_name column is of type string. Then, sort dataframes before comparing.
-    batch_df["series_name"] = batch_df["series_name"].astype(str)
-    computed_batch_traits["series_name"] = computed_batch_traits["series_name"].astype(
-        str
-    )
-    batch_df_fixture["series_name"] = batch_df_fixture["series_name"].astype(str)
-
+    # Sort dataframes before comparing and reset index.
     batch_df = batch_df.sort_values(by="series_name").reset_index(drop=True)
     computed_batch_traits = computed_batch_traits.sort_values(
         by="series_name"
