@@ -256,6 +256,27 @@ def test_get_base_xs_no_roots(pts_no_roots):
     np.testing.assert_almost_equal(base_xs[0], np.nan, decimal=3)
 
 
+# test invalid ndim (ndim = 3)
+def test_get_base_xs_invalid_ndim():
+    bad_input = np.zeros((3, 2, 1))  # 3D array
+    with pytest.raises(ValueError):
+        get_base_xs(bad_input)
+
+
+# test invalid shape (shape[-1] != 2)
+def test_get_base_xs_invalid_shape():
+    bad_input = np.zeros((2, 2, 2))  # ndim = 3
+    with pytest.raises(ValueError):
+        get_base_xs(bad_input)
+
+
+# test single root input (shape = (2,))
+def test_get_base_xs_single_point():
+    single_root = np.array([3.5, 4.5])
+    result = get_base_xs(single_root)
+    assert isinstance(result, np.floating) and result == 3.5
+
+
 # test get_base_ys with pts_standard
 def test_get_base_ys_standard(pts_standard):
     bases = get_bases(pts_standard)
@@ -271,6 +292,27 @@ def test_get_base_ys_no_roots(pts_no_roots):
     base_ys = get_base_ys(bases)
     assert base_ys.shape[0] == 2
     np.testing.assert_almost_equal(base_ys[0], np.nan, decimal=3)
+
+
+# test invalid ndim (ndim = 3)
+def test_get_base_ys_invalid_ndim():
+    bad_input = np.zeros((3, 2, 1))  # 3D array
+    with pytest.raises(ValueError):
+        get_base_ys(bad_input)
+
+
+# test invalid shape (shape[-1] != 2)
+def test_get_base_ys_invalid_shape():
+    bad_input = np.zeros((2, 2, 2))  # ndim = 3
+    with pytest.raises(ValueError):
+        get_base_ys(bad_input)
+
+
+# test single root input (shape = (2,))
+def test_get_base_ys_single_point():
+    single_root = np.array([3.5, 4.5])
+    result = get_base_ys(single_root)
+    assert isinstance(result, np.floating) and result == 4.5
 
 
 # test get_base_length with canola
