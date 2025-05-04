@@ -2340,7 +2340,7 @@ class PrimaryRootPipeline(Pipeline):
                 scalar=True,
                 include_in_csv=True,
                 kwargs={},
-                description="Scalar of the primary proximal angle in degrees",
+                description="Scalar of the primary proximal angle in degrees.",
             ),
             TraitDef(
                 name="primary_angle_distal",
@@ -2349,7 +2349,7 @@ class PrimaryRootPipeline(Pipeline):
                 scalar=True,
                 include_in_csv=True,
                 kwargs={},
-                description="Scalar of the primary proximal angle in degrees",
+                description="Scalar of the primary distal angle in degrees.",
             ),
             TraitDef(
                 name="primary_length",
