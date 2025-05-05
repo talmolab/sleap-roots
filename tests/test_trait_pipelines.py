@@ -9,6 +9,7 @@ from sleap_roots.trait_pipelines import (
     OlderMonocotPipeline,
     MultipleDicotPipeline,
     NumpyArrayEncoder,
+    PrimaryRootPipeline,
 )
 from sleap_roots.series import (
     Series,
@@ -68,6 +69,10 @@ from sleap_roots.networklength import (
     get_network_width_depth_ratio,
     get_network_distribution_ratio,
     get_bbox,
+    get_bbox_left_x,
+    get_bbox_top_y,
+    get_bbox_width,
+    get_bbox_height,
 )
 
 from sleap_roots.convhull import (
@@ -1431,287 +1436,445 @@ def test_multiple_dicot_pipeline(
         "primary_angle_proximal",
     )
 
+    pipeline = MultipleDicotPipeline()
+    arabidopsis_traits = pipeline.compute_multiple_dicots_traits(arabidopsis)
+    all_traits = pipeline.compute_batch_multiple_dicots_traits(arabidopsis_series_all)
+
+    # Dataframe shape assertions
+    assert pd.DataFrame([arabidopsis_traits["summary_stats"]]).shape == (1, 315)
+    assert all_traits.shape == (4, 316)
+
+    # Dataframe dtype assertions
+    expected_all_traits_dtypes = {
+        "lateral_count_min": "int64",
+        "lateral_count_max": "int64",
+    }
+
+    for col, expected_dtype in expected_all_traits_dtypes.items():
+        assert np.issubdtype(
+            all_traits[col].dtype, np.integer
+        ), f"Unexpected dtype for column {col} in all_traits. Expected integer, got {all_traits[col].dtype}"
+
+    # Value range assertions for traits
+    assert (
+        all_traits["curve_index_median"] >= 0
+    ).all(), "curve_index in all_traits contains negative values"
+
+    # Check that series dictionary
+    assert isinstance(arabidopsis_traits, dict)
+    assert arabidopsis_traits["series"] == "997_1"
+    assert arabidopsis_traits["group"] == "997"
+
+
+def test_primary_root_pipeline(
+    canola_folder,
+    canola_traits_csv,
+    canola_batch_traits_csv,
+    soy_folder,
+    soy_traits_csv,
+    soy_batch_traits_csv,
+    rice_folder,
+    rice_3do_0K9E8B1_traits_csv,
+    rice_3do_YR39SJX_traits_csv,
+    rice_3do_batch_traits_csv,
+):
+
+    # Dicot data (canola_7do, soy_6do).
+    canola_slps = sr.find_all_slp_paths(canola_folder)
+    canola = sr.load_series_from_slps(canola_slps, h5s=True)[0]
+
+    soy_slps = sr.find_all_slp_paths(soy_folder)
+    soy = sr.load_series_from_slps(soy_slps, h5s=True)[0]
+
+    canola_traits_fixture = pd.read_csv(canola_traits_csv)
+    canola_batch_traits_fixture = pd.read_csv(canola_batch_traits_csv)
+
+    soy_traits_fixture = pd.read_csv(soy_traits_csv)
+    soy_batch_traits_fixture = pd.read_csv(soy_batch_traits_csv)
+
+    # Younger monocot data (rice_3do).
+    rice_slps = sr.find_all_slp_paths(rice_folder)
+    rice_all_series = sr.load_series_from_slps(rice_slps)
+    rice_YR39SJX = [
+        series for series in rice_all_series if series.series_name == "YR39SJX"
+    ][0]
+    rice_0K9E8BI = [
+        series for series in rice_all_series if series.series_name == "0K9E8BI"
+    ][0]
+    rice_YR39SJX_traits_fixture = pd.read_csv(rice_3do_YR39SJX_traits_csv)
+    rice_0K9E8BI_traits_fixture = pd.read_csv(rice_3do_0K9E8B1_traits_csv)
+    rice_batch_traits_fixture = pd.read_csv(rice_3do_batch_traits_csv)
+
+    all_series = [canola, soy, rice_0K9E8BI, rice_YR39SJX]
+
+    trait_cols = [
+        "plant_name",
+        "curve_index",
+        "primary_angle_distal",
+        "primary_angle_proximal",
+        "primary_base_tip_dist",
+        "primary_length",
+        "primary_tip_pt_y",
+    ]
+
+    angle_traits = ("pprimary_angle_proximal", "primary_angle_distal")
+    ratio_traits = "curve_index"
     expected_dtypes = (int, float, np.integer, np.floating)
 
-    all_series_summaries = []
+    pipeline = PrimaryRootPipeline()
 
-    for series in all_multiple_dicot_series:
+    series_computed_traits_dict = {}
 
-        # Compute traits for the current series.
-        computed_traits = multiple_dicot_pipeline.compute_multiple_dicots_traits(series)
+    for series in all_series:
+        traits_records = []
 
-        # Manually create dictionary storing traits for all frames.
-        result = {
-            "series": str(series.series_name),
-            "group": str(series.group),
-            "qc_fail": series.qc_fail,
-            "traits": {},
-            "summary_stats": {},
-        }
+        for frame_idx in range(len(series)):
 
-        aggregated_traits = {}
+            trait_dict = {"primary_pts": series.get_primary_points(frame_idx)}
 
-        for frame in range(len(series)):
-
-            frame_traits = {
-                "primary_pts": series.get_primary_points(frame),
-                "lateral_pts": series.get_lateral_points(frame),
-                "expected_plant_ct": series.expected_count,
-            }
-
-            frame_traits["primary_pts_no_nans"] = filter_roots_with_nans(
-                frame_traits["primary_pts"]
-            )
-            frame_traits["lateral_pts_no_nans"] = filter_roots_with_nans(
-                frame_traits["lateral_pts"]
-            )
-            frame_traits["filtered_pts_expected_plant_ct"] = (
-                filter_plants_with_unexpected_ct(
-                    frame_traits["primary_pts_no_nans"],
-                    frame_traits["lateral_pts_no_nans"],
-                    frame_traits["expected_plant_ct"],
-                )
-            )
-            frame_traits["primary_pts_expected_plant_ct"] = get_filtered_primary_pts(
-                frame_traits["filtered_pts_expected_plant_ct"]
-            )
-            frame_traits["lateral_pts_expected_plant_ct"] = get_filtered_lateral_pts(
-                frame_traits["filtered_pts_expected_plant_ct"]
-            )
-            frame_traits["plant_associations_dict"] = associate_lateral_to_primary(
-                frame_traits["primary_pts_expected_plant_ct"],
-                frame_traits["lateral_pts_expected_plant_ct"],
+            trait_dict["primary_max_length_pts"] = get_max_length_pts(
+                trait_dict["primary_pts"]
             )
 
-            dicot_pipeline = DicotPipeline()
-
-            # Extract the plant associations for this frame
-            associations = frame_traits["plant_associations_dict"]
-
-            for primary_idx, assoc in associations.items():
-                primary_pts = assoc["primary_points"]
-                lateral_pts = assoc["lateral_points"]
-
-                # Get the initial frame traits for this plant using the primary and lateral points
-                initial_frame_traits = {
-                    "primary_pts": primary_pts,
-                    "lateral_pts": lateral_pts,
-                }
-
-                # Use the dicot pipeline to compute the plant traits on this frame
-                plant_traits = dicot_pipeline.compute_frame_traits(initial_frame_traits)
-
-                # For each plant's traits in the frame
-                for trait_name, trait_value in plant_traits.items():
-                    # Not all traits are added to the aggregated traits dictionary
-                    if trait_name in dicot_pipeline.csv_traits_multiple_plants:
-                        if trait_name not in aggregated_traits:
-                            # Initialize the trait array if it's the first frame
-                            aggregated_traits[trait_name] = [np.atleast_1d(trait_value)]
-                        else:
-                            # Append new trait values for subsequent frames
-                            aggregated_traits[trait_name].append(
-                                np.atleast_1d(trait_value)
-                            )
-
-        # After processing, update the result dictionary with computed traits
-        for trait, arrays in aggregated_traits.items():
-            aggregated_traits[trait] = np.concatenate(arrays, axis=0)
-        result["traits"] = aggregated_traits
-
-        # Compute summary statistics and update result
-        summary_stats = {}
-        for trait_name, trait_values in aggregated_traits.items():
-            trait_stats = get_summary(trait_values, prefix=f"{trait_name}_")
-            summary_stats.update(trait_stats)
-        result["summary_stats"] = summary_stats
-
-        # Assert manually calculated and computed traits have the same keys.
-        assert result.keys() == computed_traits.keys()
-
-        # Assert manually calculated and computed traits have the same trait names.
-        assert result["traits"].keys() == computed_traits["traits"].keys()
-
-        # Assert manually calculated and computed traits have the same summary trait names.
-        assert result["summary_stats"].keys() == computed_traits["summary_stats"].keys()
-
-        # Check that the trait values for manually calculated traits and computed traits are the same.
-        for key in result["traits"].keys():
-            curr_trait_val = result["traits"][key]
-            if isinstance(curr_trait_val, np.ndarray):
-                np.testing.assert_almost_equal(
-                    curr_trait_val, computed_traits["traits"][key]
-                )
-            else:
-                assert curr_trait_val == computed_traits[key]
-
-        # Check that the summary trait values for manually calculated traits and computed traits are the same.
-        for key in result["summary_stats"].keys():
-            assert np.isclose(
-                result["summary_stats"][key],
-                computed_traits["summary_stats"][key],
-                equal_nan=True,
+            trait_dict["primary_proximal_node_ind"] = get_node_ind(
+                trait_dict["primary_max_length_pts"], proximal=True
+            )
+            trait_dict["primary_distal_node_ind"] = get_node_ind(
+                trait_dict["primary_max_length_pts"], proximal=False
+            )
+            trait_dict["primary_angle_proximal"] = get_root_angle(
+                trait_dict["primary_max_length_pts"],
+                trait_dict["primary_proximal_node_ind"],
+            )
+            trait_dict["primary_angle_distal"] = get_root_angle(
+                trait_dict["primary_max_length_pts"],
+                trait_dict["primary_distal_node_ind"],
             )
 
-        # Append the current dictionary to the all_series_summaries list.
-        all_series_summaries.append(result)
+            trait_dict["primary_base_pt"] = get_bases(
+                trait_dict["primary_max_length_pts"]
+            )
+            trait_dict["primary_base_pt_x"] = get_base_xs(trait_dict["primary_base_pt"])
+            trait_dict["primary_base_pt_y"] = get_base_ys(trait_dict["primary_base_pt"])
 
-        # Type and Range Check over the traits.
-        for key in computed_traits["traits"].keys():
+            trait_dict["primary_tip_pt"] = get_tips(
+                trait_dict["primary_max_length_pts"]
+            )
+            trait_dict["primary_tip_pt_x"] = get_tip_xs(trait_dict["primary_tip_pt"])
+            trait_dict["primary_tip_pt_y"] = get_tip_ys(trait_dict["primary_tip_pt"])
 
-            arr1 = computed_traits["traits"][key]
-            arr2 = result["traits"][key]
+            trait_dict["primary_base_tip_dist"] = get_base_tip_dist(
+                trait_dict["primary_base_pt"], trait_dict["primary_tip_pt"]
+            )
 
-            # Trait values should be stored as an array.
-            assert isinstance(arr1, np.ndarray), "Trait value is not an array."
-            assert isinstance(arr2, np.ndarray), "Trait value is not an array."
+            trait_dict["primary_length"] = get_root_lengths(
+                trait_dict["primary_max_length_pts"]
+            )
+            trait_dict["curve_index"] = get_curve_index(
+                trait_dict["primary_length"], trait_dict["primary_base_tip_dist"]
+            )
+            trait_dict["bounding_box"] = get_bbox(trait_dict["primary_max_length_pts"])
 
-            # Type check.
-            assert np.all(
-                [isinstance(x, expected_dtypes) or np.isnan(x) for x in arr1.flat]
-            ), "Array contains invalid types."
-            assert np.all(
-                [isinstance(x, expected_dtypes) or np.isnan(x) for x in arr2.flat]
-            ), "Array contains invalid types."
+            trait_dict["bounding_box_left_x"] = get_bbox_left_x(
+                trait_dict["bounding_box"]
+            )
+            trait_dict["bounding_box_top_y"] = get_bbox_top_y(
+                trait_dict["bounding_box"]
+            )
+            trait_dict["bounding_box_width"] = get_bbox_width(
+                trait_dict["bounding_box"]
+            )
+            trait_dict["bounding_box_height"] = get_bbox_height(
+                trait_dict["bounding_box"]
+            )
 
-            # Range check.
-            if key in angle_traits:
-                assert np.all(
-                    ((arr1 >= 0) & (arr1 <= 180)) | np.isnan(arr1)
-                ), "Angle trait is out of range."
-                assert np.all(
-                    ((arr2 >= 0) & (arr2 <= 180)) | np.isnan(arr2)
-                ), "Angle trait is out of range."
+            # Add summary traits to trait dict.
+            for summary_trait in pipeline.summary_traits:
+                trait_dict = trait_dict | get_summary(trait_dict[summary_trait])
 
-            else:
-                assert np.all(
-                    (arr1 >= 0) | np.isnan(arr1)
-                ), "Array contains negative values."
-                assert np.all(
-                    (arr2 >= 0) | np.isnan(arr2)
-                ), "Array contains negative values."
+            # Type and range check for traits over all frames.
 
-        # Type and Range Check over the summary traits.
-        for key in computed_traits["summary_stats"].keys():
-            if key.endswith("_std"):
-                continue
-            elif key.startswith(angle_traits):
-                assert (
-                    (result["summary_stats"][key] >= 0)
-                    and (result["summary_stats"][key] <= 180)
-                ) or result["summary_stats"][key], "Angle trait is out of range."
-                assert (
-                    (computed_traits["summary_stats"][key] >= 0)
-                    and (computed_traits["summary_stats"][key] <= 180)
-                ) or computed_traits["summary_stats"][
-                    key
-                ], "Angle trait is out of range."
-            else:
-                assert (result["summary_stats"][key] >= 0) or result["summary_stats"][
-                    key
-                ], f"Trait {key} is a negative value."
-                assert (computed_traits["summary_stats"][key] >= 0) or computed_traits[
-                    "summary_stats"
-                ][key], f"Trait {key} is a negative value."
+            for trait in pipeline.csv_traits:
+                if trait in {"plant_name", "frame_idx"}:
+                    continue
 
-        # Obtain the fixture matching the current series.
-        curr_series_fixture_df = pd.read_csv(summary_series_mapping[series.series_name])
+                # Type check.
+                assert isinstance(trait_dict[trait], expected_dtypes)
 
-        manual_df = pd.DataFrame([summary_stats])
-        manual_df.insert(0, "series", series.series_name)
+                # No range check for standard deviation.
+                if trait.endswith("_std"):
+                    continue
 
-        # Compare the manual summary stats to the fixture summary stats.
-        pd.testing.assert_frame_equal(
-            manual_df, curr_series_fixture_df, check_exact=False
-        )
+                # All traits must be nonnegative.
+                assert (trait_dict[trait] >= 0) or np.isnan(trait_dict[trait])
 
-    # Check batch calculations for all series.
-    batch_df_fixture = pd.read_csv(
-        multiple_arabidopsis_11do_batch_traits_csv_MultipleDicotPipeline
-    )
+                # Angle traits must be in range [0, 180].
+                if trait.startswith(angle_traits):
+                    assert (0 <= trait_dict[trait] <= 180) or np.isnan(
+                        trait_dict[trait]
+                    )
 
-    batch_df_rows = []
+                # Ratio traits must be in range [0, 1]
+                if trait.startswith(ratio_traits):
+                    assert (0 <= trait_dict[trait] <= 1) or np.isnan(trait_dict[trait])
 
-    for series in all_series_summaries:
-        series_summary = {"series_name": series["series"], **series["summary_stats"]}
-        batch_df_rows.append(series_summary)
+            # Construct traits dataframe row by row, with metadata.
+            temp_dict = {"plant_name": series.series_name, "frame_idx": frame_idx}
 
-    batch_df = pd.DataFrame(batch_df_rows)
+            for trait in pipeline.csv_traits:
+                temp_dict[trait] = trait_dict[trait]
 
-    computed_batch_traits = (
-        multiple_dicot_pipeline.compute_batch_multiple_dicots_traits(
-            all_series=all_multiple_dicot_series
-        )
-    )
-    assert batch_df.shape == (4, 316)
-    assert computed_batch_traits.shape == (4, 316)
-    assert batch_df_fixture.shape == (4, 316)
+            traits_records.append(temp_dict)
 
-    # Sort dataframes before comparing and reset index.
-    batch_df = batch_df.sort_values(by="series_name").reset_index(drop=True)
-    computed_batch_traits = computed_batch_traits.sort_values(
-        by="series_name"
-    ).reset_index(drop=True)
-    batch_df_fixture = batch_df_fixture.sort_values(by="series_name").reset_index(
-        drop=True
-    )
+        curr_series_df = pd.DataFrame.from_records(traits_records)
+        series_computed_traits_dict[series.series_name] = curr_series_df
 
+    # Load manually calculated traits per frame dataframes.
+    canola_manual_traits = series_computed_traits_dict["919QDUH"]
+    soy_manual_traits = series_computed_traits_dict["6PR6AA22JK"]
+    rice_0K9E8BI_manual_traits = series_computed_traits_dict["0K9E8BI"]
+    rice_YR39SJX_manual_traits = series_computed_traits_dict["YR39SJX"]
+
+    # Load pipeline computed traits per frame dataframes.
+    canola_computed_traits = pipeline.compute_plant_traits(canola)
+    soy_computed_traits = pipeline.compute_plant_traits(soy)
+    rice_YR39SJX_computed_traits = pipeline.compute_plant_traits(rice_YR39SJX)
+    rice_0K9E8BI_computed_traits = pipeline.compute_plant_traits(rice_0K9E8BI)
+
+    # Canola traits per frame comparision.
     pd.testing.assert_frame_equal(
-        batch_df,
-        computed_batch_traits,
+        canola_manual_traits[trait_cols],
+        canola_computed_traits[trait_cols],
         check_exact=False,
+        atol=1e-8,
     )
     pd.testing.assert_frame_equal(
-        batch_df,
-        batch_df_fixture,
+        canola_manual_traits[trait_cols],
+        canola_traits_fixture[trait_cols],
         check_exact=False,
+        atol=1e-8,
     )
     pd.testing.assert_frame_equal(
-        computed_batch_traits,
-        batch_df_fixture,
+        canola_computed_traits[trait_cols],
+        canola_traits_fixture[trait_cols],
         check_exact=False,
+        atol=1e-8,
     )
 
-    # Check back calculations per group.
-    group_batch_df_fixture = pd.read_csv(
-        multiple_arabidopsis_11do_group_batch_traits_csv_MultipleDicotPipeline
+    # Canola traits per frame comparision.
+    pd.testing.assert_frame_equal(
+        soy_manual_traits[trait_cols],
+        soy_computed_traits[trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
+    pd.testing.assert_frame_equal(
+        soy_manual_traits[trait_cols],
+        soy_traits_fixture[trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
+    pd.testing.assert_frame_equal(
+        soy_computed_traits[trait_cols],
+        soy_traits_fixture[trait_cols],
+        check_exact=False,
+        atol=1e-8,
     )
 
-    group_batch_df_rows = []
+    # Rice 3do (0K9E8BI)
+    pd.testing.assert_frame_equal(
+        rice_0K9E8BI_manual_traits[trait_cols],
+        rice_0K9E8BI_computed_traits[trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
+    pd.testing.assert_frame_equal(
+        rice_0K9E8BI_manual_traits[trait_cols],
+        rice_0K9E8BI_traits_fixture[trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
+    pd.testing.assert_frame_equal(
+        rice_0K9E8BI_computed_traits[trait_cols],
+        rice_0K9E8BI_traits_fixture[trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
 
-    for series in all_series_summaries:
-        if series["qc_fail"] == 1:
-            continue
-        else:
-            series_summary = {"genotype": series["group"], **series["summary_stats"]}
-            group_batch_df_rows.append(series_summary)
+    # Rice 3do (YR39SJX)
+    pd.testing.assert_frame_equal(
+        rice_YR39SJX_manual_traits[trait_cols],
+        rice_YR39SJX_computed_traits[trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
+    pd.testing.assert_frame_equal(
+        rice_YR39SJX_manual_traits[trait_cols],
+        rice_YR39SJX_traits_fixture[trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
+    pd.testing.assert_frame_equal(
+        rice_YR39SJX_computed_traits[trait_cols],
+        rice_YR39SJX_traits_fixture[trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
 
-    group_batch_df = pd.DataFrame(group_batch_df_rows)
+    # Compare computed batch traits to fixtures.
+    summary_suffixes = [
+        "min",
+        "max",
+        "median",
+        "mean",
+        "std",
+        "p5",
+        "p25",
+        "p75",
+        "p95",
+    ]
 
-    computed_group_batch_traits = (
-        multiple_dicot_pipeline.compute_batch_multiple_dicots_traits_for_groups(
-            all_series=all_multiple_dicot_series
+    # Match each trait name with the summary statistic suffix in a list, except plant_name.
+    batch_trait_cols = [
+        "plant_name" if trait == "plant_name" else f"{trait}_{suffix}"
+        for trait in trait_cols
+        for suffix in summary_suffixes
+    ]
+
+    # Manually create batch traits.
+    agg_funcs = [
+        lambda x: np.nanmin(x),
+        lambda x: np.nanmax(x),
+        lambda x: np.nanmean(x),
+        lambda x: np.nanmedian(x),
+        lambda x: np.nanstd(x),
+        lambda x: np.nanpercentile(x, 5),
+        lambda x: np.nanpercentile(x, 25),
+        lambda x: np.nanpercentile(x, 75),
+        lambda x: np.nanpercentile(x, 95),
+    ]
+
+    colname_update = {
+        "<lambda_0>": "min",
+        "<lambda_1>": "max",
+        "<lambda_2>": "mean",
+        "<lambda_3>": "median",
+        "<lambda_4>": "std",
+        "<lambda_5>": "p5",
+        "<lambda_6>": "p25",
+        "<lambda_7>": "p75",
+        "<lambda_8>": "p95",
+    }
+
+    canola_processed_df = series_computed_traits_dict["919QDUH"].drop(
+        columns={"frame_idx"}
+    )
+    soy_processed_df = series_computed_traits_dict["6PR6AA22JK"].drop(
+        columns={"frame_idx"}
+    )
+    rice_combined_df = pd.concat(
+        [
+            series_computed_traits_dict["0K9E8BI"],
+            series_computed_traits_dict["YR39SJX"],
+        ],
+        ignore_index=True,
+    ).drop(columns={"frame_idx"})
+
+    canola_manual_batch_traits = canola_processed_df.groupby("plant_name").agg(
+        agg_funcs
+    )
+    soy_manual_batch_traits = soy_processed_df.groupby("plant_name").agg(agg_funcs)
+    rice_manual_batch_traits = rice_combined_df.groupby("plant_name").agg(agg_funcs)
+
+    batch_traits_list = [
+        canola_manual_batch_traits,
+        soy_manual_batch_traits,
+        rice_manual_batch_traits,
+    ]
+
+    for batch_df in batch_traits_list:
+        batch_df.columns = ["_".join(map(str, col)).strip() for col in batch_df.columns]
+
+        batch_df.columns = (
+            batch_df.columns.to_series().replace(colname_update, regex=True).values
         )
+
+    # Use the pipeline to compute batch traits.
+    canola_computed_batch_traits = pipeline.compute_batch_traits([canola])
+    soy_computed_batch_traits = pipeline.compute_batch_traits([soy])
+    rice_computed_batch_traits = pipeline.compute_batch_traits(
+        [rice_YR39SJX, rice_0K9E8BI]
     )
-    assert computed_group_batch_traits.shape == (3, 316)
-    assert group_batch_df.shape == (3, 316)
-    assert group_batch_df_fixture.shape == (3, 316)
 
-    # Ensure genotype column is of type string. Then, sort dataframes before comparing.
-    group_batch_df["genotype"] = group_batch_df["genotype"].astype(str)
-    computed_group_batch_traits["genotype"] = computed_group_batch_traits[
-        "genotype"
-    ].astype(str)
-    group_batch_df_fixture["genotype"] = group_batch_df_fixture["genotype"].astype(str)
-
-    group_batch_df = group_batch_df.sort_values(by="genotype").reset_index(drop=True)
-    computed_group_batch_traits = computed_group_batch_traits.sort_values(
-        by="genotype"
+    # Reset indexes of the dataframes and sort by the "plant_name" column for rice.
+    canola_manual_batch_traits = canola_manual_batch_traits.reset_index()
+    soy_manual_batch_traits = soy_manual_batch_traits.reset_index()
+    rice_manual_batch_traits = rice_manual_batch_traits.sort_values(
+        "plant_name"
+    ).reset_index()
+    rice_computed_batch_traits = rice_computed_batch_traits.sort_values(
+        "plant_name"
     ).reset_index(drop=True)
-    group_batch_df_fixture = group_batch_df_fixture.sort_values(
-        by="genotype"
+    rice_batch_traits_fixture = rice_batch_traits_fixture.sort_values(
+        "plant_name"
     ).reset_index(drop=True)
 
-    pd.testing.assert_frame_equal(group_batch_df, computed_group_batch_traits)
-    pd.testing.assert_frame_equal(group_batch_df, group_batch_df_fixture)
-    pd.testing.assert_frame_equal(computed_group_batch_traits, group_batch_df_fixture)
+    # Canola batch traits.
+    pd.testing.assert_frame_equal(
+        canola_manual_batch_traits[batch_trait_cols],
+        canola_computed_batch_traits[batch_trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
+    pd.testing.assert_frame_equal(
+        canola_manual_batch_traits[batch_trait_cols],
+        canola_batch_traits_fixture[batch_trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
+    pd.testing.assert_frame_equal(
+        canola_computed_batch_traits[batch_trait_cols],
+        canola_batch_traits_fixture[batch_trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
+
+    # Soy batch traits.
+    pd.testing.assert_frame_equal(
+        soy_manual_batch_traits[batch_trait_cols],
+        soy_computed_batch_traits[batch_trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
+    pd.testing.assert_frame_equal(
+        soy_manual_batch_traits[batch_trait_cols],
+        soy_batch_traits_fixture[batch_trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
+    pd.testing.assert_frame_equal(
+        soy_computed_batch_traits[batch_trait_cols],
+        soy_batch_traits_fixture[batch_trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
+
+    # Rice batch traits.
+    pd.testing.assert_frame_equal(
+        rice_manual_batch_traits[batch_trait_cols],
+        rice_computed_batch_traits[batch_trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
+    pd.testing.assert_frame_equal(
+        rice_manual_batch_traits[batch_trait_cols],
+        rice_batch_traits_fixture[batch_trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )
+    pd.testing.assert_frame_equal(
+        rice_computed_batch_traits[batch_trait_cols],
+        rice_batch_traits_fixture[batch_trait_cols],
+        check_exact=False,
+        atol=1e-8,
+    )

@@ -4,7 +4,13 @@ from shapely import LineString, Polygon
 from sleap_roots import Series
 from sleap_roots.convhull import get_chull_area, get_convhull
 from sleap_roots.lengths import get_max_length_pts, get_root_lengths
-from sleap_roots.networklength import get_bbox
+from sleap_roots.networklength import (
+    get_bbox,
+    get_bbox_left_x,
+    get_bbox_top_y,
+    get_bbox_height,
+    get_bbox_width,
+)
 from sleap_roots.networklength import get_network_distribution
 from sleap_roots.networklength import get_network_distribution_ratio
 from sleap_roots.networklength import get_network_length
@@ -68,6 +74,20 @@ def test_get_bbox_nan(pts_nan3):
     np.testing.assert_almost_equal(
         bbox, [852.1775513, 216.9564819, 0.0, 0.0], decimal=7
     )
+
+
+def test_bbox_helpers():
+    bbox = (1.0, 2.0, 3.0, 4.0)
+    assert get_bbox_left_x(bbox) == 1.0
+    assert get_bbox_top_y(bbox) == 2.0
+    assert get_bbox_width(bbox) == 3.0
+    assert get_bbox_height(bbox) == 4.0
+
+    nan_bbox = (np.nan, np.nan, np.nan, np.nan)
+    assert np.isnan(get_bbox_left_x(nan_bbox))
+    assert np.isnan(get_bbox_top_y(nan_bbox))
+    assert np.isnan(get_bbox_width(nan_bbox))
+    assert np.isnan(get_bbox_height(nan_bbox))
 
 
 def test_get_network_width_depth_ratio(

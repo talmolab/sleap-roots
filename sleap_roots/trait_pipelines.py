@@ -49,6 +49,10 @@ from sleap_roots.ellipse import (
 from sleap_roots.lengths import get_curve_index, get_max_length_pts, get_root_lengths
 from sleap_roots.networklength import (
     get_bbox,
+    get_bbox_left_x,
+    get_bbox_top_y,
+    get_bbox_width,
+    get_bbox_height,
     get_network_distribution,
     get_network_distribution_ratio,
     get_network_length,
@@ -2297,3 +2301,200 @@ class MultipleDicotPipeline(Pipeline):
             "lateral_pts": lateral_pts,
             "expected_plant_ct": expected_plant_ct,
         }
+
+
+@attrs.define
+class PrimaryRootPipeline(Pipeline):
+    """Pipeline for computing traits for a single primary root."""
+
+    def define_traits(self) -> List[TraitDef]:
+        """Define the trait computation pipeline for primary roots."""
+        trait_definitions = [
+            TraitDef(
+                name="primary_max_length_pts",
+                fn=get_max_length_pts,
+                input_traits=["primary_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Points of the primary root with maximum length.",
+            ),
+            TraitDef(
+                name="primary_proximal_node_ind",
+                fn=get_node_ind,
+                input_traits=["primary_max_length_pts"],
+                scalar=True,
+                include_in_csv=False,
+                kwargs={"proximal": True},
+                description="Get the indices of the proximal nodes of primary root.",
+            ),
+            TraitDef(
+                name="primary_distal_node_ind",
+                fn=get_node_ind,
+                input_traits=["primary_max_length_pts"],
+                scalar=True,
+                include_in_csv=False,
+                kwargs={"proximal": False},
+                description="Get the indices of the distal nodes of primary roots.",
+            ),
+            TraitDef(
+                name="primary_angle_proximal",
+                fn=get_root_angle,
+                input_traits=["primary_max_length_pts", "primary_proximal_node_ind"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of the primary proximal angle in degrees.",
+            ),
+            TraitDef(
+                name="primary_angle_distal",
+                fn=get_root_angle,
+                input_traits=["primary_max_length_pts", "primary_distal_node_ind"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of the primary distal angle in degrees.",
+            ),
+            TraitDef(
+                name="primary_length",
+                fn=get_root_lengths,
+                input_traits=["primary_max_length_pts"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of the primary root length.",
+            ),
+            TraitDef(
+                name="primary_base_pt",
+                fn=get_bases,
+                input_traits=["primary_max_length_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Primary root base point.",
+            ),
+            TraitDef(
+                name="primary_tip_pt",
+                fn=get_tips,
+                input_traits=["primary_max_length_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Primary root tip point.",
+            ),
+            TraitDef(
+                name="primary_base_pt_x",
+                fn=get_base_xs,
+                input_traits=["primary_base_pt"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="X-coordinate of the primary root base node.",
+            ),
+            TraitDef(
+                name="primary_base_pt_y",
+                fn=get_base_ys,
+                input_traits=["primary_base_pt"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Y-coordinate of the primary root base node.",
+            ),
+            TraitDef(
+                name="primary_tip_pt_x",
+                fn=get_tip_xs,
+                input_traits=["primary_tip_pt"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="X-coordinate of the primary root tip node.",
+            ),
+            TraitDef(
+                name="primary_tip_pt_y",
+                fn=get_tip_ys,
+                input_traits=["primary_tip_pt"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Y-coordinate of the primary root tip node.",
+            ),
+            TraitDef(
+                name="primary_base_tip_dist",
+                fn=get_base_tip_dist,
+                input_traits=["primary_base_pt", "primary_tip_pt"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of distance from primary root base to tip.",
+            ),
+            TraitDef(
+                name="curve_index",
+                fn=get_curve_index,
+                input_traits=["primary_length", "primary_base_tip_dist"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of the primary root curvature index.",
+            ),
+            TraitDef(
+                name="bounding_box",
+                fn=get_bbox,
+                input_traits=["primary_max_length_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Tuple of four parameters in bounding box.",
+            ),
+            TraitDef(
+                name="bounding_box_left_x",
+                fn=get_bbox_left_x,
+                input_traits=["bounding_box"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of the left x-axis value of the bounding box.",
+            ),
+            TraitDef(
+                name="bounding_box_top_y",
+                fn=get_bbox_top_y,
+                input_traits=["bounding_box"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of the y-axis value of top side of the bounding box.",
+            ),
+            TraitDef(
+                name="bounding_box_width",
+                fn=get_bbox_width,
+                input_traits=["bounding_box"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of the width of the bounding box.",
+            ),
+            TraitDef(
+                name="bounding_box_height",
+                fn=get_bbox_height,
+                input_traits=["bounding_box"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of the height of the bounding box.",
+            ),
+        ]
+        return trait_definitions
+
+    def get_initial_frame_traits(self, plant: Series, frame_idx: int) -> Dict[str, Any]:
+        """Return initial traits for a plant frame.
+
+        Args:
+            Args:
+            plant: The plant `Series` object.
+            frame_idx: The index of the current frame.
+
+        Returns:
+            A dictionary of initial traits with key:
+                - "primary_pts": Array of primary root points.
+        """
+        primary_pts = plant.get_primary_points(frame_idx)
+        return {"primary_pts": primary_pts}
