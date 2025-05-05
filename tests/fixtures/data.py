@@ -194,6 +194,18 @@ def multiple_arabidopsis_11do_csv():
 
 
 @pytest.fixture
+def multiple_arabidopsis_11do_group_batch_traits_csv_MultipleDicotPipeline():
+    """Path to the CSV file with aggregated traits per group."""
+    return "tests/data/multiple_arabidopsis_11do/multiple_dicot_pipeline/MultipleDicotPipeline.group_batch_summarized_traits.csv"
+
+
+@pytest.fixture
+def multiple_arabidopsis_11do_batch_traits_csv_MultipleDicotPipeline():
+    """Path to the CSV file with batch traits for all arabidopsis samples."""
+    return "tests/data/multiple_arabidopsis_11do/multiple_dicot_pipeline/MultipleDicotPipeline.batch_traits.csv"
+
+
+@pytest.fixture
 def sleap_roots_pipeline_output_folder():
     """Path to the folder with the output of the sleap_roots pipeline."""
     return "tests/data/sleap-roots-pipeline-outputs"
