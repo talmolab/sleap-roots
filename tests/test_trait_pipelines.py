@@ -1659,13 +1659,7 @@ def test_multiple_dicot_pipeline(
     assert computed_batch_traits.shape == (4, 316)
     assert batch_df_fixture.shape == (4, 316)
 
-    # Ensure series_name column is of type string. Then, sort dataframes before comparing.
-    batch_df["series_name"] = batch_df["series_name"].astype(str)
-    computed_batch_traits["series_name"] = computed_batch_traits["series_name"].astype(
-        str
-    )
-    batch_df_fixture["series_name"] = batch_df_fixture["series_name"].astype(str)
-
+    # Sort and reset indexes of batch dataframes before comparing.
     batch_df = batch_df.sort_values(by="series_name").reset_index(drop=True)
     computed_batch_traits = computed_batch_traits.sort_values(
         by="series_name"
