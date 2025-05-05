@@ -1490,12 +1490,19 @@ def test_multiple_dicot_pipeline(
 
             dicot_pipeline = DicotPipeline()
 
-            # Extract the plant associations for this frame
+            # Extract the root associations for this frame.
             associations = frame_traits["plant_associations_dict"]
+
+            # If root associations are made, the length should match the expected plant count.
+            if associations:
+                assert len(associations) == series.expected_count
 
             for primary_idx, assoc in associations.items():
                 primary_pts = assoc["primary_points"]
                 lateral_pts = assoc["lateral_points"]
+
+                assert isinstance(primary_pts, np.ndarray)
+                assert isinstance(lateral_pts, np.ndarray)
 
                 # Get the initial frame traits for this plant using the primary and lateral points
                 initial_frame_traits = {
@@ -1532,13 +1539,13 @@ def test_multiple_dicot_pipeline(
         result["summary_stats"] = summary_stats
 
         # Assert manually calculated and computed traits have the same keys.
-        result.keys() == computed_traits.keys()
+        assert result.keys() == computed_traits.keys()
 
         # Assert manually calculated and computed traits have the same trait names.
-        result["traits"].keys() == computed_traits["traits"].keys()
+        assert result["traits"].keys() == computed_traits["traits"].keys()
 
         # Assert manually calculated and computed traits have the same summary trait names.
-        result["summary_stats"].keys() == computed_traits["summary_stats"].keys()
+        assert result["summary_stats"].keys() == computed_traits["summary_stats"].keys()
 
         # Check that the trait values for manually calculated traits and computed traits are the same.
         for key in result["traits"].keys():
