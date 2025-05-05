@@ -117,11 +117,21 @@ def test_get_tip_xs_no_tip(pts_no_tips):
     tips = get_tips(pts_no_tips)
     tip_xs = get_tip_xs(tips)
     assert tip_xs.shape[0] == 2
-    np.testing.assert_almost_equal(tip_xs[1], np.nan, decimal=3)
-    assert type(tip_xs) == np.ndarray
+    assert np.isnan(tip_xs[1])
+    assert isinstance(tip_xs, np.ndarray)
 
     tip_xs = get_tip_xs(tips[[0]])
-    assert type(tip_xs) == np.ndarray
+
+    # for shape (2,) input, the output is a scalar
+    assert isinstance(tip_xs, (float, np.floating))
+
+
+# test get_tip_xs with invalid number of dimensions
+def test_get_tip_xs_invalid_ndim():
+    # More than 2 dimensions
+    tips_invalid = np.zeros((2, 2, 2))  # Shape (2, 1, 2) is invalid
+    with pytest.raises(ValueError):
+        get_tip_xs(tips_invalid)
 
 
 # test get_tip_ys with canola
@@ -169,3 +179,11 @@ def test_get_tip_ys_no_tip(pts_no_tips):
     np.testing.assert_almost_equal(tip_ys[1], np.nan, decimal=3)
     np.testing.assert_almost_equal(tip_ys[0], np.nan, decimal=3)
     assert type(tip_ys) == np.ndarray
+
+
+# test get_tip_ys with invalid number of dimensions
+def test_get_tip_ys_invalid_ndim():
+    # More than 2 dimensions
+    tips_invalid = np.zeros((2, 2, 2))  # Shape (2, 1, 2) is invalid
+    with pytest.raises(ValueError):
+        get_tip_ys(tips_invalid)

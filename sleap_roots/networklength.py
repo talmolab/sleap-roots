@@ -35,6 +35,59 @@ def get_bbox(pts: np.ndarray) -> Tuple[float, float, float, float]:
     return bbox
 
 
+def get_bbox_left_x(bbox: Tuple[float, float, float, float]) -> float:
+    """Return the x-axis value from the left side of a bounding box.
+
+    Args:
+        bbox: A bounding box represented as a tuple of four floats:
+              (left_x, top_y, width, height).
+
+    Returns:
+        The x-axis value (left_x) of the left side of the bounding box.
+    """
+    return bbox[0]
+
+
+def get_bbox_top_y(bbox: Tuple[float, float, float, float]) -> float:
+    """Return the x-axis value from the left side of a bounding box.
+
+    Args:
+       bbox: A bounding box represented as a tuple of four floats:
+              (left_x, top_y, width, height).
+
+    Returns:
+        The y-axis value (top_y) of the top side of the bounding box.
+    """
+    return bbox[1]
+
+
+def get_bbox_width(bbox: Tuple[float, float, float, float]) -> float:
+    """Return the x-axis value from the left side of a bounding box.
+
+    Args:
+        bbox: A bounding box represented as a tuple of four floats:
+              (left_x, top_y, width, height).
+
+    Returns:
+        The width of a bounding box.
+
+    """
+    return bbox[2]
+
+
+def get_bbox_height(bbox: Tuple[float, float, float, float]) -> float:
+    """Return the x-axis value from the left side of a bounding box.
+
+    Args:
+        bbox: A bounding box represented as a tuple of four floats:
+              (left_x, top_y, width, height).
+
+    Returns:
+        The height of the bounding box.
+    """
+    return bbox[3]
+
+
 def get_network_width_depth_ratio(
     pts: Union[np.ndarray, Tuple[float, float, float, float]],
 ) -> float:
