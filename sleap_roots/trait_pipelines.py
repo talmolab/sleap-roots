@@ -49,6 +49,10 @@ from sleap_roots.ellipse import (
 from sleap_roots.lengths import get_curve_index, get_max_length_pts, get_root_lengths
 from sleap_roots.networklength import (
     get_bbox,
+    get_bbox_left_x,
+    get_bbox_top_y,
+    get_bbox_width,
+    get_bbox_height,
     get_network_distribution,
     get_network_distribution_ratio,
     get_network_length,
@@ -2440,6 +2444,42 @@ class PrimaryRootPipeline(Pipeline):
                 include_in_csv=False,
                 kwargs={},
                 description="Tuple of four parameters in bounding box.",
+            ),
+            TraitDef(
+                name="bounding_box_left_x",
+                fn=get_bbox_left_x,
+                input_traits=["bounding_box"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of the left x-axis value of the bounding box.",
+            ),
+            TraitDef(
+                name="bounding_box_top_y",
+                fn=get_bbox_top_y,
+                input_traits=["bounding_box"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of the y-axis value of top side of the bounding box.",
+            ),
+            TraitDef(
+                name="bounding_box_width",
+                fn=get_bbox_width,
+                input_traits=["bounding_box"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of the width of the bounding box.",
+            ),
+            TraitDef(
+                name="bounding_box_height",
+                fn=get_bbox_height,
+                input_traits=["bounding_box"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of the height of the bounding box.",
             ),
         ]
         return trait_definitions

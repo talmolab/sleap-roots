@@ -59,6 +59,10 @@ from sleap_roots.networklength import (
     get_network_width_depth_ratio,
     get_network_distribution_ratio,
     get_bbox,
+    get_bbox_left_x,
+    get_bbox_top_y,
+    get_bbox_width,
+    get_bbox_height,
 )
 
 from sleap_roots.convhull import (
@@ -1481,6 +1485,19 @@ def test_primary_root_pipeline(
                 trait_dict["primary_length"], trait_dict["primary_base_tip_dist"]
             )
             trait_dict["bounding_box"] = get_bbox(trait_dict["primary_max_length_pts"])
+
+            trait_dict["bounding_box_left_x"] = get_bbox_left_x(
+                trait_dict["bounding_box"]
+            )
+            trait_dict["bounding_box_top_y"] = get_bbox_top_y(
+                trait_dict["bounding_box"]
+            )
+            trait_dict["bounding_box_width"] = get_bbox_width(
+                trait_dict["bounding_box"]
+            )
+            trait_dict["bounding_box_height"] = get_bbox_height(
+                trait_dict["bounding_box"]
+            )
 
             # Add summary traits to trait dict.
             for summary_trait in pipeline.summary_traits:
