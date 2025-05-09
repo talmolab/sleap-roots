@@ -2498,3 +2498,147 @@ class PrimaryRootPipeline(Pipeline):
         """
         primary_pts = plant.get_primary_points(frame_idx)
         return {"primary_pts": primary_pts}
+
+
+@attrs.define
+class LateralRootPipeline(Pipeline):
+    """Pipeline just for computing traits for lateral roots."""
+
+    def define_traits(self) -> List[TraitDef]:
+        """Define the trait computation pipeline for dicot plants."""
+        trait_definitions = [
+            TraitDef(
+                name="lateral_count",
+                fn=get_count,
+                input_traits=["lateral_pts"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Get the number of lateral roots.",
+            ),
+            TraitDef(
+                name="lateral_proximal_node_inds",
+                fn=get_node_ind,
+                input_traits=["lateral_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={"proximal": True},
+                description="Get the indices of the proximal nodes of lateral roots.",
+            ),
+            TraitDef(
+                name="lateral_distal_node_inds",
+                fn=get_node_ind,
+                input_traits=["lateral_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={"proximal": False},
+                description="Get the indices of the distal nodes of lateral roots.",
+            ),
+            TraitDef(
+                name="lateral_lengths",
+                fn=get_root_lengths,
+                input_traits=["lateral_pts"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={},
+                description="Array of lateral root lengths of shape `(instances,)`.",
+            ),
+            TraitDef(
+                name="total_lateral_length",
+                fn=get_network_length,
+                input_traits=["lateral_lengths"],
+                scalar=True,
+                include_in_csv=True,
+                kwargs={},
+                description="Scalar of all lateral root network length.",
+            ),
+            TraitDef(
+                name="lateral_base_pts",
+                fn=get_bases,
+                input_traits=["lateral_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Array of lateral bases `(instances, (x, y))`.",
+            ),
+            TraitDef(
+                name="lateral_tip_pts",
+                fn=get_tips,
+                input_traits=["lateral_pts"],
+                scalar=False,
+                include_in_csv=False,
+                kwargs={},
+                description="Array of lateral tips `(instances, (x, y))`.",
+            ),
+            TraitDef(
+                name="lateral_angles_distal",
+                fn=get_root_angle,
+                input_traits=["lateral_pts", "lateral_distal_node_inds"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={"proximal": False, "base_ind": 0},
+                description="Array of lateral distal angles in degrees `(instances,)`.",
+            ),
+            TraitDef(
+                name="lateral_angles_proximal",
+                fn=get_root_angle,
+                input_traits=["lateral_pts", "lateral_proximal_node_inds"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={"proximal": True, "base_ind": 0},
+                description="Array of lateral proximal angles in degrees "
+                "`(instances,)`.",
+            ),
+            TraitDef(
+                name="lateral_base_xs",
+                fn=get_base_xs,
+                input_traits=["lateral_base_pts"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={},
+                description="Get x coordinates of the base of each lateral root.",
+            ),
+            TraitDef(
+                name="lateral_base_ys",
+                fn=get_base_ys,
+                input_traits=["lateral_base_pts"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={},
+                description="Array of the y-coordinates of lateral bases "
+                "`(instances,)`.",
+            ),
+            TraitDef(
+                name="lateral_tip_xs",
+                fn=get_tip_xs,
+                input_traits=["lateral_tip_pts"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={},
+                description="Array of the x-coordinates of lateral tips `(instance,)`.",
+            ),
+            TraitDef(
+                name="lateral_tip_ys",
+                fn=get_tip_ys,
+                input_traits=["lateral_tip_pts"],
+                scalar=False,
+                include_in_csv=True,
+                kwargs={},
+                description="Array of the y-coordinates of lateral tips `(instance,)`.",
+            ),
+        ]
+        return trait_definitions
+
+    def get_initial_frame_traits(self, plant: Series, frame_idx: int) -> Dict[str, Any]:
+        """Return initial traits for a plant frame.
+
+        Args:
+            plant: The plant `Series` object.
+            frame_idx: The index of the current frame.
+
+        Returns:
+            A dictionary of initial traits with keys:
+                - "lateral_pts": Array of lateral root points.
+        """
+        lateral_pts = plant.get_lateral_points(frame_idx)
+        return {"lateral_pts": lateral_pts}
