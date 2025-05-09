@@ -18,6 +18,8 @@ from sleap_roots.trait_pipelines import (
     YoungerMonocotPipeline,
     OlderMonocotPipeline,
     MultipleDicotPipeline,
+    PrimaryRootPipeline,
+    LateralRootPipeline,
 )
 from sleap_roots.series import (
     Series,
