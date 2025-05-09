@@ -10,6 +10,7 @@ from sleap_roots.trait_pipelines import (
     MultipleDicotPipeline,
     NumpyArrayEncoder,
     PrimaryRootPipeline,
+    LateralRootPipeline,
 )
 from sleap_roots.series import (
     Series,
@@ -1475,7 +1476,7 @@ def test_primary_root_pipeline(
         "primary_tip_pt_y",
     ]
 
-    angle_traits = ("pprimary_angle_proximal", "primary_angle_distal")
+    angle_traits = ("primary_angle_proximal", "primary_angle_distal")
     ratio_traits = "curve_index"
     expected_dtypes = (int, float, np.integer, np.floating)
 
