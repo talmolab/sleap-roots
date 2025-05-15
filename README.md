@@ -7,203 +7,138 @@
 
 Analysis tools for [SLEAP](https://sleap.ai)-based plant root phenotyping.
 
-## Installation
-```
+---
+
+## 📦 Installation
+
+```bash
 pip install sleap-roots
 ```
 
-If you are using conda (recommended):
-```
+If you are using `conda` (recommended):
+
+```bash
 conda create -n sleap-roots python=3.11
 conda activate sleap-roots
 pip install sleap-roots
 ```
 
-## Usage
+---
 
-Detailed trait documentation per pipeline is available here:
-[sleap-roots HackMD](https://hackmd.io/DMiXO2kXQhKH8AIIcIy--g)
+## 🌱 Usage
 
+Trait pipelines supported:
 
-### `DicotPipeline`
+- `DicotPipeline` – Primary + lateral roots (e.g. soy, canola)
+- `YoungerMonocotPipeline` – Primary + crown roots (e.g. early rice)
+- `OlderMonocotPipeline` – Crown roots only (e.g. later rice)
+- `PrimaryRootPipeline` – Primary root only
+- `LateralRootPipeline` – Lateral roots only
+- `MultipleDicotPipeline` – Multi-plant dicot setup (batch from a single image)
 
-**1. Computing traits for a single plant:**
+### 🔁 Example: Dicot Pipeline
 
-```py
+**1. Compute traits for a single plant**
+
+```python
 import sleap_roots as sr
 
-plant = sr.Series.load(
-    "tests/data/canola_7do/919QDUH.h5",
-    # Specify the names of the primary and lateral roots for trait calculation
-    primary_name="primary",
-    lateral_name="lateral"
+series = sr.Series.load(
+    series_name="919QDUH",
+    h5_path="tests/data/canola_7do/919QDUH.h5",
+    primary_path="tests/data/canola_7do/919QDUH.primary.slp",
+    lateral_path="tests/data/canola_7do/919QDUH.lateral.slp"
 )
-pipeline = sr.DicotPipeline()
-traits = pipeline.compute_plant_traits(plant, write_csv=True)
-```
-
-**2. Computing traits for a batch of plants:**
-
-```py
-import sleap_roots as sr
-
-plant_paths = sr.find_all_series("tests/data/soy_6do")
-plants = [
-    sr.Series.load(
-        plant_path,
-        # Specify the names of the primary and lateral roots for trait calculation
-        primary_name="primary",
-        lateral_name="lateral",
-    ) for plant_path in plant_paths]
 
 pipeline = sr.DicotPipeline()
-all_traits = pipeline.compute_batch_traits(plants, write_csv=True)
+traits = pipeline.compute_plant_traits(series, write_csv=True)
 ```
 
-**3. Computing individual traits:**
+**2. Compute traits for a batch**
 
-```py
-import sleap_roots as sr
-import numpy as np
-import numpy as np
-# Import utility for combining primary and lateral root points
-from sleap_roots.points import get_all_pts_array
+```python
+paths = sr.find_all_slp_paths("tests/data/soy_6do")
+plants = sr.load_series_from_slps(paths, h5s=True)
 
-plant = sr.Series.load(
-    "tests/data/canola_7do/919QDUH.h5",
-    primary_name="primary",
-    lateral_name="lateral"
-)
-
-frame_index = 0
-primary_pts = plant.get_primary_points(frame_index)
-lateral_pts = plant.get_lateral_points(frame_index)
-pts = get_all_pts_array(primary_pts, lateral_pts)
-convex_hull = sr.convhull.get_convhull(pts)
+pipeline = sr.DicotPipeline()
+batch_df = pipeline.compute_batch_traits(plants, write_csv=True)
 ```
 
-### `YoungerMonocotPipeline`
+**3. Use a single trait utility**
 
-**1. Computing traits for a single plant:**
+```python
+from sleap_roots.lengths import get_root_lengths
 
-```py
-import sleap_roots as sr
-
-plant = sr.Series.load(
-    "tests/data/rice_3do/0K9E8BI.h5",
-    primary_name="primary",
-    lateral_name="crown"
-)
-pipeline = sr.YoungerMonocotPipeline()
-traits = pipeline.compute_plant_traits(plant, write_csv=True)
+pts = series.get_primary_points(frame_idx=0)
+lengths = get_root_lengths(pts)
 ```
 
-**2. Computing traits for a batch of plants:**
+---
 
-```py
-import sleap_roots as sr
+## 📓 Notebooks & Tutorials
 
-plant_paths = sr.find_all_series("tests/data/rice_3do")
-plants = [
-    sr.Series.load(
-        plant_path,
-        primary_name="primary",
-        lateral_name="crown"
-    ) for plant_path in plant_paths]
+Explore tutorials under `notebooks/`:
 
-pipeline = sr.YoungerMonocotPipeline()
-all_traits = pipeline.compute_batch_traits(plants, write_csv=True)
-```
-
-**3. Computing individual traits:**
-
-```py
-import sleap_roots as sr
-import numpy as np
-from sleap_roots.points import get_all_pts_array
-
-plant = sr.Series.load(
-    "tests/data/rice_3do/0K9E8BI.h5",
-    primary_name="primary",
-    lateral_name="crown"
-)
-
-frame_index = 0
-primary_pts = plant.get_primary_points(frame_index)
-lateral_pts = plant.get_lateral_points(frame_index)
-pts = get_all_pts_array(primary_pts, lateral_pts)
-convex_hull = sr.convhull.get_convhull(pts)
-```
-
-## Tutorials
-Jupyter notebooks are located in this repo at `sleap-roots/notebooks`.
-
-To use them, activate your conda environment which includes JupyterLab (recommended):
-```
-conda activate sleap-roots
-```
-
-Clone this repository if you haven't already:
-```
-git clone https://github.com/talmolab/sleap-roots.git && cd sleap-roots
-```
-
-Then you can change directories to the location of the notebooks, and open Jupyter Lab:
-```
+```bash
 cd notebooks
 jupyter lab
 ```
 
-Go through the commands in the notebooks to learn about each pipeline. 
-You can use the test data located at `tests/data` or copy the notebooks elsewhere for use with your own data!
+You can use the test data in `tests/data` or replace it with your own.
 
+---
 
-## Development
-For development, first clone the repository:
-```
+## 🧪 Development
+
+1. **Clone the repository:**
+
+```bash
 git clone https://github.com/talmolab/sleap-roots && cd sleap-roots
 ```
 
-Then, to create a **new conda environment** and install the package in editable mode:
-```
+2. **Create the conda environment:**
+
+```bash
 conda env create -f environment.yml
-```
-This will create a conda environment called `sleap-roots`.
-
-If you have an **existing conda environment** (such as where you installed SLEAP), you
-can just install in editable mode directly. First, activate your environment and then:
-```
-pip install -e ".[dev]"
-```
-*Note:* The `[dev]` makes sure that the development-only dependencies are also
-installed.
-
-To **start fresh**, just delete the environment:
-```
-conda env remove -n sleap-roots
-```
-
-To **run tests**, first activate the environment:
-```
 conda activate sleap-roots
 ```
-Then run `pytest` with:
-```
+
+This includes dev dependencies and installs the package in editable mode (`--editable=.[dev]`).
+
+3. **Run tests:**
+
+```bash
 pytest tests
 ```
 
-## Acknowledgments
+4. **Remove the environment (optional):**
 
-This repository was created by the [Talmo Lab](https://talmolab.org) and [Busch Lab](https://busch.salk.edu) at the Salk Institute for Biological Studies as part of the [Harnessing Plants Initiative](https://www.salk.edu/harnessing-plants-initiative/).
+```bash
+conda env remove -n sleap-roots
+```
+
+---
+
+## 📖 Trait Reference
+
+See the latest trait documentation here:
+
+👉 [HackMD: sleap-roots Trait Docs](https://hackmd.io/DMiXO2kXQhKH8AIIcIy--g)
+
+---
+
+## 🤝 Acknowledgments
+
+Created by the [Talmo Lab](https://talmolab.org) and [Busch Lab](https://busch.salk.edu) at the Salk Institute, as part of the [Harnessing Plants Initiative](https://www.salk.edu/harnessing-plants-initiative/).
 
 ### Contributors
 
 - Elizabeth Berrigan
 - Lin Wang
+- Andrew O'Connor
 - Talmo Pereira
 
 ### Citation
 
-E.M. Berrigan, L. Wang, H. Carrillo, K. Echegoyen, M. Kappes, J. Torres, A. Ai-Perreira, E. McCoy, E. Shane, C.D. Copeland, L. Ragel, 
-C. Georgousakis, S. Lee, D. Reynolds, A. Talgo, J. Gonzalez, L. Zhang, A.B. Rajurkar, M. Ruiz, E. Daniels, L. Maree, S. Pariyar, W. Busch, T.D. Pereira.  
-"Fast and Efficient Root Phenotyping via Pose Estimation", *Plant Phenomics* 0: DOI:[10.34133/plantphenomics.0175](https://doi.org/10.34133/plantphenomics.0175).
+E.M. Berrigan et al., *"Fast and Efficient Root Phenotyping via Pose Estimation"*, Plant Phenomics.  
+DOI: [10.34133/plantphenomics.0175](https://doi.org/10.34133/plantphenomics.0175)
