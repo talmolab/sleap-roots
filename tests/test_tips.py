@@ -126,6 +126,14 @@ def test_get_tip_xs_no_tip(pts_no_tips):
     assert isinstance(tip_xs, (float, np.floating))
 
 
+# test get_tip_xs with invalid number of dimensions
+def test_get_tip_xs_invalid_ndim():
+    # More than 2 dimensions
+    tips_invalid = np.zeros((2, 2, 2))  # Shape (2, 1, 2) is invalid
+    with pytest.raises(ValueError):
+        get_tip_xs(tips_invalid)
+
+
 # test get_tip_ys with canola
 def test_get_tip_ys_canola(canola_h5, canola_primary_slp, canola_lateral_slp):
     # Set the frame index to 0
@@ -171,3 +179,11 @@ def test_get_tip_ys_no_tip(pts_no_tips):
     np.testing.assert_almost_equal(tip_ys[1], np.nan, decimal=3)
     np.testing.assert_almost_equal(tip_ys[0], np.nan, decimal=3)
     assert type(tip_ys) == np.ndarray
+
+
+# test get_tip_ys with invalid number of dimensions
+def test_get_tip_ys_invalid_ndim():
+    # More than 2 dimensions
+    tips_invalid = np.zeros((2, 2, 2))  # Shape (2, 1, 2) is invalid
+    with pytest.raises(ValueError):
+        get_tip_ys(tips_invalid)

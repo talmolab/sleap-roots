@@ -18,6 +18,8 @@ from sleap_roots.trait_pipelines import (
     YoungerMonocotPipeline,
     OlderMonocotPipeline,
     MultipleDicotPipeline,
+    PrimaryRootPipeline,
+    LateralRootPipeline,
 )
 from sleap_roots.series import (
     Series,
@@ -29,4 +31,4 @@ from sleap_roots.series import (
 
 # Define package version.
 # This is read dynamically by setuptools in pyproject.toml to determine the release version.
-__version__ = "0.1.3"
+__version__ = "0.1.4"
