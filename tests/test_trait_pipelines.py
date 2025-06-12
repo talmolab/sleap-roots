@@ -2261,6 +2261,13 @@ def test_multiple_primary_root_pipeline(
 
     multiple_primary_root_pipeline = MultiplePrimaryRootPipeline()
 
+    # Test series with no frames.
+    empty_series = Series("empty_series")
+    empty_dict_result = PrimaryRootPipeline().compute_multiple_primary_roots_traits(
+        empty_series
+    )
+    assert isinstance(empty_dict_result, dict)
+
     # Extract each series out in a variable.
     series_997_1 = [
         series for series in all_multiple_dicot_series if series.series_name == "997_1"
