@@ -1,0 +1,6 @@
+experiment,filename,treatment,plate_number,expected_num_plants,timestamp,frame
+gravitropism,time24h_20250318-143610_073.tif,Unknown,073,8,20250318-143610,0
+gravitropism,time24h_20250318-143610_074.tif,Unknown,074,8,20250318-143610,1
+gravitropism,time24h_20250318-143610_075.tif,Unknown,075,8,20250318-143610,2
+gravitropism,time24h_20250318-143610_076.tif,Unknown,076,8,20250318-143610,3
+gravitropism,time24h_20250318-143610_077.tif,Unknown,077,8,20250318-143610,4

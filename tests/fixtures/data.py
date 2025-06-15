@@ -218,6 +218,18 @@ def multiple_arabidopsis_11do_group_batch_traits_MultiplePrimaryRootPipeline():
 
 
 @pytest.fixture
+def rice_graviscan_folder_path():
+    """Path to the CSV file with expected count and group information."""
+    return "tests/data/rice_graviscan"
+
+
+@pytest.fixture
+def rice_graviscan_all_frames_traits_json_MultiplePrimaryRootPipeline():
+    """Path to the CSV file with expected count and group information."""
+    return "tests/data/rice_graviscan/plates_24hr.all_frames_traits.json"
+
+
+@pytest.fixture
 def sleap_roots_pipeline_output_folder():
     """Path to the folder with the output of the sleap_roots pipeline."""
     return "tests/data/sleap-roots-pipeline-outputs"
