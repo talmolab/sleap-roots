@@ -2258,7 +2258,7 @@ def test_multiple_primary_root_pipeline(
     plate_slps = sr.find_all_slp_paths(rice_graviscan_folder_path)
 
     # Load all series as a list. Since h5 files are available in the folder, specify the h5s parameter as True
-    plates_all_series = sr.load_series_from_slps(slp_paths=all_slps, h5s=True)
+    plates_all_series = sr.load_series_from_slps(slp_paths=plate_slps, h5s=True)
 
     plate_root_traits_json = (
         multiple_primary_root_pipeline.compute_multiple_primary_roots_traits(
