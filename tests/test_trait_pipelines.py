@@ -2249,33 +2249,33 @@ def test_multiple_primary_root_pipeline(
     multiple_arabidopsis_11do_batch_traits_MultiplePrimaryRootPipeline,
     multiple_arabidopsis_11do_group_batch_traits_MultiplePrimaryRootPipeline,
     rice_graviscan_folder_path,
-    rice_graviscan_all_frames_traits_json_MultiplePrimaryRootPipeline,
+    rice_graviscan_flattened_traits_csv_MultiplePrimaryRootPipeline,
 ):
 
     multiple_primary_root_pipeline = MultiplePrimaryRootPipeline()
 
-    # Find all slp paths as a list
+    # Find all rice graviscan slp paths as a list
     plate_slps = sr.find_all_slp_paths(rice_graviscan_folder_path)
 
     # Load all series as a list. Since h5 files are available in the folder, specify the h5s parameter as True
     plates_all_series = sr.load_series_from_slps(slp_paths=plate_slps, h5s=True)
 
-    plate_root_traits_json = (
+    plate_root_traits_per_instance_df = (
         multiple_primary_root_pipeline.compute_multiple_primary_roots_traits(
-            plates_all_series[0]
+            plates_all_series[0], per_instance=True
         )
     )
 
-    with open(
-        rice_graviscan_all_frames_traits_json_MultiplePrimaryRootPipeline, "r"
-    ) as file:
-        plate_roots_traits_fixture = json.load(file)
+    plate_roots_traits_fixture_df = pd.read_csv(
+        rice_graviscan_flattened_traits_csv_MultiplePrimaryRootPipeline
+    )
 
-    plate_root_traits_df = pd.DataFrame(plate_root_traits_json["traits"])
-    plate_roots_traits_fixture_df = pd.DataFrame(plate_roots_traits_fixture["traits"])
+    # Check that the computed per-instance plate traits are equal to the fixture
+    pd.testing.assert_frame_equal(
+        plate_root_traits_per_instance_df, plate_roots_traits_fixture_df
+    )
 
-    pd.testing.assert_frame_equal(plate_root_traits_df, plate_roots_traits_fixture_df)
-
+    # Find all slp paths for multiple arabidopsis data
     all_slps = sr.find_all_slp_paths(multiple_arabidopsis_11do_folder)
 
     # Load arabidopsis examples.

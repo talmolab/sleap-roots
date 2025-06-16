@@ -224,9 +224,9 @@ def rice_graviscan_folder_path():
 
 
 @pytest.fixture
-def rice_graviscan_all_frames_traits_json_MultiplePrimaryRootPipeline():
-    """Path to the json file with computed traits for the rice graviscan (plate) dataset."""
-    return "tests/data/rice_graviscan/plates_24hr.all_frames_traits.json"
+def rice_graviscan_flattened_traits_csv_MultiplePrimaryRootPipeline():
+    """Path to the CSV file with computed traits per instance for the rice graviscan (plate) dataset."""
+    return "tests/data/rice_graviscan/plates_24hr.flattened_traits.csv"
 
 
 @pytest.fixture

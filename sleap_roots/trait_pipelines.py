@@ -644,6 +644,8 @@ class Pipeline:
         json_suffix: str = ".all_frames_traits.json",
         write_csv: bool = False,
         csv_suffix: str = ".all_frames_summary.csv",
+        per_instance: bool = False,
+        flattened_csv_suffix: str = ".flattened_traits.csv",
     ):
         """Computes plant traits for pipelines with multiple primary roots over all frames in a series.
 
@@ -655,9 +657,8 @@ class Pipeline:
             csv_suffix: The suffix to append to the CSV file name. Default is ".all_frames_summary.csv".
 
         Returns:
-            A dictionary containing the series name, group, qc_fail, aggregated traits, and summary statistics.
+            A dictionary with aggregated traits, summary stats, and optionally per-instance traits.
         """
-        # Initialize the return structure with the series name and group
         result = {
             "series": str(series.series_name),
             "group": str(series.group),
@@ -666,61 +667,56 @@ class Pipeline:
             "summary_stats": {},
         }
 
-        # Check if the series has frames to process
+        if per_instance:
+            result["per_instance_traits"] = []
+
         if len(series) == 0:
             print(f"Series '{series.series_name}' contains no frames to process.")
-            # Return early with the initialized structure
             return result
 
-        # Initialize a separate dictionary to hold the aggregated traits across all frames
         aggregated_traits = {}
+        primary_root_pipeline = PrimaryRootPipeline()
 
-        # Iterate over frames in series
-        for frame in range(len(series)):
-            # Get initial points and number of plants per frame
-            initial_frame_traits = self.get_initial_frame_traits(series, frame)
-            # Compute initial associations and perform filter operations
+        for frame_idx in range(len(series)):
+            initial_frame_traits = self.get_initial_frame_traits(series, frame_idx)
             frame_traits = self.compute_frame_traits(initial_frame_traits)
 
-            # Instantiate PrimaryRootPipeline
-            primary_root_pipeline = PrimaryRootPipeline()
-
-            # Retrive numpy ndarray of filtered_primary_pts (instances, nodes, 2)
             primary_root_instances = frame_traits[
                 "filtered_primary_pts_with_expected_ct"
             ]
 
-            for primary_root_inst in primary_root_instances:
+            for instance_idx, primary_root_inst in enumerate(primary_root_instances):
+                inst_input = {"primary_pts": primary_root_inst}
+                plant_traits = primary_root_pipeline.compute_frame_traits(inst_input)
 
-                # Get the initial frame traits for this plant using the filtered primary points
-                initial_frame_traits = {
-                    "primary_pts": primary_root_inst,
-                }
+                if per_instance:
+                    result["per_instance_traits"].append(
+                        {
+                            "frame": frame_idx,
+                            "instance": instance_idx,
+                            "traits": plant_traits,
+                        }
+                    )
 
-                # Use the primary root pipeline to compute the plant traits on this frame
-                plant_traits = primary_root_pipeline.compute_frame_traits(
-                    initial_frame_traits
-                )
-
-                # For each plant's traits in the frame
                 for trait_name, trait_value in plant_traits.items():
-                    # Not all traits are added to the aggregated traits dictionary
                     if trait_name in primary_root_pipeline.csv_traits_multiple_plants:
                         if trait_name not in aggregated_traits:
-                            # Initialize the trait array if it's the first frame
                             aggregated_traits[trait_name] = [np.atleast_1d(trait_value)]
                         else:
-                            # Append new trait values for subsequent frames
                             aggregated_traits[trait_name].append(
                                 np.atleast_1d(trait_value)
                             )
 
-        # After processing, update the result dictionary with computed traits
         for trait, arrays in aggregated_traits.items():
             aggregated_traits[trait] = np.concatenate(arrays, axis=0)
         result["traits"] = aggregated_traits
 
-        # Write to JSON if requested
+        summary_stats = {}
+        for trait_name, trait_values in aggregated_traits.items():
+            trait_stats = get_summary(trait_values, prefix=f"{trait_name}_")
+            summary_stats.update(trait_stats)
+        result["summary_stats"] = summary_stats
+
         if write_json:
             json_name = f"{series.series_name}{json_suffix}"
             try:
@@ -732,14 +728,6 @@ class Pipeline:
             except IOError as e:
                 print(f"Error writing JSON file '{json_name}': {e}")
 
-        # Compute summary statistics and update result
-        summary_stats = {}
-        for trait_name, trait_values in aggregated_traits.items():
-            trait_stats = get_summary(trait_values, prefix=f"{trait_name}_")
-            summary_stats.update(trait_stats)
-        result["summary_stats"] = summary_stats
-
-        # Optionally write summary stats to CSV
         if write_csv:
             csv_name = f"{series.series_name}{csv_suffix}"
             try:
@@ -748,10 +736,45 @@ class Pipeline:
                 summary_df.to_csv(csv_name, index=False)
                 print(f"Summary statistics saved to {csv_name}")
             except IOError as e:
-                print(f"Failed to write CSV file '{csv_name}': {e}")
+                print(f"Failed to write summary CSV '{csv_name}': {e}")
 
-        # Return the final result structure
-        return result
+        flat_df = None
+        if per_instance:
+            try:
+                rows = []
+                for inst in result["per_instance_traits"]:
+                    row = {
+                        "series": series.series_name,
+                        "frame": inst["frame"],
+                        "instance": inst["instance"],
+                    }
+                    for trait_name, trait_value in inst["traits"].items():
+                        if isinstance(
+                            trait_value, (int, float, np.integer, np.floating)
+                        ):
+                            row[trait_name] = trait_value
+                        elif isinstance(trait_value, np.ndarray):
+                            if trait_value.ndim == 0:
+                                row[trait_name] = trait_value.item()
+                            elif trait_value.ndim == 1 and trait_value.shape[0] == 1:
+                                row[trait_name] = trait_value[0]
+                            else:
+                                continue
+                        else:
+                            continue
+                    rows.append(row)
+
+                flat_df = pd.DataFrame(rows)
+
+                if write_csv:
+                    flat_csv_name = f"{series.series_name}{flattened_csv_suffix}"
+                    flat_df.to_csv(flat_csv_name, index=False)
+                    print(f"Flattened per-instance traits saved to {flat_csv_name}")
+            except Exception as e:
+                print(f"Failed to process flattened traits: {e}")
+            return flat_df
+        else:
+            return result
 
     def compute_multiple_primary_roots_traits_for_groups(
         self,
