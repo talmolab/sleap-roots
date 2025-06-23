@@ -12,6 +12,7 @@ from sleap_roots.lengths import get_max_length_pts
 from sleap_roots.points import (
     extract_points_from_geometry,
     filter_plants_with_unexpected_ct,
+    filter_primary_roots_with_unexpected_count,
     get_count,
     join_pts,
 )
@@ -764,6 +765,34 @@ def test_filter_plants_with_unexpected_ct_incorrect_input_types():
     expected_count = "not a float"
     with pytest.raises(ValueError):
         filter_plants_with_unexpected_ct(primary_pts, lateral_pts, expected_count)
+
+
+def test_filter_primary_roots_with_unexpected_ct_valid_inputs():
+    """Test with valid input types to check expected output shape."""
+    primary_pts = np.random.rand(5, 10, 2)
+    expected_count = 5.0
+    output = filter_primary_roots_with_unexpected_count(primary_pts, expected_count)
+    assert output.shape == (5, 10, 2)
+
+    primary_pts = np.random.rand(5, 10, 2)
+    expected_count = 2
+    output = filter_primary_roots_with_unexpected_count(primary_pts, expected_count)
+    assert output.shape == (0, 10, 2)
+
+
+def test_filter_primary_roots_with_unexpected_ct_invalid_inputs():
+    """Test with invalid inputy types to ensure ValueError is raised."""
+    # Input points are not an array of (instances, nodes, 2)
+    primary_pts = "not a numpy array"
+    expected_count = 5.0
+    with pytest.raises(ValueError):
+        filter_primary_roots_with_unexpected_count(primary_pts, expected_count)
+
+    # Expected count is not a numeric type
+    primary_pts = np.random.rand(5, 10, 2)
+    expected_count = "not a float"
+    with pytest.raises(ValueError):
+        filter_primary_roots_with_unexpected_count(primary_pts, expected_count)
 
 
 def test_extract_from_point():

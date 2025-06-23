@@ -1,6 +1,6 @@
 # multiple_arabidopsis_11do
 
-This directory contains test fixtures for trait computation pipelines, specifically for the *MultipleDicotPipeline*. These fixtures include lateral and primary root predictions for four samples of 11-day-old Arabidopsis plants, a metadata CSV (with genotype and replicate information), and precomputed outputs used to validate pipeline behavior and ensure consistent results over time.
+This directory contains test fixtures for trait computation pipelines, specifically for the *MultipleDicotPipeline* and *MultiplePrimaryRootPipeline*. These fixtures include lateral and primary root predictions for four samples of 11-day-old Arabidopsis plants, a metadata CSV (with genotype and replicate information), and precomputed outputs used to validate pipeline behavior and ensure consistent results over time.
 
 ## Purpose
 

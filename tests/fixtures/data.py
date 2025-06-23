@@ -206,6 +206,30 @@ def multiple_arabidopsis_11do_batch_traits_csv_MultipleDicotPipeline():
 
 
 @pytest.fixture
+def multiple_arabidopsis_11do_batch_traits_MultiplePrimaryRootPipeline():
+    """Path to the CSV file with expected count and group information."""
+    return "tests/data/multiple_arabidopsis_11do/multiple_primary_root_pipeline/MultiplePrimaryRootPipeline.batch_traits.csv"
+
+
+@pytest.fixture
+def multiple_arabidopsis_11do_group_batch_traits_MultiplePrimaryRootPipeline():
+    """Path to the CSV file with expected count and group information."""
+    return "tests/data/multiple_arabidopsis_11do/multiple_primary_root_pipeline/MultiplePrimaryRootPipeline.group_batch_traits.csv"
+
+
+@pytest.fixture
+def rice_graviscan_folder_path():
+    """Path to the folder containing rice graviscan (plate) data."""
+    return "tests/data/rice_graviscan"
+
+
+@pytest.fixture
+def rice_graviscan_flattened_traits_csv_MultiplePrimaryRootPipeline():
+    """Path to the CSV file with computed traits per instance for the rice graviscan (plate) dataset."""
+    return "tests/data/rice_graviscan/plates_24hr.flattened_traits.csv"
+
+
+@pytest.fixture
 def sleap_roots_pipeline_output_folder():
     """Path to the folder with the output of the sleap_roots pipeline."""
     return "tests/data/sleap-roots-pipeline-outputs"
