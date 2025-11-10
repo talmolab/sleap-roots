@@ -130,3 +130,7 @@ dmypy.json
 
 .DS_Store
 .vscode/
+
+# Generated trait CSV files (root level only, not test data)
+/*.traits.csv
+/my_summarized_traits.csv
