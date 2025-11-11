@@ -50,7 +50,14 @@ dev = [
     "pydocstyle",
     "toml",
     "twine",
-    "build"
+    "build",
+    "mkdocs>=1.5",
+    "mkdocs-material>=9.0",
+    "mkdocstrings[python]>=0.20",
+    "mkdocs-gen-files",
+    "mkdocs-literate-nav",
+    "mkdocs-section-index",
+    "mike"
 ]
 
 [project.urls]

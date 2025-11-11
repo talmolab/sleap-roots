@@ -1,0 +1,39 @@
+/* Custom styles for sleap-roots documentation */
+
+/* Plant-themed accent colors */
+:root {
+  --md-primary-fg-color: #4caf50;
+  --md-accent-fg-color: #8bc34a;
+}
+
+/* Make code blocks slightly more readable */
+.highlight {
+  border-radius: 0.2rem;
+}
+
+/* Style admonitions */
+.admonition {
+  border-radius: 0.2rem;
+}
+
+/* Grid cards styling */
+.grid.cards {
+  margin-top: 1rem;
+}
+
+.grid.cards > ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 0.5rem;
+}
+
+/* Better table styling */
+table {
+  border-radius: 0.2rem;
+  overflow: hidden;
+}
+
+/* Code copy button styling */
+.md-clipboard {
+  color: var(--md-primary-fg-color);
+}
