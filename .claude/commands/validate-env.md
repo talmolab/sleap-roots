@@ -236,8 +236,8 @@ The Python version is automatically managed by uv based on the .python-version f
 
 ### Virtual Environment Check
 ```bash
-uv venv list
-# Should show .venv in the project directory
+ls -la .venv
+# Should show the .venv directory if it exists
 ```
 
 ### Dependency Sync Check
@@ -359,7 +359,8 @@ git lfs pull --include="tests/data/**"
 
 Dependency version mismatch:
 ```bash
-uv sync --upgrade-package sleap-io
+uv lock --upgrade-package sleap-io
+uv sync
 ```
 
 ### "Environment exists but validation fails"

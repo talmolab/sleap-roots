@@ -37,7 +37,9 @@ jobs:
           mkdir -p test-wheel-install && cd test-wheel-install
           uv init --no-readme --no-workspace test-project
           cd test-project
-          uv add ../../dist/*.whl
+          # Find the wheel file (use find for safety with multiple files)
+          WHEEL=$(find ../../dist -name '*.whl' -print -quit)
+          uv add "$WHEEL"
           uv run python -c "import sleap_roots as sr; print('Wheel import OK, version:', sr.__version__)"
 
       # Test sdist with dev extras using uv

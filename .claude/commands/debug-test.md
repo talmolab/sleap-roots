@@ -381,7 +381,7 @@ def test_data_loads():
 
 ```bash
 # Install pytest-profiling
-uv add --dev pytest-profiling
+uv add --group dev pytest-profiling
 
 # Profile test
 uv run pytest tests/test_slow.py --profile
@@ -462,7 +462,7 @@ git lfs pull
 
 Missing pdb or IPython:
 ```bash
-uv add --dev ipython ipdb
+uv add --group dev ipython ipdb
 ```
 
 ### Issue: "Too much output"
