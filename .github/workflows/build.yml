@@ -70,6 +70,9 @@ jobs:
           name: dist
           path: dist/
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Upload to PyPI
         env:
           TWINE_USERNAME: __token__

@@ -4,10 +4,24 @@ name: CI
 on:
   pull_request:
     types: [opened, reopened, synchronize]
+    paths:
+      - "sleap_roots/**"
+      - "tests/**"
+      - ".github/workflows/ci.yml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".python-version"
   push:
     branches:
       - main
       - infra/*
+    paths:
+      - "sleap_roots/**"
+      - "tests/**"
+      - ".github/workflows/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".python-version"
 
 # Cancel in-progress runs when a new commit is pushed to the same branch
 concurrency:

@@ -24,7 +24,7 @@ sleap-roots is an analysis tool for SLEAP-based plant root phenotyping. It provi
   - `[project.optional-dependencies]` for pip users (backwards compat)
 - **Testing**: pytest with pytest-cov
 - **CI/CD**: GitHub Actions with uv (cross-platform: Ubuntu, Windows, macOS)
-  - Python versions: 3.7, 3.8, 3.9, 3.10, 3.11
+  - Python version: 3.11 (from .python-version)
   - Caching via `astral-sh/setup-uv@v5`
 
 ## Project Conventions

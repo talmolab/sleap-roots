@@ -331,7 +331,7 @@ git secrets --scan
 
 ```bash
 # Verify lockfile is up to date
-uv lock --locked
+uv lock --check
 
 # Check for dependency issues
 uv tree
