@@ -14,10 +14,18 @@ sleap-roots is an analysis tool for SLEAP-based plant root phenotyping. It provi
   - `scikit-image` - Image processing
   - `shapely` - Geometric operations
   - `matplotlib` & `seaborn` - Visualization
-- **Package Management**: setuptools with pyproject.toml
-- **Environment**: conda (recommended) or pip
+- **Package Management**:
+  - Build: setuptools with pyproject.toml (PEP 517)
+  - Dependencies: **uv** (recommended, 10-100x faster than conda)
+  - Lockfile: `uv.lock` for reproducible builds
+  - Legacy: conda (environment.yml) and pip still supported
+- **Dependency Groups** (PEP 735):
+  - `[dependency-groups]` for uv users (contributors, CI)
+  - `[project.optional-dependencies]` for pip users (backwards compat)
 - **Testing**: pytest with pytest-cov
-- **CI/CD**: GitHub Actions (cross-platform: Ubuntu, Windows, macOS)
+- **CI/CD**: GitHub Actions with uv (cross-platform: Ubuntu, Windows, macOS)
+  - Python versions: 3.7, 3.8, 3.9, 3.10, 3.11
+  - Caching via `astral-sh/setup-uv@v5`
 
 ## Project Conventions
 
@@ -71,20 +79,26 @@ sleap-roots is an analysis tool for SLEAP-based plant root phenotyping. It provi
 
 ### Git Workflow
 - **Main Branch**: `main` (protected)
-- **CI Triggers**: 
+- **CI Triggers**:
   - Pull requests (opened, reopened, synchronized)
   - Pushes to main
-  - Only runs when relevant paths change (`sleap_roots/**`, `tests/**`, CI config, environment.yml)
+- **Development Workflow with uv**:
+  - `uv sync` - Install dependencies from lockfile
+  - `uv run pytest tests/` - Run tests
+  - `uv run black sleap_roots tests` - Format code
+  - `uv run pydocstyle sleap_roots/` - Check docstrings
+  - `uv lock` - Update lockfile when adding/updating dependencies
 - **Pre-merge Requirements**:
   - Black formatting check must pass
   - Pydocstyle docstring checks must pass
-  - All pytest tests must pass on all platforms
+  - All pytest tests must pass on all platforms (Python 3.7-3.11)
   - Code coverage must be maintained
-- **Lint Jobs**:
-  - `black --check` for code formatting
-  - `pydocstyle --convention=google` for docstring style
+  - Lockfile (`uv.lock`) must be up to date
+- **Lint Jobs** (run via uv in CI):
+  - `uv run black --check` for code formatting
+  - `uv run pydocstyle --convention=google` for docstring style
 - **Release Process**: Version defined in `sleap_roots/__version__` and published to PyPI
-- **Git LFS**: Used for large test data files
+- **Git LFS**: Used for large test data files (898 MB)
 
 ## Domain Context
 **Plant Root Phenotyping**:
@@ -127,13 +141,19 @@ sleap-roots is an analysis tool for SLEAP-based plant root phenotyping. It provi
   - This project consumes SLEAP outputs but doesn't run SLEAP itself
   - Uses `sleap-io` library for reading SLEAP files
 - **GitHub Actions**: CI/CD infrastructure
-  - Uses `mamba-org/setup-micromamba` for conda environment setup
+  - Uses `astral-sh/setup-uv@v5` for uv setup
   - Uses `codecov/codecov-action` for coverage reporting
+- **uv (astral.sh/uv)**: Modern Python package manager (recommended)
+  - 10-100x faster than conda
+  - Reproducible builds via `uv.lock`
+  - Used in CI and recommended for local development
 - **Codecov**: Code coverage reporting and tracking
 - **PyPI**: Package distribution platform
-- **Git LFS**: Large File Storage for test data
+- **Git LFS**: Large File Storage for test data (898 MB)
 - **HackMD**: External trait documentation maintained at https://hackmd.io/DMiXO2kXQhKH8AIIcIy--g
-- **Conda/Micromamba**: Package and environment management (recommended installation method)
-- **Research Dependencies**: 
+- **Legacy Tools**:
+  - **Conda/Micromamba**: Still supported for users preferring conda
+  - **pip**: Standard Python package installer (works with `pip install sleap-roots`)
+- **Research Dependencies**:
   - Results may be referenced in scientific publications
   - API changes should consider impact on reproducibility
