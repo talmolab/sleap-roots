@@ -21,21 +21,21 @@ This will:
 
 ```bash
 # Debug specific test
-pytest tests/test_lengths.py::test_get_root_lengths -vv -s --pdb
+uv run pytest tests/test_lengths.py::test_get_root_lengths -vv -s --pdb
 ```
 
 ### Debug All Tests in Module
 
 ```bash
 # Debug all tests in file
-pytest tests/test_lengths.py -vv -s --pdb
+uv run pytest tests/test_lengths.py -vv -s --pdb
 ```
 
 ### Debug Tests Matching Pattern
 
 ```bash
 # Debug tests matching keyword
-pytest -k "primary_root" -vv -s --pdb
+uv run pytest -k "primary_root" -vv -s --pdb
 ```
 
 ## Command Flags Explained
@@ -113,7 +113,7 @@ When test drops into pdb:
 
 ```bash
 # Show which fixtures are being used
-pytest tests/test_lengths.py::test_example --fixtures-per-test
+uv run pytest tests/test_lengths.py::test_example --fixtures-per-test
 ```
 
 Output:
@@ -127,7 +127,7 @@ test_example uses fixtures:
 
 ```bash
 # Show fixture setup and teardown
-pytest tests/test_lengths.py -vv --setup-show
+uv run pytest tests/test_lengths.py -vv --setup-show
 ```
 
 Output:
@@ -141,21 +141,21 @@ TEARDOWN F sample_points
 
 ```bash
 # Show log output during test
-pytest tests/test_lengths.py -vv --log-cli-level=DEBUG
+uv run pytest tests/test_lengths.py -vv --log-cli-level=DEBUG
 ```
 
 ### Stop on First Failure
 
 ```bash
 # Stop immediately on first failure
-pytest tests/ -x --pdb
+uv run pytest tests/ -x --pdb
 ```
 
 ### Last Failed Test
 
 ```bash
 # Re-run only the test that failed last time
-pytest --lf -vv -s --pdb
+uv run pytest --lf -vv -s --pdb
 ```
 
 ## Common Debugging Scenarios
@@ -171,7 +171,7 @@ def test_length_calculation():
 
 **Debug:**
 ```bash
-pytest tests/test_lengths.py::test_length_calculation -vv --pdb
+uv run pytest tests/test_lengths.py::test_length_calculation -vv --pdb
 ```
 
 **In debugger:**
@@ -202,7 +202,7 @@ def test_lateral_count():
 
 **Debug:**
 ```bash
-pytest tests/test_trait_pipelines.py::test_lateral_count -vv -s --pdb
+uv run pytest tests/test_trait_pipelines.py::test_lateral_count -vv -s --pdb
 ```
 
 **In debugger:**
@@ -223,10 +223,10 @@ None  # Path not provided
 
 ```bash
 # Run with same Python version as CI
-pytest tests/test_angles.py -vv --pdb
+uv run pytest tests/test_angles.py -vv --pdb
 
 # Check test data
-pytest tests/test_angles.py -vv -s
+uv run pytest tests/test_angles.py -vv -s
 # Add print statements to check file paths
 ```
 
@@ -239,10 +239,10 @@ pytest tests/test_angles.py -vv -s
 
 ```bash
 # Show fixture values
-pytest tests/test_series.py::test_load -vv --fixtures-per-test
+uv run pytest tests/test_series.py::test_load -vv --fixtures-per-test
 
 # See fixture source
-pytest --fixtures | grep sample_series
+uv run pytest --fixtures | grep sample_series
 ```
 
 ## Inspecting Test Data
@@ -259,7 +259,7 @@ def test_example(sample_series):
 
 Run with `-s`:
 ```bash
-pytest tests/test_series.py::test_example -s
+uv run pytest tests/test_series.py::test_example -s
 ```
 
 ### Verify Test Data Loaded
@@ -326,7 +326,7 @@ def test_all_frames(frame_idx):
 
 Find which frame fails:
 ```bash
-pytest tests/test_example.py::test_all_frames -vv
+uv run pytest tests/test_example.py::test_all_frames -vv
 ```
 
 ### 4. Mark Tests for Debugging
@@ -340,7 +340,7 @@ def test_problematic():
 
 Run only debug tests:
 ```bash
-pytest -m debug -vv --pdb
+uv run pytest -m debug -vv --pdb
 ```
 
 ## Test Data Debugging
@@ -381,17 +381,17 @@ def test_data_loads():
 
 ```bash
 # Install pytest-profiling
-pip install pytest-profiling
+uv add --dev pytest-profiling
 
 # Profile test
-pytest tests/test_slow.py --profile
+uv run pytest tests/test_slow.py --profile
 ```
 
 ### Time Individual Tests
 
 ```bash
 # Show test durations
-pytest tests/ --durations=10
+uv run pytest tests/ --durations=10
 ```
 
 Output:
@@ -424,7 +424,7 @@ addopts = "--pdbcls=IPython.terminal.debugger:TerminalPdb"
 ### Show Available Fixtures
 
 ```bash
-pytest --fixtures
+uv run pytest --fixtures
 ```
 
 ### Debug Fixture Itself
@@ -446,9 +446,9 @@ Run with `-s --setup-show` to see fixture lifecycle.
 
 ### Issue: "No module named 'sleap_roots'"
 
-Package not installed in editable mode:
+Package not installed:
 ```bash
-pip install --editable .[dev]
+uv sync
 ```
 
 ### Issue: "FileNotFoundError: test data not found"
@@ -462,7 +462,7 @@ git lfs pull
 
 Missing pdb or IPython:
 ```bash
-pip install ipython ipdb
+uv add --dev ipython ipdb
 ```
 
 ### Issue: "Too much output"
@@ -470,10 +470,10 @@ pip install ipython ipdb
 Limit verbosity:
 ```bash
 # Just run one test
-pytest tests/test_file.py::test_specific -vv --pdb
+uv run pytest tests/test_file.py::test_specific -vv --pdb
 
 # Stop on first failure
-pytest -x --pdb
+uv run pytest -x --pdb
 ```
 
 ## Related Commands

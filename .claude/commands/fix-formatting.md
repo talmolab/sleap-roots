@@ -32,10 +32,10 @@ This command will:
 
 ```bash
 # Format all Python files
-black sleap_roots tests
+uv run black sleap_roots tests
 
 # Optional: Sort imports (if isort installed)
-isort sleap_roots tests
+uv run isort sleap_roots tests
 ```
 
 ## Expected Output

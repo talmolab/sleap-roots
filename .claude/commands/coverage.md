@@ -6,16 +6,16 @@ Run tests with coverage analysis to identify untested code and ensure quality.
 
 ```bash
 # Run all tests with coverage
-pytest --cov=sleap_roots --cov-report=xml tests/
+uv run pytest --cov=sleap_roots --cov-report=xml tests/
 
 # Run tests with coverage and HTML report
-pytest --cov=sleap_roots --cov-report=html tests/
+uv run pytest --cov=sleap_roots --cov-report=html tests/
 
 # Run tests for specific module with coverage
-pytest --cov=sleap_roots.lengths tests/test_lengths.py
+uv run pytest --cov=sleap_roots.lengths tests/test_lengths.py
 
 # Run all tests with verbose coverage output
-pytest --cov=sleap_roots --cov-report=term-missing tests/
+uv run pytest --cov=sleap_roots --cov-report=term-missing tests/
 ```
 
 ## Understanding Coverage Results
@@ -53,7 +53,7 @@ TOTAL                           892     12    99%
 
 ```bash
 # Generate HTML report
-pytest --cov=sleap_roots --cov-report=html tests/
+uv run pytest --cov=sleap_roots --cov-report=html tests/
 
 # Open in browser (macOS)
 open htmlcov/index.html
@@ -75,7 +75,7 @@ The HTML report shows:
 Use the `--cov-report=term-missing` flag to see exactly which lines need tests:
 
 ```bash
-pytest --cov=sleap_roots --cov-report=term-missing tests/test_lengths.py
+uv run pytest --cov=sleap_roots --cov-report=term-missing tests/test_lengths.py
 
 # Output shows missing lines:
 sleap_roots/lengths.py    95%   67-68, 102-105
@@ -85,10 +85,10 @@ Then add tests for those specific lines.
 
 ## Coverage in CI
 
-CI runs coverage on Ubuntu with Python 3.11:
+CI runs coverage on Ubuntu:
 
 ```yaml
-pytest --cov=sleap_roots --cov-report=xml tests/
+uv run pytest --cov=sleap_roots --cov-report=xml tests/
 ```
 
 Results are uploaded to Codecov for tracking over time.
@@ -98,7 +98,7 @@ Results are uploaded to Codecov for tracking over time.
 ### 1. Adding a new module
 ```bash
 # Run coverage for just your new module
-pytest --cov=sleap_roots.new_module tests/test_new_module.py
+uv run pytest --cov=sleap_roots.new_module tests/test_new_module.py
 
 # Aim for 100% coverage on new code
 ```
@@ -106,17 +106,17 @@ pytest --cov=sleap_roots.new_module tests/test_new_module.py
 ### 2. Fixing a bug
 ```bash
 # Check coverage before fix
-pytest --cov=sleap_roots.lengths tests/test_lengths.py
+uv run pytest --cov=sleap_roots.lengths tests/test_lengths.py
 
 # Add regression test
 # Re-run to ensure new test increases coverage
-pytest --cov=sleap_roots.lengths tests/test_lengths.py
+uv run pytest --cov=sleap_roots.lengths tests/test_lengths.py
 ```
 
 ### 3. Refactoring
 ```bash
 # Ensure coverage doesn't decrease
-pytest --cov=sleap_roots --cov-report=term-missing tests/
+uv run pytest --cov=sleap_roots --cov-report=term-missing tests/
 
 # Coverage should stay the same or increase
 ```
@@ -161,7 +161,7 @@ exclude_lines = [
 
 ```bash
 # 1. Run tests with coverage
-pytest --cov=sleap_roots --cov-report=html tests/
+uv run pytest --cov=sleap_roots --cov-report=html tests/
 
 # 2. Open HTML report
 open htmlcov/index.html
@@ -171,7 +171,7 @@ open htmlcov/index.html
 # 4. Write tests for those lines
 
 # 5. Re-run coverage to verify
-pytest --cov=sleap_roots --cov-report=html tests/
+uv run pytest --cov=sleap_roots --cov-report=html tests/
 
 # 6. Commit when coverage is satisfactory
 git add tests/
