@@ -46,8 +46,8 @@ jobs:
           mkdir -p test-sdist-install && cd test-sdist-install
           uv init --no-readme --no-workspace test-dev
           cd test-dev
-          # Find the sdist file
-          SDIST=$(ls ../../dist/*.tar.gz)
+          # Find the sdist file (use find for safety with multiple files)
+          SDIST=$(find ../../dist -name '*.tar.gz' -print -quit)
           uv add "$SDIST" --extra dev
           uv run black --version
           uv run pytest --version
@@ -72,6 +72,7 @@ jobs:
 
       - name: Upload to PyPI
         env:
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: |
-          uvx twine upload -u __token__ -p "$PYPI_TOKEN" dist/* --non-interactive --skip-existing --disable-progress-bar
+          uvx twine upload dist/* --non-interactive --skip-existing --disable-progress-bar

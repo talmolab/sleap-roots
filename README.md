@@ -132,7 +132,7 @@ uv run pydocstyle sleap_roots/
 **Adding dependencies:**
 ```bash
 uv add numpy  # Add runtime dependency
-uv add --dev pytest  # Add dev dependency
+uv add --group dev pytest  # Add dev dependency
 ```
 
 ### Using conda (Alternative)

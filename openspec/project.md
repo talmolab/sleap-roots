@@ -91,7 +91,7 @@ sleap-roots is an analysis tool for SLEAP-based plant root phenotyping. It provi
 - **Pre-merge Requirements**:
   - Black formatting check must pass
   - Pydocstyle docstring checks must pass
-  - All pytest tests must pass on all platforms (Python 3.7-3.11)
+  - All pytest tests must pass across all supported platform/Python combinations (see CI matrix; Python 3.7 is tested on Linux and Windows only)
   - Code coverage must be maintained
   - Lockfile (`uv.lock`) must be up to date
 - **Lint Jobs** (run via uv in CI):

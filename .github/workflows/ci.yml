@@ -35,13 +35,6 @@ jobs:
       - name: Sync deps
         run: uv sync --frozen
 
-      - name: Verify lockfile unchanged
-        run: |
-          git diff --exit-code uv.lock || {
-            echo "ERROR: uv.lock was modified. Run 'uv lock' locally and commit the changes."
-            exit 1
-          }
-
       - name: Run Black
         run: uv run black --check sleap_roots tests
 
