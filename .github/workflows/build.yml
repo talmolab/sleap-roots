@@ -20,8 +20,8 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "**/uv.lock"
 
-      - name: Install Python 3.11
-        run: uv python install 3.11
+      - name: Install Python from .python-version
+        run: uv python install
 
       - name: Build sdist & wheel
         run: |

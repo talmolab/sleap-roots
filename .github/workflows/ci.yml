@@ -29,8 +29,8 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cache-dependency-glob: "**/uv.lock"
 
-      - name: Install Python 3.11
-        run: uv python install 3.11
+      - name: Install Python from .python-version
+        run: uv python install
 
       - name: Sync deps
         run: uv sync --frozen
@@ -49,17 +49,12 @@ jobs:
         run: uv run pydocstyle --convention=google sleap_roots/
 
   test:
-    name: Test (${{ matrix.os }}, py${{ matrix.python }})
+    name: Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, windows-2022, macos-14]
-        python: ["3.7", "3.8", "3.9", "3.10", "3.11"]
-        exclude:
-          # Python 3.7 not available on Apple Silicon
-          - os: macos-14
-            python: "3.7"
 
     steps:
       - name: Checkout
@@ -74,8 +69,8 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           cache-dependency-glob: "**/uv.lock"
 
-      - name: Install Python ${{ matrix.python }}
-        run: uv python install ${{ matrix.python }}
+      - name: Install Python from .python-version
+        run: uv python install
 
       - name: Sync deps (runtime + dev group)
         run: uv sync --frozen
@@ -87,16 +82,16 @@ jobs:
           uv tree
 
       - name: Test with pytest
-        if: ${{ !(startsWith(matrix.os, 'ubuntu') && matrix.python == '3.11') }}
+        if: ${{ !startsWith(matrix.os, 'ubuntu') }}
         run: uv run pytest tests/
 
       - name: Test with pytest (with coverage)
-        if: ${{ startsWith(matrix.os, 'ubuntu') && matrix.python == '3.11' }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         run: uv run pytest --cov=sleap_roots --cov-report=xml --cov-report=term-missing tests/
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
-        if: ${{ startsWith(matrix.os, 'ubuntu') && matrix.python == '3.11' }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
