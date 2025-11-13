@@ -17,7 +17,7 @@ theme:
     - media: "(prefers-color-scheme: light)"
       scheme: default
       primary: green
-      accent: light green
+      accent: light-green
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
@@ -25,7 +25,7 @@ theme:
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
       primary: green
-      accent: light green
+      accent: light-green
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
@@ -185,5 +185,5 @@ extra_css:
 # Additional JavaScript for math rendering
 extra_javascript:
   - javascripts/mathjax.js
-  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

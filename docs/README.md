@@ -96,13 +96,13 @@ series = sr.Series.load(...)
 
 ### Math Equations
 
-Inline: `\\(E = mc^2\\)`
+Inline: `\(E = mc^2\)`
 
 Display:
 ```
-\\[
+\[
 E = mc^2
-\\]
+\]
 ```
 
 ## Versioning

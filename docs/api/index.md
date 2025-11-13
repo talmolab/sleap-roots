@@ -198,7 +198,7 @@ print(f"Primary length: {root_lengths[0]:.2f} pixels")
 
 ### Angle Measurements
 
-::: sleap_roots.angles
+::: sleap_roots.angle
     options:
       members:
         - get_root_angle
@@ -211,13 +211,13 @@ print(f"Primary length: {root_lengths[0]:.2f} pixels")
 
 **Example**:
 ```python
-from sleap_roots import angles
+from sleap_roots import angle
 
-tip_angle = angles.get_root_angle(primary_pts, gravity_vector=(0, 1))
+tip_angle = angle.get_root_angle(primary_pts, gravity_vector=(0, 1))
 print(f"Primary root tip angle: {tip_angle:.1f}°")
 ```
 
-**See also**: [Full angles module reference](angles.md)
+**See also**: [Full angle module reference](angle.md)
 
 ---
 
@@ -332,7 +332,7 @@ sleap_roots/
 ├── series.py             # Series class
 ├── trait_pipelines.py    # Pipeline implementations
 ├── lengths.py            # Length calculations
-├── angles.py             # Angle measurements
+├── angle.py              # Angle measurements
 ├── tips.py               # Tip-related traits
 ├── bases.py              # Base-related traits
 ├── convhull.py           # Convex hull computations
