@@ -86,6 +86,10 @@ plugins:
   - search:
       separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
   - autorefs
+  - mkdocs-jupyter:
+      include_source: True
+      execute: False
+      allow_errors: False
   - gen-files:
       scripts:
         - docs/gen_ref_pages.py
@@ -118,6 +122,15 @@ nav:
     - Installation: getting-started/installation.md
     - Quick Start: getting-started/quickstart.md
     - What is SLEAP?: getting-started/what-is-sleap.md
+  - Tutorials:
+    - Overview: tutorials/index.md
+    - Dicot Pipeline: tutorials/dicot-pipeline.md
+    - Younger Monocot Pipeline: tutorials/younger-monocot-pipeline.md
+    - Older Monocot Pipeline: tutorials/older-monocot-pipeline.md
+    - Multiple Dicot Pipeline: tutorials/multiple-dicot-pipeline.md
+    - Multiple Primary Root Pipeline: tutorials/multiple-primary-root-pipeline.md
+    - Primary Root Pipeline: tutorials/primary-root-pipeline.md
+    - Lateral Root Pipeline: tutorials/lateral-root-pipeline.md
   - User Guide:
     - Overview: guides/index.md
     - Pipelines:
@@ -133,17 +146,26 @@ nav:
       - CSV Traits: guides/data-formats/csv-traits.md
     - Trait Reference: guides/trait-reference.md
     - Batch Processing: guides/batch-processing.md
+    - Custom Pipelines: guides/custom-pipelines.md
+    - Troubleshooting: guides/troubleshooting.md
   - Developer Guide:
     - Contributing: dev/contributing.md
     - Development Setup: dev/setup.md
     - Architecture: dev/architecture.md
     - Creating Pipelines: dev/creating-pipelines.md
+    - Adding Traits: dev/adding-traits.md
     - Testing: dev/testing.md
     - Code Style: dev/code-style.md
+    - Release Process: dev/release-process.md
   - API Reference:
+    - Overview: api/index.md
     - reference/
   - Cookbook:
-    - cookbook/index.md
+    - Overview: cookbook/index.md
+    - Filtering Data: cookbook/filtering-data.md
+    - Custom Traits: cookbook/custom-traits.md
+    - Batch Optimization: cookbook/batch-optimization.md
+    - Exporting Results: cookbook/exporting-results.md
   - Changelog: changelog.md
 
 # Extra configuration
