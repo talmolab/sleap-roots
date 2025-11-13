@@ -6,31 +6,31 @@ Execute the pytest test suite with various options and filters.
 
 ```bash
 # Run all tests
-pytest tests/
+uv run pytest tests/
 
 # Run all tests with verbose output
-pytest -v tests/
+uv run pytest -v tests/
 
 # Run tests for a specific module
-pytest tests/test_lengths.py
+uv run pytest tests/test_lengths.py
 
 # Run a specific test function
-pytest tests/test_lengths.py::test_get_root_lengths
+uv run pytest tests/test_lengths.py::test_get_root_lengths
 
 # Run tests matching a pattern
-pytest -k "primary_root" tests/
+uv run pytest -k "primary_root" tests/
 
 # Run tests with output (print statements visible)
-pytest -s tests/
+uv run pytest -s tests/
 
 # Run tests and stop on first failure
-pytest -x tests/
+uv run pytest -x tests/
 
 # Run previously failed tests
-pytest --lf tests/
+uv run pytest --lf tests/
 
 # Run tests in parallel (if pytest-xdist installed)
-pytest -n auto tests/
+uv run pytest -n auto tests/
 ```
 
 ## Understanding Test Output
@@ -127,44 +127,44 @@ Test data includes:
 ### 1. Running tests during development
 ```bash
 # Run tests for the module you're working on
-pytest tests/test_lengths.py -v
+uv run pytest tests/test_lengths.py -v
 
 # Re-run on file change (requires pytest-watch)
-ptw tests/test_lengths.py
+uv run ptw tests/test_lengths.py
 ```
 
 ### 2. Testing a new feature
 ```bash
 # Run tests with verbose output to see details
-pytest -v tests/test_new_feature.py
+uv run pytest -v tests/test_new_feature.py
 
 # Run with coverage to ensure new code is tested
-pytest --cov=sleap_roots.new_module tests/test_new_feature.py
+uv run pytest --cov=sleap_roots.new_module tests/test_new_feature.py
 ```
 
 ### 3. Debugging a failing test
 ```bash
 # Run with output visible (print statements)
-pytest -s tests/test_failing.py
+uv run pytest -s tests/test_failing.py
 
 # Drop into debugger on failure (requires pdb or ipdb)
-pytest --pdb tests/test_failing.py
+uv run pytest --pdb tests/test_failing.py
 
 # Run only the failing test
-pytest tests/test_failing.py::test_specific_function
+uv run pytest tests/test_failing.py::test_specific_function
 ```
 
 ### 4. Before creating a PR
 ```bash
 # Run all tests
-pytest tests/
+uv run pytest tests/
 
 # Run with coverage
-pytest --cov=sleap_roots --cov-report=term-missing tests/
+uv run pytest --cov=sleap_roots --cov-report=term-missing tests/
 
 # Ensure linting passes
-black --check sleap_roots tests
-pydocstyle --convention=google sleap_roots/
+uv run black --check sleap_roots tests
+uv run pydocstyle --convention=google sleap_roots/
 ```
 
 ## Pytest Fixtures
@@ -248,7 +248,7 @@ def test_get_root_lengths_collinear_points():
 
 GitHub Actions runs tests on:
 - Multiple platforms (Ubuntu, Windows, macOS)
-- Python 3.11 (primary version)
+- Python version from .python-version file
 - With coverage reporting (Ubuntu only)
 
 CI configuration: `.github/workflows/ci.yml`
@@ -256,7 +256,7 @@ CI configuration: `.github/workflows/ci.yml`
 ```yaml
 - name: Test with pytest (with coverage)
   run: |
-    pytest --cov=sleap_roots --cov-report=xml tests/
+    uv run pytest --cov=sleap_roots --cov-report=xml tests/
 ```
 
 ## Tips

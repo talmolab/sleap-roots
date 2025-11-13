@@ -6,13 +6,13 @@ Run linting and formatting checks to ensure code quality and consistent style.
 
 ```bash
 # Format code with Black
-black sleap_roots tests
+uv run black sleap_roots tests
 
 # Check formatting without making changes
-black --check sleap_roots tests
+uv run black --check sleap_roots tests
 
 # Run pydocstyle for Google-style docstring checks
-pydocstyle --convention=google sleap_roots/
+uv run pydocstyle --convention=google sleap_roots/
 ```
 
 ## What to do after running
@@ -144,14 +144,14 @@ class Series:
 
 ```bash
 # Before committing
-black sleap_roots tests
-pydocstyle --convention=google sleap_roots/
+uv run black sleap_roots tests
+uv run pydocstyle --convention=google sleap_roots/
 
 # Before creating PR
-black --check sleap_roots tests && pydocstyle --convention=google sleap_roots/
+uv run black --check sleap_roots tests && uv run pydocstyle --convention=google sleap_roots/
 
 # If checks fail, fix and commit
-black sleap_roots tests
+uv run black sleap_roots tests
 git add -u
 git commit -m "style: apply Black formatting"
 ```

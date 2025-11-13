@@ -20,16 +20,15 @@ This checks:
 ## What Gets Checked
 
 ### 1. Python Version
-- ✅ Python ≥ 3.7 (recommended: 3.11)
-- ❌ Python < 3.7
+- ✅ Python version matches .python-version file
+- ❌ Python version mismatch
 
-### 2. Conda Environment
-- ✅ Conda or mamba installed
-- ✅ `sleap-roots` environment exists
-- ✅ Environment is activated
+### 2. uv Installation
+- ✅ uv installed and accessible
+- ✅ uv version compatible
 
 ### 3. Package Installation
-- ✅ sleap-roots installed in editable mode
+- ✅ Dependencies synced via uv.lock
 - ✅ All core dependencies present
 - ✅ Dev dependencies present (pytest, black, etc.)
 
@@ -58,16 +57,14 @@ Environment Validation
 ================================
 
 [1/7] Python Version
-✅ Python 3.11.0 (meets requirement: >=3.7)
+✅ Python 3.11 (matches .python-version)
 
-[2/7] Conda Environment
-✅ Conda 23.1.0 installed
-✅ Environment 'sleap-roots' exists
-✅ Environment 'sleap-roots' is active
+[2/7] uv Installation
+✅ uv 0.5.0 installed
 
 [3/7] Package Installation
-✅ sleap-roots 0.1.4 installed in editable mode
-   Location: /Users/you/repos/sleap-roots
+✅ Dependencies synced from uv.lock
+   Location: /Users/you/repos/sleap-roots/.venv
 ✅ All core dependencies installed:
    numpy 1.24.3
    pandas 2.0.1
@@ -104,8 +101,8 @@ Environment Validation
 Your environment is ready for development! 🚀
 
 Next steps:
-  - Run tests: pytest tests/
-  - Check formatting: black --check sleap_roots tests
+  - Run tests: uv run pytest tests/
+  - Check formatting: uv run black --check sleap_roots tests
   - Start developing!
 ```
 
@@ -119,12 +116,11 @@ Environment Validation
 [1/7] Python Version
 ✅ Python 3.11.0
 
-[2/7] Conda Environment
-✅ Conda 23.1.0 installed
-❌ Environment 'sleap-roots' not found
+[2/7] uv Installation
+❌ uv not found
 
-FIX: Create environment with:
-     conda env create -f environment.yml
+FIX: Install uv with:
+     curl -LsSf https://astral.sh/uv/install.sh | sh
 
 [3/7] Package Installation
 ⏭  Skipped (environment not active)
@@ -154,23 +150,22 @@ Found 3 issues. Fix them using the commands above.
 
 ## Common Issues & Fixes
 
-### Issue: "sleap-roots environment not found"
+### Issue: "uv not found"
 
-**Cause:** Conda environment hasn't been created yet
+**Cause:** uv not installed
 
 **Fix:**
 ```bash
-conda env create -f environment.yml
-conda activate sleap-roots
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-### Issue: "Package not installed in editable mode"
+### Issue: "Dependencies not synced"
 
-**Cause:** Package not installed or installed incorrectly
+**Cause:** Virtual environment not created or dependencies not installed
 
 **Fix:**
 ```bash
-pip install --editable .[dev]
+uv sync
 ```
 
 ### Issue: "Git LFS not configured"
@@ -204,10 +199,9 @@ git lfs pull
 
 **Fix:**
 ```bash
-# Recreate environment
-conda env remove -n sleap-roots
-conda env create -f environment.yml
-conda activate sleap-roots
+# Recreate virtual environment
+rm -rf .venv
+uv sync
 ```
 
 ## When to Run This
@@ -216,8 +210,8 @@ conda activate sleap-roots
 Run after cloning the repository for the first time.
 
 ### After Environment Changes
-- After updating `environment.yml`
-- After `conda env update`
+- After updating `pyproject.toml` dependencies
+- After `uv lock`
 - After installing new dependencies
 
 ### Troubleshooting
@@ -234,25 +228,25 @@ Run after cloning the repository for the first time.
 
 ### Python Version Check
 ```bash
-python --version
-# Should output: Python 3.7+ (3.11 recommended)
+uv run python --version
+# Should match the version in .python-version file
 ```
 
-sleap-roots supports Python 3.7+ but 3.11 is recommended for development (matches CI).
+The Python version is automatically managed by uv based on the .python-version file.
 
-### Conda Environment Check
+### Virtual Environment Check
 ```bash
-conda env list | grep sleap-roots
-# Should show: sleap-roots with active indicator (*)
+ls -la .venv
+# Should show the .venv directory if it exists
 ```
 
-### Editable Installation Check
+### Dependency Sync Check
 ```bash
-pip show sleap-roots
-# Should show: Location: /path/to/repo (not site-packages)
+uv tree
+# Should show all dependencies installed from uv.lock
 ```
 
-Editable mode (`pip install -e`) means code changes take effect immediately without reinstalling.
+Dependencies are managed by uv and installed in the .venv directory.
 
 ### Git LFS Check
 ```bash
@@ -283,19 +277,19 @@ print("✅ Basic functionality works")
 ## Platform-Specific Notes
 
 ### macOS
-- Install conda via Homebrew: `brew install miniconda`
+- Install uv: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - Git LFS: `brew install git-lfs`
 - Everything else should work
 
 ### Ubuntu
-- Install conda via official installer
+- Install uv: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - Git LFS: `sudo apt-get install git-lfs`
 - May need build tools: `sudo apt-get install build-essential`
 
 ### Windows
-- Use Anaconda Prompt (not PowerShell)
+- Install uv: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
 - Git LFS: Download from https://git-lfs.github.com/
-- Use Git Bash for git commands
+- Use Git Bash or PowerShell for git commands
 
 ## Integration with Other Commands
 
@@ -304,14 +298,17 @@ print("✅ Basic functionality works")
 git clone https://github.com/talmolab/sleap-roots.git
 cd sleap-roots
 
-# 2. Validate environment
+# 2. Install dependencies
+uv sync
+
+# 3. Validate environment
 /validate-env
 # Fix any issues it identifies
 
-# 3. Run tests to verify
+# 4. Run tests to verify
 /test
 
-# 4. Start development!
+# 5. Start development!
 ```
 
 ## Automated Fix (Advanced)
@@ -320,9 +317,7 @@ For automated setup, you can chain commands:
 
 ```bash
 # Auto-fix common issues
-conda env create -f environment.yml
-conda activate sleap-roots
-pip install --editable .[dev]
+uv sync
 git lfs install
 git lfs pull
 
@@ -332,24 +327,24 @@ git lfs pull
 
 ## Troubleshooting Guide
 
-### "conda: command not found"
+### "uv: command not found"
 
-Install miniconda or anaconda:
+Install uv:
 ```bash
-# macOS
-brew install miniconda
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Linux
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-bash Miniconda3-latest-Linux-x86_64.sh
+# Windows
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-### "Environment solves very slowly"
+### "Dependency resolution is slow"
 
-Use mamba instead of conda (much faster):
+uv is already fast, but you can try:
 ```bash
-conda install -n base -c conda-forge mamba
-mamba env create -f environment.yml
+# Clear cache and re-sync
+uv cache clean
+uv sync
 ```
 
 ### "Test data files are empty"
@@ -364,18 +359,16 @@ git lfs pull --include="tests/data/**"
 
 Dependency version mismatch:
 ```bash
-pip install --upgrade sleap-io
+uv lock --upgrade-package sleap-io
+uv sync
 ```
 
 ### "Environment exists but validation fails"
 
 Environment may be corrupted - recreate it:
 ```bash
-conda deactivate
-conda env remove -n sleap-roots
-conda env create -f environment.yml
-conda activate sleap-roots
-pip install --editable .[dev]
+rm -rf .venv
+uv sync
 ```
 
 ## Output Format

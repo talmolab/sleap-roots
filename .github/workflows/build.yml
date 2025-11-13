@@ -7,30 +7,77 @@ on:
       - published
 
 jobs:
-  pypi:
-    name: PyPI Wheel
-    runs-on: "ubuntu-22.04"
+  build:
+    name: Build & Test Package
+    runs-on: ubuntu-22.04
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Checkout repo
-      uses: actions/checkout@v3
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/uv.lock"
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
+      - name: Install Python from .python-version
+        run: uv python install
 
-    - name: Install dependencies
-      run: |
-        pip install --editable .[dev]
+      - name: Build sdist & wheel
+        run: |
+          uv build
+          ls -la dist
 
-    - name: Build wheel
-      run: |
-        python -m build --wheel
-        twine check dist/*
-    
-    - name: Upload
-      env:
-        PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-      run: |
-        twine upload -u __token__ -p "$PYPI_TOKEN" dist/* --non-interactive --skip-existing --disable-progress-bar
+      - name: Twine check metadata
+        run: uvx twine check dist/*
+
+      # Test wheel installation using uv (the modern way users will install)
+      - name: Test wheel with uv
+        run: |
+          mkdir -p test-wheel-install && cd test-wheel-install
+          uv init --no-readme --no-workspace test-project
+          cd test-project
+          # Find the wheel file (use find for safety with multiple files)
+          WHEEL=$(find ../../dist -name '*.whl' -print -quit)
+          uv add "$WHEEL"
+          uv run python -c "import sleap_roots as sr; print('Wheel import OK, version:', sr.__version__)"
+
+      # Test sdist with dev extras using uv
+      - name: Test sdist with dev extras
+        run: |
+          mkdir -p test-sdist-install && cd test-sdist-install
+          uv init --no-readme --no-workspace test-dev
+          cd test-dev
+          # Find the sdist file (use find for safety with multiple files)
+          SDIST=$(find ../../dist -name '*.tar.gz' -print -quit)
+          uv add "$SDIST" --extra dev
+          uv run black --version
+          uv run pytest --version
+          echo "Sdist with dev extras installed successfully"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  pypi:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Upload to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          uvx twine upload dist/* --non-interactive --skip-existing --disable-progress-bar
