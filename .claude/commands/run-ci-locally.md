@@ -23,19 +23,19 @@ This command runs the exact CI workflow from `.github/workflows/ci.yml`:
 ```bash
 # Step 1: Lint checks
 echo "Running Black formatting check..."
-black --check sleap_roots tests
+uv run black --check sleap_roots tests
 
 echo "Running pydocstyle docstring check..."
-pydocstyle --convention=google sleap_roots/
+uv run pydocstyle --convention=google sleap_roots/
 
 # Step 2: Run tests
 echo "Running pytest..."
-pytest tests/
+uv run pytest tests/
 
 # Step 3: Coverage (Ubuntu/macOS only)
 if [[ "$OSTYPE" == "linux-gnu"* ]] || [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Running pytest with coverage..."
-    pytest --cov=sleap_roots --cov-report=xml --cov-report=term tests/
+    uv run pytest --cov=sleap_roots --cov-report=xml --cov-report=term tests/
 fi
 ```
 
@@ -187,18 +187,18 @@ This command mirrors `.github/workflows/ci.yml`:
 ```yaml
 # Lint job
 - name: Run Black
-  run: black --check sleap_roots tests
+  run: uv run black --check sleap_roots tests
 
 - name: Run pydocstyle
-  run: pydocstyle --convention=google sleap_roots/
+  run: uv run pydocstyle --convention=google sleap_roots/
 
 # Test job
 - name: Test with pytest
-  run: pytest tests/
+  run: uv run pytest tests/
 
-# Coverage (Ubuntu + Python 3.11 only in CI)
+# Coverage (Ubuntu only in CI)
 - name: Test with pytest (with coverage)
-  run: pytest --cov=sleap_roots --cov-report=xml tests/
+  run: uv run pytest --cov=sleap_roots --cov-report=xml tests/
 ```
 
 ## Troubleshooting
@@ -206,13 +206,13 @@ This command mirrors `.github/workflows/ci.yml`:
 ### "Black not found"
 ```bash
 # Install dev dependencies
-pip install --editable .[dev]
+uv sync
 ```
 
 ### "Tests fail locally but pass in CI"
 - Check Git LFS data is pulled: `git lfs pull`
-- Verify Python version matches CI: `python --version` (should be 3.11)
-- Check conda environment is activated: `conda activate sleap-roots`
+- Verify Python version: `uv run python --version` (should match .python-version)
+- Check dependencies are synced: `uv sync`
 
 ### "Command takes too long"
 - Skip coverage: Just run `/lint` and `/test` separately
@@ -222,7 +222,7 @@ pip install --editable .[dev]
 ## Tips
 
 1. **Run frequently**: Don't wait until you're done - run after each logical change
-2. **Fix formatting first**: Black failures are fastest to fix (`black sleap_roots tests`)
+2. **Fix formatting first**: Black failures are fastest to fix (`uv run black sleap_roots tests`)
 3. **Use `/fix-formatting`**: Auto-fixes most issues instead of checking
 4. **Parallel development**: Run this while working on next task (takes ~30s)
 5. **CI queue optimization**: Running locally reduces wasted CI cycles

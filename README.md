@@ -11,16 +11,36 @@ Analysis tools for [SLEAP](https://sleap.ai)-based plant root phenotyping.
 
 ## 📦 Installation
 
+### For End Users
+
 ```bash
 pip install sleap-roots
 ```
 
-If you are using `conda` (recommended):
+### For Development (Recommended: uv)
+
+[uv](https://docs.astral.sh/uv/) is a fast Python package manager (10-100x faster than conda):
 
 ```bash
-conda create -n sleap-roots python=3.11
+# Install uv (one-time setup)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone and setup
+git clone https://github.com/talmolab/sleap-roots && cd sleap-roots
+uv sync
+
+# Run commands
+uv run pytest tests/
+uv run black sleap_roots tests
+```
+
+**Why uv?** Environment setup in ~30 seconds (vs 10-15 minutes with conda) with reproducible builds via lockfile.
+
+### Alternative: conda
+
+```bash
+conda env create -f environment.yml
 conda activate sleap-roots
-pip install sleap-roots
 ```
 
 ---
@@ -90,31 +110,43 @@ You can use the test data in `tests/data` or replace it with your own.
 
 ## 🧪 Development
 
-1. **Clone the repository:**
+### Using uv (Recommended)
 
 ```bash
+# 1. Clone the repository
 git clone https://github.com/talmolab/sleap-roots && cd sleap-roots
+
+# 2. Install dependencies (creates .venv automatically)
+uv sync
+
+# 3. Run tests
+uv run pytest tests/
+
+# 4. Format code
+uv run black sleap_roots tests
+
+# 5. Check docstrings
+uv run pydocstyle sleap_roots/
 ```
 
-2. **Create the conda environment:**
+**Adding dependencies:**
+```bash
+uv add numpy  # Add runtime dependency
+uv add --group dev pytest  # Add dev dependency
+```
+
+### Using conda (Alternative)
 
 ```bash
+# 1. Clone the repository
+git clone https://github.com/talmolab/sleap-roots && cd sleap-roots
+
+# 2. Create environment
 conda env create -f environment.yml
 conda activate sleap-roots
-```
 
-This includes dev dependencies and installs the package in editable mode (`--editable=.[dev]`).
-
-3. **Run tests:**
-
-```bash
-pytest tests
-```
-
-4. **Remove the environment (optional):**
-
-```bash
-conda env remove -n sleap-roots
+# 3. Run tests
+pytest tests/
 ```
 
 ---

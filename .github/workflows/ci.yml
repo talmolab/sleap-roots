@@ -8,103 +8,97 @@ on:
       - "sleap_roots/**"
       - "tests/**"
       - ".github/workflows/ci.yml"
-      - "environment.yml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".python-version"
   push:
     branches:
       - main
+      - infra/*
     paths:
       - "sleap_roots/**"
       - "tests/**"
-      - ".github/workflows/ci.yml"
-      - "environment.yml"
+      - ".github/workflows/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".python-version"
+
+# Cancel in-progress runs when a new commit is pushed to the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  # Lint with black and docstring check with pydocstyle
   lint:
-    # This job runs:
-    #
-    # 1. Linting with black
-    #
-    # 2. Docstring style checking with pydocstyle 
-    # Note: This uses Google-style docstring convention
-    # Ref: https://google.github.io/styleguide/pyguide.html
-    name: Lint
-    runs-on: "ubuntu-22.04"
+    name: Lint (Black + pydocstyle)
+    runs-on: ubuntu-22.04
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Checkout repo
-      uses: actions/checkout@v3
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache-dependency-glob: "**/uv.lock"
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
+      - name: Install Python from .python-version
+        run: uv python install
 
-    - name: Install dependencies
-      run: |
-        pip install --editable .[dev]
+      - name: Sync deps
+        run: uv sync --frozen
 
-    - name: Run Black
-      run: |
-        black --check sleap_roots tests
-    
-    - name: Run pydocstyle
-      run: |
-        pydocstyle --convention=google sleap_roots/
+      - name: Run Black
+        run: uv run black --check sleap_roots tests
 
-  # Tests with pytest
-  tests:
+      - name: Run pydocstyle
+        run: uv run pydocstyle --convention=google sleap_roots/
+
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-22.04", "windows-2022", "macos-latest"]
-        python: [3.11]
-
-    name: Tests (${{ matrix.os }}, Python ${{ matrix.python }})
-    runs-on: ${{ matrix.os }}
+        os: [ubuntu-22.04, windows-2022, macos-14]
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          lfs: true # Fetch large files with Git LFS
+          lfs: true  # Fetch large files with Git LFS
 
-      - name: Setup Micromamba
-        # https://github.com/mamba-org/setup-micromamba
-        # Note: Set channel-priority in .condarc if needed
-        uses: mamba-org/setup-micromamba@v1
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
         with:
-          environment-file: environment.yml
-          cache-environment: true
-          cache-environment-key: environment-${{ hashFiles('environment.yml') }}-${{ hashFiles('pyproject.toml') }}
-          init-shell: >-
-            bash
-            powershell
-          post-cleanup: all
+          enable-cache: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache-dependency-glob: "**/uv.lock"
 
-      - name: Print environment info
-        shell: bash -l {0}
+      - name: Install Python from .python-version
+        run: uv python install
+
+      - name: Sync deps (runtime + dev group)
+        run: uv sync --frozen
+
+      - name: Environment info
         run: |
-          which python
-          micromamba info
-          micromamba list
-          pip freeze
+          uv --version
+          uv run python -c "import sys, platform; print(sys.version); print(platform.platform())"
+          uv tree
 
       - name: Test with pytest
-        if: ${{ !(startsWith(matrix.os, 'ubuntu') && matrix.python == 3.11) }}
-        shell: bash -l {0}
-        run: |
-          pytest
+        if: ${{ !startsWith(matrix.os, 'ubuntu') }}
+        run: uv run pytest tests/
 
       - name: Test with pytest (with coverage)
-        if: ${{ startsWith(matrix.os, 'ubuntu') && matrix.python == 3.11 }}
-        shell: bash -l {0}
-        run: |
-          pytest --cov=sleap_roots --cov-report=xml tests/
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
+        run: uv run pytest --cov=sleap_roots --cov-report=xml --cov-report=term-missing tests/
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
-        if: ${{ startsWith(matrix.os, 'ubuntu') && matrix.python == 3.11 }}
+        if: ${{ startsWith(matrix.os, 'ubuntu') }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
