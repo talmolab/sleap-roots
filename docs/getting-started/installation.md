@@ -28,16 +28,82 @@ pip install sleap-roots
 
 ## Development Installation
 
-If you want to contribute to sleap-roots or run the latest development version:
+If you want to contribute to sleap-roots or run the latest development version, we recommend using **uv** for the fastest and most modern workflow.
 
-### 1. Clone the Repository
+### Modern Approach: Using uv (Recommended)
+
+[uv](https://github.com/astral-sh/uv) is a fast, modern Python package manager that handles dependency management with lockfiles for reproducibility.
+
+#### 1. Install uv
+
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Or with pip
+pip install uv
+```
+
+#### 2. Clone and Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/talmolab/sleap-roots.git
+cd sleap-roots
+
+# Install Git LFS for test data
+git lfs install
+git lfs pull
+
+# Create environment and install all dependencies
+uv sync
+
+# This automatically:
+# - Creates a virtual environment (.venv)
+# - Installs runtime dependencies
+# - Installs dev dependencies from [dependency-groups]
+# - Installs sleap-roots in editable mode
+# - Generates/updates uv.lock for reproducibility
+```
+
+#### 3. Verify Installation
+
+```bash
+# Run tests
+uv run pytest tests/
+
+# Check formatting
+uv run black --check sleap_roots tests
+
+# Check docstrings
+uv run pydocstyle sleap_roots/
+
+# Import the package
+uv run python -c "import sleap_roots; print(sleap_roots.__version__)"
+```
+
+!!! tip "Why uv?"
+    - **10-100x faster** than pip/conda
+    - **Automatic dependency locking** with uv.lock
+    - **No separate environment activation** needed (use `uv run`)
+    - **PEP 735 dependency groups** for clean dev/prod separation
+    - **Built-in tool management** (no need for separate virtualenv)
+
+### Alternative: Using Conda
+
+If you prefer conda or need conda-specific packages:
+
+#### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/talmolab/sleap-roots.git
 cd sleap-roots
 ```
 
-### 2. Create Environment from File
+#### 2. Create Environment from File
 
 ```bash
 conda env create -f environment.yml
@@ -50,7 +116,7 @@ This installs:
 - Dev dependencies (pytest, black, pydocstyle, mkdocs)
 - The package in editable mode
 
-### 3. Verify Installation
+#### 3. Verify Installation
 
 ```bash
 # Run tests
