@@ -1,0 +1,190 @@
+site_name: sleap-roots
+site_description: Analysis tools for SLEAP-based plant root phenotyping
+site_author: Talmo Lab
+site_url: https://talmolab.github.io/sleap-roots
+repo_name: talmolab/sleap-roots
+repo_url: https://github.com/talmolab/sleap-roots
+edit_uri: edit/main/docs/
+
+# Copyright
+copyright: Copyright &copy; 2024 Talmo Lab
+
+# Theme configuration
+theme:
+  name: material
+  palette:
+    # Light mode - plant-themed greens
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      accent: light-green
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      accent: light-green
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
+    - toc.follow
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+
+# Extensions
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - attr_list
+  - md_in_html
+  - def_list
+  - tables
+  - footnotes
+  - toc:
+      permalink: true
+
+# Plugins
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+  - autorefs
+  - mkdocs-jupyter:
+      include_source: True
+      execute: False
+      allow_errors: False
+  - gen-files:
+      scripts:
+        - docs/gen_ref_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+  - section-index
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [.]
+          options:
+            docstring_style: google
+            docstring_section_style: table
+            show_root_heading: true
+            show_root_full_path: false
+            show_source: true
+            show_bases: true
+            show_submodules: false
+            members_order: source
+            heading_level: 2
+            merge_init_into_class: true
+            separate_signature: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+
+# Navigation
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - What is SLEAP?: getting-started/what-is-sleap.md
+  - Tutorials:
+    - Overview: tutorials/index.md
+    - Dicot Pipeline: tutorials/dicot-pipeline.md
+    - Younger Monocot Pipeline: tutorials/younger-monocot-pipeline.md
+    - Older Monocot Pipeline: tutorials/older-monocot-pipeline.md
+    - Multiple Dicot Pipeline: tutorials/multiple-dicot-pipeline.md
+    - Multiple Primary Root Pipeline: tutorials/multiple-primary-root-pipeline.md
+    - Primary Root Pipeline: tutorials/primary-root-pipeline.md
+    - Lateral Root Pipeline: tutorials/lateral-root-pipeline.md
+  - User Guide:
+    - Overview: guides/index.md
+    - Pipelines:
+      - DicotPipeline: guides/pipelines/dicot.md
+      - YoungerMonocotPipeline: guides/pipelines/younger-monocot.md
+      - OlderMonocotPipeline: guides/pipelines/older-monocot.md
+      - MultiplePrimaryRootPipeline: guides/pipelines/multiple-primary.md
+      - MultipleDicotPipeline: guides/pipelines/multiple-dicot.md
+      - PrimaryRootPipeline: guides/pipelines/primary-root.md
+      - LateralRootPipeline: guides/pipelines/lateral-root.md
+    - Data Formats:
+      - SLEAP Files (.slp): guides/data-formats/sleap-files.md
+      - HDF5 Output: guides/data-formats/hdf5.md
+      - CSV Traits: guides/data-formats/csv-traits.md
+    - Trait Reference: guides/trait-reference.md
+    - Batch Processing: guides/batch-processing.md
+    - Custom Pipelines: guides/custom-pipelines.md
+    - Troubleshooting: guides/troubleshooting.md
+  - Developer Guide:
+    - Contributing: dev/contributing.md
+    - Development Setup: dev/setup.md
+    - Architecture: dev/architecture.md
+    - Creating Pipelines: dev/creating-pipelines.md
+    - Adding Traits: dev/adding-traits.md
+    - Testing: dev/testing.md
+    - Code Style: dev/code-style.md
+    - Release Process: dev/release-process.md
+  - API Reference:
+    - Overview: api/index.md
+    - reference/
+  - Cookbook:
+    - Overview: cookbook/index.md
+    - Filtering Data: cookbook/filtering-data.md
+    - Custom Traits: cookbook/custom-traits.md
+    - Batch Optimization: cookbook/batch-optimization.md
+    - Exporting Results: cookbook/exporting-results.md
+  - Changelog: changelog.md
+
+# Extra configuration
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/talmolab/sleap-roots
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/sleap-roots/
+
+# Additional CSS
+extra_css:
+  - stylesheets/extra.css
+
+# Additional JavaScript for math rendering
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

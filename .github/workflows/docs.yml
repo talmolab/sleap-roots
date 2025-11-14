@@ -1,0 +1,90 @@
+name: Documentation
+
+on:
+  push:
+    branches:
+      - main
+      - docs/*
+  pull_request:
+    branches:
+      - main
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for git metadata
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+
+      - name: Build documentation
+        run: mkdocs build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: site/
+
+  deploy:
+    name: Deploy Documentation
+    needs: build
+    runs-on: ubuntu-latest
+    # Only deploy on pushes to main or on releases
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'release'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Deploy to GitHub Pages (latest)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          mike deploy --push --update-aliases latest dev
+          mike set-default --push latest
+
+      - name: Deploy to GitHub Pages (release)
+        if: github.event_name == 'release'
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          # Extract version from tag (e.g., v0.1.4 -> 0.1.4)
+          VERSION=${RELEASE_VERSION#v}
+          mike deploy --push --update-aliases $VERSION stable
+          mike set-default --push stable
