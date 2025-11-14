@@ -139,6 +139,7 @@ nav:
       - OlderMonocotPipeline: guides/pipelines/older-monocot.md
       - MultiplePrimaryRootPipeline: guides/pipelines/multiple-primary.md
       - MultipleDicotPipeline: guides/pipelines/multiple-dicot.md
+      - PrimaryRootPipeline: guides/pipelines/primary-root.md
       - LateralRootPipeline: guides/pipelines/lateral-root.md
     - Data Formats:
       - SLEAP Files (.slp): guides/data-formats/sleap-files.md
