@@ -4,6 +4,68 @@ This directory contains completed OpenSpec changes that have been implemented an
 
 ## Active Archives
 
+### add-mkdocs-documentation (November 2024)
+
+**Status**: ✅ Completed - Merged in PR #131
+
+Implemented comprehensive MkDocs-based documentation infrastructure with Material theme, auto-generated API reference, user guides, developer documentation, and automated deployment to GitHub Pages.
+
+- **Proposal**: [proposal.md](add-mkdocs-documentation/proposal.md)
+- **Design**: [design.md](add-mkdocs-documentation/design.md)
+- **Tasks**: [tasks.md](add-mkdocs-documentation/tasks.md)
+
+**Key Deliverables**:
+
+- **Phase 1 Complete**: Full infrastructure setup with automated deployment
+- MkDocs Material theme with plant-themed green styling
+- Auto-generated API reference using mkdocstrings
+- Complete navigation structure with 7 pipeline tutorials
+- GitHub Actions CI/CD workflow for automated deployment
+- Comprehensive installation guide with uv best practices
+- Developer setup guide (445 lines)
+- Complete changelog from v0.0.1 through v0.1.4
+- Cookbook recipes for common tasks
+- Custom CSS and MathJax configuration
+
+**Documentation Structure Created**:
+- Getting Started (installation, quick start, SLEAP intro)
+- Tutorials (7 pipeline types with examples)
+- User Guide (pipelines, data formats, troubleshooting)
+- Developer Guide (contributing, setup, architecture, testing)
+- API Reference (auto-generated from docstrings)
+- Cookbook (filtering, custom traits, batch optimization, exporting)
+- Changelog (following Keep a Changelog format)
+
+**Timeline**: ~9 hours (vs. 9 hour Phase 1 estimate)
+- Infrastructure setup: 3 hours
+- Documentation content: 4 hours
+- CI/CD deployment: 2 hours
+- Documentation improvements (uv, changelog, dev guide): 2 hours
+- GitHub Copilot feedback resolution: 0.5 hours
+
+**Deployment**:
+- Live at: https://talmolab.github.io/sleap-roots/
+- Automated deployment via GitHub Actions
+- Multi-version support with mike
+- Strict build mode to catch errors
+
+**Impact**:
+- Professional documentation site for users and developers
+- Improved onboarding with comprehensive guides
+- Auto-generated API reference from docstrings
+- Reduced support burden with troubleshooting guides
+- Foundation for future documentation phases (API details, more tutorials)
+
+**Next Phases Planned**:
+- Phase 2: Complete API documentation for all 13 modules
+- Phase 3: Detailed user guides and workflow documentation
+- Phase 4: Comprehensive trait reference
+- Phase 5: Developer architecture documentation
+- Phase 6: Cookbook expansion with Jupyter notebooks
+- Phase 7: Polish, versioning, and cross-linking
+
+---
+
 ### add-claude-commands (November 2024)
 
 **Status**: ✅ Completed - Merged in PR #130
