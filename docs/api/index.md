@@ -1,457 +1,223 @@
 # API Reference
 
-Welcome to the sleap-roots API reference documentation. This section provides detailed information about all public classes, functions, and modules.
+Welcome to the sleap-roots API reference documentation. This page provides an overview of the entire API organized by functional area.
 
-## Overview
+## Quick Links
 
-The sleap-roots API is organized into functional modules:
-
-- **[Core Classes](#core-classes)**: `Series` and data structures
-- **[Pipelines](#pipelines)**: Pre-built trait computation pipelines
-- **[Trait Computation Modules](#trait-computation-modules)**: Individual trait calculations
-- **[Utilities](#utilities)**: Helper functions and tools
-
-## Core Classes
-
-### Series
-
-The `Series` class is the primary data structure for working with SLEAP predictions.
-
-::: sleap_roots.Series
-    options:
-      members:
-        - __init__
-        - load
-        - load_multi
-        - get_primary_root_points
-        - get_lateral_root_points
-        - get_crown_root_points
-      show_source: true
-
-**Quick Example**:
-```python
-import sleap_roots as sr
-
-# Load single plant
-series = sr.Series.load(
-    "my_plant",
-    h5_path="predictions.h5",
-    primary_path="primary.slp",
-    lateral_path="lateral.slp"
-)
-
-# Access root points
-primary_pts = series.get_primary_root_points()
-lateral_pts_list = series.get_lateral_root_points()
-```
-
-**See also**: [Data Formats Guide](../guides/data-formats/sleap-files.md)
+- **New to sleap-roots?** Start with the [Quick Start Guide](../getting-started/quickstart.md)
+- **Ready to analyze?** Check out [Common Workflows](examples/common-workflows.md)
+- **Need a specific function?** Browse by category below
 
 ---
 
-## Pipelines
+## Core Modules
 
-Pre-built pipelines for common root system architectures.
+The foundation of sleap-roots: loading data and running analysis pipelines.
 
-### DicotPipeline
+### [Series](core/series.md)
+**Load and manage SLEAP predictions**
 
-Pipeline for dicot plants with primary and lateral roots.
+The `Series` class is your primary interface for working with SLEAP root tracking data. Load predictions from .slp files and access point arrays for analysis.
 
-::: sleap_roots.DicotPipeline
-    options:
-      members:
-        - __init__
-        - compute_plant_traits
-        - get_trait_definitions
-      show_source: true
+**Key methods**:
+- `Series.load()` - Load single plant
+- `get_primary_points()` - Extract primary root coordinates
+- `get_lateral_points()` - Extract lateral root coordinates
+- `get_crown_points()` - Extract crown root coordinates
 
-**Example**:
-```python
-pipeline = sr.DicotPipeline()
-traits = pipeline.compute_plant_traits(series, write_csv=True)
-```
-
-**See also**: [Dicot Pipeline Tutorial](../tutorials/dicot-pipeline.md)
+[View Series documentation →](core/series.md)
 
 ---
 
-### YoungerMonocotPipeline
+### [Pipelines](core/pipelines.md)
+**Pre-built trait extraction workflows**
 
-Pipeline for younger monocot plants with primary and crown roots.
+Choose from 7 specialized pipelines for different root system architectures. Each pipeline automatically computes dozens of relevant traits.
 
-::: sleap_roots.YoungerMonocotPipeline
-    options:
-      members:
-        - __init__
-        - compute_plant_traits
-      show_source: true
+**Available pipelines**:
+- `DicotPipeline` - Primary + lateral roots (canola, Arabidopsis)
+- `YoungerMonocotPipeline` - Primary + crown roots (young rice, wheat)
+- `OlderMonocotPipeline` - Crown roots only (mature monocots)
+- `MultipleDicotPipeline` - Multiple dicot plants per image
+- `PrimaryRootPipeline` - Single primary root analysis
+- `MultiplePrimaryRootPipeline` - Multiple primary roots per image
+- `LateralRootPipeline` - Individual lateral root analysis
 
-**See also**: [Younger Monocot Tutorial](../tutorials/younger-monocot-pipeline.md)
-
----
-
-### OlderMonocotPipeline
-
-Pipeline for mature monocots with crown roots only.
-
-::: sleap_roots.OlderMonocotPipeline
-    options:
-      members:
-        - __init__
-        - compute_plant_traits
-      show_source: true
-
-**See also**: [Older Monocot Tutorial](../tutorials/older-monocot-pipeline.md)
-
----
-
-### MultipleDicotPipeline
-
-Pipeline for multiple dicot plants in one image.
-
-::: sleap_roots.MultipleDicotPipeline
-    options:
-      members:
-        - __init__
-        - compute_plant_traits
-        - compute_multi_plant_traits
-      show_source: true
-
-**See also**: [Multiple Dicot Tutorial](../tutorials/multiple-dicot-pipeline.md)
-
----
-
-### MultiplePrimaryRootPipeline
-
-Pipeline for multiple plants with primary roots only.
-
-::: sleap_roots.MultiplePrimaryRootPipeline
-    options:
-      members:
-        - __init__
-        - compute_plant_traits
-        - compute_multi_plant_traits
-      show_source: true
-
-**See also**: [Multiple Primary Tutorial](../tutorials/multiple-primary-root-pipeline.md)
-
----
-
-### PrimaryRootPipeline
-
-Specialized pipeline for primary root analysis only.
-
-::: sleap_roots.PrimaryRootPipeline
-    options:
-      members:
-        - __init__
-        - compute_plant_traits
-      show_source: true
-
-**See also**: [Primary Root Tutorial](../tutorials/primary-root-pipeline.md)
-
----
-
-### LateralRootPipeline
-
-Specialized pipeline for lateral root analysis.
-
-::: sleap_roots.LateralRootPipeline
-    options:
-      members:
-        - __init__
-        - compute_plant_traits
-      show_source: true
-
-**See also**: [Lateral Root Tutorial](../tutorials/lateral-root-pipeline.md)
+[View Pipelines documentation →](core/pipelines.md)
 
 ---
 
 ## Trait Computation Modules
 
-Individual modules for computing specific trait types.
+Individual functions for computing specific root traits. Use these for custom analysis workflows.
 
-### Length Calculations
+### [Lengths](traits/lengths.md)
+Measure root lengths and curvature.
 
-::: sleap_roots.lengths
-    options:
-      members:
-        - get_root_lengths
-        - get_max_length_pts
-      show_source: false
+**Functions**: `get_root_lengths`, `get_curve_index`, `get_max_length_pts`
 
-**Module Functions**:
-- `get_root_lengths()`: Compute path lengths for roots
-- `get_max_length_pts()`: Get maximum length path through skeleton
-
-**Example**:
-```python
-from sleap_roots import lengths
-
-root_lengths = lengths.get_root_lengths([primary_pts, *lateral_pts_list])
-print(f"Primary length: {root_lengths[0]:.2f} pixels")
-```
-
-**See also**: [Full lengths module reference](lengths.md)
+[View documentation →](traits/lengths.md)
 
 ---
 
-### Angle Measurements
+### [Angles](traits/angles.md)
+Analyze root growth angles and gravitropism.
 
-::: sleap_roots.angle
-    options:
-      members:
-        - get_root_angle
-        - get_lateral_emergence_angle
-      show_source: false
+**Functions**: `get_root_angle`, `get_vector_angle_from_gravity`, `get_node_ind`
 
-**Module Functions**:
-- `get_root_angle()`: Compute root angle relative to gravity
-- `get_lateral_emergence_angle()`: Compute lateral root emergence angle
-
-**Example**:
-```python
-from sleap_roots import angle
-
-tip_angle = angle.get_root_angle(primary_pts, gravity_vector=(0, 1))
-print(f"Primary root tip angle: {tip_angle:.1f}°")
-```
-
-**See also**: [Full angle module reference](angle.md)
+[View documentation →](traits/angles.md)
 
 ---
 
-### Tip Detection
+### [Tips](traits/tips.md)
+Detect and analyze root tips for growth tracking.
 
-::: sleap_roots.tips
-    options:
-      members:
-        - get_root_tips
-        - get_tip_angle
-      show_source: false
+**Functions**: `get_tips`, `get_tip_xs`, `get_tip_ys`
 
-**Module Functions**:
-- `get_root_tips()`: Extract tip coordinates from roots
-- `get_tip_angle()`: Compute angle at root tip
-
-**See also**: [Full tips module reference](tips.md)
+[View documentation →](traits/tips.md)
 
 ---
 
-### Base Detection
+### [Bases](traits/bases.md)
+Analyze lateral root emergence patterns and density.
 
-::: sleap_roots.bases
-    options:
-      members:
-        - count_root_bases
-        - get_base_positions
-      show_source: false
+**Functions**: `get_bases`, `get_base_length`, `get_base_ct_density`, `get_root_widths`
 
-**Module Functions**:
-- `count_root_bases()`: Count number of root bases
-- `get_base_positions()`: Extract base coordinates
-
-**See also**: [Full bases module reference](bases.md)
+[View documentation →](traits/bases.md)
 
 ---
 
-### Convex Hull
+### [Convex Hull](traits/convhull.md)
+Compute spatial coverage and distribution metrics.
 
-::: sleap_roots.convhull
-    options:
-      members:
-        - get_convhull_area
-        - get_convhull_perimeter
-      show_source: false
+**Functions**: `get_convhull`, `get_convhull_features`, `get_chull_area`, `get_chull_perimeter`
 
-**Module Functions**:
-- `get_convhull_area()`: Compute convex hull area
-- `get_convhull_perimeter()`: Compute convex hull perimeter
-
-**Example**:
-```python
-from sleap_roots import convhull
-
-all_roots = [primary_pts] + lateral_pts_list
-hull_area = convhull.get_convhull_area(all_roots)
-print(f"Root system convex hull area: {hull_area:.2f} pixels²")
-```
-
-**See also**: [Full convhull module reference](convhull.md)
+[View documentation →](traits/convhull.md)
 
 ---
 
-### Network Analysis
+### [Ellipse](traits/ellipse.md)
+Fit ellipses to root point distributions.
 
-::: sleap_roots.networklength
-    options:
-      members:
-        - get_network_length
-        - get_network_distribution
-      show_source: false
+**Functions**: `get_ellipse`, `fit_ellipse`
 
-**Module Functions**:
-- `get_network_length()`: Total network length
-- `get_network_distribution()`: Network length distribution metrics
+[View documentation →](traits/ellipse.md)
 
-**See also**: [Full networklength module reference](networklength.md)
+---
+
+### [Network Length](traits/networklength.md)
+Analyze whole-plant network-level metrics.
+
+**Functions**: `get_network_length`, `get_network_width_depth_ratio`, `get_network_distribution`, `get_bbox`
+
+[View documentation →](traits/networklength.md)
+
+---
+
+### [Scanline](traits/scanline.md)
+Count root intersections with horizontal scan lines.
+
+**Functions**: `count_scanline_intersections`, `get_scanline_first_ind`, `get_scanline_last_ind`
+
+[View documentation →](traits/scanline.md)
+
+---
+
+### [Points](traits/points.md)
+Utility functions for manipulating root point arrays.
+
+**Functions**: `join_pts`, `get_all_pts_array`, `associate_lateral_to_primary`, `filter_roots_with_nans`
+
+[View documentation →](traits/points.md)
 
 ---
 
 ## Utilities
 
-### Visualization
+### [Summary Statistics](utilities/summary.md)
+Compute comprehensive summary statistics for trait distributions.
 
-Helper functions for plotting and visualization:
+**Function**: `get_summary` - Calculate min, max, mean, median, std, and percentiles
 
-- `plot_root_network()`: Plot root network with nodes and edges
-- `plot_trait_timeseries()`: Plot trait values over time
-- `plot_convex_hull()`: Visualize convex hull around roots
-
-### Data Export
-
-Functions for exporting results:
-
-- `export_to_csv()`: Export trait DataFrame to CSV
-- `export_to_hdf5()`: Save results to HDF5 format
-
-### Batch Processing
-
-Tools for processing multiple plants:
-
-- `process_directory()`: Process all files in a directory
-- `parallel_process()`: Parallel processing with multiprocessing
+[View documentation →](utilities/summary.md)
 
 ---
 
-## Module Organization
+## Examples and Workflows
+
+### [Common Workflows](examples/common-workflows.md)
+Complete end-to-end examples for typical analysis tasks.
+
+**Workflows included**:
+1. Quick pipeline analysis
+2. Custom trait computation
+3. Lateral root analysis
+4. Temporal growth tracking
+5. Network-level spatial analysis
+6. Batch processing multiple plants
+7. Quality control and filtering
+8. Multiple dicot plants
+
+[View workflows →](examples/common-workflows.md)
+
+---
+
+## API Organization
+
+The sleap-roots API is organized hierarchically:
 
 ```
 sleap_roots/
-├── __init__.py           # Package initialization
-├── series.py             # Series class
-├── trait_pipelines.py    # Pipeline implementations
-├── lengths.py            # Length calculations
-├── angle.py              # Angle measurements
-├── tips.py               # Tip-related traits
-├── bases.py              # Base-related traits
-├── convhull.py           # Convex hull computations
-├── networklength.py      # Network-level metrics
-├── monocots.py           # Monocot-specific traits
-└── utils.py              # Utility functions
+├── Series                    # Data loading
+├── DicotPipeline            # Pre-built pipelines
+├── YoungerMonocotPipeline
+├── OlderMonocotPipeline
+├── MultipleDicotPipeline
+├── PrimaryRootPipeline
+├── MultiplePrimaryRootPipeline
+├── LateralRootPipeline
+│
+├── get_root_lengths()       # Individual trait functions
+├── get_root_angle()
+├── get_tips()
+├── get_bases()
+├── get_convhull()
+├── get_ellipse()
+├── get_network_length()
+├── count_scanline_intersections()
+│
+├── join_pts()               # Utility functions
+├── get_all_pts_array()
+├── filter_roots_with_nans()
+└── get_summary()
 ```
 
-## Type Hints
+---
 
-sleap-roots uses comprehensive type hints for better IDE support and static checking:
+## Finding What You Need
 
-```python
-from typing import Union, Optional, Tuple, List
-import numpy as np
+**I want to...**
 
-def compute_trait(
-    pts: np.ndarray,
-    threshold: float = 0.5
-) -> Union[float, np.ndarray]:
-    """Function with clear type hints."""
-    pass
-```
+- **Load SLEAP predictions** → [Series](core/series.md)
+- **Extract traits automatically** → [Pipelines](core/pipelines.md)
+- **Measure root lengths** → [Lengths](traits/lengths.md)
+- **Analyze growth angles** → [Angles](traits/angles.md)
+- **Track tip movement** → [Tips](traits/tips.md)
+- **Study lateral emergence** → [Bases](traits/bases.md)
+- **Measure spatial coverage** → [Convex Hull](traits/convhull.md)
+- **Analyze network architecture** → [Network Length](traits/networklength.md)
+- **Process multiple plants** → [Common Workflows](examples/common-workflows.md)
+- **Get summary statistics** → [Summary Statistics](utilities/summary.md)
 
-## Error Handling
+---
 
-Most functions raise informative errors for invalid inputs:
+## Complete Function Reference
 
-```python
-try:
-    traits = pipeline.compute_plant_traits(series)
-except ValueError as e:
-    print(f"Invalid input: {e}")
-except FileNotFoundError as e:
-    print(f"File not found: {e}")
-```
+For auto-generated documentation from source code, see the [reference/](reference/) section.
 
-## Performance Considerations
+## See Also
 
-### Vectorization
-
-Most trait computations use vectorized NumPy operations for efficiency:
-
-```python
-# Fast: vectorized
-lengths = np.sum(np.linalg.norm(np.diff(pts, axis=0), axis=1))
-
-# Slow: iterative
-# lengths = sum(np.linalg.norm(pts[i+1] - pts[i]) for i in range(len(pts)-1))
-```
-
-### Batch Processing
-
-Process multiple plants efficiently:
-
-```python
-# Good: batch processing
-traits = pipeline.compute_multi_plant_traits(series_list)
-
-# Less efficient: sequential
-# traits = [pipeline.compute_plant_traits(s) for s in series_list]
-```
-
-## API Stability
-
-### Stable API (v0.2+)
-
-These components have stable APIs and can be relied upon:
-
-- `Series` class and methods
-- All pipeline classes
-- Core trait computation functions in `lengths`, `angles`, `tips`, `bases`
-
-### Experimental API
-
-Components marked as experimental may change in future versions:
-
-- Advanced network metrics
-- Some visualization functions
-
-Check function docstrings for stability notes.
-
-## Version Compatibility
-
-### Python Version
-
-- **Minimum**: Python 3.7
-- **Recommended**: Python 3.11+
-- **Tested**: 3.7, 3.8, 3.9, 3.10, 3.11
-
-### Dependency Requirements
-
-Key dependencies:
-
-- `numpy`: Array operations
-- `pandas`: DataFrame handling
-- `sleap-io >= 0.0.11`: Loading SLEAP files
-- `h5py`: HDF5 file handling
-- `scipy`: Scientific computations
-- `scikit-image`: Image processing
-- `shapely`: Geometry operations
-
-See [Installation Guide](../getting-started/installation.md) for details.
-
-## Contributing to the API
-
-Interested in adding new traits or pipelines? See:
-
-- [Adding Traits](../dev/adding-traits.md)
-- [Creating Pipelines](../dev/creating-pipelines.md)
-- [Contributing Guide](../dev/contributing.md)
-
-## Complete API Index
-
-For the complete, auto-generated API reference for all modules, see the [reference](../reference/) section (generated from docstrings).
-
-## Next Steps
-
-- **New users**: Start with [Quick Start](../getting-started/quickstart.md)
-- **Pipeline users**: See [Tutorial](../tutorials/index.md)
-- **Developers**: Read [Architecture](../dev/architecture.md)
-- **Trait details**: Check [Trait Reference](../guides/trait-reference.md)
+- **[Getting Started Guide](../getting-started/quickstart.md)** - Your first sleap-roots analysis
+- **[Tutorials](../tutorials/index.md)** - Step-by-step pipeline guides
+- **[User Guide](../guides/index.md)** - In-depth explanations
+- **[Cookbook](../cookbook/index.md)** - Recipes for common tasks
