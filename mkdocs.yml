@@ -160,6 +160,23 @@ nav:
     - Release Process: dev/release-process.md
   - API Reference:
     - Overview: api/index.md
+    - Core:
+      - Series: api/core/series.md
+      - Pipelines: api/core/pipelines.md
+    - Traits:
+      - Lengths: api/traits/lengths.md
+      - Angles: api/traits/angles.md
+      - Tips: api/traits/tips.md
+      - Bases: api/traits/bases.md
+      - Convex Hull: api/traits/convhull.md
+      - Ellipse: api/traits/ellipse.md
+      - Network Length: api/traits/networklength.md
+      - Scanline: api/traits/scanline.md
+      - Points: api/traits/points.md
+    - Utilities:
+      - Summary Statistics: api/utilities/summary.md
+    - Examples:
+      - Common Workflows: api/examples/common-workflows.md
     - reference/
   - Cookbook:
     - Overview: cookbook/index.md
