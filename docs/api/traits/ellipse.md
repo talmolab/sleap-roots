@@ -5,8 +5,10 @@
 Fit ellipses to root point distributions for compact spatial representation.
 
 **Key functions**:
-- `get_ellipse` - Fit ellipse to root points
-- `fit_ellipse` - Core ellipse fitting algorithm
+- `fit_ellipse` - Fit ellipse to root points
+- `get_ellipse_a` - Get ellipse major axis
+- `get_ellipse_b` - Get ellipse minor axis
+- `get_ellipse_ratio` - Get ellipse aspect ratio
 
 ## Quick Example
 
@@ -21,23 +23,45 @@ pts = series.get_primary_points()
 pts_2d = pts[0, 0]  # (nodes, 2)
 
 # Fit ellipse
-ellipse_params = sr.get_ellipse(pts_2d)
-print(f"Ellipse parameters: {ellipse_params}")
+ellipse = sr.ellipse.fit_ellipse(pts_2d)
+a = sr.ellipse.get_ellipse_a(ellipse)
+b = sr.ellipse.get_ellipse_b(ellipse)
+ratio = sr.ellipse.get_ellipse_ratio(ellipse)
+
+print(f"Major axis (a): {a:.2f} px")
+print(f"Minor axis (b): {b:.2f} px")
+print(f"Aspect ratio: {ratio:.2f}")
 ```
 
 ## API Reference
 
-### get_ellipse
+### fit_ellipse
 
-::: sleap_roots.ellipse.get_ellipse
+::: sleap_roots.ellipse.fit_ellipse
     options:
       show_source: true
 
 ---
 
-### fit_ellipse
+### get_ellipse_a
 
-::: sleap_roots.ellipse.fit_ellipse
+::: sleap_roots.ellipse.get_ellipse_a
+    options:
+      show_source: true
+
+---
+
+### get_ellipse_b
+
+::: sleap_roots.ellipse.get_ellipse_b
+    options:
+      show_source: true
+
+---
+
+### get_ellipse_ratio
+
+::: sleap_roots.ellipse.get_ellipse_ratio
     options:
       show_source: true
 

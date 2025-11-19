@@ -241,9 +241,11 @@ print(f"Convex hull area: {hull_area:.2f} px²")
 print(f"Convex hull perimeter: {hull_perimeter:.2f} px")
 
 # Ellipse fit for compact representation
-pts_2d = sr.get_all_pts_array(all_pts)  # Flatten to (n_points, 2)
-ellipse = sr.get_ellipse(pts_2d)
-print(f"\nEllipse parameters: {ellipse}")
+pts_2d = sr.points.get_all_pts_array(all_pts)  # Flatten to (n_points, 2)
+ellipse = sr.ellipse.fit_ellipse(pts_2d)
+a = sr.ellipse.get_ellipse_a(ellipse)
+b = sr.ellipse.get_ellipse_b(ellipse)
+print(f"\nEllipse major axis: {a:.2f} px, minor axis: {b:.2f} px")
 
 # Distribution analysis using scanlines
 y_positions = [100, 200, 300, 400, 500]
