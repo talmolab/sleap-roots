@@ -27,7 +27,7 @@ print(f"First tip: x={tips[0, 0]:.1f}, y={tips[0, 1]:.1f}")
 
 ### get_tips
 
-::: sleap_roots.get_tips
+::: sleap_roots.tips.get_tips
     options:
       show_source: true
 
@@ -51,7 +51,7 @@ print(f"Valid tips: {len(valid_tips)}/{len(tips)}")
 
 ### get_tip_xs
 
-::: sleap_roots.get_tip_xs
+::: sleap_roots.tips.get_tip_xs
     options:
       show_source: true
 
@@ -59,7 +59,7 @@ print(f"Valid tips: {len(valid_tips)}/{len(tips)}")
 
 ### get_tip_ys
 
-::: sleap_roots.get_tip_ys
+::: sleap_roots.tips.get_tip_ys
     options:
       show_source: true
 

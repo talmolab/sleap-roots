@@ -37,7 +37,7 @@ print(f"Curvature index: {curve_idx[0, 0]:.3f}")
 
 ### get_root_lengths
 
-::: sleap_roots.get_root_lengths
+::: sleap_roots.lengths.get_root_lengths
     options:
       show_source: true
 
@@ -70,7 +70,7 @@ print(f"Mean length: {np.mean(valid_lengths):.2f} px")
 
 ### get_curve_index
 
-::: sleap_roots.get_curve_index
+::: sleap_roots.lengths.get_curve_index
     options:
       show_source: true
 
@@ -93,7 +93,7 @@ print(f"Curvature index: {curve_idx[0, 0]:.3f}")
 
 ### get_max_length_pts
 
-::: sleap_roots.get_max_length_pts
+::: sleap_roots.lengths.get_max_length_pts
     options:
       show_source: true
 

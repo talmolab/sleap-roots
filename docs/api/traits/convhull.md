@@ -6,7 +6,6 @@ Compute convex hull features for spatial root system analysis. Useful for measur
 
 **Key functions**:
 - `get_convhull` - Compute convex hull polygon
-- `get_convhull_features` - Extract hull-based traits
 - `get_chull_area` - Hull area
 - `get_chull_perimeter` - Hull perimeter
 
@@ -24,26 +23,21 @@ from sleap_roots import join_pts
 all_pts = join_pts([primary_pts] + lateral_pts_list)
 
 # Compute convex hull
-hull = sr.get_convhull(all_pts)
-features = sr.get_convhull_features(all_pts)
+hull = sr.convhull.get_convhull(all_pts)
 
-print(f"Hull area: {features['hull_area']:.2f} px²")
-print(f"Hull perimeter: {features['hull_perimeter']:.2f} px")
+# Compute hull traits
+area = sr.convhull.get_chull_area(all_pts)
+perimeter = sr.convhull.get_chull_perimeter(all_pts)
+
+print(f"Hull area: {area:.2f} px²")
+print(f"Hull perimeter: {perimeter:.2f} px")
 ```
 
 ## API Reference
 
 ### get_convhull
 
-::: sleap_roots.get_convhull
-    options:
-      show_source: true
-
----
-
-### get_convhull_features
-
-::: sleap_roots.get_convhull_features
+::: sleap_roots.convhull.get_convhull
     options:
       show_source: true
 
@@ -51,7 +45,7 @@ print(f"Hull perimeter: {features['hull_perimeter']:.2f} px")
 
 ### get_chull_area
 
-::: sleap_roots.get_chull_area
+::: sleap_roots.convhull.get_chull_area
     options:
       show_source: true
 
@@ -59,7 +53,7 @@ print(f"Hull perimeter: {features['hull_perimeter']:.2f} px")
 
 ### get_chull_perimeter
 
-::: sleap_roots.get_chull_perimeter
+::: sleap_roots.convhull.get_chull_perimeter
     options:
       show_source: true
 

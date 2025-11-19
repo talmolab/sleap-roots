@@ -32,7 +32,7 @@ print(f"Valid laterals: {len(valid_laterals)}/{len(lateral_pts_list)}")
 
 ### join_pts
 
-::: sleap_roots.join_pts
+::: sleap_roots.points.join_pts
     options:
       show_source: true
 
@@ -40,7 +40,7 @@ print(f"Valid laterals: {len(valid_laterals)}/{len(lateral_pts_list)}")
 
 ### get_all_pts_array
 
-::: sleap_roots.get_all_pts_array
+::: sleap_roots.points.get_all_pts_array
     options:
       show_source: true
 
@@ -48,7 +48,7 @@ print(f"Valid laterals: {len(valid_laterals)}/{len(lateral_pts_list)}")
 
 ### associate_lateral_to_primary
 
-::: sleap_roots.associate_lateral_to_primary
+::: sleap_roots.points.associate_lateral_to_primary
     options:
       show_source: true
 
@@ -56,7 +56,7 @@ print(f"Valid laterals: {len(valid_laterals)}/{len(lateral_pts_list)}")
 
 ### filter_roots_with_nans
 
-::: sleap_roots.filter_roots_with_nans
+::: sleap_roots.points.filter_roots_with_nans
     options:
       show_source: true
 

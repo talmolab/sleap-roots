@@ -89,7 +89,7 @@ print(f"Lateral length range: {lateral_stats['lateral_length_min']:.2f} - {later
 
 ### get_summary
 
-::: sleap_roots.get_summary
+::: sleap_roots.summary.get_summary
     options:
       show_source: true
 

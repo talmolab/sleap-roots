@@ -27,7 +27,7 @@ print(f"Intersections at y=100: {intersections}")
 
 ### count_scanline_intersections
 
-::: sleap_roots.count_scanline_intersections
+::: sleap_roots.scanline.count_scanline_intersections
     options:
       show_source: true
 
@@ -35,7 +35,7 @@ print(f"Intersections at y=100: {intersections}")
 
 ### get_scanline_first_ind
 
-::: sleap_roots.get_scanline_first_ind
+::: sleap_roots.scanline.get_scanline_first_ind
     options:
       show_source: true
 
@@ -43,7 +43,7 @@ print(f"Intersections at y=100: {intersections}")
 
 ### get_scanline_last_ind
 
-::: sleap_roots.get_scanline_last_ind
+::: sleap_roots.scanline.get_scanline_last_ind
     options:
       show_source: true
 

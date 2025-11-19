@@ -6,7 +6,7 @@ Compute root angle measurements relative to gravity (vertical axis). Essential f
 
 **Key functions**:
 - `get_root_angle` - Calculate root angle from proximal points
-- `get_vector_angle_from_gravity` - Core angle calculation from vectors
+- `get_vector_angles_from_gravity` - Core angle calculation from vectors
 - `get_node_ind` - Select points for angle computation
 
 **Angle Convention**: 0° = straight down (with gravity), 90° = horizontal, 180° = straight up
@@ -28,7 +28,7 @@ print(f"Primary root angle: {angles[0, 0]:.1f}°")
 
 ### get_root_angle
 
-::: sleap_roots.get_root_angle
+::: sleap_roots.angle.get_root_angle
     options:
       show_source: true
 
@@ -62,9 +62,9 @@ else:
 
 ---
 
-### get_vector_angle_from_gravity
+### get_vector_angles_from_gravity
 
-::: sleap_roots.get_vector_angle_from_gravity
+::: sleap_roots.angle.get_vector_angles_from_gravity
     options:
       show_source: true
 
@@ -72,7 +72,7 @@ else:
 
 ### get_node_ind
 
-::: sleap_roots.get_node_ind
+::: sleap_roots.angle.get_node_ind
     options:
       show_source: true
 

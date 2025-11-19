@@ -234,10 +234,11 @@ print(f"Width:Depth ratio: {wd_ratio:.2f}")
 print(f"Bounding box: {bbox}")
 
 # Spatial coverage
-hull_features = sr.get_convhull_features(all_pts)
+hull_area = sr.convhull.get_chull_area(all_pts)
+hull_perimeter = sr.convhull.get_chull_perimeter(all_pts)
 print(f"\nSpatial Coverage:")
-print(f"Convex hull area: {hull_features['hull_area']:.2f} px²")
-print(f"Convex hull perimeter: {hull_features['hull_perimeter']:.2f} px")
+print(f"Convex hull area: {hull_area:.2f} px²")
+print(f"Convex hull perimeter: {hull_perimeter:.2f} px")
 
 # Ellipse fit for compact representation
 pts_2d = sr.get_all_pts_array(all_pts)  # Flatten to (n_points, 2)

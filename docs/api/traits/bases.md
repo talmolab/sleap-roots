@@ -32,7 +32,7 @@ print(f"Lateral root zone length: {base_length:.2f} px")
 
 ### get_bases
 
-::: sleap_roots.get_bases
+::: sleap_roots.bases.get_bases
     options:
       show_source: true
 
@@ -40,7 +40,7 @@ print(f"Lateral root zone length: {base_length:.2f} px")
 
 ### get_base_length
 
-::: sleap_roots.get_base_length
+::: sleap_roots.bases.get_base_length
     options:
       show_source: true
 
@@ -48,7 +48,7 @@ print(f"Lateral root zone length: {base_length:.2f} px")
 
 ### get_base_ct_density
 
-::: sleap_roots.get_base_ct_density
+::: sleap_roots.bases.get_base_ct_density
     options:
       show_source: true
 
@@ -70,7 +70,7 @@ print(f"Lateral root density: {density:.3f} roots/pixel")
 
 ### get_root_widths
 
-::: sleap_roots.get_root_widths
+::: sleap_roots.bases.get_root_widths
     options:
       show_source: true
 

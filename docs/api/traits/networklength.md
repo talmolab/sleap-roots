@@ -34,7 +34,7 @@ print(f"Width:Depth ratio: {wd_ratio:.2f}")
 
 ### get_network_length
 
-::: sleap_roots.get_network_length
+::: sleap_roots.networklength.get_network_length
     options:
       show_source: true
 
@@ -42,7 +42,7 @@ print(f"Width:Depth ratio: {wd_ratio:.2f}")
 
 ### get_network_width_depth_ratio
 
-::: sleap_roots.get_network_width_depth_ratio
+::: sleap_roots.networklength.get_network_width_depth_ratio
     options:
       show_source: true
 
@@ -50,7 +50,7 @@ print(f"Width:Depth ratio: {wd_ratio:.2f}")
 
 ### get_network_distribution
 
-::: sleap_roots.get_network_distribution
+::: sleap_roots.networklength.get_network_distribution
     options:
       show_source: true
 
@@ -58,7 +58,7 @@ print(f"Width:Depth ratio: {wd_ratio:.2f}")
 
 ### get_bbox
 
-::: sleap_roots.get_bbox
+::: sleap_roots.networklength.get_bbox
     options:
       show_source: true
 

@@ -29,7 +29,7 @@ print(f"Ellipse parameters: {ellipse_params}")
 
 ### get_ellipse
 
-::: sleap_roots.get_ellipse
+::: sleap_roots.ellipse.get_ellipse
     options:
       show_source: true
 
@@ -37,7 +37,7 @@ print(f"Ellipse parameters: {ellipse_params}")
 
 ### fit_ellipse
 
-::: sleap_roots.fit_ellipse
+::: sleap_roots.ellipse.fit_ellipse
     options:
       show_source: true
 
