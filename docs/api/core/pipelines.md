@@ -5,6 +5,7 @@
 Pipeline classes provide pre-configured workflows for extracting traits from SLEAP root predictions. Each pipeline is optimized for specific plant types and root architectures, combining multiple trait computation functions into a single `fit_series()` call.
 
 **Key features**:
+
 - Pre-built trait computation workflows
 - Optimized for different plant types (dicots, monocots)
 - Automatic handling of multiple root types
@@ -12,6 +13,7 @@ Pipeline classes provide pre-configured workflows for extracting traits from SLE
 - Consistent API across all pipelines
 
 **When to use pipelines**:
+
 - You want a complete set of traits without manual computation
 - You're analyzing a specific plant type (dicot, monocot, etc.)
 - You need standardized, reproducible trait extraction
@@ -516,10 +518,21 @@ print(f"Lateral angles: {traits['lateral_angles']}")
 
 ### Performance Considerations
 
-- **Single plant pipelines** (~0.1-0.5s per plant)
-- **Multiple plant pipelines** (~0.5-2s depending on plant count)
-- **Network traits** add ~0.1-0.3s per plant
-- **Convex hull** adds ~0.05-0.1s per plant
+Trait extraction performance (measured on GitHub Actions Ubuntu 22.04 runners):
+
+- **Single plant pipelines**: ~0.1-0.5s per plant
+  - DicotPipeline, YoungerMonocotPipeline, OlderMonocotPipeline
+  - PrimaryRootPipeline, LateralRootPipeline
+- **Multiple plant pipelines**: ~0.5-2s depending on plant count
+  - MultipleDicotPipeline, MultiplePrimaryRootPipeline
+
+**Performance testing**: All pipelines have automated benchmarks in the test suite. See [Benchmarking Guide](../../dev/benchmarking.md) for details on running performance tests locally.
+
+**Note**: Actual performance depends on:
+- Number and complexity of roots in the image
+- Plant developmental stage (more roots = longer processing)
+- Hardware specifications (CPU, memory)
+- Frame count in the series (72 frames is typical)
 
 ---
 
