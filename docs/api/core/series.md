@@ -54,8 +54,6 @@ print(f"Lateral roots: {len(lateral_pts_list)}")
 
 ### Loading Data
 
-#### load
-
 ::: sleap_roots.Series.load
     options:
       show_source: true
@@ -117,6 +115,7 @@ series = sr.Series.load(
 ```
 
 **See Also**:
+
 - [find_all_h5_paths](#utility-functions) - Find all H5 files in directory
 - [find_all_slp_paths](#utility-functions) - Find all SLP files in directory
 - [load_series_from_h5s](#utility-functions) - Batch load from H5 files
@@ -125,8 +124,6 @@ series = sr.Series.load(
 ---
 
 ### Accessing Root Points
-
-#### get_primary_points
 
 ::: sleap_roots.Series.get_primary_points
     options:
@@ -157,12 +154,11 @@ y_coords = pts[..., 1]  # All y coordinates
 ```
 
 **See Also**:
-- [get_lateral_points](#get_lateral_points)
-- [get_crown_points](#get_crown_points)
+
+- [get_lateral_points](#sleap_roots.Series.get_lateral_points)
+- [get_crown_points](#sleap_roots.Series.get_crown_points)
 
 ---
-
-#### get_lateral_points
 
 ::: sleap_roots.Series.get_lateral_points
     options:
@@ -210,12 +206,11 @@ all_lateral = join_pts(lateral_pts_list)
 ```
 
 **See Also**:
-- [get_primary_points](#get_primary_points)
+
+- [get_primary_points](#sleap_roots.Series.get_primary_points)
 - [sleap_roots.points.join_pts](../traits/points.md#join_pts) - Combine point arrays
 
 ---
-
-#### get_crown_points
 
 ::: sleap_roots.Series.get_crown_points
     options:
@@ -242,14 +237,13 @@ for i, root_pts in enumerate(crown_pts_list):
 ```
 
 **See Also**:
-- [get_primary_points](#get_primary_points)
-- [get_lateral_points](#get_lateral_points)
+
+- [get_primary_points](#sleap_roots.Series.get_primary_points)
+- [get_lateral_points](#sleap_roots.Series.get_lateral_points)
 
 ---
 
 ### Quality Control
-
-#### expected_count
 
 ::: sleap_roots.Series.expected_count
     options:
@@ -297,11 +291,10 @@ print(f"Valid plants: {len(valid_plants)}/{len(plants)}")
 ```
 
 **See Also**:
-- [qc_fail](#qc_fail)
+
+- [qc_fail](#sleap_roots.Series.qc_fail)
 
 ---
-
-#### qc_fail
 
 ::: sleap_roots.Series.qc_fail
     options:
@@ -331,13 +324,12 @@ else:
 ```
 
 **See Also**:
-- [expected_count](#expected_count)
+
+- [expected_count](#sleap_roots.Series.expected_count)
 
 ---
 
 ### Visualization
-
-#### get_frame
 
 ::: sleap_roots.Series.get_frame
     options:
@@ -370,11 +362,10 @@ plt.show()
 ```
 
 **See Also**:
-- [plot](#plot) - High-level plotting with predictions overlaid
+
+- [plot](#sleap_roots.Series.plot) - High-level plotting with predictions overlaid
 
 ---
-
-#### plot
 
 ::: sleap_roots.Series.plot
     options:
@@ -414,7 +405,8 @@ plt.show()
 ```
 
 **See Also**:
-- [get_frame](#get_frame)
+
+- [get_frame](#sleap_roots.Series.get_frame)
 
 ---
 
@@ -462,8 +454,6 @@ print(f"Loaded: primary={has_primary}, lateral={has_lateral}, crown={has_crown}"
 
 These module-level functions help with batch loading:
 
-#### find_all_h5_paths
-
 ::: sleap_roots.find_all_h5_paths
     options:
       show_source: true
@@ -482,8 +472,6 @@ for h5_path in h5_files:
 ```
 
 ---
-
-#### find_all_slp_paths
 
 ::: sleap_roots.find_all_slp_paths
     options:
@@ -504,8 +492,6 @@ lateral_files = [f for f in slp_files if 'lateral' in f.name]
 ```
 
 ---
-
-#### load_series_from_h5s
 
 ::: sleap_roots.load_series_from_h5s
     options:
@@ -532,8 +518,6 @@ for series in plants:
 ```
 
 ---
-
-#### load_series_from_slps
 
 ::: sleap_roots.load_series_from_slps
     options:

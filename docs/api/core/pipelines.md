@@ -150,6 +150,7 @@ with open("traits.json", "w") as f:
 ```
 
 **See Also**:
+
 - [Tutorial: DicotPipeline](../../tutorials/dicot-pipeline.md)
 - [MultipleDicotPipeline](#multipledicotpipeline) - For multiple plants
 
@@ -210,6 +211,7 @@ for i, length in enumerate(traits['primary_length']):
 ```
 
 **See Also**:
+
 - [Tutorial: Multiple Dicot Pipeline](../../tutorials/multiple-dicot-pipeline.md)
 - [DicotPipeline](#dicotpipeline) - For single plants
 
@@ -271,6 +273,7 @@ print(f"Crown root angles: {traits['crown_angles']}")
 ```
 
 **See Also**:
+
 - [Tutorial: Younger Monocot Pipeline](../../tutorials/younger-monocot-pipeline.md)
 - [OlderMonocotPipeline](#oldermonocotpipeline) - For mature plants
 
@@ -324,6 +327,7 @@ print(f"Root system solidity: {traits['network_solidity']:.3f}")
 ```
 
 **See Also**:
+
 - [Tutorial: Older Monocot Pipeline](../../tutorials/older-monocot-pipeline.md)
 - [YoungerMonocotPipeline](#youngermonocotpipeline) - For seedlings
 
@@ -378,6 +382,7 @@ print(f"Curvature index: {traits['curve_index']:.3f}")
 ```
 
 **See Also**:
+
 - [Tutorial: Primary Root Pipeline](../../tutorials/primary-root-pipeline.md)
 - [MultiplePrimaryRootPipeline](#multipleprimaryrootpipeline) - For multiple plants
 
@@ -434,6 +439,7 @@ for i in range(n_plants):
 ```
 
 **See Also**:
+
 - [Tutorial: Multiple Primary Root Pipeline](../../tutorials/multiple-primary-root-pipeline.md)
 - [PrimaryRootPipeline](#primaryrootpipeline) - For single plants
 
@@ -489,6 +495,7 @@ print(f"Lateral angles: {traits['lateral_angles']}")
 ```
 
 **See Also**:
+
 - [Tutorial: Lateral Root Pipeline](../../tutorials/lateral-root-pipeline.md)
 - [DicotPipeline](#dicotpipeline) - For primary + lateral analysis
 
