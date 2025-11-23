@@ -143,21 +143,23 @@ class TestMultiplePlantPipelines:
     def test_multiple_dicot_pipeline_performance(
         self,
         benchmark,
-        canola_h5,
-        canola_primary_slp,
-        canola_lateral_slp,
+        multiple_arabidopsis_11do_h5,
+        multiple_arabidopsis_11do_primary_slp,
+        multiple_arabidopsis_11do_lateral_slp,
     ):
         """Benchmark MultipleDicotPipeline.compute_multiple_dicots_traits().
 
-        Dataset: Canola plant data (may contain multiple plants)
+        Dataset: 11 day old Arabidopsis with 3 plants per image
+        Data path: tests/data/multiple_arabidopsis_11do/
+        Sample: 997_1 (h5, primary.predictions.slp, lateral.predictions.slp)
         Expected: ~0.5-2s depending on plant count
         Note: Performance scales with number of plants detected
         """
         series = sr.Series.load(
-            "canola_multi",
-            h5_path=canola_h5,
-            primary_path=canola_primary_slp,
-            lateral_path=canola_lateral_slp,
+            "arabidopsis_11do_multi",
+            h5_path=multiple_arabidopsis_11do_h5,
+            primary_path=multiple_arabidopsis_11do_primary_slp,
+            lateral_path=multiple_arabidopsis_11do_lateral_slp,
         )
         pipeline = sr.MultipleDicotPipeline()
 
@@ -169,18 +171,20 @@ class TestMultiplePlantPipelines:
     def test_multiple_primary_root_pipeline_performance(
         self,
         benchmark,
-        canola_h5,
-        canola_primary_slp,
+        multiple_arabidopsis_11do_h5,
+        multiple_arabidopsis_11do_primary_slp,
     ):
         """Benchmark MultiplePrimaryRootPipeline.compute_multiple_primary_roots_traits().
 
-        Dataset: Canola with primary roots
+        Dataset: 11 day old Arabidopsis with 3 plants per image
+        Data path: tests/data/multiple_arabidopsis_11do/
+        Sample: 997_1 (h5, primary.predictions.slp)
         Expected: ~0.5-2s depending on plant count
         """
         series = sr.Series.load(
-            "canola_multi_primary",
-            h5_path=canola_h5,
-            primary_path=canola_primary_slp,
+            "arabidopsis_11do_multi_primary",
+            h5_path=multiple_arabidopsis_11do_h5,
+            primary_path=multiple_arabidopsis_11do_primary_slp,
         )
         pipeline = sr.MultiplePrimaryRootPipeline()
 

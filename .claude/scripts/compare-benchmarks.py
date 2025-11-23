@@ -21,7 +21,137 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
+
+# Benchmark sample information - maps test names to dataset details from test fixtures
+# See tests/fixtures/data.py and tests/benchmarks/test_pipeline_performance.py
+BENCHMARK_SAMPLES = {
+    "test_dicot_pipeline_performance": {
+        "dataset": "canola_7do",
+        "sample_id": "919QDUH",
+        "data_path": "tests/data/canola_7do/",
+        "files": [
+            "919QDUH.h5",
+            "919QDUH.primary.predictions.slp",
+            "919QDUH.lateral.predictions.slp",
+        ],
+        "root_types": "Primary + Lateral",
+        "description": "7 day old canola with primary and lateral root predictions",
+    },
+    "test_younger_monocot_pipeline_performance": {
+        "dataset": "rice_3do",
+        "sample_id": "YR39SJX",
+        "data_path": "tests/data/rice_3do/",
+        "files": [
+            "YR39SJX.h5",
+            "YR39SJX.primary.predictions.slp",
+            "YR39SJX.crown.predictions.slp",
+        ],
+        "root_types": "Primary + Crown",
+        "description": "3 day old rice with primary (longest) and crown root predictions",
+    },
+    "test_older_monocot_pipeline_performance": {
+        "dataset": "rice_10do",
+        "sample_id": "0K9E8BI",
+        "data_path": "tests/data/rice_10do/",
+        "files": ["0K9E8BI.h5", "0K9E8BI.crown.predictions.slp"],
+        "root_types": "Crown only",
+        "description": "10 day old rice with crown root predictions only",
+    },
+    "test_primary_root_pipeline_performance": {
+        "dataset": "canola_7do",
+        "sample_id": "919QDUH",
+        "data_path": "tests/data/canola_7do/",
+        "files": ["919QDUH.h5", "919QDUH.primary.predictions.slp"],
+        "root_types": "Primary only",
+        "description": "7 day old canola with primary root predictions only",
+    },
+    "test_lateral_root_pipeline_performance": {
+        "dataset": "canola_7do",
+        "sample_id": "919QDUH",
+        "data_path": "tests/data/canola_7do/",
+        "files": ["919QDUH.h5", "919QDUH.lateral.predictions.slp"],
+        "root_types": "Lateral only",
+        "description": "7 day old canola with lateral root predictions only",
+    },
+    "test_multiple_dicot_pipeline_performance": {
+        "dataset": "multiple_arabidopsis_11do",
+        "sample_id": "997_1",
+        "data_path": "tests/data/multiple_arabidopsis_11do/",
+        "files": [
+            "997_1.h5",
+            "997_1.primary.predictions.slp",
+            "997_1.lateral.predictions.slp",
+        ],
+        "root_types": "Primary + Lateral (3 plants)",
+        "description": "11 day old Arabidopsis with 3 plants per image",
+    },
+    "test_multiple_primary_root_pipeline_performance": {
+        "dataset": "multiple_arabidopsis_11do",
+        "sample_id": "997_1",
+        "data_path": "tests/data/multiple_arabidopsis_11do/",
+        "files": ["997_1.h5", "997_1.primary.predictions.slp"],
+        "root_types": "Primary only (3 plants)",
+        "description": "11 day old Arabidopsis with 3 plants per image, primary roots only",
+    },
+}
+
+
+def get_sample_info(benchmark_name: str) -> Optional[Dict]:
+    """Get sample information for a benchmark test.
+
+    Args:
+        benchmark_name: Name of the benchmark test
+
+    Returns:
+        Dictionary with sample details or None if not found
+    """
+    return BENCHMARK_SAMPLES.get(benchmark_name)
+
+
+def format_sample_details() -> str:
+    """Generate markdown section with benchmark sample details.
+
+    Returns:
+        Markdown formatted sample information section
+    """
+    lines = [
+        "",
+        "### 📁 Test Data Details",
+        "",
+        "| Benchmark | Dataset | Sample ID | Root Types |",
+        "|-----------|---------|-----------|------------|",
+    ]
+
+    for name, info in BENCHMARK_SAMPLES.items():
+        # Shorten benchmark name for display
+        short_name = name.replace("_performance", "").replace("test_", "")
+        lines.append(
+            f"| {short_name} | `{info['dataset']}` | `{info['sample_id']}` | {info['root_types']} |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "<details>",
+            "<summary>Full sample information</summary>",
+            "",
+        ]
+    )
+
+    for name, info in BENCHMARK_SAMPLES.items():
+        short_name = name.replace("_performance", "").replace("test_", "")
+        lines.append(f"**{short_name}**")
+        lines.append(f"- Dataset: `{info['dataset']}`")
+        lines.append(f"- Sample ID: `{info['sample_id']}`")
+        lines.append(f"- Path: `{info['data_path']}`")
+        lines.append(f"- Files: {', '.join(f'`{f}`' for f in info['files'])}")
+        lines.append(f"- Description: {info['description']}")
+        lines.append("")
+
+    lines.append("</details>")
+
+    return "\n".join(lines)
 
 
 def load_json(path: Path) -> Dict:
@@ -172,6 +302,9 @@ def compare_benchmarks(
         ]
     )
 
+    # Add sample details section
+    lines.append(format_sample_details())
+
     return "\n".join(lines)
 
 
@@ -209,6 +342,9 @@ def show_results_without_baseline(current_path: Path) -> str:
             "A baseline will be created after this PR is merged and benchmarks run on the main branch.",
         ]
     )
+
+    # Add sample details section
+    lines.append(format_sample_details())
 
     return "\n".join(lines)
 
