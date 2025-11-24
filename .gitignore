@@ -134,3 +134,6 @@ dmypy.json
 # Generated trait CSV files (root level only, not test data)
 /*.traits.csv
 /my_summarized_traits.csv
+
+# Benchmark baselines (managed by CI, not local development)
+/.benchmarks/

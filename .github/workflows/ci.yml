@@ -103,3 +103,92 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
           verbose: false
+
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-22.04
+    # Only run benchmarks on pushes to main to avoid noise during development
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true  # Fetch large test data files
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache-dependency-glob: "**/uv.lock"
+
+      - name: Install Python from .python-version
+        run: uv python install
+
+      - name: Sync deps (runtime + dev group)
+        run: uv sync --frozen
+
+      - name: Run benchmarks
+        run: |
+          uv run pytest tests/benchmarks/ \
+            --benchmark-only \
+            --benchmark-json=benchmark-results.json \
+            --benchmark-columns=min,max,mean,stddev,median \
+            --benchmark-sort=name
+
+      - name: Display benchmark results
+        if: always()
+        run: |
+          echo "=== Benchmark Results ==="
+          if [ -f benchmark-results.json ]; then
+            uv run python -c "
+          import json
+          with open('benchmark-results.json') as f:
+              data = json.load(f)
+              for bench in data['benchmarks']:
+                  name = bench['name']
+                  stats = bench['stats']
+                  print(f'{name}:')
+                  print(f'  Mean: {stats[\"mean\"]:.4f}s ± {stats[\"stddev\"]:.4f}s')
+                  print(f'  Min:  {stats[\"min\"]:.4f}s')
+                  print(f'  Max:  {stats[\"max\"]:.4f}s')
+                  print()
+          "
+          fi
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-results
+          path: benchmark-results.json
+          retention-days: 30
+
+      - name: Store baseline
+        if: success()
+        run: |
+          mkdir -p .benchmarks/baselines .benchmarks/history
+
+          # Store as main baseline
+          cp benchmark-results.json .benchmarks/baselines/main.json
+
+          # Store with commit SHA for history
+          cp benchmark-results.json .benchmarks/baselines/${{ github.sha }}.json
+
+          # Store daily aggregate
+          DATE=$(date +%Y-%m-%d)
+          cp benchmark-results.json .benchmarks/history/${DATE}.json
+
+          # Cleanup old baselines (>90 days)
+          find .benchmarks/baselines -name "*.json" -type f -mtime +90 ! -name "main.json" -delete 2>/dev/null || true
+          find .benchmarks/history -name "*.json" -type f -mtime +90 -delete 2>/dev/null || true
+
+      - name: Commit baseline to repo
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .benchmarks/
+          git commit -m "chore: update benchmark baselines [skip ci]" || echo "No changes to commit"
+          git push || echo "Nothing to push"
