@@ -2,29 +2,31 @@
 
 ## Phase 0: Versioned Documentation Setup (Prerequisite for Historical Tracking)
 
+**✅ COMPLETED** - See archived `enable-versioned-docs` proposal (PR #134)
+
 ### Configure mike plugin
-1. Add `mike` plugin to `mkdocs.yml` plugins section (following lablink pattern)
-2. Configure `alias_type: symlink`, `canonical_version: latest`, `version_selector: true`
-3. Test local build with `mike serve` to verify configuration
-4. Check version selector appears in Material theme UI
+- [x] Add `mike` plugin to `mkdocs.yml` plugins section (following lablink pattern)
+- [x] Configure `alias_type: symlink`, `canonical_version: latest`, `version_selector: true`
+- [x] Test local build with `mike serve` to verify configuration
+- [x] Check version selector appears in Material theme UI
 
 ### Create docs deployment workflow
-5. Check if `.github/workflows/docs.yml` exists, create if needed
-6. Configure workflow to use `mike deploy --push --update-aliases VERSION ALIAS`
-7. Set up version aliases: `latest` for development, `stable` for releases
-8. Add workflow trigger on pushes to main and tags matching `v*`
-9. Test workflow by creating test tag
+- [x] Check if `.github/workflows/docs.yml` exists, create if needed
+- [x] Configure workflow to use `mike deploy --push --update-aliases VERSION ALIAS`
+- [x] Set up version aliases: `latest` for development, `stable` for releases
+- [x] Add workflow trigger on pushes to main and tags matching `v*`
+- [x] Test workflow by creating test tag
 
 ### Initial version deployment
-10. Deploy current docs as `latest`: `mike deploy --push latest`
-11. Verify `latest` version appears at https://talmolab.github.io/sleap-roots/latest/
-12. Verify version selector dropdown works in docs UI
-13. Update README.md with link to versioned docs
+- [x] Deploy current docs as `latest`: `mike deploy --push latest`
+- [x] Verify `latest` version appears at https://talmolab.github.io/sleap-roots/latest/
+- [x] Verify version selector dropdown works in docs UI
+- [ ] Update README.md with link to versioned docs (optional)
 
 ### Documentation
-14. Document versioning strategy in `docs/dev/release-process.md`
-15. Add section explaining how versions map to releases
-16. Document how to deploy new versions manually if needed
+- [ ] Document versioning strategy in `docs/dev/release-process.md` (optional)
+- [ ] Add section explaining how versions map to releases (optional)
+- [ ] Document how to deploy new versions manually if needed (optional)
 
 ## Phase 1: Baseline Infrastructure (Foundation)
 
