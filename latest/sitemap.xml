@@ -2,230 +2,286 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/changelog/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/gen_ref_pages/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/api/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://talmolab.github.io/sleap-roots/latest/api/core/pipelines/</loc>
+         <lastmod>2025-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://talmolab.github.io/sleap-roots/latest/api/core/series/</loc>
+         <lastmod>2025-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://talmolab.github.io/sleap-roots/latest/api/examples/common-workflows/</loc>
+         <lastmod>2025-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://talmolab.github.io/sleap-roots/latest/api/traits/angles/</loc>
+         <lastmod>2025-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://talmolab.github.io/sleap-roots/latest/api/traits/bases/</loc>
+         <lastmod>2025-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://talmolab.github.io/sleap-roots/latest/api/traits/convhull/</loc>
+         <lastmod>2025-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://talmolab.github.io/sleap-roots/latest/api/traits/ellipse/</loc>
+         <lastmod>2025-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://talmolab.github.io/sleap-roots/latest/api/traits/lengths/</loc>
+         <lastmod>2025-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://talmolab.github.io/sleap-roots/latest/api/traits/networklength/</loc>
+         <lastmod>2025-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://talmolab.github.io/sleap-roots/latest/api/traits/points/</loc>
+         <lastmod>2025-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://talmolab.github.io/sleap-roots/latest/api/traits/scanline/</loc>
+         <lastmod>2025-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://talmolab.github.io/sleap-roots/latest/api/traits/tips/</loc>
+         <lastmod>2025-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://talmolab.github.io/sleap-roots/latest/api/utilities/summary/</loc>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/cookbook/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/cookbook/batch-optimization/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/cookbook/custom-traits/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/cookbook/exporting-results/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/cookbook/filtering-data/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/dev/adding-traits/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/dev/architecture/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
+    </url>
+    <url>
+         <loc>https://talmolab.github.io/sleap-roots/latest/dev/benchmarking/</loc>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/dev/code-style/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/dev/contributing/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/dev/creating-pipelines/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/dev/release-process/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/dev/setup/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/dev/testing/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/getting-started/installation/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/getting-started/quickstart/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/getting-started/what-is-sleap/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/guides/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/guides/batch-processing/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/guides/custom-pipelines/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/guides/trait-reference/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/guides/troubleshooting/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/guides/data-formats/csv-traits/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/guides/data-formats/hdf5/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/guides/data-formats/sleap-files/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/guides/pipelines/dicot/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/guides/pipelines/lateral-root/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/guides/pipelines/multiple-dicot/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/guides/pipelines/multiple-primary/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/guides/pipelines/older-monocot/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/guides/pipelines/primary-root/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/guides/pipelines/younger-monocot/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/reference/SUMMARY/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/reference/sleap_roots/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/reference/sleap_roots/angle/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/reference/sleap_roots/bases/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/reference/sleap_roots/convhull/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/reference/sleap_roots/ellipse/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/reference/sleap_roots/lengths/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/reference/sleap_roots/networklength/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/reference/sleap_roots/points/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/reference/sleap_roots/scanline/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/reference/sleap_roots/series/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/reference/sleap_roots/summary/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/reference/sleap_roots/tips/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/reference/sleap_roots/trait_pipelines/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/tutorials/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/tutorials/dicot-pipeline/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/tutorials/lateral-root-pipeline/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/tutorials/multiple-dicot-pipeline/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/tutorials/multiple-primary-root-pipeline/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/tutorials/older-monocot-pipeline/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/tutorials/primary-root-pipeline/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
     <url>
          <loc>https://talmolab.github.io/sleap-roots/latest/tutorials/younger-monocot-pipeline/</loc>
-         <lastmod>2025-11-15</lastmod>
+         <lastmod>2025-11-24</lastmod>
     </url>
 </urlset>
