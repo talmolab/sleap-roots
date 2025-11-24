@@ -83,6 +83,10 @@ markdown_extensions:
 
 # Plugins
 plugins:
+  - mike:
+      alias_type: symlink
+      canonical_version: latest
+      version_selector: true
   - search:
       separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
   - autorefs
