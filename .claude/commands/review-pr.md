@@ -79,7 +79,29 @@ gh pr review <number> --request-changes --body "Please address the comments on t
 - [ ] Batch processing doesn't load all data into memory at once
 - [ ] No blocking operations that could hang
 
-### 7. Breaking Changes
+### 7. Benchmark Performance
+
+- [ ] Check if benchmark comment appears on PR (automated)
+- [ ] Review benchmark comparison table for regressions
+- [ ] Verify regressions are within 15% threshold (or justified)
+- [ ] Check for performance improvements (🚀 markers)
+- [ ] Understand which test data each benchmark uses (see comment details)
+- [ ] Download artifacts for detailed analysis if needed:
+  ```bash
+  # List recent workflow runs
+  gh run list --limit 5
+
+  # Download benchmark artifacts from specific run
+  gh run download <run-id> --name pr-benchmark-results
+
+  # View comparison markdown
+  cat benchmark-comparison.md
+
+  # View raw JSON results
+  cat benchmark-results.json | python -m json.tool
+  ```
+
+### 8. Breaking Changes
 
 - [ ] Breaking changes are clearly documented
 - [ ] Migration path provided for users
@@ -232,6 +254,44 @@ Review notes:
 3. Consider testing with very small angles (< 0.1°) as well
 4. No impact on other angle calculations verified ✓
 ```
+
+### Pattern 4: Performance Changes
+
+When reviewing PRs with benchmark results:
+
+1. **Check automated comment** - Benchmark comparison appears automatically on PRs
+2. **Interpret the table** - Compare PR times against main branch baseline
+3. **Evaluate regressions** - ⚠️ indicates >15% regression (fails CI by default)
+4. **Celebrate improvements** - 🚀 indicates >5% improvement
+5. **Understand context** - Review test data details to understand what's being measured
+
+Example benchmark comment interpretation:
+```markdown
+**Benchmark Results**: I see a few points worth discussing:
+
+1. `test_dicot_pipeline_performance`: +2.3% change is within noise, looks fine ✓
+2. `test_multiple_dicot_pipeline_performance`: 🚀 -12% improvement, nice work!
+3. `test_lateral_root_pipeline_performance`: +18% regression ⚠️
+   - This exceeds the 15% threshold. Can you investigate?
+   - Is this expected from the algorithm change?
+   - The test uses canola_7do sample 919QDUH with lateral roots
+
+Consider:
+- Profiling the lateral root pipeline to identify bottleneck
+- Checking if the accuracy improvement justifies the performance cost
+- Adding optimization as a follow-up PR if the algorithm change is necessary
+```
+
+When to accept regressions:
+- **Scientific accuracy** - Algorithm improvement that requires more computation
+- **Feature addition** - New trait computations add expected overhead
+- **CI variance** - Small regressions (<5%) may be noise
+- **Documented trade-offs** - Clearly explained in PR description
+
+When to request optimization:
+- **Unexpected regressions** - No clear reason in code changes
+- **Large regressions** - >20% slowdown without justification
+- **Accumulating costs** - Multiple small regressions adding up
 
 ## Domain-Specific Review Criteria
 
