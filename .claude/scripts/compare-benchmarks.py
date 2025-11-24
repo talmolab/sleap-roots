@@ -401,9 +401,21 @@ Examples:
 
     # Compare or show results
     try:
-        if not args.baseline.exists():
+        # Check if baseline exists and is valid JSON
+        baseline_valid = False
+        if args.baseline.exists():
+            try:
+                with open(args.baseline) as f:
+                    content = f.read().strip()
+                    if content:  # Not empty
+                        json.loads(content)
+                        baseline_valid = True
+            except (json.JSONDecodeError, ValueError):
+                pass
+
+        if not baseline_valid:
             print(
-                f"No baseline found at {args.baseline}. Showing current results only.",
+                f"No valid baseline found at {args.baseline}. Showing current results only.",
                 file=sys.stderr,
             )
             print(file=sys.stderr)
