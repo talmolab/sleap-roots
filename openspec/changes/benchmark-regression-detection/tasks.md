@@ -81,23 +81,24 @@
 
 ## Phase 3: Review Integration (Workflow)
 
+**✅ COMPLETED** - PR #135
+
 ### Update review command
-51. Update `.claude/commands/review-pr.md` with benchmark section
-52. Add bash script to fetch benchmark artifact via `gh run download`
-53. Add Python script to parse and format benchmark comparison
-54. Add example output showing formatted comparison table
-55. Document how to interpret benchmark results in review
-56. Add checklist item for performance regressions
-57. Test review workflow on PR with benchmarks
+- [x] Update `.claude/commands/review-pr.md` with benchmark section
+- [x] Add bash script to fetch benchmark artifact via `gh run download`
+- [x] Add example output showing formatted comparison table
+- [x] Document how to interpret benchmark results in review
+- [x] Add checklist item for performance regressions
+- [ ] Test review workflow on PR with benchmarks (pending PR #135 merge)
 
 ### Documentation updates
-58. Update `docs/dev/benchmarking.md` with PR workflow section
-59. Document regression threshold (15% default)
-60. Explain baseline storage and management
-61. Add troubleshooting section for false positives
-62. Show example of PR comment with benchmark results
-63. Document per-benchmark threshold override syntax
-64. Link to OpenSpec proposal for design rationale
+- [x] Update `docs/dev/benchmarking.md` with PR workflow section
+- [x] Document regression threshold (15% default)
+- [x] Explain baseline storage and management
+- [x] Add troubleshooting section for false positives
+- [x] Show example of PR comment with benchmark results
+- [x] Link to OpenSpec proposal for design rationale
+- [ ] Document per-benchmark threshold override syntax (optional - future feature)
 
 ## Phase 4: Historical Tracking (Visibility) - Requires Phase 0
 
