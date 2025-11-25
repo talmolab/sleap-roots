@@ -2986,20 +2986,121 @@
 </span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="c1"># Update docs/api/core/pipelines.md if it&#39;s a new pipeline</span>
 </span></code></pre></div>
 <h2 id="ci-integration">CI Integration<a class="headerlink" href="#ci-integration" title="Permanent link">&para;</a></h2>
-<p>Benchmarks run automatically on pushes to <code>main</code> branch:</p>
+<p>Benchmarks run automatically in two contexts:</p>
+<h3 id="1-main-branch-baseline-storage">1. Main Branch (Baseline Storage)<a class="headerlink" href="#1-main-branch-baseline-storage" title="Permanent link">&para;</a></h3>
+<p>On pushes to <code>main</code> branch:</p>
 <ol>
-<li><strong>When</strong>: Only on <code>main</code> (not PRs) to avoid noise</li>
+<li><strong>When</strong>: After merging PRs to main</li>
 <li><strong>Where</strong>: Ubuntu 22.04 runners (standardized environment)</li>
-<li><strong>Output</strong>: JSON results uploaded as artifact (30-day retention)</li>
-<li><strong>Purpose</strong>: Track performance trends over time</li>
+<li><strong>Output</strong>: Baseline stored in <code>.benchmarks/baselines/main.json</code> (committed to repo)</li>
+<li><strong>Purpose</strong>: Create baseline for comparing future PRs</li>
+<li><strong>History</strong>: Results also saved to <code>.benchmarks/history/&lt;date&gt;.json</code> for trends</li>
+</ol>
+<h3 id="2-pull-requests-regression-detection">2. Pull Requests (Regression Detection)<a class="headerlink" href="#2-pull-requests-regression-detection" title="Permanent link">&para;</a></h3>
+<p>On all pull requests:</p>
+<ol>
+<li><strong>When</strong>: Automatically on every PR</li>
+<li><strong>What</strong>: Compares PR benchmarks against main branch baseline</li>
+<li><strong>Comment</strong>: Posts/updates PR comment with comparison table</li>
+<li><strong>Threshold</strong>: Fails CI if any benchmark regresses &gt;15%</li>
+<li><strong>Artifacts</strong>: Uploads <code>benchmark-results.json</code> and <code>benchmark-comparison.md</code> (30-day retention)</li>
 </ol>
 <h3 id="viewing-ci-benchmark-results">Viewing CI benchmark results<a class="headerlink" href="#viewing-ci-benchmark-results" title="Permanent link">&para;</a></h3>
+<p><strong>For main branch:</strong>
+1. Go to GitHub Actions for the commit
+2. Find the "Performance Benchmarks" job
+3. View the "Display benchmark results" step for summary
+4. Check <code>.benchmarks/baselines/main.json</code> in repo for baseline</p>
+<p><strong>For pull requests:</strong>
+1. Check the automated PR comment with benchmark comparison table
+2. Review the "PR Benchmark Comparison" job status
+3. Download artifacts if detailed analysis needed:
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>gh<span class="w"> </span>run<span class="w"> </span>list<span class="w"> </span>--limit<span class="w"> </span><span class="m">5</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>gh<span class="w"> </span>run<span class="w"> </span>download<span class="w"> </span>&lt;run-id&gt;<span class="w"> </span>--name<span class="w"> </span>pr-benchmark-results
+</span></code></pre></div></p>
+<h2 id="pr-workflow-benchmark-regression-detection">PR Workflow: Benchmark Regression Detection<a class="headerlink" href="#pr-workflow-benchmark-regression-detection" title="Permanent link">&para;</a></h2>
+<p>When you open a PR, benchmarks run automatically and post a comparison comment.</p>
+<h3 id="understanding-the-pr-comment">Understanding the PR Comment<a class="headerlink" href="#understanding-the-pr-comment" title="Permanent link">&para;</a></h3>
+<p>The benchmark bot posts a comment like this:</p>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="gu">## 📊 Benchmark Results</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>| Benchmark | Main | PR | Change | Status |
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>|-----------|------|-----|--------|--------|
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>| test_dicot_pipeline_performance | 138.5ms | 142.1ms | +2.6% | ✅ |
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>| test_younger_monocot_pipeline_performance | 115.7ms | 110.3ms | -4.7% | ✅ |
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>| test_lateral_root_pipeline_performance | 202.3ms | 235.8ms | +16.5% | ⚠️ |
+</span></code></pre></div>
+<p><strong>Status indicators:</strong>
+- ✅ <strong>OK</strong>: Change within acceptable range (&lt;15% regression)
+- 🚀 <strong>Improvement</strong>: &gt;5% faster than baseline
+- ⚠️ <strong>Regression</strong>: &gt;15% slower (fails CI)
+- 🆕 <strong>New</strong>: Benchmark doesn't exist in baseline</p>
+<h3 id="regression-threshold">Regression Threshold<a class="headerlink" href="#regression-threshold" title="Permanent link">&para;</a></h3>
+<p>Default: <strong>15%</strong> (configurable via <code>BENCHMARK_MAX_REGRESSION</code> env var)</p>
+<p>Why 15%?
+- Accounts for CI runner variance (~5-10%)
+- Catches meaningful regressions
+- Avoids false positives from noise</p>
+<h3 id="what-to-do-about-regressions">What to do about regressions<a class="headerlink" href="#what-to-do-about-regressions" title="Permanent link">&para;</a></h3>
+<h4 id="if-your-pr-has-regressions-15">⚠️ If your PR has regressions &gt;15%:<a class="headerlink" href="#if-your-pr-has-regressions-15" title="Permanent link">&para;</a></h4>
 <ol>
-<li>Go to GitHub Actions for the commit</li>
-<li>Find the "Performance Benchmarks" job</li>
-<li>View the "Display benchmark results" step for summary</li>
-<li>Download <code>benchmark-results.json</code> artifact for detailed analysis</li>
+<li>
+<p><strong>Understand why</strong>:
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Checkout your PR branch</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>gh<span class="w"> </span>pr<span class="w"> </span>checkout<span class="w"> </span>&lt;number&gt;
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># Profile the slow benchmark</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>tests/benchmarks/test_pipeline_performance.py::test_lateral_root_pipeline_performance<span class="w"> </span>--benchmark-only<span class="w"> </span>-v
+</span></code></pre></div></p>
+</li>
+<li>
+<p><strong>Determine if justified</strong>:</p>
+</li>
+<li>Is this expected from your algorithm change?</li>
+<li>Does accuracy improvement outweigh performance cost?</li>
+<li>
+<p>Is this a temporary regression (refactoring in progress)?</p>
+</li>
+<li>
+<p><strong>Options</strong>:</p>
+</li>
+<li><strong>Fix it</strong>: Optimize the code to reduce regression</li>
+<li><strong>Justify it</strong>: Document why regression is acceptable in PR description</li>
+<li><strong>Split it</strong>: Defer optimization to follow-up PR if algorithm change is necessary</li>
 </ol>
+<h4 id="if-regressions-are-acceptable">✅ If regressions are acceptable:<a class="headerlink" href="#if-regressions-are-acceptable" title="Permanent link">&para;</a></h4>
+<p>Add explanation to PR description:
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="gu">## Performance Note</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>The 16.5% regression in <span class="sb">`test_lateral_root_pipeline_performance`</span> is expected because:
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="k">-</span><span class="w"> </span>New validation step adds safety checks for edge cases
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="k">-</span><span class="w"> </span>Accuracy improved from 92% to 98% on test dataset
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="k">-</span><span class="w"> </span>Performance still within acceptable range (235ms vs. 202ms on CI)
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="k">-</span><span class="w"> </span>Optimization tracked in issue <span class="ni">#XXX</span>
+</span></code></pre></div></p>
+<h4 id="if-you-improved-performance">🚀 If you improved performance:<a class="headerlink" href="#if-you-improved-performance" title="Permanent link">&para;</a></h4>
+<p>Great! Note it in the PR description and the bot will highlight it automatically.</p>
+<h3 id="for-reviewers">For Reviewers<a class="headerlink" href="#for-reviewers" title="Permanent link">&para;</a></h3>
+<p>When reviewing PRs with benchmark results:</p>
+<ol>
+<li><strong>Check the automated comment</strong> - It appears shortly after benchmarks run</li>
+<li><strong>Evaluate regressions</strong> - Are they justified or concerning?</li>
+<li><strong>Review artifacts</strong> - Download for detailed analysis if needed:
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>gh<span class="w"> </span>run<span class="w"> </span>download<span class="w"> </span>&lt;run-id&gt;<span class="w"> </span>--name<span class="w"> </span>pr-benchmark-results
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>cat<span class="w"> </span>benchmark-comparison.md
+</span></code></pre></div></li>
+<li><strong>Request optimization</strong> - If large unexplained regressions exist</li>
+</ol>
+<p>See <code>.claude/commands/review-pr.md</code> for detailed review guidance.</p>
+<h3 id="baseline-management">Baseline Management<a class="headerlink" href="#baseline-management" title="Permanent link">&para;</a></h3>
+<p>Baselines are automatically managed:</p>
+<ul>
+<li><strong>Created</strong>: When benchmarks run on main branch after PR merge</li>
+<li><strong>Updated</strong>: On every push to main (with <code>[skip ci]</code> to avoid loops)</li>
+<li><strong>Stored</strong>: In <code>.benchmarks/baselines/main.json</code> (committed to repo)</li>
+<li><strong>Cleaned</strong>: Old commit-specific baselines removed after 90 days</li>
+</ul>
+<p><strong>Note</strong>: The first PR with benchmarks will show "No baseline" - this is expected. The baseline is created after merging to main.</p>
 <h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
 <h3 id="do">DO:<a class="headerlink" href="#do" title="Permanent link">&para;</a></h3>
 <ul>
@@ -3019,8 +3120,8 @@
 </ul>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
 <h3 id="benchmarks-are-slow-locally">Benchmarks are slow locally<a class="headerlink" href="#benchmarks-are-slow-locally" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Reduce iterations for faster feedback</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>tests/benchmarks/<span class="w"> </span>--benchmark-only<span class="w"> </span>--benchmark-min-rounds<span class="o">=</span><span class="m">3</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># Reduce iterations for faster feedback</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>tests/benchmarks/<span class="w"> </span>--benchmark-only<span class="w"> </span>--benchmark-min-rounds<span class="o">=</span><span class="m">3</span>
 </span></code></pre></div>
 <h3 id="high-variance-in-results">High variance in results<a class="headerlink" href="#high-variance-in-results" title="Permanent link">&para;</a></h3>
 <p>Possible causes:
@@ -3038,11 +3139,62 @@
 <li>If regular test passes, the benchmark setup might be wrong (fixture issue)</li>
 <li>Check that benchmark is using correct test data</li>
 </ol>
+<h3 id="false-positives-ci-fails-but-regression-seems-small">False positives: CI fails but regression seems small<a class="headerlink" href="#false-positives-ci-fails-but-regression-seems-small" title="Permanent link">&para;</a></h3>
+<p>Sometimes CI variance causes borderline failures:</p>
+<p><strong>Symptoms:</strong>
+- Regression is 15-17% (just over threshold)
+- Re-running the workflow gives different results
+- Local benchmarks don't show regression</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li><strong>Re-run the workflow</strong>: Click "Re-run jobs" in GitHub Actions</li>
+<li>
+<p>If it passes on second run, it was likely CI variance</p>
+</li>
+<li>
+<p><strong>Check recent main branch runs</strong>: Compare against several recent baselines
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># View recent benchmark results on main</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>git<span class="w"> </span>log<span class="w"> </span>main<span class="w"> </span>--all<span class="w"> </span>--grep<span class="o">=</span><span class="s2">&quot;chore: update benchmark baselines&quot;</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>git<span class="w"> </span>show<span class="w"> </span>&lt;commit-sha&gt;:.benchmarks/baselines/main.json
+</span></code></pre></div></p>
+</li>
+<li>
+<p><strong>Run locally multiple times</strong>: Check consistency
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># Run 5 times and compare</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">{</span><span class="m">1</span>..5<span class="o">}</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>tests/benchmarks/<span class="w"> </span>--benchmark-only<span class="w"> </span>--benchmark-json<span class="o">=</span>run_<span class="nv">$i</span>.json
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="k">done</span>
+</span></code></pre></div></p>
+</li>
+<li>
+<p><strong>Request threshold adjustment</strong>: If a specific benchmark is consistently noisy</p>
+</li>
+<li>Document the variance in an issue</li>
+<li>Consider per-benchmark thresholds (future feature)</li>
+</ol>
+<h3 id="ci-baseline-is-missing-or-outdated">CI baseline is missing or outdated<a class="headerlink" href="#ci-baseline-is-missing-or-outdated" title="Permanent link">&para;</a></h3>
+<p><strong>Symptom</strong>: PR shows "No baseline" even though benchmarks exist on main</p>
+<p><strong>Causes:</strong>
+- First time benchmarks are running (expected)
+- Baseline commit failed to push
+- <code>.benchmarks/</code> directory not in repo</p>
+<p><strong>Solution:</strong>
+1. Check if <code>.benchmarks/baselines/main.json</code> exists on main branch
+2. If missing, merge any PR to trigger baseline creation
+3. The next PR will have a baseline to compare against</p>
+<h2 id="design-rationale">Design Rationale<a class="headerlink" href="#design-rationale" title="Permanent link">&para;</a></h2>
+<p>For the full design rationale behind the benchmark regression detection system, see the <a href="https://github.com/talmolab/sleap-roots/tree/main/openspec/changes/benchmark-regression-detection">OpenSpec proposal</a>.</p>
+<p>Key design decisions:
+- <strong>15% threshold</strong>: Balances catching real regressions vs. CI variance false positives
+- <strong>Automatic PR comments</strong>: Provides immediate visibility without manual artifact downloads
+- <strong>Baseline storage in repo</strong>: Ensures deterministic comparisons across CI runs
+- <strong>History tracking</strong>: Enables future performance trend analysis and charts</p>
 <h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="https://pytest-benchmark.readthedocs.io/">pytest-benchmark documentation</a></li>
 <li><a href="https://pythonspeed.com/articles/consistent-benchmarking/">Performance testing best practices</a></li>
 <li><a href="https://doi.org/10.34133/plantphenomics.0175">Berrigan et al. 2024 - Original performance metrics</a></li>
+<li><a href="https://github.com/talmolab/sleap-roots/tree/main/openspec/changes/benchmark-regression-detection">OpenSpec: Benchmark Regression Detection</a></li>
 </ul>
 
 
