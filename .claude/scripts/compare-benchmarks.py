@@ -330,9 +330,7 @@ def show_results_without_baseline(current_path: Path) -> str:
         name = bench["name"]
         mean = bench["stats"]["mean"]
         stddev = bench["stats"]["stddev"]
-        lines.append(
-            f"| {name} | {format_time(mean)} | ±{format_time(stddev)} |"
-        )
+        lines.append(f"| {name} | {format_time(mean)} | ±{format_time(stddev)} |")
 
     lines.extend(
         [
