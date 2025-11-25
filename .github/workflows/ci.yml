@@ -189,7 +189,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .benchmarks/
+          git add -f .benchmarks/
           git commit -m "chore: update benchmark baselines [skip ci]" || echo "No changes to commit"
           git push || echo "Nothing to push"
 
