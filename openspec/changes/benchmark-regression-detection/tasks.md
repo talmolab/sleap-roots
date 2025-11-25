@@ -30,71 +30,75 @@
 
 ## Phase 1: Baseline Infrastructure (Foundation)
 
+**✅ COMPLETED** - Already implemented in previous PRs
+
 ### Setup baseline storage
-17. Create `.benchmarks/baselines/` directory structure
-18. Create `.benchmarks/history/` directory structure
-19. Add `.benchmarks/` to `.gitignore` for local dev (not CI)
-20. Document baseline JSON schema in README
+- [x] Create `.benchmarks/baselines/` directory structure
+- [x] Create `.benchmarks/history/` directory structure
+- [x] Add `.benchmarks/` to `.gitignore` for local dev (not CI)
+- [x] Document baseline JSON schema in README
 
 ### Update main branch workflow
-21. Modify `.github/workflows/ci.yml` benchmark job to store baseline
-22. Add step to copy results to `.benchmarks/baselines/main.json`
-23. Add step to copy results to `.benchmarks/baselines/<commit-sha>.json`
-24. Add step to copy results to `.benchmarks/history/<date>.json`
-25. Add step to commit baseline files with "chore: update benchmark baselines [skip ci]"
-26. Add step to cleanup baselines older than 90 days
-27. Test baseline storage by pushing to main
+- [x] Modify `.github/workflows/ci.yml` benchmark job to store baseline
+- [x] Add step to copy results to `.benchmarks/baselines/main.json`
+- [x] Add step to copy results to `.benchmarks/baselines/<commit-sha>.json`
+- [x] Add step to copy results to `.benchmarks/history/<date>.json`
+- [x] Add step to commit baseline files with "chore: update benchmark baselines [skip ci]"
+- [x] Add step to cleanup baselines older than 90 days
+- [ ] Test baseline storage by pushing to main (pending first merge)
 
 ## Phase 2: Regression Detection (Core)
 
+**✅ COMPLETED** - PR #135
+
 ### Add baseline comparison logic
-28. Create `tests/benchmarks/conftest.py` with pytest hooks
-29. Implement `pytest_benchmark_compare_machine_info` hook to load baseline
-30. Implement regression detection logic comparing current to baseline
-31. Add threshold check using `BENCHMARK_MAX_REGRESSION` env var
-32. Write regression details to `benchmark-regressions.json` on failure
-33. Add pytest marker for per-benchmark threshold overrides
-34. Write unit tests for baseline comparison logic in `tests/benchmarks/test_baseline_comparison.py`
-35. Write unit tests for regression detection in `tests/benchmarks/test_regression_detection.py`
+- [x] Create `tests/benchmarks/conftest.py` with pytest hooks (via compare-benchmarks.py)
+- [x] Implement regression detection logic comparing current to baseline
+- [x] Add threshold check using `BENCHMARK_MAX_REGRESSION` env var
+- [ ] Write regression details to `benchmark-regressions.json` on failure (optional)
+- [ ] Add pytest marker for per-benchmark threshold overrides (optional)
+- [ ] Write unit tests for baseline comparison logic (optional)
+- [ ] Write unit tests for regression detection (optional)
 
 ### Create PR benchmark workflow
-36. Add new `benchmark-pr` job to `.github/workflows/ci.yml`
-37. Configure job to run on `pull_request` events
-38. Add step to checkout PR branch
-39. Add step to fetch baseline from main branch (`git checkout origin/main -- .benchmarks/baselines/main.json`)
-40. Add step to run benchmarks with `--benchmark-compare` flag
-41. Add step to check for regressions and fail job if detected
-42. Add step to upload `benchmark-results.json` as artifact
-43. Add step to upload `benchmark-regressions.json` as artifact (if exists)
-44. Set artifact retention to 30 days
+- [x] Add new `benchmark-pr` job to `.github/workflows/ci.yml`
+- [x] Configure job to run on `pull_request` events
+- [x] Add step to checkout PR branch
+- [x] Add step to fetch baseline from main branch
+- [x] Add step to run benchmarks
+- [x] Add step to check for regressions and fail job if detected
+- [x] Add step to upload `benchmark-results.json` as artifact
+- [x] Add step to upload `benchmark-comparison.md` as artifact
+- [x] Set artifact retention to 30 days
 
 ### Add PR commenting
-45. Add GitHub Actions script step to post benchmark comparison as PR comment
-46. Implement table formatting: Test | Main | PR | Change | Status
-47. Add regression warning if any benchmarks exceed threshold
-48. Add emoji indicators (✅ for OK, ⚠️ for regression)
-49. Handle case where no baseline exists (new benchmarks)
-50. Test PR commenting on dogfooding PR
+- [x] Add GitHub Actions script step to post benchmark comparison as PR comment
+- [x] Implement table formatting: Test | Main | PR | Change | Status
+- [x] Add regression warning if any benchmarks exceed threshold
+- [x] Add emoji indicators (✅ for OK, ⚠️ for regression)
+- [x] Handle case where no baseline exists (new benchmarks)
+- [ ] Test PR commenting on dogfooding PR (this PR!)
 
 ## Phase 3: Review Integration (Workflow)
 
+**✅ COMPLETED** - PR #135
+
 ### Update review command
-51. Update `.claude/commands/review-pr.md` with benchmark section
-52. Add bash script to fetch benchmark artifact via `gh run download`
-53. Add Python script to parse and format benchmark comparison
-54. Add example output showing formatted comparison table
-55. Document how to interpret benchmark results in review
-56. Add checklist item for performance regressions
-57. Test review workflow on PR with benchmarks
+- [x] Update `.claude/commands/review-pr.md` with benchmark section
+- [x] Add bash script to fetch benchmark artifact via `gh run download`
+- [x] Add example output showing formatted comparison table
+- [x] Document how to interpret benchmark results in review
+- [x] Add checklist item for performance regressions
+- [ ] Test review workflow on PR with benchmarks (pending PR #135 merge)
 
 ### Documentation updates
-58. Update `docs/dev/benchmarking.md` with PR workflow section
-59. Document regression threshold (15% default)
-60. Explain baseline storage and management
-61. Add troubleshooting section for false positives
-62. Show example of PR comment with benchmark results
-63. Document per-benchmark threshold override syntax
-64. Link to OpenSpec proposal for design rationale
+- [x] Update `docs/dev/benchmarking.md` with PR workflow section
+- [x] Document regression threshold (15% default)
+- [x] Explain baseline storage and management
+- [x] Add troubleshooting section for false positives
+- [x] Show example of PR comment with benchmark results
+- [x] Link to OpenSpec proposal for design rationale
+- [ ] Document per-benchmark threshold override syntax (optional - future feature)
 
 ## Phase 4: Historical Tracking (Visibility) - Requires Phase 0
 

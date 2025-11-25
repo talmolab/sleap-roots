@@ -192,3 +192,128 @@ jobs:
           git add .benchmarks/
           git commit -m "chore: update benchmark baselines [skip ci]" || echo "No changes to commit"
           git push || echo "Nothing to push"
+
+  benchmark-pr:
+    name: PR Benchmark Comparison
+    runs-on: ubuntu-22.04
+    # Run on PRs to compare against main baseline
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+
+    env:
+      BENCHMARK_MAX_REGRESSION: 0.15  # 15% regression threshold
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 0  # Need full history to access main branch
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache-dependency-glob: "**/uv.lock"
+
+      - name: Install Python from .python-version
+        run: uv python install
+
+      - name: Sync deps (runtime + dev group)
+        run: uv sync --frozen
+
+      - name: Fetch baseline from main
+        id: baseline
+        run: |
+          # Try to get baseline from main branch
+          git fetch origin main
+          if git show origin/main:.benchmarks/baselines/main.json > baseline.json 2>/dev/null; then
+            echo "baseline_exists=true" >> $GITHUB_OUTPUT
+            echo "Baseline found from main branch"
+          else
+            echo "baseline_exists=false" >> $GITHUB_OUTPUT
+            echo "No baseline found - this is expected for new benchmark setup"
+          fi
+
+      - name: Run benchmarks
+        run: |
+          uv run pytest tests/benchmarks/ \
+            --benchmark-only \
+            --benchmark-json=benchmark-results.json \
+            --benchmark-columns=min,max,mean,stddev,median \
+            --benchmark-sort=name
+
+      - name: Compare benchmarks
+        id: compare
+        run: |
+          python .claude/scripts/compare-benchmarks.py \
+            --baseline baseline.json \
+            --current benchmark-results.json \
+            --threshold $BENCHMARK_MAX_REGRESSION \
+            > benchmark-comparison.md 2>&1 || true
+
+          # Check for regressions
+          if grep -q "⚠️ Performance Regressions Detected" benchmark-comparison.md; then
+            echo "has_regression=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_regression=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Post PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const comparison = fs.readFileSync('benchmark-comparison.md', 'utf8');
+
+            // Find existing benchmark comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('📊 Benchmark Results')
+            );
+
+            const body = comparison;
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-benchmark-results
+          path: |
+            benchmark-results.json
+            benchmark-comparison.md
+          retention-days: 30
+
+      - name: Fail on regression
+        if: steps.compare.outputs.has_regression == 'true'
+        run: |
+          echo "::error::Performance regression detected! See PR comment for details."
+          echo "Regressions exceed the ${BENCHMARK_MAX_REGRESSION} threshold."
+          exit 1

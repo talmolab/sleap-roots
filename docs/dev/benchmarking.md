@@ -151,19 +151,143 @@ uv run pytest tests/benchmarks/test_pipeline_performance.py::test_my_new_pipelin
 
 ## CI Integration
 
-Benchmarks run automatically on pushes to `main` branch:
+Benchmarks run automatically in two contexts:
 
-1. **When**: Only on `main` (not PRs) to avoid noise
+### 1. Main Branch (Baseline Storage)
+
+On pushes to `main` branch:
+
+1. **When**: After merging PRs to main
 2. **Where**: Ubuntu 22.04 runners (standardized environment)
-3. **Output**: JSON results uploaded as artifact (30-day retention)
-4. **Purpose**: Track performance trends over time
+3. **Output**: Baseline stored in `.benchmarks/baselines/main.json` (committed to repo)
+4. **Purpose**: Create baseline for comparing future PRs
+5. **History**: Results also saved to `.benchmarks/history/<date>.json` for trends
+
+### 2. Pull Requests (Regression Detection)
+
+On all pull requests:
+
+1. **When**: Automatically on every PR
+2. **What**: Compares PR benchmarks against main branch baseline
+3. **Comment**: Posts/updates PR comment with comparison table
+4. **Threshold**: Fails CI if any benchmark regresses >15%
+5. **Artifacts**: Uploads `benchmark-results.json` and `benchmark-comparison.md` (30-day retention)
 
 ### Viewing CI benchmark results
 
+**For main branch:**
 1. Go to GitHub Actions for the commit
 2. Find the "Performance Benchmarks" job
 3. View the "Display benchmark results" step for summary
-4. Download `benchmark-results.json` artifact for detailed analysis
+4. Check `.benchmarks/baselines/main.json` in repo for baseline
+
+**For pull requests:**
+1. Check the automated PR comment with benchmark comparison table
+2. Review the "PR Benchmark Comparison" job status
+3. Download artifacts if detailed analysis needed:
+   ```bash
+   gh run list --limit 5
+   gh run download <run-id> --name pr-benchmark-results
+   ```
+
+## PR Workflow: Benchmark Regression Detection
+
+When you open a PR, benchmarks run automatically and post a comparison comment.
+
+### Understanding the PR Comment
+
+The benchmark bot posts a comment like this:
+
+```markdown
+## 📊 Benchmark Results
+
+| Benchmark | Main | PR | Change | Status |
+|-----------|------|-----|--------|--------|
+| test_dicot_pipeline_performance | 138.5ms | 142.1ms | +2.6% | ✅ |
+| test_younger_monocot_pipeline_performance | 115.7ms | 110.3ms | -4.7% | ✅ |
+| test_lateral_root_pipeline_performance | 202.3ms | 235.8ms | +16.5% | ⚠️ |
+```
+
+**Status indicators:**
+- ✅ **OK**: Change within acceptable range (<15% regression)
+- 🚀 **Improvement**: >5% faster than baseline
+- ⚠️ **Regression**: >15% slower (fails CI)
+- 🆕 **New**: Benchmark doesn't exist in baseline
+
+### Regression Threshold
+
+Default: **15%** (configurable via `BENCHMARK_MAX_REGRESSION` env var)
+
+Why 15%?
+- Accounts for CI runner variance (~5-10%)
+- Catches meaningful regressions
+- Avoids false positives from noise
+
+### What to do about regressions
+
+#### ⚠️ If your PR has regressions >15%:
+
+1. **Understand why**:
+   ```bash
+   # Checkout your PR branch
+   gh pr checkout <number>
+
+   # Profile the slow benchmark
+   uv run pytest tests/benchmarks/test_pipeline_performance.py::test_lateral_root_pipeline_performance --benchmark-only -v
+   ```
+
+2. **Determine if justified**:
+   - Is this expected from your algorithm change?
+   - Does accuracy improvement outweigh performance cost?
+   - Is this a temporary regression (refactoring in progress)?
+
+3. **Options**:
+   - **Fix it**: Optimize the code to reduce regression
+   - **Justify it**: Document why regression is acceptable in PR description
+   - **Split it**: Defer optimization to follow-up PR if algorithm change is necessary
+
+#### ✅ If regressions are acceptable:
+
+Add explanation to PR description:
+```markdown
+## Performance Note
+
+The 16.5% regression in `test_lateral_root_pipeline_performance` is expected because:
+- New validation step adds safety checks for edge cases
+- Accuracy improved from 92% to 98% on test dataset
+- Performance still within acceptable range (235ms vs. 202ms on CI)
+- Optimization tracked in issue #XXX
+```
+
+#### 🚀 If you improved performance:
+
+Great! Note it in the PR description and the bot will highlight it automatically.
+
+### For Reviewers
+
+When reviewing PRs with benchmark results:
+
+1. **Check the automated comment** - It appears shortly after benchmarks run
+2. **Evaluate regressions** - Are they justified or concerning?
+3. **Review artifacts** - Download for detailed analysis if needed:
+   ```bash
+   gh run download <run-id> --name pr-benchmark-results
+   cat benchmark-comparison.md
+   ```
+4. **Request optimization** - If large unexplained regressions exist
+
+See `.claude/commands/review-pr.md` for detailed review guidance.
+
+### Baseline Management
+
+Baselines are automatically managed:
+
+- **Created**: When benchmarks run on main branch after PR merge
+- **Updated**: On every push to main (with `[skip ci]` to avoid loops)
+- **Stored**: In `.benchmarks/baselines/main.json` (committed to repo)
+- **Cleaned**: Old commit-specific baselines removed after 90 days
+
+**Note**: The first PR with benchmarks will show "No baseline" - this is expected. The baseline is created after merging to main.
 
 ## Best Practices
 
@@ -210,8 +334,66 @@ Benchmarks call the same code as regular tests. If a benchmark fails:
 2. If regular test passes, the benchmark setup might be wrong (fixture issue)
 3. Check that benchmark is using correct test data
 
+### False positives: CI fails but regression seems small
+
+Sometimes CI variance causes borderline failures:
+
+**Symptoms:**
+- Regression is 15-17% (just over threshold)
+- Re-running the workflow gives different results
+- Local benchmarks don't show regression
+
+**Solutions:**
+
+1. **Re-run the workflow**: Click "Re-run jobs" in GitHub Actions
+   - If it passes on second run, it was likely CI variance
+
+2. **Check recent main branch runs**: Compare against several recent baselines
+   ```bash
+   # View recent benchmark results on main
+   git log main --all --grep="chore: update benchmark baselines"
+   git show <commit-sha>:.benchmarks/baselines/main.json
+   ```
+
+3. **Run locally multiple times**: Check consistency
+   ```bash
+   # Run 5 times and compare
+   for i in {1..5}; do
+     uv run pytest tests/benchmarks/ --benchmark-only --benchmark-json=run_$i.json
+   done
+   ```
+
+4. **Request threshold adjustment**: If a specific benchmark is consistently noisy
+   - Document the variance in an issue
+   - Consider per-benchmark thresholds (future feature)
+
+### CI baseline is missing or outdated
+
+**Symptom**: PR shows "No baseline" even though benchmarks exist on main
+
+**Causes:**
+- First time benchmarks are running (expected)
+- Baseline commit failed to push
+- `.benchmarks/` directory not in repo
+
+**Solution:**
+1. Check if `.benchmarks/baselines/main.json` exists on main branch
+2. If missing, merge any PR to trigger baseline creation
+3. The next PR will have a baseline to compare against
+
+## Design Rationale
+
+For the full design rationale behind the benchmark regression detection system, see the [OpenSpec proposal](https://github.com/talmolab/sleap-roots/tree/main/openspec/changes/benchmark-regression-detection).
+
+Key design decisions:
+- **15% threshold**: Balances catching real regressions vs. CI variance false positives
+- **Automatic PR comments**: Provides immediate visibility without manual artifact downloads
+- **Baseline storage in repo**: Ensures deterministic comparisons across CI runs
+- **History tracking**: Enables future performance trend analysis and charts
+
 ## References
 
 - [pytest-benchmark documentation](https://pytest-benchmark.readthedocs.io/)
 - [Performance testing best practices](https://pythonspeed.com/articles/consistent-benchmarking/)
 - [Berrigan et al. 2024 - Original performance metrics](https://doi.org/10.34133/plantphenomics.0175)
+- [OpenSpec: Benchmark Regression Detection](https://github.com/talmolab/sleap-roots/tree/main/openspec/changes/benchmark-regression-detection)

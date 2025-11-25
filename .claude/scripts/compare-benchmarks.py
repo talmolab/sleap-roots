@@ -330,9 +330,7 @@ def show_results_without_baseline(current_path: Path) -> str:
         name = bench["name"]
         mean = bench["stats"]["mean"]
         stddev = bench["stats"]["stddev"]
-        lines.append(
-            f"| {name} | {format_time(mean)} | ±{format_time(stddev)} |"
-        )
+        lines.append(f"| {name} | {format_time(mean)} | ±{format_time(stddev)} |")
 
     lines.extend(
         [
@@ -401,9 +399,21 @@ Examples:
 
     # Compare or show results
     try:
-        if not args.baseline.exists():
+        # Check if baseline exists and is valid JSON
+        baseline_valid = False
+        if args.baseline.exists():
+            try:
+                with open(args.baseline) as f:
+                    content = f.read().strip()
+                    if content:  # Not empty
+                        json.loads(content)
+                        baseline_valid = True
+            except (json.JSONDecodeError, ValueError):
+                pass
+
+        if not baseline_valid:
             print(
-                f"No baseline found at {args.baseline}. Showing current results only.",
+                f"No valid baseline found at {args.baseline}. Showing current results only.",
                 file=sys.stderr,
             )
             print(file=sys.stderr)
