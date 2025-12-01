@@ -301,7 +301,9 @@ def get_right_normalized_vector(
     return normalized_vectors[1]
 
 
-def get_line_equation_from_points(pts1: np.ndarray, pts2: np.ndarray):
+def get_line_equation_from_points(
+    pts1: np.ndarray, pts2: np.ndarray
+) -> Tuple[float, float]:
     """Calculate the slope (m) and y-intercept (b) of the line connecting two points.
 
     Args:
@@ -471,14 +473,14 @@ def is_line_valid(line: np.ndarray) -> bool:
     return not np.isnan(line).any()
 
 
-def clean_points(points):
+def clean_points(points: np.ndarray) -> np.ndarray:
     """Remove NaN points from root points.
 
     Args:
         points: An array of points representing a root, with shape (nodes, 2).
 
     Returns:
-        np.ndarray: An array of the same points with NaN values removed.
+        An array of the same points with NaN values removed.
     """
     # Filter out points with NaN values and return the cleaned array
     return np.array([pt for pt in points if not np.isnan(pt).any()])

@@ -426,4 +426,4 @@ for i, (length, angle, lat_count) in enumerate(zip(
 
 - **[API Reference](../index.md)** - Explore all available functions
 - **[Pipelines Guide](../core/pipelines.md)** - Choose the right pipeline
-- **[Tutorial Notebooks](../../notebooks/index.md)** - Interactive learning
+- **[Tutorials](../../tutorials/index.md)** - Interactive learning

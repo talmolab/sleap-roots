@@ -34,8 +34,8 @@ This command helps you:
 ### External Documentation
 
 - **HackMD Trait Docs** - https://hackmd.io/DMiXO2kXQhKH8AIIcIy--g
+- **API documentation** - https://roots.sleap.ai (MkDocs with mkdocstrings)
 - **GitHub Wiki** (if exists)
-- **API documentation** (if generated)
 
 ## Commands for Finding Docs
 
@@ -245,6 +245,29 @@ grep -oh "https://[^)]*" README.md
 # Check each manually or with curl
 curl -I https://hackmd.io/DMiXO2kXQhKH8AIIcIy--g
 ```
+
+### Step 6: Build and Check MkDocs Site
+
+```bash
+# Build MkDocs documentation
+uv run mkdocs build
+
+# Check for warnings (should be zero)
+uv run mkdocs build 2>&1 | grep "WARNING"
+
+# Serve locally to preview
+uv run mkdocs serve
+# Visit http://127.0.0.1:8000
+
+# Check for broken links
+# Navigate through all pages and verify links work
+```
+
+**MkDocs Documentation Structure:**
+- `mkdocs.yml` - Site configuration and navigation
+- `docs/` - Markdown documentation files
+- `docs/gen_ref_pages.py` - Auto-generates API reference from docstrings
+- Site URL: https://roots.sleap.ai
 
 ## Common Documentation Tasks
 

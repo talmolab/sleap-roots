@@ -41,8 +41,9 @@ TOTAL                           892     12    99%
 ## Coverage Goals
 
 - **Target**: Full coverage on core trait computation modules
-- **Current**: Tracked via Codecov on each PR
+- **Current**: ~84% overall, tracked via Codecov badge on each PR
 - **CI Requirement**: Coverage must be maintained (not decrease)
+- **Badge**: Auto-updates in README.md and docs/index.md
 
 ### Priority Areas
 1. **High priority**: Core trait computations (`lengths.py`, `angles.py`, `tips.py`, etc.)
