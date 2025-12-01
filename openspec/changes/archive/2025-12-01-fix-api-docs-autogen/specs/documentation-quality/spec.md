@@ -1,6 +1,6 @@
 # Spec: API Documentation Quality
 
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Source code type annotations
 
