@@ -636,119 +636,24 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#development-installation" class="md-nav__link">
+  <a href="#modern-workflow-using-uv" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Development Installation
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Development Installation">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#modern-approach-using-uv-recommended" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Modern Approach: Using uv (Recommended)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Modern Approach: Using uv (Recommended)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-install-uv" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Install uv
+        Modern Workflow: Using uv
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#2-clone-and-setup" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#verify-installation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Clone and Setup
+        Verify Installation
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-verify-installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Verify Installation
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#alternative-using-conda" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Alternative: Using Conda
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Alternative: Using Conda">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-clone-the-repository" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Clone the Repository
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-create-environment-from-file" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Create Environment from File
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-verify-installation_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Verify Installation
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -757,28 +662,6 @@
     <span class="md-ellipsis">
       
         Platform Support
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Dependencies
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#git-lfs-for-test-data" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Git LFS for Test Data
       
     </span>
   </a>
@@ -809,28 +692,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#filenotfounderror-in-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        "FileNotFoundError" in Tests
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#conda-environment-creation-is-slow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Conda Environment Creation is Slow
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#import-errors-with-sleap-io" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -843,17 +704,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#verifying-your-installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Verifying Your Installation
-      
-    </span>
-  </a>
   
 </li>
       
@@ -3179,12 +3029,14 @@
 
 
 <h1 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h1>
+<p>sleap-roots is a Python package for extracting morphological traits from plant root images analyzed with <a href="https://sleap.ai">SLEAP</a>.</p>
 <h2 id="quick-install">Quick Install<a class="headerlink" href="#quick-install" title="Permanent link">&para;</a></h2>
-<p>The simplest way to install sleap-roots is via pip:</p>
+<p>The simplest way to install sleap-roots:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>sleap-roots
 </span></code></pre></div>
+<p>That's it! You're ready to use sleap-roots.</p>
 <h2 id="recommended-conda-environment">Recommended: Conda Environment<a class="headerlink" href="#recommended-conda-environment" title="Permanent link">&para;</a></h2>
-<p>We recommend using conda to manage dependencies and avoid conflicts:</p>
+<p>To avoid dependency conflicts, we recommend using conda:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Create a new environment with Python 3.11</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>sleap-roots<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.11
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
@@ -3198,87 +3050,39 @@
 <p class="admonition-title">Why Python 3.11?</p>
 <p>While sleap-roots supports Python 3.7+, we recommend 3.11 for the best performance and compatibility with recent NumPy/Pandas versions.</p>
 </div>
-<h2 id="development-installation">Development Installation<a class="headerlink" href="#development-installation" title="Permanent link">&para;</a></h2>
-<p>If you want to contribute to sleap-roots or run the latest development version, we recommend using <strong>uv</strong> for the fastest and most modern workflow.</p>
-<h3 id="modern-approach-using-uv-recommended">Modern Approach: Using uv (Recommended)<a class="headerlink" href="#modern-approach-using-uv-recommended" title="Permanent link">&para;</a></h3>
-<p><a href="https://github.com/astral-sh/uv">uv</a> is a fast, modern Python package manager that handles dependency management with lockfiles for reproducibility.</p>
-<h4 id="1-install-uv">1. Install uv<a class="headerlink" href="#1-install-uv" title="Permanent link">&para;</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># macOS/Linux</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>curl<span class="w"> </span>-LsSf<span class="w"> </span>https://astral.sh/uv/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Windows</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>powershell<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;irm https://astral.sh/uv/install.ps1 | iex&quot;</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># Or with pip</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>pip<span class="w"> </span>install<span class="w"> </span>uv
-</span></code></pre></div>
-<h4 id="2-clone-and-setup">2. Clone and Setup<a class="headerlink" href="#2-clone-and-setup" title="Permanent link">&para;</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Clone the repository</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/talmolab/sleap-roots.git
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nb">cd</span><span class="w"> </span>sleap-roots
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Install Git LFS for test data</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>git<span class="w"> </span>lfs<span class="w"> </span>install
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>git<span class="w"> </span>lfs<span class="w"> </span>pull
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1"># Create environment and install all dependencies</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>uv<span class="w"> </span>sync
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1"># This automatically:</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="c1"># - Creates a virtual environment (.venv)</span>
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1"># - Installs runtime dependencies</span>
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="c1"># - Installs dev dependencies from [dependency-groups]</span>
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="c1"># - Installs sleap-roots in editable mode</span>
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="c1"># - Generates/updates uv.lock for reproducibility</span>
-</span></code></pre></div>
-<h4 id="3-verify-installation">3. Verify Installation<a class="headerlink" href="#3-verify-installation" title="Permanent link">&para;</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Run tests</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>tests/
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Check formatting</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>uv<span class="w"> </span>run<span class="w"> </span>black<span class="w"> </span>--check<span class="w"> </span>sleap_roots<span class="w"> </span>tests
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># Check docstrings</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>uv<span class="w"> </span>run<span class="w"> </span>pydocstyle<span class="w"> </span>sleap_roots/
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1"># Import the package</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import sleap_roots; print(sleap_roots.__version__)&quot;</span>
+<h2 id="modern-workflow-using-uv">Modern Workflow: Using uv<a class="headerlink" href="#modern-workflow-using-uv" title="Permanent link">&para;</a></h2>
+<p>For starting a new project, <a href="https://github.com/astral-sh/uv">uv</a> provides a fast, modern Python workflow:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Install uv (if not already installed)</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>curl<span class="w"> </span>-LsSf<span class="w"> </span>https://astral.sh/uv/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh<span class="w">  </span><span class="c1"># macOS/Linux</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Or: pip install uv</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># Create a new project</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>uv<span class="w"> </span>init<span class="w"> </span>my-root-analysis
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="nb">cd</span><span class="w"> </span>my-root-analysis
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="c1"># Add sleap-roots to your project</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>uv<span class="w"> </span>add<span class="w"> </span>sleap-roots
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="c1"># Run your analysis script</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>my_analysis.py
 </span></code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Why uv?</p>
-<ul>
-<li><strong>10-100x faster</strong> than pip/conda</li>
-<li><strong>Automatic dependency locking</strong> with uv.lock</li>
-<li><strong>No separate environment activation</strong> needed (use <code>uv run</code>)</li>
-<li><strong>PEP 735 dependency groups</strong> for clean dev/prod separation</li>
-<li><strong>Built-in tool management</strong> (no need for separate virtualenv)</li>
-</ul>
+<p>uv is 10-100x faster than pip/conda and provides automatic dependency locking for reproducibility.</p>
 </div>
-<h3 id="alternative-using-conda">Alternative: Using Conda<a class="headerlink" href="#alternative-using-conda" title="Permanent link">&para;</a></h3>
-<p>If you prefer conda or need conda-specific packages:</p>
-<h4 id="1-clone-the-repository">1. Clone the Repository<a class="headerlink" href="#1-clone-the-repository" title="Permanent link">&para;</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/talmolab/sleap-roots.git
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">cd</span><span class="w"> </span>sleap-roots
+<h2 id="verify-installation">Verify Installation<a class="headerlink" href="#verify-installation" title="Permanent link">&para;</a></h2>
+<p>Test that sleap-roots is installed correctly:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sleap_roots</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sr</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Check version</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;sleap-roots version: </span><span class="si">{</span><span class="n">sr</span><span class="o">.</span><span class="n">__version__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># Instantiate a pipeline</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">pipeline</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">DicotPipeline</span><span class="p">()</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;✅ Installation successful!&quot;</span><span class="p">)</span>
 </span></code></pre></div>
-<h4 id="2-create-environment-from-file">2. Create Environment from File<a class="headerlink" href="#2-create-environment-from-file" title="Permanent link">&para;</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>environment.yml
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>conda<span class="w"> </span>activate<span class="w"> </span>sleap-roots
-</span></code></pre></div>
-<p>This installs:</p>
-<ul>
-<li>All runtime dependencies (numpy, pandas, sleap-io, etc.)</li>
-<li>Dev dependencies (pytest, black, pydocstyle, mkdocs)</li>
-<li>The package in editable mode</li>
-</ul>
-<h4 id="3-verify-installation_1">3. Verify Installation<a class="headerlink" href="#3-verify-installation_1" title="Permanent link">&para;</a></h4>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Run tests</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>pytest<span class="w"> </span>tests/
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Check formatting</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>black<span class="w"> </span>--check<span class="w"> </span>sleap_roots<span class="w"> </span>tests
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># Import the package</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import sleap_roots; print(sleap_roots.__version__)&quot;</span>
+<p>Or run this one-liner:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import sleap_roots; print(f&#39;✅ sleap-roots {sleap_roots.__version__} installed successfully!&#39;)&quot;</span>
 </span></code></pre></div>
 <h2 id="platform-support">Platform Support<a class="headerlink" href="#platform-support" title="Permanent link">&para;</a></h2>
 <p>sleap-roots is tested on:</p>
@@ -3294,90 +3098,40 @@
 <tr>
 <td><strong>Ubuntu 22.04</strong></td>
 <td>3.7, 3.8, 3.9, 3.10, 3.11</td>
-<td><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/2705.svg" title=":white_check_mark:" /> Fully supported</td>
+<td>✅ Fully supported</td>
 </tr>
 <tr>
 <td><strong>macOS</strong></td>
 <td>3.11</td>
-<td><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/2705.svg" title=":white_check_mark:" /> Fully supported</td>
+<td>✅ Fully supported</td>
 </tr>
 <tr>
 <td><strong>Windows</strong></td>
 <td>3.11</td>
-<td><img alt="✅" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/2705.svg" title=":white_check_mark:" /> Fully supported</td>
+<td>✅ Fully supported</td>
 </tr>
 </tbody>
 </table>
-<h2 id="dependencies">Dependencies<a class="headerlink" href="#dependencies" title="Permanent link">&para;</a></h2>
-<p>sleap-roots has the following core dependencies:</p>
-<ul>
-<li><strong>numpy</strong> – Numerical operations</li>
-<li><strong>pandas</strong> – Data frames for trait output</li>
-<li><strong>h5py</strong> – Reading HDF5 video files</li>
-<li><strong>sleap-io</strong> – Loading SLEAP prediction files (.slp)</li>
-<li><strong>scikit-image</strong> – Image processing utilities</li>
-<li><strong>shapely</strong> – Geometric operations</li>
-<li><strong>matplotlib</strong> – Visualization (optional)</li>
-<li><strong>seaborn</strong> – Statistical plots (optional)</li>
-</ul>
-<p>All dependencies are automatically installed with pip.</p>
-<h2 id="git-lfs-for-test-data">Git LFS for Test Data<a class="headerlink" href="#git-lfs-for-test-data" title="Permanent link">&para;</a></h2>
-<p>If you're developing or running tests, you'll need Git LFS to download test data:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Install Git LFS</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># macOS</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>brew<span class="w"> </span>install<span class="w"> </span>git-lfs
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="c1"># Ubuntu</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>git-lfs
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="c1"># Initialize Git LFS</span>
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>git<span class="w"> </span>lfs<span class="w"> </span>install
-</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>
-</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="c1"># Pull test data (898 MB)</span>
-</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>git<span class="w"> </span>lfs<span class="w"> </span>pull
-</span></code></pre></div>
-<p>Without Git LFS, test data files will be pointer files (~130 bytes) instead of the actual data, and tests will fail.</p>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
 <h3 id="modulenotfounderror-no-module-named-sleap_roots">"ModuleNotFoundError: No module named 'sleap_roots'"<a class="headerlink" href="#modulenotfounderror-no-module-named-sleap_roots" title="Permanent link">&para;</a></h3>
-<p>Make sure the conda environment is activated:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>conda<span class="w"> </span>activate<span class="w"> </span>sleap-roots
-</span></code></pre></div>
-<h3 id="filenotfounderror-in-tests">"FileNotFoundError" in Tests<a class="headerlink" href="#filenotfounderror-in-tests" title="Permanent link">&para;</a></h3>
-<p>Pull Git LFS data:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>git<span class="w"> </span>lfs<span class="w"> </span>install
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>git<span class="w"> </span>lfs<span class="w"> </span>pull
-</span></code></pre></div>
-<h3 id="conda-environment-creation-is-slow">Conda Environment Creation is Slow<a class="headerlink" href="#conda-environment-creation-is-slow" title="Permanent link">&para;</a></h3>
-<p>Use mamba (much faster than conda):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>conda<span class="w"> </span>install<span class="w"> </span>-n<span class="w"> </span>base<span class="w"> </span>-c<span class="w"> </span>conda-forge<span class="w"> </span>mamba
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>mamba<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>environment.yml
+<p>Make sure your environment is activated:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>conda<span class="w"> </span>activate<span class="w"> </span>sleap-roots
 </span></code></pre></div>
 <h3 id="import-errors-with-sleap-io">Import Errors with sleap-io<a class="headerlink" href="#import-errors-with-sleap-io" title="Permanent link">&para;</a></h3>
 <p>Upgrade to the latest version:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>sleap-io
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>sleap-io
 </span></code></pre></div>
-<h2 id="verifying-your-installation">Verifying Your Installation<a class="headerlink" href="#verifying-your-installation" title="Permanent link">&para;</a></h2>
-<p>Run the environment validation command to check everything is set up correctly:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># If using Claude commands</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>/validate-env
-</span></code></pre></div>
-<p>Or manually check:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sleap_roots</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sr</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sleap_roots</span><span class="w"> </span><span class="kn">import</span> <span class="n">DicotPipeline</span>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="c1"># Check version</span>
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;sleap-roots version: </span><span class="si">{</span><span class="n">sr</span><span class="o">.</span><span class="n">__version__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>
-</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="c1"># Instantiate a pipeline</span>
-</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="n">pipeline</span> <span class="o">=</span> <span class="n">DicotPipeline</span><span class="p">()</span>
-</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;✅ Installation successful!&quot;</span><span class="p">)</span>
-</span></code></pre></div>
+<p>For more help, see the <a href="../../guides/troubleshooting/">Troubleshooting Guide</a>.</p>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="../quickstart/">Quick Start Tutorial</a> – Learn the basics</li>
-<li><a href="../what-is-sleap/">What is SLEAP?</a> – Understand the underlying technology</li>
-<li><a href="../../guides/">Pipeline Guide</a> – Choose a pipeline for your data</li>
+<li><strong><a href="../quickstart/">Quick Start Tutorial</a></strong> – Learn the basics in 5 minutes</li>
+<li><strong><a href="../what-is-sleap/">What is SLEAP?</a></strong> – Understand the underlying technology</li>
+<li><strong><a href="../../guides/">Pipeline Guide</a></strong> – Choose a pipeline for your data</li>
 </ul>
+<div class="admonition info">
+<p class="admonition-title">For Contributors</p>
+<p>If you want to contribute to sleap-roots or run tests, see the <strong><a href="../../dev/setup/">Development Setup Guide</a></strong> for instructions on cloning the repository and setting up a development environment.</p>
+</div>
 
 
 
