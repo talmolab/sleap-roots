@@ -6,7 +6,7 @@ This tutorial walks through a complete analysis of dicot root systems using the 
 
 - Load SLEAP predictions for primary and lateral roots
 - Initialize and configure the DicotPipeline
-- Compute 50+ morphological traits
+- Compute 100+ morphological traits
 - Visualize root networks and convex hulls
 - Export results to CSV
 
@@ -97,7 +97,7 @@ Key traits computed by this pipeline:
 | `primary_tip_angle` | Angle of primary root tip relative to vertical | degrees |
 | `convex_hull_area` | Area of convex hull around all roots | pixels² |
 
-See the [Trait Reference](../guides/trait-reference.md) for all 50+ traits.
+See the [Trait Reference](../guides/trait-reference.md) for all 100+ traits.
 
 ## Next Steps
 

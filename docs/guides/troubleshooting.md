@@ -44,17 +44,17 @@ python -c "import sleap_roots; print(sleap_roots.__version__)"
 
 **Problem**: Version conflicts with other packages
 
-**Solution**:
-```bash
-# Create fresh environment
-conda create -n sleap-roots-env python=3.11
-conda activate sleap-roots-env
+**Solution**: Create a fresh virtual environment:
 
-# Install sleap-roots
+```bash
+# Using venv (built-in)
+python -m venv sleap-roots-env
+source sleap-roots-env/bin/activate  # On Windows: sleap-roots-env\Scripts\activate
 pip install sleap-roots
 
-# Or use uv (faster)
-pip install uv
+# Or use uv (recommended - faster)
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 uv pip install sleap-roots
 ```
 

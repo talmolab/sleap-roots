@@ -54,7 +54,7 @@ print(traits_df.head())
 This will:
 
 - Load predictions for primary and lateral roots
-- Compute 40+ morphological traits
+- Compute 100+ morphological traits
 - Save results to `919QDUH_traits.csv`
 
 ## Example 2: Batch Processing
@@ -215,10 +215,7 @@ Determine your scale by:
 
 ### "No module named 'sleap_roots'"
 
-Activate your conda environment:
-```bash
-conda activate sleap-roots
-```
+See the [Troubleshooting Guide](../guides/troubleshooting.md#import-errors) for solutions.
 
 ### "FileNotFoundError: predictions.slp"
 
