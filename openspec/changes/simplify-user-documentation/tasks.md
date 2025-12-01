@@ -2,49 +2,49 @@
 
 ## Phase 1: Audit and Count
 
-- [ ] Count actual user-facing traits across all pipelines
+- [x] Count actual user-facing traits across all pipelines
   - Run script or check trait_pipelines.py for TraitDef counts
   - Determine which are user-facing vs. intermediate
-  - Document final count for reference
-- [ ] Identify all conda references across documentation
+  - Document final count for reference: **174 TraitDef objects, using 100+ as user-facing claim**
+- [x] Identify all conda references across documentation
   - Search all .md files in docs/
   - Document locations for systematic removal
-- [ ] Find all repeated error messages
+- [x] Find all repeated error messages
   - List all files with common error documentation
   - Identify which should be canonical source
 
-**Validation**: Complete inventory of all changes needed
+**Validation**: Complete inventory of all changes needed ✅
 
 ---
 
 ## Phase 2: Update Home Page Performance Section
 
-- [ ] Remove link to dev/benchmarking.md from home page
-- [ ] Create user-friendly performance summary on home page
+- [x] Remove link to dev/benchmarking.md from home page
+- [x] Create user-friendly performance summary on home page
   - Show 0.1-0.5s per plant timing
   - Add context: platform specs (GitHub Actions: 2 cores, 7GB RAM)
   - Add sample count context (how many samples benchmarked)
   - Simple explanation: "Fast enough for X plants per hour"
-- [ ] Add subtle link: "Developer Guide → Benchmarking" for infrastructure details
-- [ ] Update trait count on home page (2 locations)
+- [x] Add subtle link: "Developer Guide → Benchmarking" for infrastructure details
+- [x] Update trait count on home page (2 locations)
 
-**Validation**: Home page is user-focused, no dev infrastructure links
+**Validation**: Home page is user-focused, no dev infrastructure links ✅
 
 ---
 
 ## Phase 3: Update Trait Counts Throughout
 
-- [ ] Update docs/index.md trait references
-  - Line 11: "Extract 50+ morphological traits"
-  - Line 48: "50+ morphological traits"
-- [ ] Update docs/tutorials/dicot-pipeline.md
-  - Line 9: "Compute 50+ morphological traits"
-  - Line 100: "See the Trait Reference for all 50+ traits"
-- [ ] Update docs/getting-started/quickstart.md
-  - Line 57: "40+ morphological traits"
-- [ ] Verify accuracy with actual pipeline code
+- [x] Update docs/index.md trait references
+  - Line 11: "Extract 50+ morphological traits" → 100+
+  - Line 48: "50+ morphological traits" → 100+
+- [x] Update docs/tutorials/dicot-pipeline.md
+  - Line 9: "Compute 50+ morphological traits" → 100+
+  - Line 100: "See the Trait Reference for all 50+ traits" → 100+
+- [x] Update docs/getting-started/quickstart.md
+  - Line 57: "40+ morphological traits" → 100+
+- [x] Verify accuracy with actual pipeline code
 
-**Validation**: All trait count claims match reality
+**Validation**: All trait count claims match reality ✅
 
 ---
 
@@ -52,96 +52,96 @@
 
 ### Installation Guide
 
-- [ ] Remove "Recommended: Conda Environment" section header
-- [ ] Rewrite as "Alternative: Using Conda" at bottom
-- [ ] Keep instructions minimal and consolidated
-- [ ] Remove conda from troubleshooting sections in installation.md
+- [x] Remove "Recommended: Conda Environment" section header
+- [x] Rewrite as "Alternative: Using Conda" at bottom
+- [x] Keep instructions minimal and consolidated
+- [x] Remove conda from troubleshooting sections in installation.md
 
 ### Home Page
 
-- [ ] Change "Quick pip install or conda setup" → "Quick pip install or uv setup"
+- [x] Change "Quick pip install or conda setup" → "Quick pip install or uv setup"
 
 ### Quick Start
 
-- [ ] Remove "Activate your conda environment:" section (lines 218-220)
-- [ ] Assume users followed recommended uv/pip approach
+- [x] Remove "Activate your conda environment:" section (lines 218-220)
+- [x] Assume users followed recommended uv/pip approach
 
 ### Troubleshooting Guide
 
-- [ ] Remove conda-specific environment creation (lines 50-51)
-- [ ] Provide universal solutions only
+- [x] Remove conda-specific environment creation (lines 50-51)
+- [x] Provide universal solutions only
 
 ### Verify No Conda in User Guides
 
-- [ ] Check home page: no conda mentions ✓
-- [ ] Check quick start: no conda mentions ✓
-- [ ] Check troubleshooting: no conda mentions ✓
-- [ ] Installation guide: conda mentioned once only, as alternative ✓
+- [x] Check home page: no conda mentions ✓
+- [x] Check quick start: no conda mentions ✓
+- [x] Check troubleshooting: no conda mentions ✓
+- [x] Installation guide: conda mentioned once only, as alternative ✓
 
-**Validation**: Conda appears exactly once in installation guide, nowhere in user flow
+**Validation**: Conda appears exactly once in installation guide, nowhere in user flow ✅
 
 ---
 
 ## Phase 5: Consolidate Error Documentation
 
-- [ ] Make troubleshooting.md canonical source for common errors
-- [ ] Update installation.md: Replace error solution with link
+- [x] Make troubleshooting.md canonical source for common errors
+- [x] Update installation.md: Replace error solution with link
   - Line 89: "ModuleNotFoundError" → link to troubleshooting
-- [ ] Update quickstart.md: Replace error solution with link
+- [x] Update quickstart.md: Replace error solution with link
   - Line 216: Common Issues → link to troubleshooting
-- [ ] Ensure troubleshooting.md has comprehensive solutions
+- [x] Ensure troubleshooting.md has comprehensive solutions
   - Import errors
   - Path issues
   - Version conflicts
 
-**Validation**: No duplicated error solutions, single source of truth
+**Validation**: No duplicated error solutions, single source of truth ✅
 
 ---
 
 ## Phase 6: Clarify Python Version Support
 
-- [ ] Update Python version table in installation.md
+- [x] Update Python version table in installation.md
   - Ubuntu: "3.7-3.11 Fully supported" → "3.11 CI tested"
   - Add row: "3.7-3.12 Should work (not CI tested)"
-- [ ] Add explanatory note about CI testing
+- [x] Add explanatory note about CI testing
   ```markdown
   !!! info "Python Version Support"
       We officially test and support Python 3.11 on all platforms through CI.
       Other versions (3.7-3.12) should work based on dependencies, but are not continuously tested.
   ```
-- [ ] Consider adding note about why 3.11 is recommended
+- [x] Consider adding note about why 3.11 is recommended
 
-**Validation**: Python version claims match CI reality
+**Validation**: Python version claims match CI reality ✅
 
 ---
 
 ## Phase 7: Build and Validate
 
-- [ ] Build documentation locally
+- [x] Build documentation locally
   ```bash
   uv run mkdocs build
   ```
-- [ ] Check for warnings
+- [x] Check for warnings
   ```bash
   uv run mkdocs build 2>&1 | grep -E "WARNING|ERROR"
   ```
-- [ ] Verify all cross-references work
-- [ ] Check that performance section is clear and user-friendly
-- [ ] Confirm no broken links
+- [x] Verify all cross-references work
+- [x] Check that performance section is clear and user-friendly
+- [x] Confirm no broken links
 
-**Validation**: Clean build, all improvements implemented
+**Validation**: Clean build, all improvements implemented ✅
 
 ---
 
 ## Phase 8: Final Review
 
-- [ ] Review home page for user-friendliness
-- [ ] Verify installation guide flow (pip → uv → conda alternative)
-- [ ] Check troubleshooting guide is comprehensive
-- [ ] Ensure consistent trait counts everywhere
-- [ ] Confirm no developer-heavy content on user pages
+- [x] Review home page for user-friendliness
+- [x] Verify installation guide flow (pip → uv → conda alternative)
+- [x] Check troubleshooting guide is comprehensive
+- [x] Ensure consistent trait counts everywhere (100+)
+- [x] Confirm no developer-heavy content on user pages
 
-**Validation**: Documentation is simple, accurate, and user-focused
+**Validation**: Documentation is simple, accurate, and user-focused ✅
 
 ---
 
