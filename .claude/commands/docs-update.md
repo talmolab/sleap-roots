@@ -252,15 +252,21 @@ curl -I https://hackmd.io/DMiXO2kXQhKH8AIIcIy--g
 # Build MkDocs documentation
 uv run mkdocs build
 
-# Check for warnings (should be zero)
-uv run mkdocs build 2>&1 | grep "WARNING"
+# Check for warnings (should be zero except README.md exclusion)
+uv run mkdocs build 2>&1 | grep -E "WARNING|ERROR"
 
 # Serve locally to preview
 uv run mkdocs serve
 # Visit http://127.0.0.1:8000
 
-# Check for broken links
-# Navigate through all pages and verify links work
+# Check for broken internal links automatically
+uv run mkdocs build --strict  # Fails on warnings
+
+# Manual link verification for external links
+grep -roh "https://[^)]*" docs/ | sort -u | while read url; do
+  echo "Checking: $url"
+  curl -s -o /dev/null -w "%{http_code}" "$url" || echo "FAILED"
+done
 ```
 
 **MkDocs Documentation Structure:**

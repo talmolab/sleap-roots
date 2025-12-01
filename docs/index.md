@@ -34,7 +34,7 @@ Analysis tools for [SLEAP](https://sleap.ai)-based plant root phenotyping.
 
     Clean Python API with comprehensive docs, type hints, and [![codecov](https://codecov.io/gh/talmolab/sleap-roots/branch/main/graph/badge.svg)](https://codecov.io/gh/talmolab/sleap-roots) test coverage.
 
-    [:octicons-arrow-right-24: API Reference](reference/)
+    [:octicons-arrow-right-24: API Reference](api/)
 
 </div>
 
@@ -66,9 +66,12 @@ Or create your own custom pipeline!
 
 ### :material-speedometer: High Performance
 
-- Process hundreds of plants in minutes
-- Vectorized NumPy operations for fast computation
-- Efficient batch processing with parallelization support
+- **Fast trait extraction**: 0.1-0.5s per plant for single-plant pipelines
+- **High-throughput batches**: Process hundreds of plants in minutes
+- Optimized with vectorized NumPy operations
+- Comprehensive benchmarking suite tracks performance over time
+
+[View benchmarks and methodology →](dev/benchmarking.md)
 
 ### :material-flask: Research Ready
 
@@ -81,6 +84,17 @@ Or create your own custom pipeline!
 - Modular design for custom trait development
 - Clean Python API with comprehensive type hints
 - Well-tested codebase [![codecov](https://codecov.io/gh/talmolab/sleap-roots/branch/main/graph/badge.svg)](https://codecov.io/gh/talmolab/sleap-roots)
+
+## Getting Started
+
+Ready to extract root traits from your images? Follow these steps:
+
+1. **[Install sleap-roots](getting-started/installation.md)** – Quick pip install or conda setup (2 minutes)
+2. **[Quick Start Tutorial](getting-started/quickstart.md)** – Learn the basics with example data (5 minutes)
+3. **[Choose a Pipeline](guides/index.md)** – Find the right pipeline for your plant type
+
+!!! tip "For Contributors"
+    Want to contribute to sleap-roots? See the **[Development Setup Guide](dev/setup.md)** for instructions on setting up a development environment.
 
 ## Quick Example
 
