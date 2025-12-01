@@ -123,14 +123,14 @@ warnings.filterwarnings(
 class NumpyArrayEncoder(json.JSONEncoder):
     """Custom encoder for NumPy array types."""
 
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         """Serialize NumPy arrays to lists.
 
         Args:
             obj: The object to serialize.
 
         Returns:
-            A list representation of the NumPy array.
+            A list representation of the NumPy array or the object itself.
         """
         if isinstance(obj, np.ndarray):
             return obj.tolist()
@@ -397,7 +397,7 @@ class Pipeline:
         json_suffix: str = ".all_frames_traits.json",
         write_csv: bool = False,
         csv_suffix: str = ".all_frames_summary.csv",
-    ):
+    ) -> Dict[str, Any]:
         """Computes plant traits for pipelines with multiple plants over all frames in a series.
 
         Args:
@@ -408,7 +408,7 @@ class Pipeline:
             csv_suffix: The suffix to append to the CSV file name. Default is ".all_frames_summary.csv".
 
         Returns:
-            A dictionary containing the series name, group, qc_fail, aggregated traits, and summary statistics.
+            Dictionary containing the series name, group, qc_fail, aggregated traits, and summary statistics.
         """
         # Initialize the return structure with the series name and group
         result = {
@@ -646,7 +646,7 @@ class Pipeline:
         csv_suffix: str = ".all_frames_summary.csv",
         per_instance: bool = False,
         flattened_csv_suffix: str = ".flattened_traits.csv",
-    ):
+    ) -> Union[Dict[str, Any], pd.DataFrame]:
         """Computes plant traits for pipelines with multiple primary roots over all frames in a series.
 
         Args:
@@ -657,7 +657,7 @@ class Pipeline:
             csv_suffix: The suffix to append to the CSV file name. Default is ".all_frames_summary.csv".
 
         Returns:
-            A dictionary with aggregated traits, summary stats, and optionally per-instance traits.
+            Dictionary with aggregated traits, summary stats, and optionally per-instance traits.
         """
         result = {
             "series": str(series.series_name),
@@ -2885,7 +2885,6 @@ class PrimaryRootPipeline(Pipeline):
         """Return initial traits for a plant frame.
 
         Args:
-            Args:
             plant: The plant `Series` object.
             frame_idx: The index of the current frame.
 
@@ -2920,7 +2919,6 @@ class MultiplePrimaryRootPipeline(Pipeline):
         """Return initial traits for a plant frame.
 
         Args:
-            Args:
             plant: The plant `Series` object.
             frame_idx: The index of the current frame.
 

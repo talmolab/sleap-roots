@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
-from typing import Dict, Optional, Tuple, List, Union
+from typing import Any, Dict, Optional, Tuple, List, Union
 from pathlib import Path
 
 
@@ -674,8 +674,13 @@ def plot_instance(
 
 
 def plot_instances(
-    instances, skeleton=None, cmap=None, color_by_track=False, tracks=None, **kwargs
-):
+    instances: List,
+    skeleton: Optional["sio.Skeleton"] = None,
+    cmap: Optional[List] = None,
+    color_by_track: bool = False,
+    tracks: Optional[List] = None,
+    **kwargs: Any
+) -> List:
     """Plot a list of instances with identity coloring.
 
     Args:
