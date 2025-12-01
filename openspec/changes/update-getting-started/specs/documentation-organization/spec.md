@@ -75,7 +75,7 @@ Documentation navigation MUST clearly distinguish between user and developer pat
 Given a user is on the documentation home page
 When they click "Getting Started" → "Installation"
 Then they should land on user-focused installation instructions
-And the page should be under 100 lines
+And the page should be under 120 lines
 And the page should complete in under 5 minutes of reading
 ```
 

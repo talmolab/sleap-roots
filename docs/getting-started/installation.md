@@ -111,4 +111,4 @@ For more help, see the [Troubleshooting Guide](../guides/troubleshooting.md).
 - **[Pipeline Guide](../guides/index.md)** – Choose a pipeline for your data
 
 !!! info "For Contributors"
-    If you want to contribute to sleap-roots or run tests, see the **[Development Setup Guide](../dev/setup.md)** for instructions on cloning the repository and setting up a development environment
+    If you want to contribute to sleap-roots or run tests, see the **[Development Setup Guide](../dev/setup.md)** for instructions on cloning the repository and setting up a development environment.

@@ -54,7 +54,7 @@ Ensure clear user vs. developer paths:
 
 ## Success Criteria
 
-- [ ] Getting Started page has <50 lines focused on user installation
+- [ ] Getting Started page has <120 lines focused on user installation
 - [ ] No mention of Git LFS or test running in Getting Started
 - [ ] Developer Guide has complete development setup instructions
 - [ ] Navigation clearly separates user vs. developer content

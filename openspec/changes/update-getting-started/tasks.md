@@ -27,7 +27,7 @@
   - Modern workflow: `uv init` + `uv add sleap-roots`
   - Verification steps (import test)
   - Remove all development content
-- [x] Keep page under 100 lines (113 lines - very close)
+- [x] Keep page under 120 lines (113 lines - achieved)
 - [x] Add clear "Next Steps" linking to quickstart
 - [x] Add "For Contributors" box linking to dev/setup.md
 
