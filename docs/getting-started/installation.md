@@ -1,16 +1,20 @@
 # Installation
 
+sleap-roots is a Python package for extracting morphological traits from plant root images analyzed with [SLEAP](https://sleap.ai).
+
 ## Quick Install
 
-The simplest way to install sleap-roots is via pip:
+The simplest way to install sleap-roots:
 
 ```bash
 pip install sleap-roots
 ```
 
+That's it! You're ready to use sleap-roots.
+
 ## Recommended: Conda Environment
 
-We recommend using conda to manage dependencies and avoid conflicts:
+To avoid dependency conflicts, we recommend using conda:
 
 ```bash
 # Create a new environment with Python 3.11
@@ -26,107 +30,48 @@ pip install sleap-roots
 !!! tip "Why Python 3.11?"
     While sleap-roots supports Python 3.7+, we recommend 3.11 for the best performance and compatibility with recent NumPy/Pandas versions.
 
-## Development Installation
+## Modern Workflow: Using uv
 
-If you want to contribute to sleap-roots or run the latest development version, we recommend using **uv** for the fastest and most modern workflow.
-
-### Modern Approach: Using uv (Recommended)
-
-[uv](https://github.com/astral-sh/uv) is a fast, modern Python package manager that handles dependency management with lockfiles for reproducibility.
-
-#### 1. Install uv
+For starting a new project, [uv](https://github.com/astral-sh/uv) provides a fast, modern Python workflow:
 
 ```bash
-# macOS/Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh  # macOS/Linux
+# Or: pip install uv
 
-# Windows
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+# Create a new project
+uv init my-root-analysis
+cd my-root-analysis
 
-# Or with pip
-pip install uv
-```
+# Add sleap-roots to your project
+uv add sleap-roots
 
-#### 2. Clone and Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/talmolab/sleap-roots.git
-cd sleap-roots
-
-# Install Git LFS for test data
-git lfs install
-git lfs pull
-
-# Create environment and install all dependencies
-uv sync
-
-# This automatically:
-# - Creates a virtual environment (.venv)
-# - Installs runtime dependencies
-# - Installs dev dependencies from [dependency-groups]
-# - Installs sleap-roots in editable mode
-# - Generates/updates uv.lock for reproducibility
-```
-
-#### 3. Verify Installation
-
-```bash
-# Run tests
-uv run pytest tests/
-
-# Check formatting
-uv run black --check sleap_roots tests
-
-# Check docstrings
-uv run pydocstyle sleap_roots/
-
-# Import the package
-uv run python -c "import sleap_roots; print(sleap_roots.__version__)"
+# Run your analysis script
+uv run python my_analysis.py
 ```
 
 !!! tip "Why uv?"
-    - **10-100x faster** than pip/conda
-    - **Automatic dependency locking** with uv.lock
-    - **No separate environment activation** needed (use `uv run`)
-    - **PEP 735 dependency groups** for clean dev/prod separation
-    - **Built-in tool management** (no need for separate virtualenv)
+    uv is 10-100x faster than pip/conda and provides automatic dependency locking for reproducibility.
 
-### Alternative: Using Conda
+## Verify Installation
 
-If you prefer conda or need conda-specific packages:
+Test that sleap-roots is installed correctly:
 
-#### 1. Clone the Repository
+```python
+import sleap_roots as sr
 
-```bash
-git clone https://github.com/talmolab/sleap-roots.git
-cd sleap-roots
+# Check version
+print(f"sleap-roots version: {sr.__version__}")
+
+# Instantiate a pipeline
+pipeline = sr.DicotPipeline()
+print("✅ Installation successful!")
 ```
 
-#### 2. Create Environment from File
+Or run this one-liner:
 
 ```bash
-conda env create -f environment.yml
-conda activate sleap-roots
-```
-
-This installs:
-
-- All runtime dependencies (numpy, pandas, sleap-io, etc.)
-- Dev dependencies (pytest, black, pydocstyle, mkdocs)
-- The package in editable mode
-
-#### 3. Verify Installation
-
-```bash
-# Run tests
-pytest tests/
-
-# Check formatting
-black --check sleap_roots tests
-
-# Import the package
-python -c "import sleap_roots; print(sleap_roots.__version__)"
+python -c "import sleap_roots; print(f'✅ sleap-roots {sleap_roots.__version__} installed successfully!')"
 ```
 
 ## Platform Support
@@ -135,72 +80,18 @@ sleap-roots is tested on:
 
 | Platform | Python Versions | Status |
 |----------|----------------|--------|
-| **Ubuntu 22.04** | 3.7, 3.8, 3.9, 3.10, 3.11 | :white_check_mark: Fully supported |
-| **macOS** | 3.11 | :white_check_mark: Fully supported |
-| **Windows** | 3.11 | :white_check_mark: Fully supported |
-
-## Dependencies
-
-sleap-roots has the following core dependencies:
-
-- **numpy** – Numerical operations
-- **pandas** – Data frames for trait output
-- **h5py** – Reading HDF5 video files
-- **sleap-io** – Loading SLEAP prediction files (.slp)
-- **scikit-image** – Image processing utilities
-- **shapely** – Geometric operations
-- **matplotlib** – Visualization (optional)
-- **seaborn** – Statistical plots (optional)
-
-All dependencies are automatically installed with pip.
-
-## Git LFS for Test Data
-
-If you're developing or running tests, you'll need Git LFS to download test data:
-
-```bash
-# Install Git LFS
-# macOS
-brew install git-lfs
-
-# Ubuntu
-sudo apt-get install git-lfs
-
-# Initialize Git LFS
-git lfs install
-
-# Pull test data (898 MB)
-git lfs pull
-```
-
-Without Git LFS, test data files will be pointer files (~130 bytes) instead of the actual data, and tests will fail.
+| **Ubuntu 22.04** | 3.7, 3.8, 3.9, 3.10, 3.11 | ✅ Fully supported |
+| **macOS** | 3.11 | ✅ Fully supported |
+| **Windows** | 3.11 | ✅ Fully supported |
 
 ## Troubleshooting
 
 ### "ModuleNotFoundError: No module named 'sleap_roots'"
 
-Make sure the conda environment is activated:
+Make sure your environment is activated:
 
 ```bash
 conda activate sleap-roots
-```
-
-### "FileNotFoundError" in Tests
-
-Pull Git LFS data:
-
-```bash
-git lfs install
-git lfs pull
-```
-
-### Conda Environment Creation is Slow
-
-Use mamba (much faster than conda):
-
-```bash
-conda install -n base -c conda-forge mamba
-mamba env create -f environment.yml
 ```
 
 ### Import Errors with sleap-io
@@ -211,31 +102,13 @@ Upgrade to the latest version:
 pip install --upgrade sleap-io
 ```
 
-## Verifying Your Installation
-
-Run the environment validation command to check everything is set up correctly:
-
-```bash
-# If using Claude commands
-/validate-env
-```
-
-Or manually check:
-
-```python
-import sleap_roots as sr
-from sleap_roots import DicotPipeline
-
-# Check version
-print(f"sleap-roots version: {sr.__version__}")
-
-# Instantiate a pipeline
-pipeline = DicotPipeline()
-print("✅ Installation successful!")
-```
+For more help, see the [Troubleshooting Guide](../guides/troubleshooting.md).
 
 ## Next Steps
 
-- [Quick Start Tutorial](quickstart.md) – Learn the basics
-- [What is SLEAP?](what-is-sleap.md) – Understand the underlying technology
-- [Pipeline Guide](../guides/index.md) – Choose a pipeline for your data
+- **[Quick Start Tutorial](quickstart.md)** – Learn the basics in 5 minutes
+- **[What is SLEAP?](what-is-sleap.md)** – Understand the underlying technology
+- **[Pipeline Guide](../guides/index.md)** – Choose a pipeline for your data
+
+!!! info "For Contributors"
+    If you want to contribute to sleap-roots or run tests, see the **[Development Setup Guide](../dev/setup.md)** for instructions on cloning the repository and setting up a development environment

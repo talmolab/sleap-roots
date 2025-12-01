@@ -2,6 +2,9 @@
 
 This guide will help you set up a development environment for contributing to sleap-roots.
 
+!!! info "For End Users"
+    If you just want to **use** sleap-roots (not contribute code), see the **[Installation Guide](../getting-started/installation.md)** instead. This page is for developers who want to contribute to the project or run tests
+
 ## Prerequisites
 
 Before you begin, ensure you have:
