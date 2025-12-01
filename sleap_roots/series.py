@@ -679,7 +679,7 @@ def plot_instances(
     cmap: Optional[List] = None,
     color_by_track: bool = False,
     tracks: Optional[List] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> List:
     """Plot a list of instances with identity coloring.
 
