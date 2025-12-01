@@ -34,7 +34,7 @@ Analysis tools for [SLEAP](https://sleap.ai)-based plant root phenotyping.
 
     Clean Python API with comprehensive docs, type hints, and [![codecov](https://codecov.io/gh/talmolab/sleap-roots/branch/main/graph/badge.svg)](https://codecov.io/gh/talmolab/sleap-roots) test coverage.
 
-    [:octicons-arrow-right-24: API Reference](reference/)
+    [:octicons-arrow-right-24: API Reference](api/)
 
 </div>
 
@@ -66,9 +66,12 @@ Or create your own custom pipeline!
 
 ### :material-speedometer: High Performance
 
-- Process hundreds of plants in minutes
-- Vectorized NumPy operations for fast computation
-- Efficient batch processing with parallelization support
+- **Fast trait extraction**: 0.1-0.5s per plant for single-plant pipelines
+- **High-throughput batches**: Process hundreds of plants in minutes
+- Optimized with vectorized NumPy operations
+- Comprehensive benchmarking suite tracks performance over time
+
+[View benchmarks and methodology →](dev/benchmarking.md)
 
 ### :material-flask: Research Ready
 
