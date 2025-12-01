@@ -32,7 +32,7 @@ Analysis tools for [SLEAP](https://sleap.ai)-based plant root phenotyping.
 
     ---
 
-    Clean Python API with comprehensive docs, type hints, and 99% test coverage.
+    Clean Python API with comprehensive docs, type hints, and 84% test coverage.
 
     [:octicons-arrow-right-24: API Reference](reference/)
 
@@ -80,7 +80,7 @@ Or create your own custom pipeline!
 
 - Modular design for custom trait development
 - Clean Python API with comprehensive type hints
-- Well-tested codebase (99% coverage)
+- Well-tested codebase (84% coverage)
 
 ## Quick Example
 

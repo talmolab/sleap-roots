@@ -1,7 +1,7 @@
 site_name: sleap-roots
 site_description: Analysis tools for SLEAP-based plant root phenotyping
 site_author: Talmo Lab
-site_url: https://talmolab.github.io/sleap-roots
+site_url: https://roots.sleap.ai
 repo_name: talmolab/sleap-roots
 repo_url: https://github.com/talmolab/sleap-roots
 edit_uri: edit/main/docs/
