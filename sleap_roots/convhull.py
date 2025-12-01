@@ -223,7 +223,7 @@ def get_chull_division_areas(
 
     Raises:
         ValueError: If pts does not have the expected shape, or if hull is not a valid
-        ConvexHull object.
+            ConvexHull instance.
     """
     if not isinstance(pts, np.ndarray) or pts.ndim != 3 or pts.shape[-1] != 2:
         raise ValueError("pts must be a numpy array of shape (instances, nodes, 2).")

@@ -204,7 +204,9 @@ def get_base_length_ratio(primary_length: float, base_length: float) -> float:
     return base_length_ratio
 
 
-def get_base_median_ratio(lateral_base_ys, primary_tip_pt_y):
+def get_base_median_ratio(
+    lateral_base_ys: np.ndarray, primary_tip_pt_y: Union[np.ndarray, float]
+) -> float:
     """Get ratio of median value in all base points to tip of primary root in y axis.
 
     Args:
