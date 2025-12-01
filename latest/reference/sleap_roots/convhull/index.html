@@ -12,7 +12,7 @@
         <meta name="author" content="Talmo Lab">
       
       
-        <link rel="canonical" href="https://talmolab.github.io/sleap-roots/latest/reference/sleap_roots/convhull/">
+        <link rel="canonical" href="https://roots.sleap.ai/latest/reference/sleap_roots/convhull/">
       
       
       
@@ -1867,8 +1867,6 @@
       
         
       
-        
-      
     
     
     
@@ -2566,34 +2564,6 @@
           </ul>
         </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    None
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -3879,7 +3849,8 @@ hull. If the convex hull fitting fails, an empty array is returned.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If pts does not have the expected shape, or if hull is not a valid</p>
+                <p>If pts does not have the expected shape, or if hull is not a valid
+ConvexHull instance.</p>
               </div>
             </td>
           </tr>
@@ -3966,7 +3937,7 @@ hull. If the convex hull fitting fails, an empty array is returned.</p>
 </span><span id="__span-0-223"><a id="__codelineno-0-223" name="__codelineno-0-223"></a>
 </span><span id="__span-0-224"><a id="__codelineno-0-224" name="__codelineno-0-224"></a><span class="sd">    Raises:</span>
 </span><span id="__span-0-225"><a id="__codelineno-0-225" name="__codelineno-0-225"></a><span class="sd">        ValueError: If pts does not have the expected shape, or if hull is not a valid</span>
-</span><span id="__span-0-226"><a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="sd">        ConvexHull object.</span>
+</span><span id="__span-0-226"><a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="sd">            ConvexHull instance.</span>
 </span><span id="__span-0-227"><a id="__codelineno-0-227" name="__codelineno-0-227"></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="__span-0-228"><a id="__codelineno-0-228" name="__codelineno-0-228"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">or</span> <span class="n">pts</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">3</span> <span class="ow">or</span> <span class="n">pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
 </span><span id="__span-0-229"><a id="__codelineno-0-229" name="__codelineno-0-229"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;pts must be a numpy array of shape (instances, nodes, 2).&quot;</span><span class="p">)</span>

@@ -12,7 +12,7 @@
         <meta name="author" content="Talmo Lab">
       
       
-        <link rel="canonical" href="https://talmolab.github.io/sleap-roots/latest/reference/sleap_roots/trait_pipelines/">
+        <link rel="canonical" href="https://roots.sleap.ai/latest/reference/sleap_roots/trait_pipelines/">
       
       
       
@@ -1867,8 +1867,6 @@
       
         
       
-        
-      
     
     
     
@@ -2571,34 +2569,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    None
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -2940,7 +2910,7 @@
 
 
 <a href="#sleap_roots.trait_pipelines.NumpyArrayEncoder.default" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">default</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">default</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Any">Any</span></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2964,6 +2934,7 @@
                 <code>obj</code>
             </td>
             <td>
+                  <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2989,10 +2960,11 @@
       <tbody>
           <tr class="doc-section-item">
             <td>
+                  <code><span title="typing.Any">Any</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>A list representation of the NumPy array.</p>
+                <p>A list representation of the NumPy array or the object itself.</p>
               </div>
             </td>
           </tr>
@@ -3016,14 +2988,14 @@
 <span class="normal"><a href="#__codelineno-0-137">137</a></span>
 <span class="normal"><a href="#__codelineno-0-138">138</a></span>
 <span class="normal"><a href="#__codelineno-0-139">139</a></span>
-<span class="normal"><a href="#__codelineno-0-140">140</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-126"><a id="__codelineno-0-126" name="__codelineno-0-126"></a><span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-140">140</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-126"><a id="__codelineno-0-126" name="__codelineno-0-126"></a><span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 </span><span id="__span-0-127"><a id="__codelineno-0-127" name="__codelineno-0-127"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Serialize NumPy arrays to lists.</span>
 </span><span id="__span-0-128"><a id="__codelineno-0-128" name="__codelineno-0-128"></a>
 </span><span id="__span-0-129"><a id="__codelineno-0-129" name="__codelineno-0-129"></a><span class="sd">    Args:</span>
 </span><span id="__span-0-130"><a id="__codelineno-0-130" name="__codelineno-0-130"></a><span class="sd">        obj: The object to serialize.</span>
 </span><span id="__span-0-131"><a id="__codelineno-0-131" name="__codelineno-0-131"></a>
 </span><span id="__span-0-132"><a id="__codelineno-0-132" name="__codelineno-0-132"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-133"><a id="__codelineno-0-133" name="__codelineno-0-133"></a><span class="sd">        A list representation of the NumPy array.</span>
+</span><span id="__span-0-133"><a id="__codelineno-0-133" name="__codelineno-0-133"></a><span class="sd">        A list representation of the NumPy array or the object itself.</span>
 </span><span id="__span-0-134"><a id="__codelineno-0-134" name="__codelineno-0-134"></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="__span-0-135"><a id="__codelineno-0-135" name="__codelineno-0-135"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
 </span><span id="__span-0-136"><a id="__codelineno-0-136" name="__codelineno-0-136"></a>        <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
@@ -4125,7 +4097,7 @@ summarized traits.</p>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">json_suffix</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;.all_frames_traits.json&quot;</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">write_csv</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">csv_suffix</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;.all_frames_summary.csv&quot;</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Dict">Dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -4239,10 +4211,11 @@ summarized traits.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
+                  <code><span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>A dictionary containing the series name, group, qc_fail, aggregated traits, and summary statistics.</p>
+                <p>Dictionary containing the series name, group, qc_fail, aggregated traits, and summary statistics.</p>
               </div>
             </td>
           </tr>
@@ -4370,7 +4343,7 @@ summarized traits.</p>
 </span><span id="__span-0-397"><a id="__codelineno-0-397" name="__codelineno-0-397"></a>    <span class="n">json_suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.all_frames_traits.json&quot;</span><span class="p">,</span>
 </span><span id="__span-0-398"><a id="__codelineno-0-398" name="__codelineno-0-398"></a>    <span class="n">write_csv</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 </span><span id="__span-0-399"><a id="__codelineno-0-399" name="__codelineno-0-399"></a>    <span class="n">csv_suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.all_frames_summary.csv&quot;</span><span class="p">,</span>
-</span><span id="__span-0-400"><a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="p">):</span>
+</span><span id="__span-0-400"><a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 </span><span id="__span-0-401"><a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes plant traits for pipelines with multiple plants over all frames in a series.</span>
 </span><span id="__span-0-402"><a id="__codelineno-0-402" name="__codelineno-0-402"></a>
 </span><span id="__span-0-403"><a id="__codelineno-0-403" name="__codelineno-0-403"></a><span class="sd">    Args:</span>
@@ -4381,7 +4354,7 @@ summarized traits.</p>
 </span><span id="__span-0-408"><a id="__codelineno-0-408" name="__codelineno-0-408"></a><span class="sd">        csv_suffix: The suffix to append to the CSV file name. Default is &quot;.all_frames_summary.csv&quot;.</span>
 </span><span id="__span-0-409"><a id="__codelineno-0-409" name="__codelineno-0-409"></a>
 </span><span id="__span-0-410"><a id="__codelineno-0-410" name="__codelineno-0-410"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-411"><a id="__codelineno-0-411" name="__codelineno-0-411"></a><span class="sd">        A dictionary containing the series name, group, qc_fail, aggregated traits, and summary statistics.</span>
+</span><span id="__span-0-411"><a id="__codelineno-0-411" name="__codelineno-0-411"></a><span class="sd">        Dictionary containing the series name, group, qc_fail, aggregated traits, and summary statistics.</span>
 </span><span id="__span-0-412"><a id="__codelineno-0-412" name="__codelineno-0-412"></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="__span-0-413"><a id="__codelineno-0-413" name="__codelineno-0-413"></a>    <span class="c1"># Initialize the return structure with the series name and group</span>
 </span><span id="__span-0-414"><a id="__codelineno-0-414" name="__codelineno-0-414"></a>    <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
@@ -4936,7 +4909,7 @@ summarized traits.</p>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">csv_suffix</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;.all_frames_summary.csv&quot;</span><span class="p">,</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">per_instance</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">flattened_csv_suffix</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;.flattened_traits.csv&quot;</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Union">Union</span></span><span class="p">[</span><span class="n"><span title="typing.Dict">Dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">],</span> <span class="n"><span title="pandas.DataFrame">DataFrame</span></span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -5050,10 +5023,11 @@ summarized traits.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
+                  <code><span title="typing.Union">Union</span>[<span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>], <span title="pandas.DataFrame">DataFrame</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>A dictionary with aggregated traits, summary stats, and optionally per-instance traits.</p>
+                <p>Dictionary with aggregated traits, summary stats, and optionally per-instance traits.</p>
               </div>
             </td>
           </tr>
@@ -5209,7 +5183,7 @@ summarized traits.</p>
 </span><span id="__span-0-646"><a id="__codelineno-0-646" name="__codelineno-0-646"></a>    <span class="n">csv_suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.all_frames_summary.csv&quot;</span><span class="p">,</span>
 </span><span id="__span-0-647"><a id="__codelineno-0-647" name="__codelineno-0-647"></a>    <span class="n">per_instance</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 </span><span id="__span-0-648"><a id="__codelineno-0-648" name="__codelineno-0-648"></a>    <span class="n">flattened_csv_suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.flattened_traits.csv&quot;</span><span class="p">,</span>
-</span><span id="__span-0-649"><a id="__codelineno-0-649" name="__codelineno-0-649"></a><span class="p">):</span>
+</span><span id="__span-0-649"><a id="__codelineno-0-649" name="__codelineno-0-649"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
 </span><span id="__span-0-650"><a id="__codelineno-0-650" name="__codelineno-0-650"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes plant traits for pipelines with multiple primary roots over all frames in a series.</span>
 </span><span id="__span-0-651"><a id="__codelineno-0-651" name="__codelineno-0-651"></a>
 </span><span id="__span-0-652"><a id="__codelineno-0-652" name="__codelineno-0-652"></a><span class="sd">    Args:</span>
@@ -5220,7 +5194,7 @@ summarized traits.</p>
 </span><span id="__span-0-657"><a id="__codelineno-0-657" name="__codelineno-0-657"></a><span class="sd">        csv_suffix: The suffix to append to the CSV file name. Default is &quot;.all_frames_summary.csv&quot;.</span>
 </span><span id="__span-0-658"><a id="__codelineno-0-658" name="__codelineno-0-658"></a>
 </span><span id="__span-0-659"><a id="__codelineno-0-659" name="__codelineno-0-659"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-660"><a id="__codelineno-0-660" name="__codelineno-0-660"></a><span class="sd">        A dictionary with aggregated traits, summary stats, and optionally per-instance traits.</span>
+</span><span id="__span-0-660"><a id="__codelineno-0-660" name="__codelineno-0-660"></a><span class="sd">        Dictionary with aggregated traits, summary stats, and optionally per-instance traits.</span>
 </span><span id="__span-0-661"><a id="__codelineno-0-661" name="__codelineno-0-661"></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="__span-0-662"><a id="__codelineno-0-662" name="__codelineno-0-662"></a>    <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
 </span><span id="__span-0-663"><a id="__codelineno-0-663" name="__codelineno-0-663"></a>        <span class="s2">&quot;series&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">series</span><span class="o">.</span><span class="n">series_name</span><span class="p">),</span>
@@ -11342,21 +11316,6 @@ summarized traits.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                <code>Args</code>
-            </td>
-            <td>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
                 <code>plant</code>
             </td>
             <td>
@@ -11429,21 +11388,19 @@ summarized traits.</p>
 <span class="normal"><a href="#__codelineno-0-2893">2893</a></span>
 <span class="normal"><a href="#__codelineno-0-2894">2894</a></span>
 <span class="normal"><a href="#__codelineno-0-2895">2895</a></span>
-<span class="normal"><a href="#__codelineno-0-2896">2896</a></span>
-<span class="normal"><a href="#__codelineno-0-2897">2897</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-2884"><a id="__codelineno-0-2884" name="__codelineno-0-2884"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_initial_frame_traits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant</span><span class="p">:</span> <span class="n">Series</span><span class="p">,</span> <span class="n">frame_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="normal"><a href="#__codelineno-0-2896">2896</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-2884"><a id="__codelineno-0-2884" name="__codelineno-0-2884"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_initial_frame_traits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant</span><span class="p">:</span> <span class="n">Series</span><span class="p">,</span> <span class="n">frame_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 </span><span id="__span-0-2885"><a id="__codelineno-0-2885" name="__codelineno-0-2885"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return initial traits for a plant frame.</span>
 </span><span id="__span-0-2886"><a id="__codelineno-0-2886" name="__codelineno-0-2886"></a>
 </span><span id="__span-0-2887"><a id="__codelineno-0-2887" name="__codelineno-0-2887"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-2888"><a id="__codelineno-0-2888" name="__codelineno-0-2888"></a><span class="sd">        Args:</span>
-</span><span id="__span-0-2889"><a id="__codelineno-0-2889" name="__codelineno-0-2889"></a><span class="sd">        plant: The plant `Series` object.</span>
-</span><span id="__span-0-2890"><a id="__codelineno-0-2890" name="__codelineno-0-2890"></a><span class="sd">        frame_idx: The index of the current frame.</span>
-</span><span id="__span-0-2891"><a id="__codelineno-0-2891" name="__codelineno-0-2891"></a>
-</span><span id="__span-0-2892"><a id="__codelineno-0-2892" name="__codelineno-0-2892"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-2893"><a id="__codelineno-0-2893" name="__codelineno-0-2893"></a><span class="sd">        A dictionary of initial traits with key:</span>
-</span><span id="__span-0-2894"><a id="__codelineno-0-2894" name="__codelineno-0-2894"></a><span class="sd">            - &quot;primary_pts&quot;: Array of primary root points.</span>
-</span><span id="__span-0-2895"><a id="__codelineno-0-2895" name="__codelineno-0-2895"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-2896"><a id="__codelineno-0-2896" name="__codelineno-0-2896"></a>    <span class="n">primary_pts</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">get_primary_points</span><span class="p">(</span><span class="n">frame_idx</span><span class="p">)</span>
-</span><span id="__span-0-2897"><a id="__codelineno-0-2897" name="__codelineno-0-2897"></a>    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;primary_pts&quot;</span><span class="p">:</span> <span class="n">primary_pts</span><span class="p">}</span>
+</span><span id="__span-0-2888"><a id="__codelineno-0-2888" name="__codelineno-0-2888"></a><span class="sd">        plant: The plant `Series` object.</span>
+</span><span id="__span-0-2889"><a id="__codelineno-0-2889" name="__codelineno-0-2889"></a><span class="sd">        frame_idx: The index of the current frame.</span>
+</span><span id="__span-0-2890"><a id="__codelineno-0-2890" name="__codelineno-0-2890"></a>
+</span><span id="__span-0-2891"><a id="__codelineno-0-2891" name="__codelineno-0-2891"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-2892"><a id="__codelineno-0-2892" name="__codelineno-0-2892"></a><span class="sd">        A dictionary of initial traits with key:</span>
+</span><span id="__span-0-2893"><a id="__codelineno-0-2893" name="__codelineno-0-2893"></a><span class="sd">            - &quot;primary_pts&quot;: Array of primary root points.</span>
+</span><span id="__span-0-2894"><a id="__codelineno-0-2894" name="__codelineno-0-2894"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-2895"><a id="__codelineno-0-2895" name="__codelineno-0-2895"></a>    <span class="n">primary_pts</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">get_primary_points</span><span class="p">(</span><span class="n">frame_idx</span><span class="p">)</span>
+</span><span id="__span-0-2896"><a id="__codelineno-0-2896" name="__codelineno-0-2896"></a>    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;primary_pts&quot;</span><span class="p">:</span> <span class="n">primary_pts</span><span class="p">}</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -11516,7 +11473,8 @@ summarized traits.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>sleap_roots/trait_pipelines.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-2904">2904</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-2903">2903</a></span>
+<span class="normal"><a href="#__codelineno-0-2904">2904</a></span>
 <span class="normal"><a href="#__codelineno-0-2905">2905</a></span>
 <span class="normal"><a href="#__codelineno-0-2906">2906</a></span>
 <span class="normal"><a href="#__codelineno-0-2907">2907</a></span>
@@ -11528,21 +11486,20 @@ summarized traits.</p>
 <span class="normal"><a href="#__codelineno-0-2913">2913</a></span>
 <span class="normal"><a href="#__codelineno-0-2914">2914</a></span>
 <span class="normal"><a href="#__codelineno-0-2915">2915</a></span>
-<span class="normal"><a href="#__codelineno-0-2916">2916</a></span>
-<span class="normal"><a href="#__codelineno-0-2917">2917</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-2904"><a id="__codelineno-0-2904" name="__codelineno-0-2904"></a><span class="k">def</span><span class="w"> </span><span class="nf">define_traits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">TraitDef</span><span class="p">]:</span>
-</span><span id="__span-0-2905"><a id="__codelineno-0-2905" name="__codelineno-0-2905"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Define the trait computation pipeline for primary roots.&quot;&quot;&quot;</span>
-</span><span id="__span-0-2906"><a id="__codelineno-0-2906" name="__codelineno-0-2906"></a>    <span class="n">trait_definitions</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-0-2907"><a id="__codelineno-0-2907" name="__codelineno-0-2907"></a>        <span class="n">TraitDef</span><span class="p">(</span>
-</span><span id="__span-0-2908"><a id="__codelineno-0-2908" name="__codelineno-0-2908"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;filtered_primary_pts_with_expected_ct&quot;</span><span class="p">,</span>
-</span><span id="__span-0-2909"><a id="__codelineno-0-2909" name="__codelineno-0-2909"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">filter_primary_roots_with_unexpected_count</span><span class="p">,</span>
-</span><span id="__span-0-2910"><a id="__codelineno-0-2910" name="__codelineno-0-2910"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;primary_pts&quot;</span><span class="p">,</span> <span class="s2">&quot;expected_plant_ct&quot;</span><span class="p">],</span>
-</span><span id="__span-0-2911"><a id="__codelineno-0-2911" name="__codelineno-0-2911"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-2912"><a id="__codelineno-0-2912" name="__codelineno-0-2912"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-2913"><a id="__codelineno-0-2913" name="__codelineno-0-2913"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
-</span><span id="__span-0-2914"><a id="__codelineno-0-2914" name="__codelineno-0-2914"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Filtered points of the primary root with expected count.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-2915"><a id="__codelineno-0-2915" name="__codelineno-0-2915"></a>        <span class="p">)</span>
-</span><span id="__span-0-2916"><a id="__codelineno-0-2916" name="__codelineno-0-2916"></a>    <span class="p">]</span>
-</span><span id="__span-0-2917"><a id="__codelineno-0-2917" name="__codelineno-0-2917"></a>    <span class="k">return</span> <span class="n">trait_definitions</span>
+<span class="normal"><a href="#__codelineno-0-2916">2916</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-2903"><a id="__codelineno-0-2903" name="__codelineno-0-2903"></a><span class="k">def</span><span class="w"> </span><span class="nf">define_traits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">TraitDef</span><span class="p">]:</span>
+</span><span id="__span-0-2904"><a id="__codelineno-0-2904" name="__codelineno-0-2904"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Define the trait computation pipeline for primary roots.&quot;&quot;&quot;</span>
+</span><span id="__span-0-2905"><a id="__codelineno-0-2905" name="__codelineno-0-2905"></a>    <span class="n">trait_definitions</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-0-2906"><a id="__codelineno-0-2906" name="__codelineno-0-2906"></a>        <span class="n">TraitDef</span><span class="p">(</span>
+</span><span id="__span-0-2907"><a id="__codelineno-0-2907" name="__codelineno-0-2907"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;filtered_primary_pts_with_expected_ct&quot;</span><span class="p">,</span>
+</span><span id="__span-0-2908"><a id="__codelineno-0-2908" name="__codelineno-0-2908"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">filter_primary_roots_with_unexpected_count</span><span class="p">,</span>
+</span><span id="__span-0-2909"><a id="__codelineno-0-2909" name="__codelineno-0-2909"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;primary_pts&quot;</span><span class="p">,</span> <span class="s2">&quot;expected_plant_ct&quot;</span><span class="p">],</span>
+</span><span id="__span-0-2910"><a id="__codelineno-0-2910" name="__codelineno-0-2910"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-2911"><a id="__codelineno-0-2911" name="__codelineno-0-2911"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-2912"><a id="__codelineno-0-2912" name="__codelineno-0-2912"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
+</span><span id="__span-0-2913"><a id="__codelineno-0-2913" name="__codelineno-0-2913"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Filtered points of the primary root with expected count.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-2914"><a id="__codelineno-0-2914" name="__codelineno-0-2914"></a>        <span class="p">)</span>
+</span><span id="__span-0-2915"><a id="__codelineno-0-2915" name="__codelineno-0-2915"></a>    <span class="p">]</span>
+</span><span id="__span-0-2916"><a id="__codelineno-0-2916" name="__codelineno-0-2916"></a>    <span class="k">return</span> <span class="n">trait_definitions</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -11578,21 +11535,6 @@ summarized traits.</p>
         </tr>
       </thead>
       <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>Args</code>
-            </td>
-            <td>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
           <tr class="doc-section-item">
             <td>
                 <code>plant</code>
@@ -11655,7 +11597,8 @@ summarized traits.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>sleap_roots/trait_pipelines.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-2919">2919</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-2918">2918</a></span>
+<span class="normal"><a href="#__codelineno-0-2919">2919</a></span>
 <span class="normal"><a href="#__codelineno-0-2920">2920</a></span>
 <span class="normal"><a href="#__codelineno-0-2921">2921</a></span>
 <span class="normal"><a href="#__codelineno-0-2922">2922</a></span>
@@ -11668,24 +11611,21 @@ summarized traits.</p>
 <span class="normal"><a href="#__codelineno-0-2929">2929</a></span>
 <span class="normal"><a href="#__codelineno-0-2930">2930</a></span>
 <span class="normal"><a href="#__codelineno-0-2931">2931</a></span>
-<span class="normal"><a href="#__codelineno-0-2932">2932</a></span>
-<span class="normal"><a href="#__codelineno-0-2933">2933</a></span>
-<span class="normal"><a href="#__codelineno-0-2934">2934</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-2919"><a id="__codelineno-0-2919" name="__codelineno-0-2919"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_initial_frame_traits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant</span><span class="p">:</span> <span class="n">Series</span><span class="p">,</span> <span class="n">frame_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-</span><span id="__span-0-2920"><a id="__codelineno-0-2920" name="__codelineno-0-2920"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return initial traits for a plant frame.</span>
-</span><span id="__span-0-2921"><a id="__codelineno-0-2921" name="__codelineno-0-2921"></a>
-</span><span id="__span-0-2922"><a id="__codelineno-0-2922" name="__codelineno-0-2922"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-2923"><a id="__codelineno-0-2923" name="__codelineno-0-2923"></a><span class="sd">        Args:</span>
-</span><span id="__span-0-2924"><a id="__codelineno-0-2924" name="__codelineno-0-2924"></a><span class="sd">        plant: The plant `Series` object.</span>
-</span><span id="__span-0-2925"><a id="__codelineno-0-2925" name="__codelineno-0-2925"></a><span class="sd">        frame_idx: The index of the current frame.</span>
-</span><span id="__span-0-2926"><a id="__codelineno-0-2926" name="__codelineno-0-2926"></a>
-</span><span id="__span-0-2927"><a id="__codelineno-0-2927" name="__codelineno-0-2927"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-2928"><a id="__codelineno-0-2928" name="__codelineno-0-2928"></a><span class="sd">        A dictionary of initial traits with key:</span>
-</span><span id="__span-0-2929"><a id="__codelineno-0-2929" name="__codelineno-0-2929"></a><span class="sd">            - &quot;primary_pts&quot;: Array of primary root points.</span>
-</span><span id="__span-0-2930"><a id="__codelineno-0-2930" name="__codelineno-0-2930"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-2931"><a id="__codelineno-0-2931" name="__codelineno-0-2931"></a>    <span class="n">primary_pts</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">get_primary_points</span><span class="p">(</span><span class="n">frame_idx</span><span class="p">)</span>
-</span><span id="__span-0-2932"><a id="__codelineno-0-2932" name="__codelineno-0-2932"></a>    <span class="n">expected_plant_count</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">expected_count</span>
-</span><span id="__span-0-2933"><a id="__codelineno-0-2933" name="__codelineno-0-2933"></a>
-</span><span id="__span-0-2934"><a id="__codelineno-0-2934" name="__codelineno-0-2934"></a>    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;primary_pts&quot;</span><span class="p">:</span> <span class="n">primary_pts</span><span class="p">,</span> <span class="s2">&quot;expected_plant_ct&quot;</span><span class="p">:</span> <span class="n">expected_plant_count</span><span class="p">}</span>
+<span class="normal"><a href="#__codelineno-0-2932">2932</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-2918"><a id="__codelineno-0-2918" name="__codelineno-0-2918"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_initial_frame_traits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant</span><span class="p">:</span> <span class="n">Series</span><span class="p">,</span> <span class="n">frame_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span id="__span-0-2919"><a id="__codelineno-0-2919" name="__codelineno-0-2919"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return initial traits for a plant frame.</span>
+</span><span id="__span-0-2920"><a id="__codelineno-0-2920" name="__codelineno-0-2920"></a>
+</span><span id="__span-0-2921"><a id="__codelineno-0-2921" name="__codelineno-0-2921"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-2922"><a id="__codelineno-0-2922" name="__codelineno-0-2922"></a><span class="sd">        plant: The plant `Series` object.</span>
+</span><span id="__span-0-2923"><a id="__codelineno-0-2923" name="__codelineno-0-2923"></a><span class="sd">        frame_idx: The index of the current frame.</span>
+</span><span id="__span-0-2924"><a id="__codelineno-0-2924" name="__codelineno-0-2924"></a>
+</span><span id="__span-0-2925"><a id="__codelineno-0-2925" name="__codelineno-0-2925"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-2926"><a id="__codelineno-0-2926" name="__codelineno-0-2926"></a><span class="sd">        A dictionary of initial traits with key:</span>
+</span><span id="__span-0-2927"><a id="__codelineno-0-2927" name="__codelineno-0-2927"></a><span class="sd">            - &quot;primary_pts&quot;: Array of primary root points.</span>
+</span><span id="__span-0-2928"><a id="__codelineno-0-2928" name="__codelineno-0-2928"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-2929"><a id="__codelineno-0-2929" name="__codelineno-0-2929"></a>    <span class="n">primary_pts</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">get_primary_points</span><span class="p">(</span><span class="n">frame_idx</span><span class="p">)</span>
+</span><span id="__span-0-2930"><a id="__codelineno-0-2930" name="__codelineno-0-2930"></a>    <span class="n">expected_plant_count</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">expected_count</span>
+</span><span id="__span-0-2931"><a id="__codelineno-0-2931" name="__codelineno-0-2931"></a>
+</span><span id="__span-0-2932"><a id="__codelineno-0-2932" name="__codelineno-0-2932"></a>    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;primary_pts&quot;</span><span class="p">:</span> <span class="n">primary_pts</span><span class="p">,</span> <span class="s2">&quot;expected_plant_ct&quot;</span><span class="p">:</span> <span class="n">expected_plant_count</span><span class="p">}</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -11758,7 +11698,9 @@ summarized traits.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>sleap_roots/trait_pipelines.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-2941">2941</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-2939">2939</a></span>
+<span class="normal"><a href="#__codelineno-0-2940">2940</a></span>
+<span class="normal"><a href="#__codelineno-0-2941">2941</a></span>
 <span class="normal"><a href="#__codelineno-0-2942">2942</a></span>
 <span class="normal"><a href="#__codelineno-0-2943">2943</a></span>
 <span class="normal"><a href="#__codelineno-0-2944">2944</a></span>
@@ -11879,132 +11821,130 @@ summarized traits.</p>
 <span class="normal"><a href="#__codelineno-0-3059">3059</a></span>
 <span class="normal"><a href="#__codelineno-0-3060">3060</a></span>
 <span class="normal"><a href="#__codelineno-0-3061">3061</a></span>
-<span class="normal"><a href="#__codelineno-0-3062">3062</a></span>
-<span class="normal"><a href="#__codelineno-0-3063">3063</a></span>
-<span class="normal"><a href="#__codelineno-0-3064">3064</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-2941"><a id="__codelineno-0-2941" name="__codelineno-0-2941"></a><span class="k">def</span><span class="w"> </span><span class="nf">define_traits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">TraitDef</span><span class="p">]:</span>
-</span><span id="__span-0-2942"><a id="__codelineno-0-2942" name="__codelineno-0-2942"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Define the trait computation pipeline for dicot plants.&quot;&quot;&quot;</span>
-</span><span id="__span-0-2943"><a id="__codelineno-0-2943" name="__codelineno-0-2943"></a>    <span class="n">trait_definitions</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-0-2944"><a id="__codelineno-0-2944" name="__codelineno-0-2944"></a>        <span class="n">TraitDef</span><span class="p">(</span>
-</span><span id="__span-0-2945"><a id="__codelineno-0-2945" name="__codelineno-0-2945"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_count&quot;</span><span class="p">,</span>
-</span><span id="__span-0-2946"><a id="__codelineno-0-2946" name="__codelineno-0-2946"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_count</span><span class="p">,</span>
-</span><span id="__span-0-2947"><a id="__codelineno-0-2947" name="__codelineno-0-2947"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">],</span>
-</span><span id="__span-0-2948"><a id="__codelineno-0-2948" name="__codelineno-0-2948"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-2949"><a id="__codelineno-0-2949" name="__codelineno-0-2949"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-2950"><a id="__codelineno-0-2950" name="__codelineno-0-2950"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
-</span><span id="__span-0-2951"><a id="__codelineno-0-2951" name="__codelineno-0-2951"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Get the number of lateral roots.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-2952"><a id="__codelineno-0-2952" name="__codelineno-0-2952"></a>        <span class="p">),</span>
-</span><span id="__span-0-2953"><a id="__codelineno-0-2953" name="__codelineno-0-2953"></a>        <span class="n">TraitDef</span><span class="p">(</span>
-</span><span id="__span-0-2954"><a id="__codelineno-0-2954" name="__codelineno-0-2954"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_proximal_node_inds&quot;</span><span class="p">,</span>
-</span><span id="__span-0-2955"><a id="__codelineno-0-2955" name="__codelineno-0-2955"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_node_ind</span><span class="p">,</span>
-</span><span id="__span-0-2956"><a id="__codelineno-0-2956" name="__codelineno-0-2956"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">],</span>
-</span><span id="__span-0-2957"><a id="__codelineno-0-2957" name="__codelineno-0-2957"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-2958"><a id="__codelineno-0-2958" name="__codelineno-0-2958"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-2959"><a id="__codelineno-0-2959" name="__codelineno-0-2959"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;proximal&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
-</span><span id="__span-0-2960"><a id="__codelineno-0-2960" name="__codelineno-0-2960"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Get the indices of the proximal nodes of lateral roots.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-2961"><a id="__codelineno-0-2961" name="__codelineno-0-2961"></a>        <span class="p">),</span>
-</span><span id="__span-0-2962"><a id="__codelineno-0-2962" name="__codelineno-0-2962"></a>        <span class="n">TraitDef</span><span class="p">(</span>
-</span><span id="__span-0-2963"><a id="__codelineno-0-2963" name="__codelineno-0-2963"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_distal_node_inds&quot;</span><span class="p">,</span>
-</span><span id="__span-0-2964"><a id="__codelineno-0-2964" name="__codelineno-0-2964"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_node_ind</span><span class="p">,</span>
-</span><span id="__span-0-2965"><a id="__codelineno-0-2965" name="__codelineno-0-2965"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">],</span>
-</span><span id="__span-0-2966"><a id="__codelineno-0-2966" name="__codelineno-0-2966"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-2967"><a id="__codelineno-0-2967" name="__codelineno-0-2967"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-2968"><a id="__codelineno-0-2968" name="__codelineno-0-2968"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;proximal&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">},</span>
-</span><span id="__span-0-2969"><a id="__codelineno-0-2969" name="__codelineno-0-2969"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Get the indices of the distal nodes of lateral roots.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-2970"><a id="__codelineno-0-2970" name="__codelineno-0-2970"></a>        <span class="p">),</span>
-</span><span id="__span-0-2971"><a id="__codelineno-0-2971" name="__codelineno-0-2971"></a>        <span class="n">TraitDef</span><span class="p">(</span>
-</span><span id="__span-0-2972"><a id="__codelineno-0-2972" name="__codelineno-0-2972"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_lengths&quot;</span><span class="p">,</span>
-</span><span id="__span-0-2973"><a id="__codelineno-0-2973" name="__codelineno-0-2973"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_root_lengths</span><span class="p">,</span>
-</span><span id="__span-0-2974"><a id="__codelineno-0-2974" name="__codelineno-0-2974"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">],</span>
-</span><span id="__span-0-2975"><a id="__codelineno-0-2975" name="__codelineno-0-2975"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-2976"><a id="__codelineno-0-2976" name="__codelineno-0-2976"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-2977"><a id="__codelineno-0-2977" name="__codelineno-0-2977"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
-</span><span id="__span-0-2978"><a id="__codelineno-0-2978" name="__codelineno-0-2978"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of lateral root lengths of shape `(instances,)`.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-2979"><a id="__codelineno-0-2979" name="__codelineno-0-2979"></a>        <span class="p">),</span>
-</span><span id="__span-0-2980"><a id="__codelineno-0-2980" name="__codelineno-0-2980"></a>        <span class="n">TraitDef</span><span class="p">(</span>
-</span><span id="__span-0-2981"><a id="__codelineno-0-2981" name="__codelineno-0-2981"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;total_lateral_length&quot;</span><span class="p">,</span>
-</span><span id="__span-0-2982"><a id="__codelineno-0-2982" name="__codelineno-0-2982"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_network_length</span><span class="p">,</span>
-</span><span id="__span-0-2983"><a id="__codelineno-0-2983" name="__codelineno-0-2983"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_lengths&quot;</span><span class="p">],</span>
-</span><span id="__span-0-2984"><a id="__codelineno-0-2984" name="__codelineno-0-2984"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-2985"><a id="__codelineno-0-2985" name="__codelineno-0-2985"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-2986"><a id="__codelineno-0-2986" name="__codelineno-0-2986"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
-</span><span id="__span-0-2987"><a id="__codelineno-0-2987" name="__codelineno-0-2987"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Scalar of all lateral root network length.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-2988"><a id="__codelineno-0-2988" name="__codelineno-0-2988"></a>        <span class="p">),</span>
-</span><span id="__span-0-2989"><a id="__codelineno-0-2989" name="__codelineno-0-2989"></a>        <span class="n">TraitDef</span><span class="p">(</span>
-</span><span id="__span-0-2990"><a id="__codelineno-0-2990" name="__codelineno-0-2990"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_base_pts&quot;</span><span class="p">,</span>
-</span><span id="__span-0-2991"><a id="__codelineno-0-2991" name="__codelineno-0-2991"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_bases</span><span class="p">,</span>
-</span><span id="__span-0-2992"><a id="__codelineno-0-2992" name="__codelineno-0-2992"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">],</span>
-</span><span id="__span-0-2993"><a id="__codelineno-0-2993" name="__codelineno-0-2993"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-2994"><a id="__codelineno-0-2994" name="__codelineno-0-2994"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-2995"><a id="__codelineno-0-2995" name="__codelineno-0-2995"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
-</span><span id="__span-0-2996"><a id="__codelineno-0-2996" name="__codelineno-0-2996"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of lateral bases `(instances, (x, y))`.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-2997"><a id="__codelineno-0-2997" name="__codelineno-0-2997"></a>        <span class="p">),</span>
-</span><span id="__span-0-2998"><a id="__codelineno-0-2998" name="__codelineno-0-2998"></a>        <span class="n">TraitDef</span><span class="p">(</span>
-</span><span id="__span-0-2999"><a id="__codelineno-0-2999" name="__codelineno-0-2999"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_tip_pts&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3000"><a id="__codelineno-0-3000" name="__codelineno-0-3000"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_tips</span><span class="p">,</span>
-</span><span id="__span-0-3001"><a id="__codelineno-0-3001" name="__codelineno-0-3001"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">],</span>
-</span><span id="__span-0-3002"><a id="__codelineno-0-3002" name="__codelineno-0-3002"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-3003"><a id="__codelineno-0-3003" name="__codelineno-0-3003"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-3004"><a id="__codelineno-0-3004" name="__codelineno-0-3004"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
-</span><span id="__span-0-3005"><a id="__codelineno-0-3005" name="__codelineno-0-3005"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of lateral tips `(instances, (x, y))`.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3006"><a id="__codelineno-0-3006" name="__codelineno-0-3006"></a>        <span class="p">),</span>
-</span><span id="__span-0-3007"><a id="__codelineno-0-3007" name="__codelineno-0-3007"></a>        <span class="n">TraitDef</span><span class="p">(</span>
-</span><span id="__span-0-3008"><a id="__codelineno-0-3008" name="__codelineno-0-3008"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_angles_distal&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3009"><a id="__codelineno-0-3009" name="__codelineno-0-3009"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_root_angle</span><span class="p">,</span>
-</span><span id="__span-0-3010"><a id="__codelineno-0-3010" name="__codelineno-0-3010"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">,</span> <span class="s2">&quot;lateral_distal_node_inds&quot;</span><span class="p">],</span>
-</span><span id="__span-0-3011"><a id="__codelineno-0-3011" name="__codelineno-0-3011"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-3012"><a id="__codelineno-0-3012" name="__codelineno-0-3012"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-3013"><a id="__codelineno-0-3013" name="__codelineno-0-3013"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;proximal&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;base_ind&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
-</span><span id="__span-0-3014"><a id="__codelineno-0-3014" name="__codelineno-0-3014"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of lateral distal angles in degrees `(instances,)`.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3015"><a id="__codelineno-0-3015" name="__codelineno-0-3015"></a>        <span class="p">),</span>
-</span><span id="__span-0-3016"><a id="__codelineno-0-3016" name="__codelineno-0-3016"></a>        <span class="n">TraitDef</span><span class="p">(</span>
-</span><span id="__span-0-3017"><a id="__codelineno-0-3017" name="__codelineno-0-3017"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_angles_proximal&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3018"><a id="__codelineno-0-3018" name="__codelineno-0-3018"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_root_angle</span><span class="p">,</span>
-</span><span id="__span-0-3019"><a id="__codelineno-0-3019" name="__codelineno-0-3019"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">,</span> <span class="s2">&quot;lateral_proximal_node_inds&quot;</span><span class="p">],</span>
-</span><span id="__span-0-3020"><a id="__codelineno-0-3020" name="__codelineno-0-3020"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-3021"><a id="__codelineno-0-3021" name="__codelineno-0-3021"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-3022"><a id="__codelineno-0-3022" name="__codelineno-0-3022"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;proximal&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;base_ind&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
-</span><span id="__span-0-3023"><a id="__codelineno-0-3023" name="__codelineno-0-3023"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of lateral proximal angles in degrees &quot;</span>
-</span><span id="__span-0-3024"><a id="__codelineno-0-3024" name="__codelineno-0-3024"></a>            <span class="s2">&quot;`(instances,)`.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3025"><a id="__codelineno-0-3025" name="__codelineno-0-3025"></a>        <span class="p">),</span>
-</span><span id="__span-0-3026"><a id="__codelineno-0-3026" name="__codelineno-0-3026"></a>        <span class="n">TraitDef</span><span class="p">(</span>
-</span><span id="__span-0-3027"><a id="__codelineno-0-3027" name="__codelineno-0-3027"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_base_xs&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3028"><a id="__codelineno-0-3028" name="__codelineno-0-3028"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_base_xs</span><span class="p">,</span>
-</span><span id="__span-0-3029"><a id="__codelineno-0-3029" name="__codelineno-0-3029"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_base_pts&quot;</span><span class="p">],</span>
-</span><span id="__span-0-3030"><a id="__codelineno-0-3030" name="__codelineno-0-3030"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-3031"><a id="__codelineno-0-3031" name="__codelineno-0-3031"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-3032"><a id="__codelineno-0-3032" name="__codelineno-0-3032"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
-</span><span id="__span-0-3033"><a id="__codelineno-0-3033" name="__codelineno-0-3033"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Get x coordinates of the base of each lateral root.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3034"><a id="__codelineno-0-3034" name="__codelineno-0-3034"></a>        <span class="p">),</span>
-</span><span id="__span-0-3035"><a id="__codelineno-0-3035" name="__codelineno-0-3035"></a>        <span class="n">TraitDef</span><span class="p">(</span>
-</span><span id="__span-0-3036"><a id="__codelineno-0-3036" name="__codelineno-0-3036"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_base_ys&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3037"><a id="__codelineno-0-3037" name="__codelineno-0-3037"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_base_ys</span><span class="p">,</span>
-</span><span id="__span-0-3038"><a id="__codelineno-0-3038" name="__codelineno-0-3038"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_base_pts&quot;</span><span class="p">],</span>
-</span><span id="__span-0-3039"><a id="__codelineno-0-3039" name="__codelineno-0-3039"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-3040"><a id="__codelineno-0-3040" name="__codelineno-0-3040"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-3041"><a id="__codelineno-0-3041" name="__codelineno-0-3041"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
-</span><span id="__span-0-3042"><a id="__codelineno-0-3042" name="__codelineno-0-3042"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of the y-coordinates of lateral bases &quot;</span>
-</span><span id="__span-0-3043"><a id="__codelineno-0-3043" name="__codelineno-0-3043"></a>            <span class="s2">&quot;`(instances,)`.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3044"><a id="__codelineno-0-3044" name="__codelineno-0-3044"></a>        <span class="p">),</span>
-</span><span id="__span-0-3045"><a id="__codelineno-0-3045" name="__codelineno-0-3045"></a>        <span class="n">TraitDef</span><span class="p">(</span>
-</span><span id="__span-0-3046"><a id="__codelineno-0-3046" name="__codelineno-0-3046"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_tip_xs&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3047"><a id="__codelineno-0-3047" name="__codelineno-0-3047"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_tip_xs</span><span class="p">,</span>
-</span><span id="__span-0-3048"><a id="__codelineno-0-3048" name="__codelineno-0-3048"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_tip_pts&quot;</span><span class="p">],</span>
-</span><span id="__span-0-3049"><a id="__codelineno-0-3049" name="__codelineno-0-3049"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-3050"><a id="__codelineno-0-3050" name="__codelineno-0-3050"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-3051"><a id="__codelineno-0-3051" name="__codelineno-0-3051"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
-</span><span id="__span-0-3052"><a id="__codelineno-0-3052" name="__codelineno-0-3052"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of the x-coordinates of lateral tips `(instance,)`.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3053"><a id="__codelineno-0-3053" name="__codelineno-0-3053"></a>        <span class="p">),</span>
-</span><span id="__span-0-3054"><a id="__codelineno-0-3054" name="__codelineno-0-3054"></a>        <span class="n">TraitDef</span><span class="p">(</span>
-</span><span id="__span-0-3055"><a id="__codelineno-0-3055" name="__codelineno-0-3055"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_tip_ys&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3056"><a id="__codelineno-0-3056" name="__codelineno-0-3056"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_tip_ys</span><span class="p">,</span>
-</span><span id="__span-0-3057"><a id="__codelineno-0-3057" name="__codelineno-0-3057"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_tip_pts&quot;</span><span class="p">],</span>
-</span><span id="__span-0-3058"><a id="__codelineno-0-3058" name="__codelineno-0-3058"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-3059"><a id="__codelineno-0-3059" name="__codelineno-0-3059"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-3060"><a id="__codelineno-0-3060" name="__codelineno-0-3060"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
-</span><span id="__span-0-3061"><a id="__codelineno-0-3061" name="__codelineno-0-3061"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of the y-coordinates of lateral tips `(instance,)`.&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3062"><a id="__codelineno-0-3062" name="__codelineno-0-3062"></a>        <span class="p">),</span>
-</span><span id="__span-0-3063"><a id="__codelineno-0-3063" name="__codelineno-0-3063"></a>    <span class="p">]</span>
-</span><span id="__span-0-3064"><a id="__codelineno-0-3064" name="__codelineno-0-3064"></a>    <span class="k">return</span> <span class="n">trait_definitions</span>
+<span class="normal"><a href="#__codelineno-0-3062">3062</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-2939"><a id="__codelineno-0-2939" name="__codelineno-0-2939"></a><span class="k">def</span><span class="w"> </span><span class="nf">define_traits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">TraitDef</span><span class="p">]:</span>
+</span><span id="__span-0-2940"><a id="__codelineno-0-2940" name="__codelineno-0-2940"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Define the trait computation pipeline for dicot plants.&quot;&quot;&quot;</span>
+</span><span id="__span-0-2941"><a id="__codelineno-0-2941" name="__codelineno-0-2941"></a>    <span class="n">trait_definitions</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-0-2942"><a id="__codelineno-0-2942" name="__codelineno-0-2942"></a>        <span class="n">TraitDef</span><span class="p">(</span>
+</span><span id="__span-0-2943"><a id="__codelineno-0-2943" name="__codelineno-0-2943"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_count&quot;</span><span class="p">,</span>
+</span><span id="__span-0-2944"><a id="__codelineno-0-2944" name="__codelineno-0-2944"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_count</span><span class="p">,</span>
+</span><span id="__span-0-2945"><a id="__codelineno-0-2945" name="__codelineno-0-2945"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">],</span>
+</span><span id="__span-0-2946"><a id="__codelineno-0-2946" name="__codelineno-0-2946"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-2947"><a id="__codelineno-0-2947" name="__codelineno-0-2947"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-2948"><a id="__codelineno-0-2948" name="__codelineno-0-2948"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
+</span><span id="__span-0-2949"><a id="__codelineno-0-2949" name="__codelineno-0-2949"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Get the number of lateral roots.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-2950"><a id="__codelineno-0-2950" name="__codelineno-0-2950"></a>        <span class="p">),</span>
+</span><span id="__span-0-2951"><a id="__codelineno-0-2951" name="__codelineno-0-2951"></a>        <span class="n">TraitDef</span><span class="p">(</span>
+</span><span id="__span-0-2952"><a id="__codelineno-0-2952" name="__codelineno-0-2952"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_proximal_node_inds&quot;</span><span class="p">,</span>
+</span><span id="__span-0-2953"><a id="__codelineno-0-2953" name="__codelineno-0-2953"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_node_ind</span><span class="p">,</span>
+</span><span id="__span-0-2954"><a id="__codelineno-0-2954" name="__codelineno-0-2954"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">],</span>
+</span><span id="__span-0-2955"><a id="__codelineno-0-2955" name="__codelineno-0-2955"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-2956"><a id="__codelineno-0-2956" name="__codelineno-0-2956"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-2957"><a id="__codelineno-0-2957" name="__codelineno-0-2957"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;proximal&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+</span><span id="__span-0-2958"><a id="__codelineno-0-2958" name="__codelineno-0-2958"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Get the indices of the proximal nodes of lateral roots.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-2959"><a id="__codelineno-0-2959" name="__codelineno-0-2959"></a>        <span class="p">),</span>
+</span><span id="__span-0-2960"><a id="__codelineno-0-2960" name="__codelineno-0-2960"></a>        <span class="n">TraitDef</span><span class="p">(</span>
+</span><span id="__span-0-2961"><a id="__codelineno-0-2961" name="__codelineno-0-2961"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_distal_node_inds&quot;</span><span class="p">,</span>
+</span><span id="__span-0-2962"><a id="__codelineno-0-2962" name="__codelineno-0-2962"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_node_ind</span><span class="p">,</span>
+</span><span id="__span-0-2963"><a id="__codelineno-0-2963" name="__codelineno-0-2963"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">],</span>
+</span><span id="__span-0-2964"><a id="__codelineno-0-2964" name="__codelineno-0-2964"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-2965"><a id="__codelineno-0-2965" name="__codelineno-0-2965"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-2966"><a id="__codelineno-0-2966" name="__codelineno-0-2966"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;proximal&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">},</span>
+</span><span id="__span-0-2967"><a id="__codelineno-0-2967" name="__codelineno-0-2967"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Get the indices of the distal nodes of lateral roots.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-2968"><a id="__codelineno-0-2968" name="__codelineno-0-2968"></a>        <span class="p">),</span>
+</span><span id="__span-0-2969"><a id="__codelineno-0-2969" name="__codelineno-0-2969"></a>        <span class="n">TraitDef</span><span class="p">(</span>
+</span><span id="__span-0-2970"><a id="__codelineno-0-2970" name="__codelineno-0-2970"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_lengths&quot;</span><span class="p">,</span>
+</span><span id="__span-0-2971"><a id="__codelineno-0-2971" name="__codelineno-0-2971"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_root_lengths</span><span class="p">,</span>
+</span><span id="__span-0-2972"><a id="__codelineno-0-2972" name="__codelineno-0-2972"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">],</span>
+</span><span id="__span-0-2973"><a id="__codelineno-0-2973" name="__codelineno-0-2973"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-2974"><a id="__codelineno-0-2974" name="__codelineno-0-2974"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-2975"><a id="__codelineno-0-2975" name="__codelineno-0-2975"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
+</span><span id="__span-0-2976"><a id="__codelineno-0-2976" name="__codelineno-0-2976"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of lateral root lengths of shape `(instances,)`.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-2977"><a id="__codelineno-0-2977" name="__codelineno-0-2977"></a>        <span class="p">),</span>
+</span><span id="__span-0-2978"><a id="__codelineno-0-2978" name="__codelineno-0-2978"></a>        <span class="n">TraitDef</span><span class="p">(</span>
+</span><span id="__span-0-2979"><a id="__codelineno-0-2979" name="__codelineno-0-2979"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;total_lateral_length&quot;</span><span class="p">,</span>
+</span><span id="__span-0-2980"><a id="__codelineno-0-2980" name="__codelineno-0-2980"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_network_length</span><span class="p">,</span>
+</span><span id="__span-0-2981"><a id="__codelineno-0-2981" name="__codelineno-0-2981"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_lengths&quot;</span><span class="p">],</span>
+</span><span id="__span-0-2982"><a id="__codelineno-0-2982" name="__codelineno-0-2982"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-2983"><a id="__codelineno-0-2983" name="__codelineno-0-2983"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-2984"><a id="__codelineno-0-2984" name="__codelineno-0-2984"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
+</span><span id="__span-0-2985"><a id="__codelineno-0-2985" name="__codelineno-0-2985"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Scalar of all lateral root network length.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-2986"><a id="__codelineno-0-2986" name="__codelineno-0-2986"></a>        <span class="p">),</span>
+</span><span id="__span-0-2987"><a id="__codelineno-0-2987" name="__codelineno-0-2987"></a>        <span class="n">TraitDef</span><span class="p">(</span>
+</span><span id="__span-0-2988"><a id="__codelineno-0-2988" name="__codelineno-0-2988"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_base_pts&quot;</span><span class="p">,</span>
+</span><span id="__span-0-2989"><a id="__codelineno-0-2989" name="__codelineno-0-2989"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_bases</span><span class="p">,</span>
+</span><span id="__span-0-2990"><a id="__codelineno-0-2990" name="__codelineno-0-2990"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">],</span>
+</span><span id="__span-0-2991"><a id="__codelineno-0-2991" name="__codelineno-0-2991"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-2992"><a id="__codelineno-0-2992" name="__codelineno-0-2992"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-2993"><a id="__codelineno-0-2993" name="__codelineno-0-2993"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
+</span><span id="__span-0-2994"><a id="__codelineno-0-2994" name="__codelineno-0-2994"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of lateral bases `(instances, (x, y))`.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-2995"><a id="__codelineno-0-2995" name="__codelineno-0-2995"></a>        <span class="p">),</span>
+</span><span id="__span-0-2996"><a id="__codelineno-0-2996" name="__codelineno-0-2996"></a>        <span class="n">TraitDef</span><span class="p">(</span>
+</span><span id="__span-0-2997"><a id="__codelineno-0-2997" name="__codelineno-0-2997"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_tip_pts&quot;</span><span class="p">,</span>
+</span><span id="__span-0-2998"><a id="__codelineno-0-2998" name="__codelineno-0-2998"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_tips</span><span class="p">,</span>
+</span><span id="__span-0-2999"><a id="__codelineno-0-2999" name="__codelineno-0-2999"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">],</span>
+</span><span id="__span-0-3000"><a id="__codelineno-0-3000" name="__codelineno-0-3000"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-3001"><a id="__codelineno-0-3001" name="__codelineno-0-3001"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-3002"><a id="__codelineno-0-3002" name="__codelineno-0-3002"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
+</span><span id="__span-0-3003"><a id="__codelineno-0-3003" name="__codelineno-0-3003"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of lateral tips `(instances, (x, y))`.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3004"><a id="__codelineno-0-3004" name="__codelineno-0-3004"></a>        <span class="p">),</span>
+</span><span id="__span-0-3005"><a id="__codelineno-0-3005" name="__codelineno-0-3005"></a>        <span class="n">TraitDef</span><span class="p">(</span>
+</span><span id="__span-0-3006"><a id="__codelineno-0-3006" name="__codelineno-0-3006"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_angles_distal&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3007"><a id="__codelineno-0-3007" name="__codelineno-0-3007"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_root_angle</span><span class="p">,</span>
+</span><span id="__span-0-3008"><a id="__codelineno-0-3008" name="__codelineno-0-3008"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">,</span> <span class="s2">&quot;lateral_distal_node_inds&quot;</span><span class="p">],</span>
+</span><span id="__span-0-3009"><a id="__codelineno-0-3009" name="__codelineno-0-3009"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-3010"><a id="__codelineno-0-3010" name="__codelineno-0-3010"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-3011"><a id="__codelineno-0-3011" name="__codelineno-0-3011"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;proximal&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;base_ind&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+</span><span id="__span-0-3012"><a id="__codelineno-0-3012" name="__codelineno-0-3012"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of lateral distal angles in degrees `(instances,)`.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3013"><a id="__codelineno-0-3013" name="__codelineno-0-3013"></a>        <span class="p">),</span>
+</span><span id="__span-0-3014"><a id="__codelineno-0-3014" name="__codelineno-0-3014"></a>        <span class="n">TraitDef</span><span class="p">(</span>
+</span><span id="__span-0-3015"><a id="__codelineno-0-3015" name="__codelineno-0-3015"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_angles_proximal&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3016"><a id="__codelineno-0-3016" name="__codelineno-0-3016"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_root_angle</span><span class="p">,</span>
+</span><span id="__span-0-3017"><a id="__codelineno-0-3017" name="__codelineno-0-3017"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">,</span> <span class="s2">&quot;lateral_proximal_node_inds&quot;</span><span class="p">],</span>
+</span><span id="__span-0-3018"><a id="__codelineno-0-3018" name="__codelineno-0-3018"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-3019"><a id="__codelineno-0-3019" name="__codelineno-0-3019"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-3020"><a id="__codelineno-0-3020" name="__codelineno-0-3020"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;proximal&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;base_ind&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span>
+</span><span id="__span-0-3021"><a id="__codelineno-0-3021" name="__codelineno-0-3021"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of lateral proximal angles in degrees &quot;</span>
+</span><span id="__span-0-3022"><a id="__codelineno-0-3022" name="__codelineno-0-3022"></a>            <span class="s2">&quot;`(instances,)`.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3023"><a id="__codelineno-0-3023" name="__codelineno-0-3023"></a>        <span class="p">),</span>
+</span><span id="__span-0-3024"><a id="__codelineno-0-3024" name="__codelineno-0-3024"></a>        <span class="n">TraitDef</span><span class="p">(</span>
+</span><span id="__span-0-3025"><a id="__codelineno-0-3025" name="__codelineno-0-3025"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_base_xs&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3026"><a id="__codelineno-0-3026" name="__codelineno-0-3026"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_base_xs</span><span class="p">,</span>
+</span><span id="__span-0-3027"><a id="__codelineno-0-3027" name="__codelineno-0-3027"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_base_pts&quot;</span><span class="p">],</span>
+</span><span id="__span-0-3028"><a id="__codelineno-0-3028" name="__codelineno-0-3028"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-3029"><a id="__codelineno-0-3029" name="__codelineno-0-3029"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-3030"><a id="__codelineno-0-3030" name="__codelineno-0-3030"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
+</span><span id="__span-0-3031"><a id="__codelineno-0-3031" name="__codelineno-0-3031"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Get x coordinates of the base of each lateral root.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3032"><a id="__codelineno-0-3032" name="__codelineno-0-3032"></a>        <span class="p">),</span>
+</span><span id="__span-0-3033"><a id="__codelineno-0-3033" name="__codelineno-0-3033"></a>        <span class="n">TraitDef</span><span class="p">(</span>
+</span><span id="__span-0-3034"><a id="__codelineno-0-3034" name="__codelineno-0-3034"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_base_ys&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3035"><a id="__codelineno-0-3035" name="__codelineno-0-3035"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_base_ys</span><span class="p">,</span>
+</span><span id="__span-0-3036"><a id="__codelineno-0-3036" name="__codelineno-0-3036"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_base_pts&quot;</span><span class="p">],</span>
+</span><span id="__span-0-3037"><a id="__codelineno-0-3037" name="__codelineno-0-3037"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-3038"><a id="__codelineno-0-3038" name="__codelineno-0-3038"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-3039"><a id="__codelineno-0-3039" name="__codelineno-0-3039"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
+</span><span id="__span-0-3040"><a id="__codelineno-0-3040" name="__codelineno-0-3040"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of the y-coordinates of lateral bases &quot;</span>
+</span><span id="__span-0-3041"><a id="__codelineno-0-3041" name="__codelineno-0-3041"></a>            <span class="s2">&quot;`(instances,)`.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3042"><a id="__codelineno-0-3042" name="__codelineno-0-3042"></a>        <span class="p">),</span>
+</span><span id="__span-0-3043"><a id="__codelineno-0-3043" name="__codelineno-0-3043"></a>        <span class="n">TraitDef</span><span class="p">(</span>
+</span><span id="__span-0-3044"><a id="__codelineno-0-3044" name="__codelineno-0-3044"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_tip_xs&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3045"><a id="__codelineno-0-3045" name="__codelineno-0-3045"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_tip_xs</span><span class="p">,</span>
+</span><span id="__span-0-3046"><a id="__codelineno-0-3046" name="__codelineno-0-3046"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_tip_pts&quot;</span><span class="p">],</span>
+</span><span id="__span-0-3047"><a id="__codelineno-0-3047" name="__codelineno-0-3047"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-3048"><a id="__codelineno-0-3048" name="__codelineno-0-3048"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-3049"><a id="__codelineno-0-3049" name="__codelineno-0-3049"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
+</span><span id="__span-0-3050"><a id="__codelineno-0-3050" name="__codelineno-0-3050"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of the x-coordinates of lateral tips `(instance,)`.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3051"><a id="__codelineno-0-3051" name="__codelineno-0-3051"></a>        <span class="p">),</span>
+</span><span id="__span-0-3052"><a id="__codelineno-0-3052" name="__codelineno-0-3052"></a>        <span class="n">TraitDef</span><span class="p">(</span>
+</span><span id="__span-0-3053"><a id="__codelineno-0-3053" name="__codelineno-0-3053"></a>            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_tip_ys&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3054"><a id="__codelineno-0-3054" name="__codelineno-0-3054"></a>            <span class="n">fn</span><span class="o">=</span><span class="n">get_tip_ys</span><span class="p">,</span>
+</span><span id="__span-0-3055"><a id="__codelineno-0-3055" name="__codelineno-0-3055"></a>            <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_tip_pts&quot;</span><span class="p">],</span>
+</span><span id="__span-0-3056"><a id="__codelineno-0-3056" name="__codelineno-0-3056"></a>            <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-3057"><a id="__codelineno-0-3057" name="__codelineno-0-3057"></a>            <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-3058"><a id="__codelineno-0-3058" name="__codelineno-0-3058"></a>            <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span>
+</span><span id="__span-0-3059"><a id="__codelineno-0-3059" name="__codelineno-0-3059"></a>            <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Array of the y-coordinates of lateral tips `(instance,)`.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3060"><a id="__codelineno-0-3060" name="__codelineno-0-3060"></a>        <span class="p">),</span>
+</span><span id="__span-0-3061"><a id="__codelineno-0-3061" name="__codelineno-0-3061"></a>    <span class="p">]</span>
+</span><span id="__span-0-3062"><a id="__codelineno-0-3062" name="__codelineno-0-3062"></a>    <span class="k">return</span> <span class="n">trait_definitions</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -12102,7 +12042,9 @@ summarized traits.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>sleap_roots/trait_pipelines.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-3066">3066</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-3064">3064</a></span>
+<span class="normal"><a href="#__codelineno-0-3065">3065</a></span>
+<span class="normal"><a href="#__codelineno-0-3066">3066</a></span>
 <span class="normal"><a href="#__codelineno-0-3067">3067</a></span>
 <span class="normal"><a href="#__codelineno-0-3068">3068</a></span>
 <span class="normal"><a href="#__codelineno-0-3069">3069</a></span>
@@ -12112,21 +12054,19 @@ summarized traits.</p>
 <span class="normal"><a href="#__codelineno-0-3073">3073</a></span>
 <span class="normal"><a href="#__codelineno-0-3074">3074</a></span>
 <span class="normal"><a href="#__codelineno-0-3075">3075</a></span>
-<span class="normal"><a href="#__codelineno-0-3076">3076</a></span>
-<span class="normal"><a href="#__codelineno-0-3077">3077</a></span>
-<span class="normal"><a href="#__codelineno-0-3078">3078</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-3066"><a id="__codelineno-0-3066" name="__codelineno-0-3066"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_initial_frame_traits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant</span><span class="p">:</span> <span class="n">Series</span><span class="p">,</span> <span class="n">frame_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-</span><span id="__span-0-3067"><a id="__codelineno-0-3067" name="__codelineno-0-3067"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return initial traits for a plant frame.</span>
-</span><span id="__span-0-3068"><a id="__codelineno-0-3068" name="__codelineno-0-3068"></a>
-</span><span id="__span-0-3069"><a id="__codelineno-0-3069" name="__codelineno-0-3069"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-3070"><a id="__codelineno-0-3070" name="__codelineno-0-3070"></a><span class="sd">        plant: The plant `Series` object.</span>
-</span><span id="__span-0-3071"><a id="__codelineno-0-3071" name="__codelineno-0-3071"></a><span class="sd">        frame_idx: The index of the current frame.</span>
-</span><span id="__span-0-3072"><a id="__codelineno-0-3072" name="__codelineno-0-3072"></a>
-</span><span id="__span-0-3073"><a id="__codelineno-0-3073" name="__codelineno-0-3073"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-3074"><a id="__codelineno-0-3074" name="__codelineno-0-3074"></a><span class="sd">        A dictionary of initial traits with keys:</span>
-</span><span id="__span-0-3075"><a id="__codelineno-0-3075" name="__codelineno-0-3075"></a><span class="sd">            - &quot;lateral_pts&quot;: Array of lateral root points.</span>
-</span><span id="__span-0-3076"><a id="__codelineno-0-3076" name="__codelineno-0-3076"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-3077"><a id="__codelineno-0-3077" name="__codelineno-0-3077"></a>    <span class="n">lateral_pts</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">get_lateral_points</span><span class="p">(</span><span class="n">frame_idx</span><span class="p">)</span>
-</span><span id="__span-0-3078"><a id="__codelineno-0-3078" name="__codelineno-0-3078"></a>    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">:</span> <span class="n">lateral_pts</span><span class="p">}</span>
+<span class="normal"><a href="#__codelineno-0-3076">3076</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-3064"><a id="__codelineno-0-3064" name="__codelineno-0-3064"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_initial_frame_traits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant</span><span class="p">:</span> <span class="n">Series</span><span class="p">,</span> <span class="n">frame_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span id="__span-0-3065"><a id="__codelineno-0-3065" name="__codelineno-0-3065"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return initial traits for a plant frame.</span>
+</span><span id="__span-0-3066"><a id="__codelineno-0-3066" name="__codelineno-0-3066"></a>
+</span><span id="__span-0-3067"><a id="__codelineno-0-3067" name="__codelineno-0-3067"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-3068"><a id="__codelineno-0-3068" name="__codelineno-0-3068"></a><span class="sd">        plant: The plant `Series` object.</span>
+</span><span id="__span-0-3069"><a id="__codelineno-0-3069" name="__codelineno-0-3069"></a><span class="sd">        frame_idx: The index of the current frame.</span>
+</span><span id="__span-0-3070"><a id="__codelineno-0-3070" name="__codelineno-0-3070"></a>
+</span><span id="__span-0-3071"><a id="__codelineno-0-3071" name="__codelineno-0-3071"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-3072"><a id="__codelineno-0-3072" name="__codelineno-0-3072"></a><span class="sd">        A dictionary of initial traits with keys:</span>
+</span><span id="__span-0-3073"><a id="__codelineno-0-3073" name="__codelineno-0-3073"></a><span class="sd">            - &quot;lateral_pts&quot;: Array of lateral root points.</span>
+</span><span id="__span-0-3074"><a id="__codelineno-0-3074" name="__codelineno-0-3074"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-3075"><a id="__codelineno-0-3075" name="__codelineno-0-3075"></a>    <span class="n">lateral_pts</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">get_lateral_points</span><span class="p">(</span><span class="n">frame_idx</span><span class="p">)</span>
+</span><span id="__span-0-3076"><a id="__codelineno-0-3076" name="__codelineno-0-3076"></a>    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">:</span> <span class="n">lateral_pts</span><span class="p">}</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
