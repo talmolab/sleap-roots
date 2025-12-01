@@ -540,6 +540,6 @@ Include unit tests demonstrating correctness
 
 - Review [Architecture](../dev/architecture.md) for pipeline design patterns
 - See [Testing Guide](../dev/testing.md) for testing strategies
-- Check [API Reference](../api/pipelines.md) for existing pipeline implementations
+- Check [API Reference](../api/core/pipelines.md) for existing pipeline implementations
 - Explore [Trait Reference](trait-reference.md) for trait computation details
 - Read [Adding Traits](../dev/adding-traits.md) for contributing new trait computations

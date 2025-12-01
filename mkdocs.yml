@@ -181,7 +181,6 @@ nav:
       - Summary Statistics: api/utilities/summary.md
     - Examples:
       - Common Workflows: api/examples/common-workflows.md
-    - reference/
   - Cookbook:
     - Overview: cookbook/index.md
     - Filtering Data: cookbook/filtering-data.md
