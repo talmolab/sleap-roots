@@ -85,6 +85,17 @@ Or create your own custom pipeline!
 - Clean Python API with comprehensive type hints
 - Well-tested codebase [![codecov](https://codecov.io/gh/talmolab/sleap-roots/branch/main/graph/badge.svg)](https://codecov.io/gh/talmolab/sleap-roots)
 
+## Getting Started
+
+Ready to extract root traits from your images? Follow these steps:
+
+1. **[Install sleap-roots](getting-started/installation.md)** – Quick pip install or conda setup (2 minutes)
+2. **[Quick Start Tutorial](getting-started/quickstart.md)** – Learn the basics with example data (5 minutes)
+3. **[Choose a Pipeline](guides/index.md)** – Find the right pipeline for your plant type
+
+!!! tip "For Contributors"
+    Want to contribute to sleap-roots? See the **[Development Setup Guide](dev/setup.md)** for instructions on setting up a development environment.
+
 ## Quick Example
 
 ```python

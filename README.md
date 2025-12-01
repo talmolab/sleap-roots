@@ -7,6 +7,8 @@
 
 Analysis tools for [SLEAP](https://sleap.ai)-based plant root phenotyping.
 
+📖 **[Documentation](https://roots.sleap.ai)** | 📊 **[HackMD Trait Reference](https://hackmd.io/DMiXO2kXQhKH8AIIcIy--g)** | 📝 **[Paper](https://doi.org/10.34133/plantphenomics.0175)**
+
 ---
 
 ## 📦 Installation
