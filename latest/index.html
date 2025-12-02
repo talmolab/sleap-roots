@@ -3018,7 +3018,7 @@
 <li>
 <p><img alt="🌱" class="twemoji lg middle" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/1f331.svg" title=":seedling:" /> <strong>Fast Root Phenotyping</strong></p>
 <hr />
-<p>Extract 50+ morphological traits from plant root images using pose estimation with SLEAP.</p>
+<p>Extract 100+ morphological traits from plant root images using pose estimation with SLEAP.</p>
 <p><a href="getting-started/quickstart/"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13.22 19.03a.75.75 0 0 1 0-1.06L18.19 13H3.75a.75.75 0 0 1 0-1.5h14.44l-4.97-4.97a.749.749 0 0 1 .326-1.275.75.75 0 0 1 .734.215l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0"/></svg></span> Quick Start</a></p>
 </li>
 <li>
@@ -3046,7 +3046,7 @@
 <p>This package provides:</p>
 <ul>
 <li><strong>Trait pipelines</strong> for different root system architectures (dicots, monocots)</li>
-<li><strong>50+ morphological traits</strong> including lengths, angles, counts, and topology</li>
+<li><strong>100+ morphological traits</strong> including lengths, angles, counts, and topology</li>
 <li><strong>Batch processing</strong> for high-throughput phenotyping experiments</li>
 <li><strong>Modular utilities</strong> for custom trait development</li>
 </ul>
@@ -3063,13 +3063,33 @@
 </ul>
 <p>Or create your own custom pipeline!</p>
 <h3 id="high-performance"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 16a3 3 0 0 1-3-3c0-1.12.61-2.1 1.5-2.61l9.71-5.62-5.53 9.58c-.5.98-1.51 1.65-2.68 1.65m0-13c1.81 0 3.5.5 4.97 1.32l-2.1 1.21C14 5.19 13 5 12 5a8 8 0 0 0-8 8c0 2.21.89 4.21 2.34 5.65h.01c.39.39.39 1.02 0 1.41s-1.03.39-1.42.01A9.97 9.97 0 0 1 2 13 10 10 0 0 1 12 3m10 10c0 2.76-1.12 5.26-2.93 7.07-.39.38-1.02.38-1.41-.01a.996.996 0 0 1 0-1.41A7.95 7.95 0 0 0 20 13c0-1-.19-2-.54-2.9L20.67 8C21.5 9.5 22 11.18 22 13"/></svg></span> High Performance<a class="headerlink" href="#high-performance" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>Fast trait extraction</strong>: 0.1-0.5s per plant for single-plant pipelines</li>
-<li><strong>High-throughput batches</strong>: Process hundreds of plants in minutes</li>
-<li>Optimized with vectorized NumPy operations</li>
-<li>Comprehensive benchmarking suite tracks performance over time</li>
-</ul>
-<p><a href="dev/benchmarking/">View benchmarks and methodology →</a></p>
+<p><strong>Fast trait extraction</strong>: Process plants in 0.1-0.5s each (single-plant pipelines) or analyze 100+ plants in under a minute.</p>
+<table>
+<thead>
+<tr>
+<th>Pipeline Type</th>
+<th>Time per Plant</th>
+<th>Throughput</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Single plant (DicotPipeline)</td>
+<td>0.1-0.5s</td>
+<td>120-600 plants/min</td>
+</tr>
+<tr>
+<td>Multiple plants</td>
+<td>0.5-2s per image</td>
+<td>30-120 plants/min</td>
+</tr>
+</tbody>
+</table>
+<p><em>Benchmarked on GitHub Actions (2 cores, 7GB RAM). Performance scales with your CPU and available memory.</em></p>
+<div class="admonition info">
+<p class="admonition-title">For Developers</p>
+<p>See the <a href="dev/benchmarking/">Developer Guide → Benchmarking</a> for detailed performance tracking and regression detection infrastructure.</p>
+</div>
 <h3 id="research-ready"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6 22a3 3 0 0 1-3-3c0-.6.18-1.16.5-1.63L9 7.81V6a1 1 0 0 1-1-1V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1v1.81l5.5 9.56c.32.47.5 1.03.5 1.63a3 3 0 0 1-3 3zm-1-3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1c0-.21-.07-.41-.18-.57l-2.29-3.96L14 17l-5.07-5.07-3.75 6.5c-.11.16-.18.36-.18.57m8-9a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1"/></svg></span> Research Ready<a class="headerlink" href="#research-ready" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Published validation in <a href="https://doi.org/10.34133/plantphenomics.0175"><em>Plant Phenomics</em></a></li>
@@ -3085,7 +3105,7 @@
 <h2 id="getting-started">Getting Started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h2>
 <p>Ready to extract root traits from your images? Follow these steps:</p>
 <ol>
-<li><strong><a href="getting-started/installation/">Install sleap-roots</a></strong> – Quick pip install or conda setup (2 minutes)</li>
+<li><strong><a href="getting-started/installation/">Install sleap-roots</a></strong> – Quick pip or uv install (2 minutes)</li>
 <li><strong><a href="getting-started/quickstart/">Quick Start Tutorial</a></strong> – Learn the basics with example data (5 minutes)</li>
 <li><strong><a href="guides/">Choose a Pipeline</a></strong> – Find the right pipeline for your plant type</li>
 </ol>

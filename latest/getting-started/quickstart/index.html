@@ -3220,7 +3220,7 @@
 <p>This will:</p>
 <ul>
 <li>Load predictions for primary and lateral roots</li>
-<li>Compute 40+ morphological traits</li>
+<li>Compute 100+ morphological traits</li>
 <li>Save results to <code>919QDUH_traits.csv</code></li>
 </ul>
 <h2 id="example-2-batch-processing">Example 2: Batch Processing<a class="headerlink" href="#example-2-batch-processing" title="Permanent link">&para;</a></h2>
@@ -3249,9 +3249,9 @@
 </ul>
 <h2 id="example-3-using-individual-trait-functions">Example 3: Using Individual Trait Functions<a class="headerlink" href="#example-3-using-individual-trait-functions" title="Permanent link">&para;</a></h2>
 <p>You can also use modular utility functions for custom analyses:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sleap_roots.lengths</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_root_lengths</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sleap_roots.angles</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_primary_angle</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sleap_roots</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sr</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sleap_roots</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sr</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sleap_roots.lengths</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_root_lengths</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sleap_roots.angle</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_node_ind</span><span class="p">,</span> <span class="n">get_root_angle</span>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Load data</span>
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">series</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">Series</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
@@ -3262,12 +3262,15 @@
 </span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># Get points for frame 0</span>
 </span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">pts</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">get_primary_points</span><span class="p">(</span><span class="n">frame_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1"># Compute specific traits</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1"># Compute length using the first root instance</span>
 </span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="n">length</span> <span class="o">=</span> <span class="n">get_root_lengths</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span>
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="n">angle</span> <span class="o">=</span> <span class="n">get_primary_angle</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span>
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Primary root length: </span><span class="si">{</span><span class="n">length</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> pixels&quot;</span><span class="p">)</span>
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Primary root angle: </span><span class="si">{</span><span class="n">angle</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> degrees&quot;</span><span class="p">)</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="c1"># Compute angle: first find the proximal node, then calculate angle</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="n">node_ind</span> <span class="o">=</span> <span class="n">get_node_ind</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">proximal</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="n">angle</span> <span class="o">=</span> <span class="n">get_root_angle</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">node_ind</span><span class="o">=</span><span class="n">node_ind</span><span class="p">,</span> <span class="n">proximal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">base_ind</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Primary root length: </span><span class="si">{</span><span class="n">length</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> pixels&quot;</span><span class="p">)</span>
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Primary root angle: </span><span class="si">{</span><span class="n">angle</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> degrees&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h2 id="available-pipelines">Available Pipelines<a class="headerlink" href="#available-pipelines" title="Permanent link">&para;</a></h2>
 <p>Choose a pipeline based on your plant type and root system:</p>
@@ -3379,13 +3382,11 @@
 </ol>
 <h2 id="common-issues">Common Issues<a class="headerlink" href="#common-issues" title="Permanent link">&para;</a></h2>
 <h3 id="no-module-named-sleap_roots">"No module named 'sleap_roots'"<a class="headerlink" href="#no-module-named-sleap_roots" title="Permanent link">&para;</a></h3>
-<p>Activate your conda environment:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>conda<span class="w"> </span>activate<span class="w"> </span>sleap-roots
-</span></code></pre></div></p>
+<p>See the <a href="../../guides/troubleshooting/#import-errors">Troubleshooting Guide</a> for solutions.</p>
 <h3 id="filenotfounderror-predictionsslp">"FileNotFoundError: predictions.slp"<a class="headerlink" href="#filenotfounderror-predictionsslp" title="Permanent link">&para;</a></h3>
 <p>Check that file paths are correct and files exist:
-<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">assert</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;primary_roots.slp&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">assert</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;primary_roots.slp&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
 </span></code></pre></div></p>
 <h3 id="empty-or-nan-traits">Empty or NaN traits<a class="headerlink" href="#empty-or-nan-traits" title="Permanent link">&para;</a></h3>
 <p>This can happen if:</p>
