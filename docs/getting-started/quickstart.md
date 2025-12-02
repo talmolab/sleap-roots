@@ -48,18 +48,30 @@ pipeline = sr.DicotPipeline()
 traits_df = pipeline.compute_plant_traits(series, write_csv=True)
 
 # View results
-print(traits_df.head())
+print(f"Shape: {traits_df.shape}")
+print(traits_df[['plant_name', 'frame_idx', 'lateral_count', 'primary_length',
+                 'lateral_lengths_mean', 'network_solidity']].head(3))
 ```
 
-This will:
+**Output:**
+```
+Shape: (72, 117)
+  plant_name  frame_idx  lateral_count  primary_length  lateral_lengths_mean  network_solidity
+0    919QDUH          0              5      971.050417             40.400556          0.456066
+1    919QDUH          1              3      948.174804             48.358652          0.455535
+2    919QDUH          2              4      959.421417             66.388803          0.455535
+```
 
-- Load predictions for primary and lateral roots
-- Compute 100+ morphological traits
-- Save results to `919QDUH_traits.csv`
+**What this returns:**
+- **One row per frame** (72 frames total)
+- **117 trait columns** including:
+  - Scalar traits: `primary_length`, `lateral_count`, `network_solidity` (one value per frame)
+  - Non-scalar traits: `lateral_lengths_mean`, `lateral_angles_distal_mean`, etc. (statistics across multiple roots within each frame)
+- CSV saved to `919QDUH_traits.csv`
 
-## Example 2: Batch Processing
+## Example 2: Batch Processing with Summary Statistics
 
-For high-throughput experiments, process multiple plants at once:
+For high-throughput experiments, process multiple plants and get summary statistics:
 
 ```python
 import sleap_roots as sr
@@ -75,15 +87,30 @@ pipeline = sr.DicotPipeline()
 batch_df = pipeline.compute_batch_traits(plants, write_csv=True)
 
 # View summary
-print(f"Processed {len(batch_df)} plant frames")
-print(batch_df[['plant', 'frame_idx', 'primary_length', 'lateral_count']].head())
+print(f"Shape: {batch_df.shape}")
+print(batch_df[['plant_name', 'lateral_count_mean', 'lateral_count_median',
+                'lateral_lengths_mean_mean', 'lateral_lengths_mean_median']].head())
 ```
 
-The batch CSV will contain all plants with columns:
+**Output:**
+```
+Shape: (1, 1036)
+  plant_name  lateral_count_mean  lateral_count_median  lateral_lengths_mean_mean  lateral_lengths_mean_median
+0  6PR6AA22JK                4.2                   4.0                      45.34                        44.12
+```
 
-- `plant` – Plant identifier
-- `frame_idx` – Frame number (for time-series)
-- Individual trait columns
+**What this returns:**
+- **One row per plant** (summarizing all frames)
+- **1036 summary statistic columns** including:
+  - Scalar traits: `lateral_count_mean`, `primary_length_median` (single statistic suffix)
+  - Non-scalar traits: `lateral_lengths_mean_mean`, `lateral_lengths_mean_median` (double statistic suffix)
+- CSV saved to `batch_traits.csv`
+
+!!! info "Understanding Summary Statistics"
+    `compute_batch_traits()` computes **9 summary statistics** across frames for each plant:
+    `min`, `max`, `mean`, `median`, `std`, `p5`, `p25`, `p75`, `p95`
+
+    See [Understanding Summary Statistics](#understanding-summary-statistics) below for details on the naming pattern.
 
 ## Example 3: Using Individual Trait Functions
 
@@ -131,125 +158,113 @@ See the [Pipeline Guide](../guides/index.md) for detailed information about each
 
 ## Understanding the Output
 
-### Trait DataFrame Structure
+### Frame-Level vs Plant-Level Outputs
 
-The output DataFrame has one row per frame (or plant-frame for batch processing):
+sleap-roots provides two types of outputs:
+
+#### Frame-Level: `compute_plant_traits()`
+Returns **one row per frame** with raw trait measurements:
 
 ```python
-# Example output
-     plant  frame_idx  primary_length  lateral_count  primary_angle
-0  919QDUH          0          523.45             12          87.32
-1  919QDUH          1          541.23             13          86.91
-2  919QDUH          2          558.91             14          85.77
+# Shape: (72, 117) - 72 frames, 117 columns
+  plant_name  frame_idx  lateral_count  primary_length  lateral_lengths_mean
+0    919QDUH          0              5      971.050417             40.400556
+1    919QDUH          1              3      948.174804             48.358652
 ```
+
+Use this when you want to:
+- Track how traits change over time
+- Plot growth curves
+- Analyze temporal dynamics
+
+#### Plant-Level: `compute_batch_traits()`
+Returns **one row per plant** with summary statistics across all frames:
+
+```python
+# Shape: (1, 1036) - 1 plant, 1036 summary statistic columns
+  plant_name  lateral_count_mean  lateral_lengths_mean_median
+0  6PR6AA22JK                4.2                        44.12
+```
+
+Use this when you want to:
+- Compare different plants/genotypes/treatments
+- Run statistical tests between groups
+- Generate high-level phenotyping summaries
+
+### Understanding Summary Statistics
+
+When using `compute_batch_traits()`, sleap-roots computes **9 summary statistics** across all frames:
+
+- `min` – Minimum value
+- `max` – Maximum value
+- `mean` – Average (arithmetic mean)
+- `median` – Middle value (50th percentile)
+- `std` – Standard deviation
+- `p5`, `p25`, `p75`, `p95` – Percentiles
+
+#### Column Naming Pattern
+
+**Scalar traits** (one value per frame) get **single-suffixed** names:
+```
+primary_length → primary_length_mean, primary_length_median, primary_length_max, ...
+lateral_count → lateral_count_mean, lateral_count_std, ...
+```
+
+**Non-scalar traits** (multiple values per frame) get **double-suffixed** names:
+```
+lateral_lengths → lateral_lengths_mean_mean, lateral_lengths_mean_median, ...
+                   ↑ first suffix      ↑ second suffix
+```
+
+The double suffix indicates **two levels of summarization**:
+
+1. **First suffix** (frame-level): Statistic across multiple roots within each frame
+   - Example: `lateral_lengths_mean` = mean across all lateral roots in that frame
+2. **Second suffix** (plant-level): Statistic across all frames for the plant
+   - Example: `lateral_lengths_mean_median` = median of all frame means
+
+**Example breakdown:**
+```
+lateral_lengths_mean_median
+│                │    └─ median across all 72 frames
+│                └────── mean across lateral roots within each frame
+└───────────────────── trait name
+```
+
+#### When to Use Which Statistic
+
+- **mean**: Use for normally distributed data, sensitive to all values
+- **median**: Use when data may have outliers, more robust
+- **min/max**: Use for extreme values (e.g., maximum growth potential)
+- **std**: Use to assess variability or consistency
+- **percentiles (p5, p25, p75, p95)**: Use for robust estimates ignoring outliers
+
+**Common use cases:**
+- Comparing growth: `primary_length_mean` or `primary_length_median`
+- Finding vigorous plants: `primary_length_max`, `lateral_count_max`
+- Measuring variability: `lateral_angles_proximal_std_mean` (higher = more variable)
+- Finding consistency: Lower `*_std` values = more consistent across frames
 
 ### Common Traits
 
-Here are some commonly used traits:
+Frame-level outputs include:
 
-- **Length traits** – `primary_length`, `lateral_length_total`, `lateral_length_avg`
-- **Count traits** – `lateral_count`, `primary_tip_count`, `crown_count`
-- **Angle traits** – `primary_angle`, `lateral_angle_avg`, `crown_angle_avg`
-- **Topology traits** – `convex_hull_area`, `network_distribution_ratio`
+- **Scalar traits**: `primary_length`, `lateral_count`, `network_solidity`
+- **Non-scalar traits**: `lateral_lengths_mean`, `lateral_angles_distal_median`, `root_widths_p95`
 
-See the [Trait Reference](../guides/trait-reference.md) for the full list with descriptions.
+For the complete list, see the [API Reference](../api/).
 
 ## Working with CSV Output
 
-The CSV files are compatible with any statistical analysis tool:
-
-### Python (pandas)
-```python
-import pandas as pd
-
-df = pd.read_csv("919QDUH_traits.csv")
-print(df['primary_length'].describe())
-```
-
-### R
-```r
-df <- read.csv("919QDUH_traits.csv")
-summary(df$primary_length)
-```
-
-### Excel
-Simply open the CSV file in Excel or Google Sheets.
-
-## Visualizing Results
-
-```python
-import matplotlib.pyplot as plt
-import pandas as pd
-
-# Load results
-df = pd.read_csv("919QDUH_traits.csv")
-
-# Plot length over time
-plt.figure(figsize=(10, 6))
-plt.plot(df['frame_idx'], df['primary_length'], label='Primary Root')
-plt.plot(df['frame_idx'], df['lateral_length_total'], label='Total Lateral Length')
-plt.xlabel('Frame')
-plt.ylabel('Length (pixels)')
-plt.title('Root Growth Over Time')
-plt.legend()
-plt.show()
-```
-
-## Converting Pixels to Real Units
-
-SLEAP predictions are in pixels. To convert to real-world units (mm, cm):
-
-```python
-# Define scale (e.g., 100 pixels = 1 cm)
-pixels_per_cm = 100
-
-# Convert traits
-df['primary_length_cm'] = df['primary_length'] / pixels_per_cm
-df['lateral_length_total_cm'] = df['lateral_length_total'] / pixels_per_cm
-```
-
-Determine your scale by:
-
-1. Including a ruler or reference object in images
-2. Measuring known distances in pixels
-3. Calculating pixels per unit
+The CSV files work with any analysis tool (Python/pandas, R, Excel, etc.). SLEAP predictions are measured in pixels. To convert pixel measurements to real-world units (mm, cm), include a ruler or reference object of known length in your images during capture.
 
 ## Common Issues
 
-### "No module named 'sleap_roots'"
-
-See the [Troubleshooting Guide](../guides/troubleshooting.md#import-errors) for solutions.
-
-### "FileNotFoundError: predictions.slp"
-
-Check that file paths are correct and files exist:
-```python
-from pathlib import Path
-assert Path("primary_roots.slp").exists()
-```
-
-### Empty or NaN traits
-
-This can happen if:
-
-- SLEAP predictions are missing for some frames
-- Root landmarks weren't detected
-- Coordinate systems are misaligned
-
-Check your SLEAP predictions in the SLEAP GUI to verify quality.
-
-### "KeyError: 'primary_pts'"
-
-Make sure you're using the correct pipeline for your data:
-
-- Use `DicotPipeline` for primary + lateral roots
-- Use `MonocotPipeline` for crown roots
-- Check that you're loading the correct `.slp` files
+For installation problems, import errors, file errors, and troubleshooting, see the **[Troubleshooting Guide](../guides/troubleshooting.md)**.
 
 ## Next Steps
 
 - [Learn about SLEAP](what-is-sleap.md) – Understand the prediction workflow
 - [Pipeline Guide](../guides/index.md) – Deep dive into each pipeline
-- [Trait Reference](../guides/trait-reference.md) – Full list of computed traits
+- [API Reference](../api/) – Complete trait definitions and function documentation
 - [Batch Processing](../guides/batch-processing.md) – Advanced batch workflows
-- [API Reference](../reference/) – Complete function documentation

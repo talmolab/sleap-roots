@@ -4,15 +4,18 @@
 
 ## Why SLEAP for Roots?
 
-**SLEAP excels at tracking complex, branching structures over time** – exactly what plant roots are!
+**SLEAP excels at identifying keypoints in images and learning their structural connections.** For plant roots, this means the neural network directly outputs a graph representation – nodes (landmarks) and edges (skeleton connections) – for each root, with multiple roots grouped per plant.
 
-### Key Advantages
+### Key Advantages for Root Phenotyping
 
-- **Multi-instance tracking** – Track multiple roots simultaneously
-- **Temporal consistency** – Associate landmarks across frames/time-points
-- **Flexible skeletons** – Define custom root architectures (primary, lateral, crown)
-- **Active learning** – Iteratively improve models with minimal labeling
-- **Fast inference** – GPU-accelerated prediction on large datasets
+What makes SLEAP powerful for roots is **the direct extraction of structured graphs from images**:
+
+- **No post-processing** – Get root skeletons directly from the neural network output
+- **Efficient trait computation** – Any geometric trait can be constructed from the extracted nodes and edges
+- **Multi-instance detection** – Detect multiple roots simultaneously in each frame
+- **Temporal tracking** – Associate roots across frames (works best with minimal occlusions; may require proofreading)
+- **Flexible architectures** – Define custom skeletons for different root types (primary, lateral, crown)
+- **Fast inference** – GPU-accelerated prediction scales to large datasets
 
 ## SLEAP Workflow
 
@@ -83,17 +86,19 @@ frame = labels.labeled_frames[0]
 instance = frame.instances[0]
 
 # Get landmark points
-for node, point in instance.points.items():
-    print(f"{node.name}: ({point.x:.1f}, {point.y:.1f})")
+for i, node in enumerate(instance.skeleton.nodes):
+    point = instance.points[i]  # point is a structured array with coordinates, score, visibility
+    x, y = point[0][0], point[0][1]  # point[0] is the [x, y] coordinate array
+    print(f"{node.name}: ({x:.1f}, {y:.1f})")
 ```
 
 Output:
 ```
-base: (245.3, 189.2)
-node1: (247.1, 210.5)
-node2: (248.9, 231.8)
+r1: (1016.8, 144.4)
+r2: (1208.0, 304.1)
+r3: (1208.9, 472.4)
 ...
-tip: (256.4, 523.7)
+r6: (1136.1, 1021.0)
 ```
 
 ## From SLEAP to Traits
@@ -112,11 +117,12 @@ series = sr.Series.load(
 
 # Extract points for a frame
 pts = series.get_primary_points(frame_idx=0)
-# pts is a (n_points, 2) numpy array of (x, y) coordinates
+# pts is a (n_instances, n_nodes, 2) numpy array of (x, y) coordinates
 
 # Compute length from points
 from sleap_roots.lengths import get_root_lengths
 length = get_root_lengths(pts)
+print(f"Primary root length: {length:.2f} pixels")
 ```
 
 The `Series` class handles loading, organizing, and extracting point data from SLEAP files.
@@ -226,4 +232,4 @@ sleap-roots respects this coordinate system. For angle calculations, we account 
 - [Quick Start](quickstart.md) – Start analyzing SLEAP predictions
 - [Pipeline Guide](../guides/index.md) – Choose the right pipeline
 - [Batch Processing](../guides/batch-processing.md) – Process multiple plants
-- [Trait Reference](../guides/trait-reference.md) – See all computed traits
+- [API Reference](../api/) – Complete trait definitions and function documentation
