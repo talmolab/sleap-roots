@@ -4,15 +4,18 @@
 
 ## Why SLEAP for Roots?
 
-**SLEAP excels at tracking complex, branching structures over time** – exactly what plant roots are!
+**SLEAP excels at identifying keypoints in images and learning their structural connections.** For plant roots, this means the neural network directly outputs a graph representation – nodes (landmarks) and edges (skeleton connections) – for each root, with multiple roots grouped per plant.
 
-### Key Advantages
+### Key Advantages for Root Phenotyping
 
-- **Multi-instance tracking** – Track multiple roots simultaneously
-- **Temporal consistency** – Associate landmarks across frames/time-points
-- **Flexible skeletons** – Define custom root architectures (primary, lateral, crown)
-- **Active learning** – Iteratively improve models with minimal labeling
-- **Fast inference** – GPU-accelerated prediction on large datasets
+What makes SLEAP powerful for roots is **the direct extraction of structured graphs from images**:
+
+- **No post-processing** – Get root skeletons directly from the neural network output
+- **Efficient trait computation** – Any geometric trait can be constructed from the extracted nodes and edges
+- **Multi-instance detection** – Detect multiple roots simultaneously in each frame
+- **Temporal tracking** – Associate roots across frames (works best with minimal occlusions; may require proofreading)
+- **Flexible architectures** – Define custom skeletons for different root types (primary, lateral, crown)
+- **Fast inference** – GPU-accelerated prediction scales to large datasets
 
 ## SLEAP Workflow
 
@@ -226,4 +229,4 @@ sleap-roots respects this coordinate system. For angle calculations, we account 
 - [Quick Start](quickstart.md) – Start analyzing SLEAP predictions
 - [Pipeline Guide](../guides/index.md) – Choose the right pipeline
 - [Batch Processing](../guides/batch-processing.md) – Process multiple plants
-- [Trait Reference](../guides/trait-reference.md) – See all computed traits
+- [API Reference](../api/) – Complete trait definitions and function documentation
