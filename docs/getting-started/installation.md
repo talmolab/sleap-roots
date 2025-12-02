@@ -76,7 +76,7 @@ pip install sleap-roots
 ```
 
 !!! warning "Environment Isolation"
-    Installing with pip directly may affect your Python environment. We recommend using uv (above) or conda for better dependency management, especially if you're new to Python.
+    Installing with pip directly may install packages into your base Python environment, which can cause dependency conflicts with other projects. We recommend using uv (above) or conda for better isolation, especially if you're new to Python.
 
 ## Platform Support
 

@@ -87,8 +87,8 @@ instance = frame.instances[0]
 
 # Get landmark points
 for i, node in enumerate(instance.skeleton.nodes):
-    point = instance.points[i]
-    x, y = point[0][0], point[0][1]  # Extract x, y coordinates
+    point = instance.points[i]  # point is a structured array with coordinates, score, visibility
+    x, y = point[0][0], point[0][1]  # point[0] is the [x, y] coordinate array
     print(f"{node.name}: ({x:.1f}, {y:.1f})")
 ```
 
@@ -117,7 +117,7 @@ series = sr.Series.load(
 
 # Extract points for a frame
 pts = series.get_primary_points(frame_idx=0)
-# pts is a (n_instances, n_points, 2) numpy array of (x, y) coordinates
+# pts is a (n_instances, n_nodes, 2) numpy array of (x, y) coordinates
 
 # Compute length from points
 from sleap_roots.lengths import get_root_lengths

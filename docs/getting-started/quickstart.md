@@ -256,7 +256,7 @@ For the complete list, see the [API Reference](../api/).
 
 ## Working with CSV Output
 
-The CSV files work with any analysis tool (Python/pandas, R, Excel, etc.). SLEAP predictions are in pixels - include a ruler in your images to convert to real units (mm, cm).
+The CSV files work with any analysis tool (Python/pandas, R, Excel, etc.). SLEAP predictions are measured in pixels. To convert pixel measurements to real-world units (mm, cm), include a ruler or reference object of known length in your images during capture.
 
 ## Common Issues
 
