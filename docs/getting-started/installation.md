@@ -12,25 +12,7 @@ pip install sleap-roots
 
 That's it! You're ready to use sleap-roots.
 
-## Recommended: Conda Environment
-
-To avoid dependency conflicts, we recommend using conda:
-
-```bash
-# Create a new environment with Python 3.11
-conda create -n sleap-roots python=3.11
-
-# Activate the environment
-conda activate sleap-roots
-
-# Install sleap-roots
-pip install sleap-roots
-```
-
-!!! tip "Why Python 3.11?"
-    While sleap-roots supports Python 3.7+, we recommend 3.11 for the best performance and compatibility with recent NumPy/Pandas versions.
-
-## Modern Workflow: Using uv
+## Recommended: Using uv
 
 For starting a new project, [uv](https://github.com/astral-sh/uv) provides a fast, modern Python workflow:
 
@@ -51,7 +33,10 @@ uv run python my_analysis.py
 ```
 
 !!! tip "Why uv?"
-    uv is 10-100x faster than pip/conda and provides automatic dependency locking for reproducibility.
+    uv is 10-100x faster than pip and provides automatic dependency locking for reproducibility.
+
+!!! info "Python Version"
+    We recommend Python 3.11 for best performance and compatibility with recent NumPy/Pandas versions.
 
 ## Verify Installation
 
@@ -74,35 +59,39 @@ Or run this one-liner:
 python -c "import sleap_roots; print(f'✅ sleap-roots {sleap_roots.__version__} installed successfully!')"
 ```
 
+## Alternative: Using Conda
+
+If you prefer conda for package management:
+
+```bash
+# Create a new environment with Python 3.11
+conda create -n sleap-roots python=3.11
+
+# Activate the environment
+conda activate sleap-roots
+
+# Install sleap-roots
+pip install sleap-roots
+```
+
 ## Platform Support
 
 sleap-roots is tested on:
 
-| Platform | Python Versions | Status |
-|----------|----------------|--------|
-| **Ubuntu 22.04** | 3.7, 3.8, 3.9, 3.10, 3.11 | ✅ Fully supported |
-| **macOS** | 3.11 | ✅ Fully supported |
-| **Windows** | 3.11 | ✅ Fully supported |
+| Platform | Python Version | CI Status |
+|----------|----------------|-----------|
+| **Ubuntu 22.04** | 3.11 | ✅ Tested in CI |
+| **macOS** | 3.11 | ✅ Tested in CI |
+| **Windows** | 3.11 | ✅ Tested in CI |
+| **All platforms** | 3.7-3.12 | ⚠️ Should work (not CI tested) |
+
+!!! info "Python Version Support"
+    We officially test and support **Python 3.11** on all platforms through continuous integration. Other versions (3.7-3.12) should work based on our dependencies, but are not continuously tested. We recommend 3.11 for the best experience.
 
 ## Troubleshooting
 
-### "ModuleNotFoundError: No module named 'sleap_roots'"
-
-Make sure your environment is activated:
-
-```bash
-conda activate sleap-roots
-```
-
-### Import Errors with sleap-io
-
-Upgrade to the latest version:
-
-```bash
-pip install --upgrade sleap-io
-```
-
-For more help, see the [Troubleshooting Guide](../guides/troubleshooting.md).
+!!! warning "Import Errors?"
+    If you encounter `ModuleNotFoundError: No module named 'sleap_roots'`, see the [Troubleshooting Guide](../guides/troubleshooting.md#import-errors) for solutions.
 
 ## Next Steps
 

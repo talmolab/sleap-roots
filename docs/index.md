@@ -8,7 +8,7 @@ Analysis tools for [SLEAP](https://sleap.ai)-based plant root phenotyping.
 
     ---
 
-    Extract 50+ morphological traits from plant root images using pose estimation with SLEAP.
+    Extract 100+ morphological traits from plant root images using pose estimation with SLEAP.
 
     [:octicons-arrow-right-24: Quick Start](getting-started/quickstart.md)
 
@@ -45,7 +45,7 @@ Analysis tools for [SLEAP](https://sleap.ai)-based plant root phenotyping.
 This package provides:
 
 - **Trait pipelines** for different root system architectures (dicots, monocots)
-- **50+ morphological traits** including lengths, angles, counts, and topology
+- **100+ morphological traits** including lengths, angles, counts, and topology
 - **Batch processing** for high-throughput phenotyping experiments
 - **Modular utilities** for custom trait development
 
@@ -66,12 +66,17 @@ Or create your own custom pipeline!
 
 ### :material-speedometer: High Performance
 
-- **Fast trait extraction**: 0.1-0.5s per plant for single-plant pipelines
-- **High-throughput batches**: Process hundreds of plants in minutes
-- Optimized with vectorized NumPy operations
-- Comprehensive benchmarking suite tracks performance over time
+**Fast trait extraction**: Process plants in 0.1-0.5s each (single-plant pipelines) or analyze 100+ plants in under a minute.
 
-[View benchmarks and methodology →](dev/benchmarking.md)
+| Pipeline Type | Time per Plant | Throughput |
+|---------------|----------------|------------|
+| Single plant (DicotPipeline) | 0.1-0.5s | 120-600 plants/min |
+| Multiple plants | 0.5-2s per image | 30-120 plants/min |
+
+*Benchmarked on GitHub Actions (2 cores, 7GB RAM). Performance scales with your CPU and available memory.*
+
+!!! info "For Developers"
+    See the [Developer Guide → Benchmarking](dev/benchmarking.md) for detailed performance tracking and regression detection infrastructure.
 
 ### :material-flask: Research Ready
 
@@ -89,7 +94,7 @@ Or create your own custom pipeline!
 
 Ready to extract root traits from your images? Follow these steps:
 
-1. **[Install sleap-roots](getting-started/installation.md)** – Quick pip install or conda setup (2 minutes)
+1. **[Install sleap-roots](getting-started/installation.md)** – Quick pip or uv install (2 minutes)
 2. **[Quick Start Tutorial](getting-started/quickstart.md)** – Learn the basics with example data (5 minutes)
 3. **[Choose a Pipeline](guides/index.md)** – Find the right pipeline for your plant type
 
