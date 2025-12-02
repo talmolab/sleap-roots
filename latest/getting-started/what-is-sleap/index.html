@@ -682,10 +682,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#key-advantages" class="md-nav__link">
+  <a href="#key-advantages-for-root-phenotyping" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Key Advantages
+        Key Advantages for Root Phenotyping
       
     </span>
   </a>
@@ -3142,14 +3142,16 @@
 <h1 id="what-is-sleap">What is SLEAP?<a class="headerlink" href="#what-is-sleap" title="Permanent link">&para;</a></h1>
 <p><a href="https://sleap.ai">SLEAP</a> (Social LEAP Estimates Animal Poses) is a deep learning framework for multi-animal pose estimation. While designed for tracking animal body parts, SLEAP works exceptionally well for plant root phenotyping.</p>
 <h2 id="why-sleap-for-roots">Why SLEAP for Roots?<a class="headerlink" href="#why-sleap-for-roots" title="Permanent link">&para;</a></h2>
-<p><strong>SLEAP excels at tracking complex, branching structures over time</strong> – exactly what plant roots are!</p>
-<h3 id="key-advantages">Key Advantages<a class="headerlink" href="#key-advantages" title="Permanent link">&para;</a></h3>
+<p><strong>SLEAP excels at identifying keypoints in images and learning their structural connections.</strong> For plant roots, this means the neural network directly outputs a graph representation – nodes (landmarks) and edges (skeleton connections) – for each root, with multiple roots grouped per plant.</p>
+<h3 id="key-advantages-for-root-phenotyping">Key Advantages for Root Phenotyping<a class="headerlink" href="#key-advantages-for-root-phenotyping" title="Permanent link">&para;</a></h3>
+<p>What makes SLEAP powerful for roots is <strong>the direct extraction of structured graphs from images</strong>:</p>
 <ul>
-<li><strong>Multi-instance tracking</strong> – Track multiple roots simultaneously</li>
-<li><strong>Temporal consistency</strong> – Associate landmarks across frames/time-points</li>
-<li><strong>Flexible skeletons</strong> – Define custom root architectures (primary, lateral, crown)</li>
-<li><strong>Active learning</strong> – Iteratively improve models with minimal labeling</li>
-<li><strong>Fast inference</strong> – GPU-accelerated prediction on large datasets</li>
+<li><strong>No post-processing</strong> – Get root skeletons directly from the neural network output</li>
+<li><strong>Efficient trait computation</strong> – Any geometric trait can be constructed from the extracted nodes and edges</li>
+<li><strong>Multi-instance detection</strong> – Detect multiple roots simultaneously in each frame</li>
+<li><strong>Temporal tracking</strong> – Associate roots across frames (works best with minimal occlusions; may require proofreading)</li>
+<li><strong>Flexible architectures</strong> – Define custom skeletons for different root types (primary, lateral, crown)</li>
+<li><strong>Fast inference</strong> – GPU-accelerated prediction scales to large datasets</li>
 </ul>
 <h2 id="sleap-workflow">SLEAP Workflow<a class="headerlink" href="#sleap-workflow" title="Permanent link">&para;</a></h2>
 <p>The typical SLEAP workflow for root phenotyping:</p>
@@ -3203,15 +3205,17 @@
 </span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">instance</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">instances</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 </span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
 </span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="c1"># Get landmark points</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">instance</span><span class="o">.</span><span class="n">points</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: (</span><span class="si">{</span><span class="n">point</span><span class="o">.</span><span class="n">x</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">point</span><span class="o">.</span><span class="n">y</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">instance</span><span class="o">.</span><span class="n">skeleton</span><span class="o">.</span><span class="n">nodes</span><span class="p">):</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="n">point</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="c1"># point is a structured array with coordinates, score, visibility</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">point</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">point</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># point[0] is the [x, y] coordinate array</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: (</span><span class="si">{</span><span class="n">x</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">y</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <p>Output:
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>base: (245.3, 189.2)
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>node1: (247.1, 210.5)
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>node2: (248.9, 231.8)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>r1: (1016.8, 144.4)
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>r2: (1208.0, 304.1)
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>r3: (1208.9, 472.4)
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>...
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>tip: (256.4, 523.7)
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>r6: (1136.1, 1021.0)
 </span></code></pre></div></p>
 <h2 id="from-sleap-to-traits">From SLEAP to Traits<a class="headerlink" href="#from-sleap-to-traits" title="Permanent link">&para;</a></h2>
 <p>sleap-roots converts SLEAP predictions into trait measurements:</p>
@@ -3226,11 +3230,12 @@
 </span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
 </span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1"># Extract points for a frame</span>
 </span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="n">pts</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">get_primary_points</span><span class="p">(</span><span class="n">frame_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="c1"># pts is a (n_points, 2) numpy array of (x, y) coordinates</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="c1"># pts is a (n_instances, n_nodes, 2) numpy array of (x, y) coordinates</span>
 </span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>
 </span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="c1"># Compute length from points</span>
 </span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sleap_roots.lengths</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_root_lengths</span>
 </span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="n">length</span> <span class="o">=</span> <span class="n">get_root_lengths</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Primary root length: </span><span class="si">{</span><span class="n">length</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> pixels&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <p>The <code>Series</code> class handles loading, organizing, and extracting point data from SLEAP files.</p>
 <h2 id="data-organization">Data Organization<a class="headerlink" href="#data-organization" title="Permanent link">&para;</a></h2>
@@ -3329,7 +3334,7 @@
 <li><a href="../quickstart/">Quick Start</a> – Start analyzing SLEAP predictions</li>
 <li><a href="../../guides/">Pipeline Guide</a> – Choose the right pipeline</li>
 <li><a href="../../guides/batch-processing/">Batch Processing</a> – Process multiple plants</li>
-<li><a href="../../guides/trait-reference/">Trait Reference</a> – See all computed traits</li>
+<li><a href="../api/">API Reference</a> – Complete trait definitions and function documentation</li>
 </ul>
 
 

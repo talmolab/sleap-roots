@@ -675,10 +675,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example-2-batch-processing" class="md-nav__link">
+  <a href="#example-2-batch-processing-with-summary-statistics" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example 2: Batch Processing
+        Example 2: Batch Processing with Summary Statistics
       
     </span>
   </a>
@@ -720,13 +720,80 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#trait-dataframe-structure" class="md-nav__link">
+  <a href="#frame-level-vs-plant-level-outputs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Trait DataFrame Structure
+        Frame-Level vs Plant-Level Outputs
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Frame-Level vs Plant-Level Outputs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#frame-level-compute_plant_traits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frame-Level: compute_plant_traits()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plant-level-compute_batch_traits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plant-Level: compute_batch_traits()
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#understanding-summary-statistics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Understanding Summary Statistics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Understanding Summary Statistics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#column-naming-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Column Naming Pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-which-statistic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use Which Statistic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -755,67 +822,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Working with CSV Output">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#python-pandas" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Python (pandas)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#r" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        R
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#excel" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Excel
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#visualizing-results" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Visualizing Results
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#converting-pixels-to-real-units" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Converting Pixels to Real Units
-      
-    </span>
-  </a>
-  
 </li>
       
         <li class="md-nav__item">
@@ -826,56 +832,6 @@
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Common Issues">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#no-module-named-sleap_roots" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        "No module named 'sleap_roots'"
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#filenotfounderror-predictionsslp" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        "FileNotFoundError: predictions.slp"
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#empty-or-nan-traits" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Empty or NaN traits
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#keyerror-primary_pts" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        "KeyError: 'primary_pts'"
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -3215,62 +3171,83 @@
 </span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">traits_df</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">compute_plant_traits</span><span class="p">(</span><span class="n">series</span><span class="p">,</span> <span class="n">write_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
 </span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="c1"># View results</span>
-</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="nb">print</span><span class="p">(</span><span class="n">traits_df</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Shape: </span><span class="si">{</span><span class="n">traits_df</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="nb">print</span><span class="p">(</span><span class="n">traits_df</span><span class="p">[[</span><span class="s1">&#39;plant_name&#39;</span><span class="p">,</span> <span class="s1">&#39;frame_idx&#39;</span><span class="p">,</span> <span class="s1">&#39;lateral_count&#39;</span><span class="p">,</span> <span class="s1">&#39;primary_length&#39;</span><span class="p">,</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>                 <span class="s1">&#39;lateral_lengths_mean&#39;</span><span class="p">,</span> <span class="s1">&#39;network_solidity&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
 </span></code></pre></div>
-<p>This will:</p>
-<ul>
-<li>Load predictions for primary and lateral roots</li>
-<li>Compute 100+ morphological traits</li>
-<li>Save results to <code>919QDUH_traits.csv</code></li>
-</ul>
-<h2 id="example-2-batch-processing">Example 2: Batch Processing<a class="headerlink" href="#example-2-batch-processing" title="Permanent link">&para;</a></h2>
-<p>For high-throughput experiments, process multiple plants at once:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sleap_roots</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sr</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Step 1: Find all SLEAP files in a directory</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">paths</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">find_all_slp_paths</span><span class="p">(</span><span class="s2">&quot;tests/data/soy_6do&quot;</span><span class="p">)</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># Step 2: Load all plants</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">plants</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">load_series_from_slps</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">h5s</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="c1"># Step 3: Create pipeline and compute batch traits</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">pipeline</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">DicotPipeline</span><span class="p">()</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">batch_df</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">compute_batch_traits</span><span class="p">(</span><span class="n">plants</span><span class="p">,</span> <span class="n">write_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="c1"># View summary</span>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Processed </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">batch_df</span><span class="p">)</span><span class="si">}</span><span class="s2"> plant frames&quot;</span><span class="p">)</span>
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="nb">print</span><span class="p">(</span><span class="n">batch_df</span><span class="p">[[</span><span class="s1">&#39;plant&#39;</span><span class="p">,</span> <span class="s1">&#39;frame_idx&#39;</span><span class="p">,</span> <span class="s1">&#39;primary_length&#39;</span><span class="p">,</span> <span class="s1">&#39;lateral_count&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
+<p><strong>Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Shape: (72, 117)
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  plant_name  frame_idx  lateral_count  primary_length  lateral_lengths_mean  network_solidity
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>0    919QDUH          0              5      971.050417             40.400556          0.456066
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>1    919QDUH          1              3      948.174804             48.358652          0.455535
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>2    919QDUH          2              4      959.421417             66.388803          0.455535
+</span></code></pre></div></p>
+<p><strong>What this returns:</strong>
+- <strong>One row per frame</strong> (72 frames total)
+- <strong>117 trait columns</strong> including:
+  - Scalar traits: <code>primary_length</code>, <code>lateral_count</code>, <code>network_solidity</code> (one value per frame)
+  - Non-scalar traits: <code>lateral_lengths_mean</code>, <code>lateral_angles_distal_mean</code>, etc. (statistics across multiple roots within each frame)
+- CSV saved to <code>919QDUH_traits.csv</code></p>
+<h2 id="example-2-batch-processing-with-summary-statistics">Example 2: Batch Processing with Summary Statistics<a class="headerlink" href="#example-2-batch-processing-with-summary-statistics" title="Permanent link">&para;</a></h2>
+<p>For high-throughput experiments, process multiple plants and get summary statistics:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sleap_roots</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sr</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Step 1: Find all SLEAP files in a directory</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">paths</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">find_all_slp_paths</span><span class="p">(</span><span class="s2">&quot;tests/data/soy_6do&quot;</span><span class="p">)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># Step 2: Load all plants</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">plants</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">load_series_from_slps</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">h5s</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1"># Step 3: Create pipeline and compute batch traits</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">pipeline</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">DicotPipeline</span><span class="p">()</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="n">batch_df</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">compute_batch_traits</span><span class="p">(</span><span class="n">plants</span><span class="p">,</span> <span class="n">write_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="c1"># View summary</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Shape: </span><span class="si">{</span><span class="n">batch_df</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="nb">print</span><span class="p">(</span><span class="n">batch_df</span><span class="p">[[</span><span class="s1">&#39;plant_name&#39;</span><span class="p">,</span> <span class="s1">&#39;lateral_count_mean&#39;</span><span class="p">,</span> <span class="s1">&#39;lateral_count_median&#39;</span><span class="p">,</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>                <span class="s1">&#39;lateral_lengths_mean_mean&#39;</span><span class="p">,</span> <span class="s1">&#39;lateral_lengths_mean_median&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
 </span></code></pre></div>
-<p>The batch CSV will contain all plants with columns:</p>
-<ul>
-<li><code>plant</code> – Plant identifier</li>
-<li><code>frame_idx</code> – Frame number (for time-series)</li>
-<li>Individual trait columns</li>
-</ul>
+<p><strong>Output:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Shape: (1, 1036)
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  plant_name  lateral_count_mean  lateral_count_median  lateral_lengths_mean_mean  lateral_lengths_mean_median
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>0  6PR6AA22JK                4.2                   4.0                      45.34                        44.12
+</span></code></pre></div></p>
+<p><strong>What this returns:</strong>
+- <strong>One row per plant</strong> (summarizing all frames)
+- <strong>1036 summary statistic columns</strong> including:
+  - Scalar traits: <code>lateral_count_mean</code>, <code>primary_length_median</code> (single statistic suffix)
+  - Non-scalar traits: <code>lateral_lengths_mean_mean</code>, <code>lateral_lengths_mean_median</code> (double statistic suffix)
+- CSV saved to <code>batch_traits.csv</code></p>
+<div class="admonition info">
+<p class="admonition-title">Understanding Summary Statistics</p>
+<p><code>compute_batch_traits()</code> computes <strong>9 summary statistics</strong> across frames for each plant:
+<code>min</code>, <code>max</code>, <code>mean</code>, <code>median</code>, <code>std</code>, <code>p5</code>, <code>p25</code>, <code>p75</code>, <code>p95</code></p>
+<p>See <a href="#understanding-summary-statistics">Understanding Summary Statistics</a> below for details on the naming pattern.</p>
+</div>
 <h2 id="example-3-using-individual-trait-functions">Example 3: Using Individual Trait Functions<a class="headerlink" href="#example-3-using-individual-trait-functions" title="Permanent link">&para;</a></h2>
 <p>You can also use modular utility functions for custom analyses:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sleap_roots</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sr</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sleap_roots.lengths</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_root_lengths</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sleap_roots.angle</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_node_ind</span><span class="p">,</span> <span class="n">get_root_angle</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Load data</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">series</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">Series</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">series_name</span><span class="o">=</span><span class="s2">&quot;my_plant&quot;</span><span class="p">,</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">primary_path</span><span class="o">=</span><span class="s2">&quot;primary_roots.slp&quot;</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">)</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># Get points for frame 0</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">pts</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">get_primary_points</span><span class="p">(</span><span class="n">frame_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1"># Compute length using the first root instance</span>
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="n">length</span> <span class="o">=</span> <span class="n">get_root_lengths</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span>
-</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>
-</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="c1"># Compute angle: first find the proximal node, then calculate angle</span>
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="n">node_ind</span> <span class="o">=</span> <span class="n">get_node_ind</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">proximal</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="n">angle</span> <span class="o">=</span> <span class="n">get_root_angle</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">node_ind</span><span class="o">=</span><span class="n">node_ind</span><span class="p">,</span> <span class="n">proximal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">base_ind</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>
-</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Primary root length: </span><span class="si">{</span><span class="n">length</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> pixels&quot;</span><span class="p">)</span>
-</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Primary root angle: </span><span class="si">{</span><span class="n">angle</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> degrees&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sleap_roots</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sr</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sleap_roots.lengths</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_root_lengths</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sleap_roots.angle</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_node_ind</span><span class="p">,</span> <span class="n">get_root_angle</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># Load data</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">series</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">Series</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">series_name</span><span class="o">=</span><span class="s2">&quot;my_plant&quot;</span><span class="p">,</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">primary_path</span><span class="o">=</span><span class="s2">&quot;primary_roots.slp&quot;</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">)</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="c1"># Get points for frame 0</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="n">pts</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">get_primary_points</span><span class="p">(</span><span class="n">frame_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="c1"># Compute length using the first root instance</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="n">length</span> <span class="o">=</span> <span class="n">get_root_lengths</span><span class="p">(</span><span class="n">pts</span><span class="p">)</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="c1"># Compute angle: first find the proximal node, then calculate angle</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="n">node_ind</span> <span class="o">=</span> <span class="n">get_node_ind</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">proximal</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="n">angle</span> <span class="o">=</span> <span class="n">get_root_angle</span><span class="p">(</span><span class="n">pts</span><span class="p">,</span> <span class="n">node_ind</span><span class="o">=</span><span class="n">node_ind</span><span class="p">,</span> <span class="n">proximal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">base_ind</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Primary root length: </span><span class="si">{</span><span class="n">length</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> pixels&quot;</span><span class="p">)</span>
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Primary root angle: </span><span class="si">{</span><span class="n">angle</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> degrees&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h2 id="available-pipelines">Available Pipelines<a class="headerlink" href="#available-pipelines" title="Permanent link">&para;</a></h2>
 <p>Choose a pipeline based on your plant type and root system:</p>
@@ -3317,99 +3294,91 @@
 </table>
 <p>See the <a href="../../guides/">Pipeline Guide</a> for detailed information about each pipeline.</p>
 <h2 id="understanding-the-output">Understanding the Output<a class="headerlink" href="#understanding-the-output" title="Permanent link">&para;</a></h2>
-<h3 id="trait-dataframe-structure">Trait DataFrame Structure<a class="headerlink" href="#trait-dataframe-structure" title="Permanent link">&para;</a></h3>
-<p>The output DataFrame has one row per frame (or plant-frame for batch processing):</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Example output</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>     <span class="n">plant</span>  <span class="n">frame_idx</span>  <span class="n">primary_length</span>  <span class="n">lateral_count</span>  <span class="n">primary_angle</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="mi">0</span>  <span class="mi">919</span><span class="n">QDUH</span>          <span class="mi">0</span>          <span class="mf">523.45</span>             <span class="mi">12</span>          <span class="mf">87.32</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="mi">1</span>  <span class="mi">919</span><span class="n">QDUH</span>          <span class="mi">1</span>          <span class="mf">541.23</span>             <span class="mi">13</span>          <span class="mf">86.91</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="mi">2</span>  <span class="mi">919</span><span class="n">QDUH</span>          <span class="mi">2</span>          <span class="mf">558.91</span>             <span class="mi">14</span>          <span class="mf">85.77</span>
+<h3 id="frame-level-vs-plant-level-outputs">Frame-Level vs Plant-Level Outputs<a class="headerlink" href="#frame-level-vs-plant-level-outputs" title="Permanent link">&para;</a></h3>
+<p>sleap-roots provides two types of outputs:</p>
+<h4 id="frame-level-compute_plant_traits">Frame-Level: <code>compute_plant_traits()</code><a class="headerlink" href="#frame-level-compute_plant_traits" title="Permanent link">&para;</a></h4>
+<p>Returns <strong>one row per frame</strong> with raw trait measurements:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Shape: (72, 117) - 72 frames, 117 columns</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>  <span class="n">plant_name</span>  <span class="n">frame_idx</span>  <span class="n">lateral_count</span>  <span class="n">primary_length</span>  <span class="n">lateral_lengths_mean</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="mi">0</span>    <span class="mi">919</span><span class="n">QDUH</span>          <span class="mi">0</span>              <span class="mi">5</span>      <span class="mf">971.050417</span>             <span class="mf">40.400556</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="mi">1</span>    <span class="mi">919</span><span class="n">QDUH</span>          <span class="mi">1</span>              <span class="mi">3</span>      <span class="mf">948.174804</span>             <span class="mf">48.358652</span>
 </span></code></pre></div>
-<h3 id="common-traits">Common Traits<a class="headerlink" href="#common-traits" title="Permanent link">&para;</a></h3>
-<p>Here are some commonly used traits:</p>
+<p>Use this when you want to:
+- Track how traits change over time
+- Plot growth curves
+- Analyze temporal dynamics</p>
+<h4 id="plant-level-compute_batch_traits">Plant-Level: <code>compute_batch_traits()</code><a class="headerlink" href="#plant-level-compute_batch_traits" title="Permanent link">&para;</a></h4>
+<p>Returns <strong>one row per plant</strong> with summary statistics across all frames:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Shape: (1, 1036) - 1 plant, 1036 summary statistic columns</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  <span class="n">plant_name</span>  <span class="n">lateral_count_mean</span>  <span class="n">lateral_lengths_mean_median</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="mi">0</span>  <span class="mi">6</span><span class="n">PR6AA22JK</span>                <span class="mf">4.2</span>                        <span class="mf">44.12</span>
+</span></code></pre></div>
+<p>Use this when you want to:
+- Compare different plants/genotypes/treatments
+- Run statistical tests between groups
+- Generate high-level phenotyping summaries</p>
+<h3 id="understanding-summary-statistics">Understanding Summary Statistics<a class="headerlink" href="#understanding-summary-statistics" title="Permanent link">&para;</a></h3>
+<p>When using <code>compute_batch_traits()</code>, sleap-roots computes <strong>9 summary statistics</strong> across all frames:</p>
 <ul>
-<li><strong>Length traits</strong> – <code>primary_length</code>, <code>lateral_length_total</code>, <code>lateral_length_avg</code></li>
-<li><strong>Count traits</strong> – <code>lateral_count</code>, <code>primary_tip_count</code>, <code>crown_count</code></li>
-<li><strong>Angle traits</strong> – <code>primary_angle</code>, <code>lateral_angle_avg</code>, <code>crown_angle_avg</code></li>
-<li><strong>Topology traits</strong> – <code>convex_hull_area</code>, <code>network_distribution_ratio</code></li>
+<li><code>min</code> – Minimum value</li>
+<li><code>max</code> – Maximum value</li>
+<li><code>mean</code> – Average (arithmetic mean)</li>
+<li><code>median</code> – Middle value (50th percentile)</li>
+<li><code>std</code> – Standard deviation</li>
+<li><code>p5</code>, <code>p25</code>, <code>p75</code>, <code>p95</code> – Percentiles</li>
 </ul>
-<p>See the <a href="../../guides/trait-reference/">Trait Reference</a> for the full list with descriptions.</p>
-<h2 id="working-with-csv-output">Working with CSV Output<a class="headerlink" href="#working-with-csv-output" title="Permanent link">&para;</a></h2>
-<p>The CSV files are compatible with any statistical analysis tool:</p>
-<h3 id="python-pandas">Python (pandas)<a class="headerlink" href="#python-pandas" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;919QDUH_traits.csv&quot;</span><span class="p">)</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;primary_length&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">describe</span><span class="p">())</span>
-</span></code></pre></div>
-<h3 id="r">R<a class="headerlink" href="#r" title="Permanent link">&para;</a></h3>
-<div class="language-r highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">df</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nf">read.csv</span><span class="p">(</span><span class="s">&quot;919QDUH_traits.csv&quot;</span><span class="p">)</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nf">summary</span><span class="p">(</span><span class="n">df</span><span class="o">$</span><span class="n">primary_length</span><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="excel">Excel<a class="headerlink" href="#excel" title="Permanent link">&para;</a></h3>
-<p>Simply open the CSV file in Excel or Google Sheets.</p>
-<h2 id="visualizing-results">Visualizing Results<a class="headerlink" href="#visualizing-results" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Load results</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;919QDUH_traits.csv&quot;</span><span class="p">)</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># Plot length over time</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;frame_idx&#39;</span><span class="p">],</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;primary_length&#39;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Primary Root&#39;</span><span class="p">)</span>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;frame_idx&#39;</span><span class="p">],</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;lateral_length_total&#39;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Total Lateral Length&#39;</span><span class="p">)</span>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Frame&#39;</span><span class="p">)</span>
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Length (pixels)&#39;</span><span class="p">)</span>
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Root Growth Over Time&#39;</span><span class="p">)</span>
-</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</span></code></pre></div>
-<h2 id="converting-pixels-to-real-units">Converting Pixels to Real Units<a class="headerlink" href="#converting-pixels-to-real-units" title="Permanent link">&para;</a></h2>
-<p>SLEAP predictions are in pixels. To convert to real-world units (mm, cm):</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Define scale (e.g., 100 pixels = 1 cm)</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">pixels_per_cm</span> <span class="o">=</span> <span class="mi">100</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Convert traits</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="n">df</span><span class="p">[</span><span class="s1">&#39;primary_length_cm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;primary_length&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">pixels_per_cm</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="n">df</span><span class="p">[</span><span class="s1">&#39;lateral_length_total_cm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;lateral_length_total&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">pixels_per_cm</span>
-</span></code></pre></div>
-<p>Determine your scale by:</p>
-<ol>
-<li>Including a ruler or reference object in images</li>
-<li>Measuring known distances in pixels</li>
-<li>Calculating pixels per unit</li>
-</ol>
-<h2 id="common-issues">Common Issues<a class="headerlink" href="#common-issues" title="Permanent link">&para;</a></h2>
-<h3 id="no-module-named-sleap_roots">"No module named 'sleap_roots'"<a class="headerlink" href="#no-module-named-sleap_roots" title="Permanent link">&para;</a></h3>
-<p>See the <a href="../../guides/troubleshooting/#import-errors">Troubleshooting Guide</a> for solutions.</p>
-<h3 id="filenotfounderror-predictionsslp">"FileNotFoundError: predictions.slp"<a class="headerlink" href="#filenotfounderror-predictionsslp" title="Permanent link">&para;</a></h3>
-<p>Check that file paths are correct and files exist:
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">assert</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;primary_roots.slp&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+<h4 id="column-naming-pattern">Column Naming Pattern<a class="headerlink" href="#column-naming-pattern" title="Permanent link">&para;</a></h4>
+<p><strong>Scalar traits</strong> (one value per frame) get <strong>single-suffixed</strong> names:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>primary_length → primary_length_mean, primary_length_median, primary_length_max, ...
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>lateral_count → lateral_count_mean, lateral_count_std, ...
 </span></code></pre></div></p>
-<h3 id="empty-or-nan-traits">Empty or NaN traits<a class="headerlink" href="#empty-or-nan-traits" title="Permanent link">&para;</a></h3>
-<p>This can happen if:</p>
+<p><strong>Non-scalar traits</strong> (multiple values per frame) get <strong>double-suffixed</strong> names:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>lateral_lengths → lateral_lengths_mean_mean, lateral_lengths_mean_median, ...
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>                   ↑ first suffix      ↑ second suffix
+</span></code></pre></div></p>
+<p>The double suffix indicates <strong>two levels of summarization</strong>:</p>
+<ol>
+<li><strong>First suffix</strong> (frame-level): Statistic across multiple roots within each frame</li>
+<li>Example: <code>lateral_lengths_mean</code> = mean across all lateral roots in that frame</li>
+<li><strong>Second suffix</strong> (plant-level): Statistic across all frames for the plant</li>
+<li>Example: <code>lateral_lengths_mean_median</code> = median of all frame means</li>
+</ol>
+<p><strong>Example breakdown:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>lateral_lengths_mean_median
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>│                │    └─ median across all 72 frames
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>│                └────── mean across lateral roots within each frame
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>└───────────────────── trait name
+</span></code></pre></div></p>
+<h4 id="when-to-use-which-statistic">When to Use Which Statistic<a class="headerlink" href="#when-to-use-which-statistic" title="Permanent link">&para;</a></h4>
 <ul>
-<li>SLEAP predictions are missing for some frames</li>
-<li>Root landmarks weren't detected</li>
-<li>Coordinate systems are misaligned</li>
+<li><strong>mean</strong>: Use for normally distributed data, sensitive to all values</li>
+<li><strong>median</strong>: Use when data may have outliers, more robust</li>
+<li><strong>min/max</strong>: Use for extreme values (e.g., maximum growth potential)</li>
+<li><strong>std</strong>: Use to assess variability or consistency</li>
+<li><strong>percentiles (p5, p25, p75, p95)</strong>: Use for robust estimates ignoring outliers</li>
 </ul>
-<p>Check your SLEAP predictions in the SLEAP GUI to verify quality.</p>
-<h3 id="keyerror-primary_pts">"KeyError: 'primary_pts'"<a class="headerlink" href="#keyerror-primary_pts" title="Permanent link">&para;</a></h3>
-<p>Make sure you're using the correct pipeline for your data:</p>
+<p><strong>Common use cases:</strong>
+- Comparing growth: <code>primary_length_mean</code> or <code>primary_length_median</code>
+- Finding vigorous plants: <code>primary_length_max</code>, <code>lateral_count_max</code>
+- Measuring variability: <code>lateral_angles_proximal_std_mean</code> (higher = more variable)
+- Finding consistency: Lower <code>*_std</code> values = more consistent across frames</p>
+<h3 id="common-traits">Common Traits<a class="headerlink" href="#common-traits" title="Permanent link">&para;</a></h3>
+<p>Frame-level outputs include:</p>
 <ul>
-<li>Use <code>DicotPipeline</code> for primary + lateral roots</li>
-<li>Use <code>MonocotPipeline</code> for crown roots</li>
-<li>Check that you're loading the correct <code>.slp</code> files</li>
+<li><strong>Scalar traits</strong>: <code>primary_length</code>, <code>lateral_count</code>, <code>network_solidity</code></li>
+<li><strong>Non-scalar traits</strong>: <code>lateral_lengths_mean</code>, <code>lateral_angles_distal_median</code>, <code>root_widths_p95</code></li>
 </ul>
+<p>For the complete list, see the <a href="../api/">API Reference</a>.</p>
+<h2 id="working-with-csv-output">Working with CSV Output<a class="headerlink" href="#working-with-csv-output" title="Permanent link">&para;</a></h2>
+<p>The CSV files work with any analysis tool (Python/pandas, R, Excel, etc.). SLEAP predictions are measured in pixels. To convert pixel measurements to real-world units (mm, cm), include a ruler or reference object of known length in your images during capture.</p>
+<h2 id="common-issues">Common Issues<a class="headerlink" href="#common-issues" title="Permanent link">&para;</a></h2>
+<p>For installation problems, import errors, file errors, and troubleshooting, see the <strong><a href="../../guides/troubleshooting/">Troubleshooting Guide</a></strong>.</p>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../what-is-sleap/">Learn about SLEAP</a> – Understand the prediction workflow</li>
 <li><a href="../../guides/">Pipeline Guide</a> – Deep dive into each pipeline</li>
-<li><a href="../../guides/trait-reference/">Trait Reference</a> – Full list of computed traits</li>
+<li><a href="../api/">API Reference</a> – Complete trait definitions and function documentation</li>
 <li><a href="../../guides/batch-processing/">Batch Processing</a> – Advanced batch workflows</li>
-<li><a href="../reference/">API Reference</a> – Complete function documentation</li>
 </ul>
 
 
