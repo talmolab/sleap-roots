@@ -90,9 +90,9 @@ The batch CSV will contain all plants with columns:
 You can also use modular utility functions for custom analyses:
 
 ```python
-from sleap_roots.lengths import get_root_lengths
-from sleap_roots.angles import get_primary_angle
 import sleap_roots as sr
+from sleap_roots.lengths import get_root_lengths
+from sleap_roots.angle import get_node_ind, get_root_angle
 
 # Load data
 series = sr.Series.load(
@@ -103,9 +103,12 @@ series = sr.Series.load(
 # Get points for frame 0
 pts = series.get_primary_points(frame_idx=0)
 
-# Compute specific traits
+# Compute length using the first root instance
 length = get_root_lengths(pts)
-angle = get_primary_angle(pts)
+
+# Compute angle: first find the proximal node, then calculate angle
+node_ind = get_node_ind(pts, proximal=True)
+angle = get_root_angle(pts, node_ind=node_ind, proximal=True, base_ind=0)
 
 print(f"Primary root length: {length:.2f} pixels")
 print(f"Primary root angle: {angle:.2f} degrees")
