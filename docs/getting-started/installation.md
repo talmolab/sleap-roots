@@ -59,16 +59,6 @@ Or run this one-liner:
 python -c "import sleap_roots; print(f'✅ sleap-roots {sleap_roots.__version__} installed successfully!')"
 ```
 
-## Platform Support
-
-sleap-roots is tested on:
-
-| Platform | Python Versions | Status |
-|----------|----------------|--------|
-| **Ubuntu 22.04** | 3.7, 3.8, 3.9, 3.10, 3.11 | ✅ Fully supported |
-| **macOS** | 3.11 | ✅ Fully supported |
-| **Windows** | 3.11 | ✅ Fully supported |
-
 ## Alternative: Using Conda
 
 If you prefer conda for package management:
