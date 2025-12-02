@@ -2,19 +2,9 @@
 
 sleap-roots is a Python package for extracting morphological traits from plant root images analyzed with [SLEAP](https://sleap.ai).
 
-## Quick Install
+## Getting Started with uv (Recommended)
 
-The simplest way to install sleap-roots:
-
-```bash
-pip install sleap-roots
-```
-
-That's it! You're ready to use sleap-roots.
-
-## Recommended: Using uv
-
-For starting a new project, [uv](https://github.com/astral-sh/uv) provides a fast, modern Python workflow:
+For starting a new project, [uv](https://github.com/astral-sh/uv) provides a fast, modern Python workflow that ensures clean dependency management:
 
 ```bash
 # Install uv (if not already installed)
@@ -56,8 +46,11 @@ print("✅ Installation successful!")
 Or run this one-liner:
 
 ```bash
-python -c "import sleap_roots; print(f'✅ sleap-roots {sleap_roots.__version__} installed successfully!')"
+uv run python -c "import sleap_roots; print(f'✅ sleap-roots {sleap_roots.__version__} installed successfully!')"
 ```
+
+!!! note "Using uv run"
+    The `uv run` prefix ensures the command runs in your project's isolated environment. If you installed with conda or pip instead, use `python -c "..."` directly.
 
 ## Alternative: Using Conda
 
@@ -73,6 +66,17 @@ conda activate sleap-roots
 # Install sleap-roots
 pip install sleap-roots
 ```
+
+## Alternative: Using pip
+
+If you just want to quickly install sleap-roots into an existing Python environment:
+
+```bash
+pip install sleap-roots
+```
+
+!!! warning "Environment Isolation"
+    Installing with pip directly may affect your Python environment. We recommend using uv (above) or conda for better dependency management, especially if you're new to Python.
 
 ## Platform Support
 
