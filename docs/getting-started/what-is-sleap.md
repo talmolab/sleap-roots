@@ -86,17 +86,19 @@ frame = labels.labeled_frames[0]
 instance = frame.instances[0]
 
 # Get landmark points
-for node, point in instance.points.items():
-    print(f"{node.name}: ({point.x:.1f}, {point.y:.1f})")
+for i, node in enumerate(instance.skeleton.nodes):
+    point = instance.points[i]
+    x, y = point[0][0], point[0][1]  # Extract x, y coordinates
+    print(f"{node.name}: ({x:.1f}, {y:.1f})")
 ```
 
 Output:
 ```
-base: (245.3, 189.2)
-node1: (247.1, 210.5)
-node2: (248.9, 231.8)
+r1: (1016.8, 144.4)
+r2: (1208.0, 304.1)
+r3: (1208.9, 472.4)
 ...
-tip: (256.4, 523.7)
+r6: (1136.1, 1021.0)
 ```
 
 ## From SLEAP to Traits
@@ -115,11 +117,12 @@ series = sr.Series.load(
 
 # Extract points for a frame
 pts = series.get_primary_points(frame_idx=0)
-# pts is a (n_points, 2) numpy array of (x, y) coordinates
+# pts is a (n_instances, n_points, 2) numpy array of (x, y) coordinates
 
 # Compute length from points
 from sleap_roots.lengths import get_root_lengths
 length = get_root_lengths(pts)
+print(f"Primary root length: {length:.2f} pixels")
 ```
 
 The `Series` class handles loading, organizing, and extracting point data from SLEAP files.
