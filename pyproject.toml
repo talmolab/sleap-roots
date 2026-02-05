@@ -30,7 +30,9 @@ dependencies = [
     "seaborn",
     "sleap-io>=0.0.11",
     "scikit-image",
-    "shapely"
+    "shapely",
+    "click>=8.0",
+    "jinja2>=3.0"
 ]
 dynamic = ["version", "readme"]
 
@@ -85,6 +87,9 @@ dev = [
     "mkdocs-jupyter",
     "mike"
 ]
+
+[project.scripts]
+sleap-roots = "sleap_roots.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/talmolab/sleap-roots"
