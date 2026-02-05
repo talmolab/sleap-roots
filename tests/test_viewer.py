@@ -366,7 +366,9 @@ class TestNestedDirectoryDiscovery:
 class TestPipelineOutputDiscovery:
     """Tests for pipeline output with image directories (not h5 files)."""
 
-    def test_discover_scans_pipeline_output_no_h5(self, rice_10do_pipeline_output_folder):
+    def test_discover_scans_pipeline_output_no_h5(
+        self, rice_10do_pipeline_output_folder
+    ):
         """Test that pipeline output with image directories is discovered."""
         generator = ViewerGenerator(Path(rice_10do_pipeline_output_folder))
         scans = generator.discover_scans()
@@ -585,7 +587,9 @@ class TestFrameLimits:
         # This will be tested with the actual implementation
         pass  # Placeholder - actual test needs implementation with mock
 
-    def test_generate_allows_over_1000_frames_with_no_limit(self, canola_folder, tmp_path):
+    def test_generate_allows_over_1000_frames_with_no_limit(
+        self, canola_folder, tmp_path
+    ):
         """Test that --no-limit allows unlimited frames."""
         output_path = tmp_path / "viewer.html"
         generator = ViewerGenerator(Path(canola_folder))
@@ -612,7 +616,9 @@ class TestProgressCallback:
         # Callback should have been called at least once
         assert len(callback_calls) > 0
 
-    def test_progress_callback_receives_correct_arguments(self, canola_folder, tmp_path):
+    def test_progress_callback_receives_correct_arguments(
+        self, canola_folder, tmp_path
+    ):
         """Test that callback receives scan name and frame counts."""
         output_path = tmp_path / "viewer.html"
         generator = ViewerGenerator(Path(canola_folder))
@@ -622,7 +628,9 @@ class TestProgressCallback:
         def progress_callback(scan_name: str, frames_done: int, total_frames: int):
             callback_calls.append((scan_name, frames_done, total_frames))
 
-        generator.generate(output_path, max_frames=3, progress_callback=progress_callback)
+        generator.generate(
+            output_path, max_frames=3, progress_callback=progress_callback
+        )
 
         # Check that callbacks have valid data
         for scan_name, frames_done, total_frames in callback_calls:
@@ -643,7 +651,9 @@ class TestProgressCallback:
         def progress_callback(scan_name: str, frames_done: int, total_frames: int):
             callback_calls.append((scan_name, frames_done, total_frames))
 
-        generator.generate(output_path, max_frames=5, progress_callback=progress_callback)
+        generator.generate(
+            output_path, max_frames=5, progress_callback=progress_callback
+        )
 
         # Should have multiple calls (one per frame)
         assert len(callback_calls) >= 1
@@ -722,4 +732,4 @@ class TestNormalizedConfidenceBadge:
 
         content = output_path.read_text(encoding="utf-8")
         # Badge should have inline style with hex background color
-        assert 'background:' in content and '#' in content
+        assert "background:" in content and "#" in content

@@ -258,7 +258,11 @@ class ViewerGenerator:
         """
         # Get video from one of the labels files
         video = None
-        for labels in [series.crown_labels, series.primary_labels, series.lateral_labels]:
+        for labels in [
+            series.crown_labels,
+            series.primary_labels,
+            series.lateral_labels,
+        ]:
             if labels is not None and labels.videos:
                 video = labels.videos[0]
                 break
@@ -412,9 +416,7 @@ class ViewerGenerator:
         scan_frame_counts = []
         for scan in scans:
             if scan.frame_count > 0:
-                sampled_count = len(
-                    select_frame_indices(scan.frame_count, max_frames)
-                )
+                sampled_count = len(select_frame_indices(scan.frame_count, max_frames))
                 scan_frame_counts.append(sampled_count)
 
         total_frames = sum(scan_frame_counts)
