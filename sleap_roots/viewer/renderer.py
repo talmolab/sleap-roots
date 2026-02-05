@@ -6,12 +6,10 @@ using either root type coloring or confidence-based colormaps.
 
 import base64
 import io
-from typing import Optional, Tuple
+from typing import Tuple
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
-import seaborn as sns
 
 from sleap_roots.series import Series, plot_img, plot_instance
 
@@ -137,7 +135,6 @@ def render_frame_confidence(
 
     # Plot the base image
     fig = plot_img(img, scale=scale)
-    ax = fig.gca()
 
     # Get colormap
     cmap = plt.get_cmap(colormap)

@@ -275,8 +275,8 @@ class ViewerGenerator:
             if video.exists():
                 series.video = video
                 return True
-        except Exception:
-            pass
+        except Exception as exc:
+            warnings.warn(f"Failed to check video existence for {video!r}: {exc}")
 
         # Get embedded paths - for ImageVideo, filename is a list
         try:
@@ -321,20 +321,23 @@ class ViewerGenerator:
             return False
 
         # Get sorted list of local images
-        # Support common image extensions
-        local_images = []
-        for ext in ["*.jpg", "*.jpeg", "*.png", "*.tif", "*.tiff"]:
-            local_images.extend(local_img_dir.glob(ext))
+        # Support common image extensions (case-insensitive)
+        image_exts = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
+        local_images = [
+            p for p in local_img_dir.iterdir() if p.suffix.lower() in image_exts
+        ]
 
         if not local_images:
             return False
 
         # Sort images by numeric filename (e.g., 1.jpg, 2.jpg, ...)
-        def sort_key(p: Path) -> int:
+        # Non-numeric filenames sort alphabetically after numeric ones
+        def sort_key(p: Path):
+            """Sort key that prefers numeric ordering with alphabetic fallback."""
             try:
-                return int(p.stem)
+                return (0, int(p.stem))
             except ValueError:
-                return 0
+                return (1, p.stem)
 
         local_images = sorted(local_images, key=sort_key)
 
