@@ -1,9 +1,11 @@
 """HTML viewer generator for SLEAP prediction visualization."""
 
 import json
+import shutil
 import warnings
+import zipfile
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Set
 
 import attrs
 import jinja2
@@ -368,6 +370,40 @@ class ViewerGenerator:
 
         return counts
 
+    def _save_figure_to_file(
+        self,
+        fig: plt.Figure,
+        path: Path,
+        image_format: str = "jpeg",
+        quality: int = 85,
+    ) -> None:
+        """Save a matplotlib figure to disk.
+
+        Args:
+            fig: The matplotlib Figure to save.
+            path: Output file path.
+            image_format: Image format ("jpeg" or "png").
+            quality: JPEG quality (1-100), ignored for PNG.
+        """
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if image_format.lower() in ("jpeg", "jpg"):
+            fig.savefig(
+                path,
+                format="jpeg",
+                dpi=100,
+                bbox_inches="tight",
+                pad_inches=0,
+                pil_kwargs={"quality": quality},
+            )
+        else:
+            fig.savefig(
+                path,
+                format=image_format,
+                dpi=100,
+                bbox_inches="tight",
+                pad_inches=0,
+            )
+
     def _get_mean_confidence(self, series: Series, frame_idx: int) -> Optional[float]:
         """Get mean confidence score for a frame.
 
@@ -390,12 +426,109 @@ class ViewerGenerator:
 
         return float(sum(scores) / len(scores)) if scores else None
 
+    def _create_zip_archive(
+        self,
+        output_path: Path,
+        scans_data: List[Dict[str, Any]],
+        render_mode: str,
+        images_dir: Optional[Path] = None,
+    ) -> None:
+        """Create a ZIP archive containing the viewer and required files.
+
+        Args:
+            output_path: Path to the HTML file.
+            scans_data: List of scan data dictionaries.
+            render_mode: The render mode ('client', 'external', or 'embedded').
+            images_dir: Path to images directory (for 'external' mode).
+        """
+        zip_path = output_path.with_suffix(".zip")
+
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            if render_mode == "embedded":
+                # Embedded mode: just add the HTML file
+                zf.write(output_path, output_path.name)
+
+            elif render_mode == "external":
+                # Pre-rendered mode: add HTML and images directory
+                zf.write(output_path, output_path.name)
+
+                if images_dir and images_dir.exists():
+                    for img_file in images_dir.rglob("*"):
+                        if img_file.is_file():
+                            arcname = (
+                                f"{images_dir.name}/{img_file.relative_to(images_dir)}"
+                            )
+                            zf.write(img_file, arcname)
+
+            else:
+                # Client-render mode: copy source images and rewrite paths
+                self._create_client_render_zip(zf, output_path, scans_data)
+
+    def _create_client_render_zip(
+        self,
+        zf: zipfile.ZipFile,
+        output_path: Path,
+        scans_data: List[Dict[str, Any]],
+    ) -> None:
+        """Create ZIP for client-render mode with source images.
+
+        Args:
+            zf: The ZipFile object to write to.
+            output_path: Path to the HTML file.
+            scans_data: List of scan data dictionaries.
+        """
+        # Collect all unique image paths from scans data
+        image_paths: Set[str] = set()
+        for scan in scans_data:
+            for frame in scan.get("frames_root_type", []):
+                img_path = frame.get("image", "")
+                # Skip base64 data URIs
+                if img_path and not img_path.startswith("data:"):
+                    image_paths.add(img_path)
+
+        # Create mapping from original paths to archive paths
+        path_mapping: Dict[str, str] = {}
+        for i, img_path in enumerate(sorted(image_paths)):
+            # Extract filename, preserving extension
+            original_path = Path(img_path)
+            # Use a simple naming scheme: images/001.jpg, images/002.jpg, etc.
+            ext = original_path.suffix or ".jpg"
+            archive_name = f"images/{i+1:03d}{ext}"
+            path_mapping[img_path] = archive_name
+
+            # Copy image file to archive
+            # Try to resolve the path relative to HTML directory first
+            html_dir = output_path.parent
+            img_file = html_dir / img_path
+            if not img_file.exists():
+                # Try as absolute path
+                img_file = Path(img_path)
+            if img_file.exists():
+                zf.write(img_file, archive_name)
+
+        # Rewrite HTML with updated image paths
+        html_content = output_path.read_text(encoding="utf-8")
+        for original_path, archive_path in path_mapping.items():
+            # Replace paths in the HTML (handle both forward and back slashes)
+            html_content = html_content.replace(original_path, archive_path)
+            html_content = html_content.replace(
+                original_path.replace("/", "\\\\"), archive_path
+            )
+
+        # Add rewritten HTML to archive
+        zf.writestr(output_path.name, html_content)
+
     def generate(
         self,
         output_path: Path,
         max_frames: int = DEFAULT_MAX_FRAMES,
         no_limit: bool = False,
         progress_callback: Optional[Callable[[str, int, int], None]] = None,
+        render: bool = False,
+        embed: bool = False,
+        image_format: str = "jpeg",
+        image_quality: int = 85,
+        create_zip: bool = False,
     ) -> None:
         """Generate the HTML viewer.
 
@@ -406,10 +539,26 @@ class ViewerGenerator:
             no_limit: If True, disable the 1000 total frame limit.
             progress_callback: Optional callback for progress updates.
                 Called with (scan_name, frames_done, total_frames) after each frame.
+            render: If True, pre-render overlays with matplotlib to disk files.
+            embed: If True, embed rendered images as base64 in HTML (current behavior).
+            image_format: Image format for render mode ("jpeg" or "png").
+            image_quality: JPEG quality (1-100) for render mode.
+            create_zip: If True, create a zip archive for sharing.
 
         Raises:
             FrameLimitExceededError: If total frames exceed 1000 without no_limit.
+            ValueError: If both render and embed are True.
         """
+        # Validate mutually exclusive flags
+        if render and embed:
+            raise ValueError("--render and --embed are mutually exclusive")
+
+        # Determine rendering mode:
+        # - neither flag (default): client-render mode (JSON predictions, source images)
+        # - embed=True: base64 embedding (current/backwards-compatible behavior)
+        # - render=True: save matplotlib images to disk files
+        use_client_render = not render and not embed
+        use_base64 = embed
         output_path = Path(output_path)
 
         # Discover all scans
@@ -437,6 +586,12 @@ class ViewerGenerator:
                 f"Use --no-limit to override, or reduce --max-frames."
             )
 
+        # Create images directory for render mode
+        images_dir = None
+        if render:
+            images_dir = output_path.parent / f"{output_path.stem}_images"
+            images_dir.mkdir(parents=True, exist_ok=True)
+
         # Prepare scan data for template
         scans_data: List[Dict[str, Any]] = []
         scans_template: List[Dict[str, Any]] = []
@@ -453,6 +608,11 @@ class ViewerGenerator:
             # Check if video is available for rendering
             if series.video is None:
                 continue
+
+            # Create scan subdirectory for render mode
+            if render and images_dir:
+                scan_images_dir = images_dir / scan.name
+                scan_images_dir.mkdir(parents=True, exist_ok=True)
 
             # Select frames to render
             frame_indices = select_frame_indices(scan.frame_count, max_frames)
@@ -471,34 +631,121 @@ class ViewerGenerator:
                 instance_counts = self._get_instance_counts(series, frame_idx)
                 mean_confidence = self._get_mean_confidence(series, frame_idx)
 
-                # Render root type view
-                try:
-                    fig_root = render_frame_root_type(series, frame_idx)
-                    img_root = figure_to_base64(fig_root, close=True)
-                except Exception:
-                    img_root = ""
+                if use_client_render:
+                    # Client-render mode: no matplotlib, serialize predictions
+                    from sleap_roots.viewer.serializer import (
+                        frame_to_base64,
+                        is_h5_video,
+                        serialize_frame_predictions,
+                    )
 
-                # Render confidence view
-                try:
-                    fig_conf = render_frame_confidence(series, frame_idx)
-                    img_conf = figure_to_base64(fig_conf, close=True)
-                except Exception:
-                    img_conf = img_root  # Fallback to root type
+                    frame_predictions = serialize_frame_predictions(
+                        series, frame_idx, output_path
+                    )
 
-                scan_data["frames_root_type"].append(
-                    {
-                        "image": img_root,
-                        "instance_counts": instance_counts,
-                        "mean_confidence": mean_confidence,
-                    }
-                )
-                scan_data["frames_confidence"].append(
-                    {
-                        "image": img_conf,
-                        "instance_counts": instance_counts,
-                        "mean_confidence": mean_confidence,
-                    }
-                )
+                    # For H5 sources, extract frame to base64 since browsers
+                    # can't read H5 files directly
+                    if is_h5_video(series):
+                        source_image_path = frame_to_base64(
+                            series, frame_idx, image_format, image_quality
+                        )
+                    else:
+                        source_image_path = frame_predictions.get("image_path", "")
+
+                    # For client-render, both views use the same source image
+                    # with predictions drawn on canvas
+                    scan_data["frames_root_type"].append(
+                        {
+                            "image": source_image_path,
+                            "instance_counts": instance_counts,
+                            "mean_confidence": mean_confidence,
+                            "predictions": frame_predictions.get("instances", []),
+                        }
+                    )
+                    scan_data["frames_confidence"].append(
+                        {
+                            "image": source_image_path,
+                            "instance_counts": instance_counts,
+                            "mean_confidence": mean_confidence,
+                            "predictions": frame_predictions.get("instances", []),
+                        }
+                    )
+                elif render and images_dir:
+                    # Render to disk files
+                    ext = image_format if image_format != "jpeg" else "jpg"
+                    root_path = (
+                        images_dir / scan.name / f"frame_{frame_idx}_root_type.{ext}"
+                    )
+                    conf_path = (
+                        images_dir / scan.name / f"frame_{frame_idx}_confidence.{ext}"
+                    )
+
+                    try:
+                        fig_root = render_frame_root_type(series, frame_idx)
+                        self._save_figure_to_file(
+                            fig_root, root_path, image_format, image_quality
+                        )
+                        plt.close(fig_root)
+                        img_root = str(
+                            root_path.relative_to(output_path.parent)
+                        ).replace("\\", "/")
+                    except Exception:
+                        img_root = ""
+
+                    try:
+                        fig_conf = render_frame_confidence(series, frame_idx)
+                        self._save_figure_to_file(
+                            fig_conf, conf_path, image_format, image_quality
+                        )
+                        plt.close(fig_conf)
+                        img_conf = str(
+                            conf_path.relative_to(output_path.parent)
+                        ).replace("\\", "/")
+                    except Exception:
+                        img_conf = img_root
+
+                    scan_data["frames_root_type"].append(
+                        {
+                            "image": img_root,
+                            "instance_counts": instance_counts,
+                            "mean_confidence": mean_confidence,
+                        }
+                    )
+                    scan_data["frames_confidence"].append(
+                        {
+                            "image": img_conf,
+                            "instance_counts": instance_counts,
+                            "mean_confidence": mean_confidence,
+                        }
+                    )
+                else:
+                    # Render to base64 (embed mode)
+                    try:
+                        fig_root = render_frame_root_type(series, frame_idx)
+                        img_root = figure_to_base64(fig_root, close=True)
+                    except Exception:
+                        img_root = ""
+
+                    try:
+                        fig_conf = render_frame_confidence(series, frame_idx)
+                        img_conf = figure_to_base64(fig_conf, close=True)
+                    except Exception:
+                        img_conf = img_root
+
+                    scan_data["frames_root_type"].append(
+                        {
+                            "image": img_root,
+                            "instance_counts": instance_counts,
+                            "mean_confidence": mean_confidence,
+                        }
+                    )
+                    scan_data["frames_confidence"].append(
+                        {
+                            "image": img_conf,
+                            "instance_counts": instance_counts,
+                            "mean_confidence": mean_confidence,
+                        }
+                    )
 
                 # Call progress callback after each frame
                 if progress_callback is not None:
@@ -570,6 +817,14 @@ class ViewerGenerator:
                 else:
                     scan_t["confidence_color"] = None
 
+        # Determine rendering mode string for template
+        if use_client_render:
+            render_mode = "client"
+        elif render:
+            render_mode = "external"
+        else:
+            render_mode = "embedded"
+
         # Load and render template
         template_dir = Path(__file__).parent / "templates"
         env = jinja2.Environment(
@@ -581,7 +836,17 @@ class ViewerGenerator:
         html_content = template.render(
             scans=scans_template,
             scans_json=json.dumps(scans_data),
+            render_mode=render_mode,
         )
 
         # Write output file
         output_path.write_text(html_content, encoding="utf-8")
+
+        # Create ZIP archive if requested
+        if create_zip:
+            self._create_zip_archive(
+                output_path=output_path,
+                scans_data=scans_data,
+                render_mode=render_mode,
+                images_dir=images_dir if render else None,
+            )

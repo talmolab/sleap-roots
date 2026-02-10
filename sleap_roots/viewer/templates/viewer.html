@@ -153,6 +153,30 @@
             max-height: 100%;
             object-fit: contain;
         }
+        .frame-container {
+            position: relative;
+            display: inline-block;
+        }
+        .frame-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        .overlay-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .overlay-controls label {
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .overlay-controls input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
         .nav-hint {
             position: fixed;
             bottom: 1rem;
@@ -211,6 +235,12 @@
         <h1>SLEAP Roots Prediction Viewer</h1>
         <div class="controls">
             <span class="mode-indicator" id="modeIndicator">Root Type View</span>
+            {% if render_mode == 'client' %}
+            <div class="overlay-controls">
+                <input type="checkbox" id="showOverlay" checked>
+                <label for="showOverlay">Show Predictions</label>
+            </div>
+            {% endif %}
             <button class="btn secondary" id="toggleMode">Toggle View (C)</button>
         </div>
     </header>
@@ -219,7 +249,11 @@
     <div class="overview" id="overview">
         {% for scan in scans %}
         <div class="scan-card" data-scan-index="{{ loop.index0 }}" onclick="openScan({{ loop.index0 }})">
+            {% if render_mode == 'embedded' %}
             <img src="data:image/png;base64,{{ scan.thumbnail }}" alt="{{ scan.name }}">
+            {% else %}
+            <img src="{{ scan.thumbnail }}" alt="{{ scan.name }}" onerror="this.style.background='#0f3460'">
+            {% endif %}
             <div class="info">
                 <div class="name">{{ scan.name }}</div>
                 <div class="meta">{{ scan.frame_count }} frames</div>
@@ -244,7 +278,10 @@
             <button class="btn" id="toggleModeFrame" onclick="toggleViewMode()">Toggle View (C)</button>
         </div>
         <div class="frame-content">
-            <img id="frameImage" src="" alt="Frame">
+            <div class="frame-container">
+                <img id="frameImage" src="" alt="Frame">
+                <canvas id="overlayCanvas"></canvas>
+            </div>
         </div>
     </div>
 
@@ -268,12 +305,102 @@
     <script>
         // Scan data embedded from Python
         const scansData = {{ scans_json|safe }};
+        const renderMode = '{{ render_mode }}';
 
         let currentScanIndex = -1;
         let currentFrameIndex = 0;
         let selectedCardIndex = 0;
         let viewMode = 'root_type'; // or 'confidence'
         let isFrameView = false;
+        let showOverlay = true;
+
+        // Root type colors (matching matplotlib colors)
+        const ROOT_TYPE_COLORS = {
+            'primary': '#1f77b4',   // blue
+            'lateral': '#ff7f0e',   // orange
+            'crown': '#2ca02c'      // green
+        };
+
+        // Viridis colormap approximation (for confidence scores)
+        function viridisColor(t) {
+            // t should be 0-1
+            t = Math.max(0, Math.min(1, t));
+            // Simplified viridis: dark purple -> teal -> yellow
+            const r = Math.round(68 + t * (253 - 68));
+            const g = Math.round(1 + t * (231 - 1));
+            const b = Math.round(84 + t * (37 - 84));
+            return `rgb(${r},${g},${b})`;
+        }
+
+        // Draw predictions on canvas
+        function drawPredictions(canvas, predictions, mode) {
+            if (!canvas || !predictions || predictions.length === 0) return;
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!showOverlay) return;
+
+            // For confidence mode, compute min/max scores for normalization
+            let minScore = Infinity, maxScore = -Infinity;
+            if (mode === 'confidence') {
+                for (const inst of predictions) {
+                    if (inst.score !== null && inst.score !== undefined) {
+                        minScore = Math.min(minScore, inst.score);
+                        maxScore = Math.max(maxScore, inst.score);
+                    }
+                }
+                // Handle edge cases
+                if (!isFinite(minScore)) minScore = 0;
+                if (!isFinite(maxScore)) maxScore = 1;
+                if (minScore === maxScore) {
+                    minScore = 0;
+                    maxScore = Math.max(1, maxScore);
+                }
+            }
+
+            for (const inst of predictions) {
+                // Determine color based on mode
+                let color;
+                if (mode === 'root_type') {
+                    color = ROOT_TYPE_COLORS[inst.root_type] || '#888888';
+                } else {
+                    // Confidence mode - normalize score to 0-1, then use viridis
+                    const rawScore = inst.score !== null ? inst.score : minScore;
+                    const normalizedScore = (rawScore - minScore) / (maxScore - minScore);
+                    color = viridisColor(normalizedScore);
+                }
+
+                ctx.strokeStyle = color;
+                ctx.fillStyle = color;
+                ctx.lineWidth = 2;
+
+                // Draw edges (lines between nodes)
+                if (inst.edges && inst.points) {
+                    for (const [i, j] of inst.edges) {
+                        const p1 = inst.points[i];
+                        const p2 = inst.points[j];
+                        // Skip if either point is null (invisible)
+                        if (!p1 || !p2 || p1[0] === null || p2[0] === null) continue;
+
+                        ctx.beginPath();
+                        ctx.moveTo(p1[0], p1[1]);
+                        ctx.lineTo(p2[0], p2[1]);
+                        ctx.stroke();
+                    }
+                }
+
+                // Draw nodes (circles at each point)
+                if (inst.points) {
+                    for (const point of inst.points) {
+                        if (!point || point[0] === null) continue;
+                        ctx.beginPath();
+                        ctx.arc(point[0], point[1], 3, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
 
         function openScan(scanIndex) {
             if (scanIndex < 0 || scanIndex >= scansData.length) return;
@@ -307,7 +434,17 @@
                 ? scan.frames_root_type[currentFrameIndex]
                 : scan.frames_confidence[currentFrameIndex];
 
-            document.getElementById('frameImage').src = 'data:image/png;base64,' + frameData.image;
+            const img = document.getElementById('frameImage');
+            const canvas = document.getElementById('overlayCanvas');
+
+            // Set image source based on render mode
+            if (renderMode === 'embedded') {
+                img.src = 'data:image/png;base64,' + frameData.image;
+            } else {
+                // external or client mode - use path directly
+                img.src = frameData.image;
+            }
+
             document.getElementById('frameCounter').textContent =
                 `Frame ${currentFrameIndex + 1} of ${scan.frame_count}`;
 
@@ -326,6 +463,29 @@
 
             // Show/hide color legend
             document.getElementById('colorLegend').classList.toggle('visible', viewMode === 'confidence');
+
+            // For client mode, draw predictions on canvas after image loads
+            if (renderMode === 'client' && frameData.predictions) {
+                img.onload = function() {
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    canvas.style.width = img.width + 'px';
+                    canvas.style.height = img.height + 'px';
+                    drawPredictions(canvas, frameData.predictions, viewMode);
+                };
+                // If image is already loaded (cached)
+                if (img.complete) {
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    canvas.style.width = img.width + 'px';
+                    canvas.style.height = img.height + 'px';
+                    drawPredictions(canvas, frameData.predictions, viewMode);
+                }
+            } else {
+                // Clear canvas for non-client modes
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
         }
 
         function toggleViewMode() {
@@ -440,6 +600,17 @@
         // Initialize
         updateCardSelection();
         updateNavHints();
+
+        // Overlay toggle handler (client mode only)
+        const overlayCheckbox = document.getElementById('showOverlay');
+        if (overlayCheckbox) {
+            overlayCheckbox.addEventListener('change', function() {
+                showOverlay = this.checked;
+                if (isFrameView) {
+                    updateFrameDisplay();
+                }
+            });
+        }
 
         // Focus body to enable keyboard navigation immediately
         document.getElementById('mainBody').focus();

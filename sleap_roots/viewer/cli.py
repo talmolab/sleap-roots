@@ -34,16 +34,63 @@ import click
     default=False,
     help="Disable 1000 total frame limit for large datasets.",
 )
+@click.option(
+    "--render",
+    is_flag=True,
+    default=False,
+    help="Pre-render overlays with matplotlib to disk files (slower, for sharing).",
+)
+@click.option(
+    "--embed",
+    is_flag=True,
+    default=False,
+    help="Embed images as base64 in HTML (single file, current default behavior).",
+)
+@click.option(
+    "--format",
+    "image_format",
+    type=click.Choice(["jpeg", "png"], case_sensitive=False),
+    default="jpeg",
+    help="Image format for --render mode (default: jpeg).",
+)
+@click.option(
+    "--quality",
+    type=click.IntRange(1, 100),
+    default=85,
+    help="JPEG quality for --render mode (1-100, default: 85).",
+)
+@click.option(
+    "--zip",
+    "create_zip",
+    is_flag=True,
+    default=False,
+    help="Create a ZIP archive containing the viewer and all required files.",
+)
 def viewer(
     predictions_dir: Path,
     images: Optional[Path],
     output: Path,
     max_frames: int,
     no_limit: bool,
+    render: bool,
+    embed: bool,
+    image_format: str,
+    quality: int,
+    create_zip: bool,
 ) -> None:
-    """Generate an HTML viewer for SLEAP prediction visualization.
+    r"""Generate an HTML viewer for SLEAP prediction visualization.
 
     PREDICTIONS_DIR is the directory containing .slp prediction files.
+
+    \b
+    Output Modes:
+      (default)   Client-render mode with external images (fast, portable)
+      --render    Pre-render overlays to disk files (viewer_images/ directory)
+      --embed     Embed images as base64 in HTML (single file, slower)
+
+    \b
+    Portability:
+      --zip       Create a ZIP archive for easy sharing (includes all images)
 
     By default, samples 10 frames per scan for fast QC. Use --max-frames 0
     to include all frames (may produce large files).
@@ -69,9 +116,26 @@ def viewer(
             max_frames=max_frames,
             no_limit=no_limit,
             progress_callback=progress_callback,
+            render=render,
+            embed=embed,
+            image_format=image_format,
+            image_quality=quality,
+            create_zip=create_zip,
         )
         # Clear progress line and show completion
         sys.stdout.write("\r" + " " * 60 + "\r")
         click.echo(f"Viewer generated: {output}")
+
+        # Show images directory info for render mode
+        if render:
+            images_dir = output.parent / f"{output.stem}_images"
+            click.echo(f"Images directory: {images_dir}")
+
+        # Show ZIP path if created
+        if create_zip:
+            zip_path = output.with_suffix(".zip")
+            click.echo(f"ZIP archive: {zip_path}")
+    except ValueError as e:
+        raise click.ClickException(str(e))
     except FrameLimitExceededError as e:
         raise click.ClickException(str(e))

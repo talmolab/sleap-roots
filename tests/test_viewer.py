@@ -871,3 +871,690 @@ class TestVideoRemapWarning:
             if not result:
                 # If remapping failed for other reasons, that's also OK
                 pass
+
+
+class TestPredictionSerialization:
+    """Tests for prediction data serialization for client-side rendering."""
+
+    def test_serialize_instance_extracts_points(self):
+        """Test that serialize_instance extracts points as [[x, y], ...] list."""
+        from unittest.mock import MagicMock
+        import numpy as np
+        from sleap_roots.viewer.serializer import serialize_instance
+
+        # Create mock instance with points
+        mock_instance = MagicMock()
+        mock_instance.numpy.return_value = np.array([[10.0, 20.0], [30.0, 40.0]])
+
+        # Create mock skeleton
+        mock_skeleton = MagicMock()
+        mock_skeleton.edge_inds = [(0, 1)]
+
+        result = serialize_instance(mock_instance, mock_skeleton, "primary")
+
+        assert "points" in result
+        assert result["points"] == [[10.0, 20.0], [30.0, 40.0]]
+        mock_instance.numpy.assert_called_once_with(invisible_as_nan=True)
+
+    def test_serialize_instance_extracts_edges(self):
+        """Test that serialize_instance extracts edges as [[i, j], ...] pairs."""
+        from unittest.mock import MagicMock
+        import numpy as np
+        from sleap_roots.viewer.serializer import serialize_instance
+
+        mock_instance = MagicMock()
+        mock_instance.numpy.return_value = np.array([[0, 0], [10, 10], [20, 20]])
+
+        mock_skeleton = MagicMock()
+        mock_skeleton.edge_inds = [(0, 1), (1, 2)]
+
+        result = serialize_instance(mock_instance, mock_skeleton, "lateral")
+
+        assert "edges" in result
+        assert result["edges"] == [[0, 1], [1, 2]]
+
+    def test_serialize_instance_includes_score(self):
+        """Test that serialize_instance includes instance score."""
+        from unittest.mock import MagicMock
+        import numpy as np
+        from sleap_roots.viewer.serializer import serialize_instance
+
+        mock_instance = MagicMock()
+        mock_instance.numpy.return_value = np.array([[0, 0]])
+        mock_instance.score = 0.95
+
+        mock_skeleton = MagicMock()
+        mock_skeleton.edge_inds = []
+
+        result = serialize_instance(mock_instance, mock_skeleton, "crown")
+
+        assert "score" in result
+        assert result["score"] == 0.95
+
+    def test_serialize_instance_includes_root_type(self):
+        """Test that serialize_instance includes root_type."""
+        from unittest.mock import MagicMock
+        import numpy as np
+        from sleap_roots.viewer.serializer import serialize_instance
+
+        mock_instance = MagicMock()
+        mock_instance.numpy.return_value = np.array([[0, 0]])
+
+        mock_skeleton = MagicMock()
+        mock_skeleton.edge_inds = []
+
+        for root_type in ["primary", "lateral", "crown"]:
+            result = serialize_instance(mock_instance, mock_skeleton, root_type)
+            assert "root_type" in result
+            assert result["root_type"] == root_type
+
+    def test_serialize_instance_handles_none_score(self):
+        """Test that serialize_instance handles missing/None scores gracefully."""
+        from unittest.mock import MagicMock
+        import numpy as np
+        from sleap_roots.viewer.serializer import serialize_instance
+
+        mock_instance = MagicMock()
+        mock_instance.numpy.return_value = np.array([[0, 0]])
+        mock_instance.score = None
+
+        mock_skeleton = MagicMock()
+        mock_skeleton.edge_inds = []
+
+        result = serialize_instance(mock_instance, mock_skeleton, "primary")
+
+        assert result["score"] is None
+
+    def test_serialize_instance_handles_nan_points(self):
+        """Test that serialize_instance handles NaN points (invisible nodes)."""
+        from unittest.mock import MagicMock
+        import numpy as np
+        from sleap_roots.viewer.serializer import serialize_instance
+
+        mock_instance = MagicMock()
+        # First point visible, second point invisible (NaN)
+        mock_instance.numpy.return_value = np.array([[10.0, 20.0], [np.nan, np.nan]])
+
+        mock_skeleton = MagicMock()
+        mock_skeleton.edge_inds = [(0, 1)]
+
+        result = serialize_instance(mock_instance, mock_skeleton, "primary")
+
+        # Points should include NaN values (JavaScript can handle them)
+        assert len(result["points"]) == 2
+        # NaN should be converted to None for JSON serialization
+        assert result["points"][0] == [10.0, 20.0]
+        assert result["points"][1] == [None, None]
+
+
+class TestFramePredictionsSerialization:
+    """Tests for frame-level prediction serialization."""
+
+    def test_serialize_frame_predictions_returns_all_instances(
+        self, canola_h5, canola_primary_slp, canola_lateral_slp, tmp_path
+    ):
+        """Test that serialize_frame_predictions returns all instances for a frame."""
+        from sleap_roots.viewer.serializer import serialize_frame_predictions
+
+        series = Series.load(
+            series_name="test",
+            h5_path=canola_h5,
+            primary_path=canola_primary_slp,
+            lateral_path=canola_lateral_slp,
+        )
+
+        html_path = tmp_path / "viewer.html"
+        result = serialize_frame_predictions(series, frame_idx=0, html_path=html_path)
+
+        assert "instances" in result
+        assert isinstance(result["instances"], list)
+        # Should have at least one instance
+        assert len(result["instances"]) > 0
+
+    def test_serialize_frame_predictions_includes_image_path(
+        self, canola_h5, canola_primary_slp, tmp_path
+    ):
+        """Test that serialize_frame_predictions includes image_path relative to HTML."""
+        from sleap_roots.viewer.serializer import serialize_frame_predictions
+
+        series = Series.load(
+            series_name="test",
+            h5_path=canola_h5,
+            primary_path=canola_primary_slp,
+        )
+
+        html_path = tmp_path / "subdir" / "viewer.html"
+        result = serialize_frame_predictions(series, frame_idx=0, html_path=html_path)
+
+        assert "image_path" in result
+        # image_path should be a string (relative or absolute path to source image)
+        assert isinstance(result["image_path"], str)
+
+    def test_serialize_frame_predictions_instance_structure(
+        self, canola_h5, canola_primary_slp, tmp_path
+    ):
+        """Test that each serialized instance has required fields."""
+        from sleap_roots.viewer.serializer import serialize_frame_predictions
+
+        series = Series.load(
+            series_name="test",
+            h5_path=canola_h5,
+            primary_path=canola_primary_slp,
+        )
+
+        html_path = tmp_path / "viewer.html"
+        result = serialize_frame_predictions(series, frame_idx=0, html_path=html_path)
+
+        for instance in result["instances"]:
+            assert "points" in instance
+            assert "edges" in instance
+            assert "score" in instance
+            assert "root_type" in instance
+
+
+class TestScanPredictionsSerialization:
+    """Tests for scan-level prediction serialization."""
+
+    def test_serialize_scan_predictions_returns_all_frames(
+        self, canola_h5, canola_primary_slp, tmp_path
+    ):
+        """Test that serialize_scan_predictions returns predictions for sampled frames."""
+        from sleap_roots.viewer.serializer import serialize_scan_predictions
+
+        series = Series.load(
+            series_name="test",
+            h5_path=canola_h5,
+            primary_path=canola_primary_slp,
+        )
+
+        html_path = tmp_path / "viewer.html"
+        frame_indices = [0, 1, 2]  # Request 3 frames
+        result = serialize_scan_predictions(series, frame_indices, html_path)
+
+        assert isinstance(result, list)
+        assert len(result) == 3
+
+    def test_serialize_scan_predictions_frame_structure(
+        self, canola_h5, canola_primary_slp, tmp_path
+    ):
+        """Test that each frame in scan predictions has correct structure."""
+        from sleap_roots.viewer.serializer import serialize_scan_predictions
+
+        series = Series.load(
+            series_name="test",
+            h5_path=canola_h5,
+            primary_path=canola_primary_slp,
+        )
+
+        html_path = tmp_path / "viewer.html"
+        frame_indices = [0]
+        result = serialize_scan_predictions(series, frame_indices, html_path)
+
+        assert len(result) == 1
+        frame_data = result[0]
+        assert "instances" in frame_data
+        assert "image_path" in frame_data
+
+
+class TestClientRenderMode:
+    """Tests for client-render mode (default) in ViewerGenerator."""
+
+    def test_generate_client_render_embeds_predictions_json(
+        self, canola_folder, tmp_path
+    ):
+        """Test that client-render mode embeds predictions as JSON in HTML."""
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(canola_folder))
+        # Default mode (no render=True, no embed=True) should be client-render
+        generator.generate(output_path, max_frames=2)
+
+        content = output_path.read_text(encoding="utf-8")
+
+        # Should have prediction data embedded as JSON
+        assert "predictionsData" in content or "scansData" in content
+
+    def test_generate_client_render_has_canvas_rendering_js(
+        self, canola_folder, tmp_path
+    ):
+        """Test that client-render HTML contains Canvas drawing JavaScript."""
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(canola_folder))
+        generator.generate(output_path, max_frames=2)
+
+        content = output_path.read_text(encoding="utf-8")
+
+        # Should have Canvas-related JavaScript
+        assert "<script>" in content
+        assert "drawPredictions" in content
+        assert "overlayCanvas" in content
+        assert "viridisColor" in content
+        assert "ROOT_TYPE_COLORS" in content
+
+    def test_generate_client_render_normalizes_confidence_scores(
+        self, canola_folder, tmp_path
+    ):
+        """Test that client-render JS normalizes raw scores before viridis colormap."""
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(canola_folder))
+        generator.generate(output_path, max_frames=2)
+
+        content = output_path.read_text(encoding="utf-8")
+
+        # Should have score normalization logic (min/max calculation)
+        assert "minScore" in content
+        assert "maxScore" in content
+        # Should normalize before passing to viridis
+        assert "normalizedScore" in content or "normalized" in content.lower()
+
+    def test_generate_embed_mode_produces_base64_images(self, canola_folder, tmp_path):
+        """Test that embed=True produces base64-embedded HTML (current behavior)."""
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(canola_folder))
+        generator.generate(output_path, max_frames=2, embed=True)
+
+        content = output_path.read_text(encoding="utf-8")
+
+        # Should have base64 images
+        assert "data:image/png;base64," in content
+
+    def test_generate_embed_mode_no_images_directory(self, canola_folder, tmp_path):
+        """Test that embed=True does not create images directory."""
+        output_path = tmp_path / "viewer.html"
+        images_dir = tmp_path / "viewer_images"
+        generator = ViewerGenerator(Path(canola_folder))
+        generator.generate(output_path, max_frames=2, embed=True)
+
+        # No images directory should be created
+        assert not images_dir.exists()
+
+    def test_generate_render_and_embed_mutually_exclusive(
+        self, canola_folder, tmp_path
+    ):
+        """Test that render=True and embed=True raises error."""
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(canola_folder))
+
+        with pytest.raises(ValueError, match="mutually exclusive"):
+            generator.generate(output_path, render=True, embed=True)
+
+    def test_generate_client_render_no_matplotlib_calls(
+        self, rice_10do_pipeline_output_folder, tmp_path
+    ):
+        """Test that default mode does NOT call matplotlib render functions."""
+        from unittest.mock import patch
+
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(rice_10do_pipeline_output_folder))
+
+        # Mock matplotlib rendering functions to track calls
+        with patch(
+            "sleap_roots.viewer.renderer.render_frame_root_type"
+        ) as mock_root_type, patch(
+            "sleap_roots.viewer.renderer.render_frame_confidence"
+        ) as mock_confidence:
+            generator.generate(output_path, max_frames=2)
+
+            # In client-render mode, matplotlib render functions should NOT be called
+            mock_root_type.assert_not_called()
+            mock_confidence.assert_not_called()
+
+    def test_generate_client_render_contains_relative_image_paths(
+        self, rice_10do_pipeline_output_folder, tmp_path
+    ):
+        """Test that default mode HTML contains relative image paths."""
+        import json
+
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(rice_10do_pipeline_output_folder))
+        generator.generate(output_path, max_frames=2)
+
+        content = output_path.read_text(encoding="utf-8")
+
+        # Extract scans data
+        start = content.find("const scansData = ") + len("const scansData = ")
+        end = content.find(";\n", start)
+        scans_data = json.loads(content[start:end])
+
+        # Check that frames have relative image paths (not base64, not absolute)
+        for scan in scans_data:
+            for frame in scan.get("frames_root_type", []):
+                image_path = frame.get("image", "")
+                # Should not be base64
+                assert not image_path.startswith("data:image/")
+                # Should be a path (relative or absolute, but not empty)
+                if image_path:
+                    assert ".jpg" in image_path.lower() or ".png" in image_path.lower()
+
+    def test_generate_embed_mode_matches_render_mode_format(
+        self, canola_folder, tmp_path
+    ):
+        """Test that embed=True produces HTML with same structure as old format."""
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(canola_folder))
+        generator.generate(output_path, max_frames=2, embed=True)
+
+        content = output_path.read_text(encoding="utf-8")
+
+        # Should have base64-embedded images
+        assert "data:image/png;base64," in content
+        # Should have scansData with frames
+        assert "const scansData = " in content
+        # Should NOT have predictions in frames (pre-rendered images show predictions)
+        # Check that renderMode is 'embedded'
+        assert "const renderMode = 'embedded'" in content
+
+
+class TestH5FrameExtraction:
+    """Tests for H5 frame extraction in client-render mode."""
+
+    def test_frame_to_base64_returns_data_uri(self, canola_h5, canola_primary_slp):
+        """Test that frame_to_base64 returns a valid data URI."""
+        from sleap_roots.viewer.serializer import frame_to_base64
+
+        series = Series.load(
+            series_name="test",
+            h5_path=canola_h5,
+            primary_path=canola_primary_slp,
+        )
+
+        result = frame_to_base64(series, frame_idx=0)
+
+        assert isinstance(result, str)
+        assert result.startswith("data:image/jpeg;base64,")
+        # Should have actual base64 content
+        assert len(result) > 100
+
+    def test_frame_to_base64_respects_format_png(self, canola_h5, canola_primary_slp):
+        """Test that frame_to_base64 respects PNG format."""
+        from sleap_roots.viewer.serializer import frame_to_base64
+
+        series = Series.load(
+            series_name="test",
+            h5_path=canola_h5,
+            primary_path=canola_primary_slp,
+        )
+
+        result = frame_to_base64(series, frame_idx=0, image_format="png")
+
+        assert result.startswith("data:image/png;base64,")
+
+    def test_frame_to_base64_respects_quality(self, canola_h5, canola_primary_slp):
+        """Test that frame_to_base64 produces different sizes for different quality."""
+        from sleap_roots.viewer.serializer import frame_to_base64
+
+        series = Series.load(
+            series_name="test",
+            h5_path=canola_h5,
+            primary_path=canola_primary_slp,
+        )
+
+        low_quality = frame_to_base64(series, frame_idx=0, quality=10)
+        high_quality = frame_to_base64(series, frame_idx=0, quality=95)
+
+        # Higher quality should produce larger file
+        assert len(high_quality) > len(low_quality)
+
+    def test_frame_to_base64_returns_empty_on_no_video(self, canola_primary_slp):
+        """Test that frame_to_base64 returns empty string when no video."""
+        from sleap_roots.viewer.serializer import frame_to_base64
+
+        series = Series.load(
+            series_name="test",
+            h5_path=None,
+            primary_path=canola_primary_slp,
+        )
+
+        result = frame_to_base64(series, frame_idx=0)
+
+        assert result == ""
+
+    def test_is_h5_video_returns_true_for_h5(self, canola_h5, canola_primary_slp):
+        """Test is_h5_video returns True for H5-backed video."""
+        from sleap_roots.viewer.serializer import is_h5_video
+
+        series = Series.load(
+            series_name="test",
+            h5_path=canola_h5,
+            primary_path=canola_primary_slp,
+        )
+
+        assert is_h5_video(series) is True
+
+    def test_is_h5_video_returns_false_for_no_video(self, canola_primary_slp):
+        """Test is_h5_video returns False when no video."""
+        from sleap_roots.viewer.serializer import is_h5_video
+
+        series = Series.load(
+            series_name="test",
+            h5_path=None,
+            primary_path=canola_primary_slp,
+        )
+
+        assert is_h5_video(series) is False
+
+    def test_client_render_with_h5_embeds_base64_images(self, canola_folder, tmp_path):
+        """Test that client-render mode with H5 source embeds base64 images."""
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(canola_folder))
+        generator.generate(output_path, max_frames=2)
+
+        content = output_path.read_text(encoding="utf-8")
+
+        # For H5 sources, client-render should embed base64 images
+        assert "data:image/jpeg;base64," in content
+
+    def test_client_render_with_h5_still_has_predictions(self, canola_folder, tmp_path):
+        """Test that client-render with H5 still includes predictions for canvas."""
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(canola_folder))
+        generator.generate(output_path, max_frames=2)
+
+        content = output_path.read_text(encoding="utf-8")
+
+        # Should have prediction data for canvas rendering
+        assert '"predictions":' in content
+        assert '"points":' in content
+        assert '"edges":' in content
+
+
+class TestPreRenderedMode:
+    """Tests for pre-rendered mode (--render flag)."""
+
+    def test_generate_render_creates_images_directory(self, canola_folder, tmp_path):
+        """Test that render=True creates viewer_images directory."""
+        output_path = tmp_path / "viewer.html"
+        images_dir = tmp_path / "viewer_images"
+        generator = ViewerGenerator(Path(canola_folder))
+        generator.generate(output_path, max_frames=2, render=True)
+
+        # Images directory should be created
+        assert images_dir.exists()
+        assert images_dir.is_dir()
+
+    def test_generate_render_saves_images_to_disk(self, canola_folder, tmp_path):
+        """Test that render=True saves images as files."""
+        output_path = tmp_path / "viewer.html"
+        images_dir = tmp_path / "viewer_images"
+        generator = ViewerGenerator(Path(canola_folder))
+        generator.generate(output_path, max_frames=2, render=True)
+
+        # Should have image files in the directory
+        image_files = list(images_dir.glob("**/*.jpeg")) + list(
+            images_dir.glob("**/*.jpg")
+        )
+        assert len(image_files) > 0
+
+    def test_generate_render_html_references_images(self, canola_folder, tmp_path):
+        """Test that render=True HTML references image files."""
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(canola_folder))
+        generator.generate(output_path, max_frames=2, render=True)
+
+        content = output_path.read_text(encoding="utf-8")
+
+        # HTML should reference external images (not base64)
+        assert "viewer_images/" in content or ".jpeg" in content or ".jpg" in content
+
+    def test_generate_render_uses_jpeg_by_default(self, canola_folder, tmp_path):
+        """Test that render=True uses JPEG format by default."""
+        output_path = tmp_path / "viewer.html"
+        images_dir = tmp_path / "viewer_images"
+        generator = ViewerGenerator(Path(canola_folder))
+        generator.generate(output_path, max_frames=2, render=True)
+
+        # Should have JPEG files
+        jpeg_files = list(images_dir.glob("**/*.jpeg")) + list(
+            images_dir.glob("**/*.jpg")
+        )
+        png_files = list(images_dir.glob("**/*.png"))
+        assert len(jpeg_files) > 0
+        assert len(png_files) == 0
+
+    def test_generate_render_png_format(self, canola_folder, tmp_path):
+        """Test that render=True with image_format='png' saves PNG images."""
+        output_path = tmp_path / "viewer.html"
+        images_dir = tmp_path / "viewer_images"
+        generator = ViewerGenerator(Path(canola_folder))
+        generator.generate(output_path, max_frames=2, render=True, image_format="png")
+
+        # Should have PNG files
+        png_files = list(images_dir.glob("**/*.png"))
+        assert len(png_files) > 0
+
+    def test_generate_render_calls_matplotlib_functions(self, canola_folder, tmp_path):
+        """Test that render=True calls matplotlib render functions."""
+        from unittest.mock import patch
+
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(canola_folder))
+
+        # Mock matplotlib rendering functions to track calls
+        with patch(
+            "sleap_roots.viewer.generator.render_frame_root_type"
+        ) as mock_root_type, patch(
+            "sleap_roots.viewer.generator.render_frame_confidence"
+        ) as mock_confidence:
+            generator.generate(output_path, max_frames=2, render=True)
+
+            # In render mode, matplotlib functions should be called
+            assert mock_root_type.called or mock_confidence.called
+
+    def test_figure_to_file_saves_with_correct_format(self, canola_folder, tmp_path):
+        """Test that _save_figure_to_file saves figure to disk correctly."""
+        generator = ViewerGenerator(Path(canola_folder))
+
+        fig, ax = plt.subplots()
+        ax.plot([1, 2, 3], [1, 2, 3])
+
+        # Test JPEG format
+        jpeg_path = tmp_path / "test.jpeg"
+        generator._save_figure_to_file(fig, jpeg_path, "jpeg", 85)
+        assert jpeg_path.exists()
+        with open(jpeg_path, "rb") as f:
+            header = f.read(2)
+            assert header == b"\xff\xd8"  # JPEG magic number
+
+        # Test PNG format
+        png_path = tmp_path / "test.png"
+        generator._save_figure_to_file(fig, png_path, "png", 85)
+        assert png_path.exists()
+        with open(png_path, "rb") as f:
+            header = f.read(8)
+            assert header == b"\x89PNG\r\n\x1a\n"  # PNG magic number
+
+        plt.close(fig)
+
+
+class TestZIPArchive:
+    """Tests for ZIP archive creation."""
+
+    def test_generate_create_zip_creates_zip_file(
+        self, rice_10do_pipeline_output_folder, tmp_path
+    ):
+        """Test that generate(create_zip=True) creates a zip file."""
+        import zipfile
+
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(rice_10do_pipeline_output_folder))
+        generator.generate(output_path, max_frames=2, create_zip=True)
+
+        zip_path = tmp_path / "viewer.zip"
+        assert zip_path.exists()
+        assert zipfile.is_zipfile(zip_path)
+
+    def test_client_render_zip_copies_source_images(
+        self, rice_10do_pipeline_output_folder, tmp_path
+    ):
+        """Test that client-render zip copies source images into archive."""
+        import zipfile
+
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(rice_10do_pipeline_output_folder))
+        generator.generate(output_path, max_frames=2, create_zip=True)
+
+        zip_path = tmp_path / "viewer.zip"
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            names = zf.namelist()
+            # Should have image files in the archive
+            image_files = [n for n in names if n.endswith((".jpg", ".jpeg", ".png"))]
+            assert len(image_files) > 0
+
+    def test_client_render_zip_rewrites_paths_in_html(
+        self, rice_10do_pipeline_output_folder, tmp_path
+    ):
+        """Test that client-render zip rewrites image paths in HTML."""
+        import zipfile
+
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(rice_10do_pipeline_output_folder))
+        generator.generate(output_path, max_frames=2, create_zip=True)
+
+        zip_path = tmp_path / "viewer.zip"
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            # Read the HTML from the archive
+            html_content = zf.read("viewer.html").decode("utf-8")
+            # Paths should be relative within the archive (images/ prefix)
+            assert "images/" in html_content
+            # Should NOT have absolute paths or paths outside the archive
+            assert "tests/data/" not in html_content
+
+    def test_pre_rendered_zip_contains_html_and_images(self, canola_folder, tmp_path):
+        """Test that pre-rendered zip contains HTML + images directory."""
+        import zipfile
+
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(canola_folder))
+        generator.generate(output_path, max_frames=2, render=True, create_zip=True)
+
+        zip_path = tmp_path / "viewer.zip"
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            names = zf.namelist()
+            # Should have HTML file
+            assert "viewer.html" in names
+            # Should have images in viewer_images directory
+            image_files = [n for n in names if "viewer_images/" in n]
+            assert len(image_files) > 0
+
+    def test_embedded_zip_contains_only_html(self, canola_folder, tmp_path):
+        """Test that embedded zip contains only HTML file."""
+        import zipfile
+
+        output_path = tmp_path / "viewer.html"
+        generator = ViewerGenerator(Path(canola_folder))
+        generator.generate(output_path, max_frames=2, embed=True, create_zip=True)
+
+        zip_path = tmp_path / "viewer.zip"
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            names = zf.namelist()
+            # Should only have the HTML file (all images embedded)
+            assert names == ["viewer.html"]
+
+    def test_zip_file_named_correctly(self, canola_folder, tmp_path):
+        """Test that zip file is named {output_stem}.zip."""
+        output_path = tmp_path / "my_custom_viewer.html"
+        generator = ViewerGenerator(Path(canola_folder))
+        generator.generate(output_path, max_frames=2, embed=True, create_zip=True)
+
+        # Should create my_custom_viewer.zip
+        zip_path = tmp_path / "my_custom_viewer.zip"
+        assert zip_path.exists()
