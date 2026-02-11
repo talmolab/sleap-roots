@@ -55,6 +55,33 @@ Embeds all images as base64 in a single HTML file. Largest file size but complet
 sleap-roots viewer predictions/ --output viewer.html --embed
 ```
 
+## Image Sources
+
+The viewer automatically detects image sources from the `.slp` prediction files:
+
+| Source Type | Description | Auto-Detected? |
+|-------------|-------------|----------------|
+| Image directories | Folder of individual image files (.png, .jpg, etc.) | Yes |
+| H5 video files | HDF5 files containing image stacks | Yes |
+
+### When to Use `--images`
+
+Use the `--images` option when:
+
+- **Source images have moved**: The paths stored in `.slp` files no longer exist
+- **Images are on a different drive**: The viewer can't resolve relative paths
+- **Using a different image directory**: You want to overlay predictions on different images
+
+```bash
+# Images moved to a new location
+sleap-roots viewer predictions/ --images /new/path/to/images
+
+# Using images from a network drive
+sleap-roots viewer predictions/ --images //server/share/images
+```
+
+The viewer will attempt to match image filenames from the `.slp` files to files in the `--images` directory.
+
 ## CLI Reference
 
 ```bash
@@ -80,6 +107,19 @@ sleap-roots viewer PREDICTIONS_DIR [OPTIONS]
 | `--format FORMAT` | `jpeg` | Image format for `--render` (jpeg/png) |
 | `--quality N` | `85` | JPEG quality 1-100 for `--render` |
 | `--zip` | `false` | Create ZIP archive for sharing |
+
+### ZIP Archive Portability
+
+The `--zip` option creates a portable archive, but behavior depends on your source data:
+
+| Source Type | Mode | Result |
+|-------------|------|--------|
+| Image directories | Client-render (default) | ZIP includes HTML + images folder |
+| H5 video files | `--render --zip` | ZIP includes HTML + rendered images |
+| H5 video files | `--embed --zip` | ZIP includes self-contained HTML |
+| H5 video files | `--zip` alone | ⚠️ Not portable (references H5 file) |
+
+For H5 video sources, always use `--render --zip` or `--embed --zip` to create a shareable archive.
 
 ## Keyboard Navigation
 
@@ -158,5 +198,6 @@ sleap-roots viewer predictions/ \
 
 - **Start with defaults**: The default client-render mode with 10 frames per scan is fast and sufficient for most QC tasks
 - **Use `--zip` for sharing**: Creates a portable archive that includes all required files
+- **H5 videos need render mode**: For H5 video sources, use `--render --zip` to create portable archives
 - **Toggle overlays**: In client-render mode, use the "Show Predictions" checkbox to compare raw images with overlays
 - **Check confidence scores**: The confidence badge on each scan card shows normalized mean prediction quality
