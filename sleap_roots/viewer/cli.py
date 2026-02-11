@@ -44,20 +44,20 @@ import click
     "--embed",
     is_flag=True,
     default=False,
-    help="Embed images as base64 in HTML (single file, current default behavior).",
+    help="Embed images as base64 in HTML (single self-contained file).",
 )
 @click.option(
     "--format",
     "image_format",
     type=click.Choice(["jpeg", "png"], case_sensitive=False),
     default="jpeg",
-    help="Image format for --render mode (default: jpeg).",
+    help="Image format for H5 extraction and --render mode (default: jpeg).",
 )
 @click.option(
     "--quality",
     type=click.IntRange(1, 100),
     default=85,
-    help="JPEG quality for --render mode (1-100, default: 85).",
+    help="JPEG quality for H5 extraction and --render mode (1-100, default: 85).",
 )
 @click.option(
     "--zip",

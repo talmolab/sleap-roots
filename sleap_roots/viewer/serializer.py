@@ -7,8 +7,9 @@ instances, scores) into JSON-friendly dictionaries for JavaScript Canvas renderi
 import base64
 import io
 import math
+import warnings
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import numpy as np
 
@@ -77,7 +78,11 @@ def frame_to_base64(
         buf.close()
 
         return f"data:{mime_type};base64,{encoded}"
-    except Exception:
+    except Exception as exc:
+        warnings.warn(
+            f"Failed to extract frame {frame_idx} from video: {exc}",
+            UserWarning,
+        )
         return ""
 
 

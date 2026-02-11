@@ -256,7 +256,7 @@
             {% endif %}
             <div class="info">
                 <div class="name">{{ scan.name }}</div>
-                <div class="meta">{{ scan.frame_count }} frames</div>
+                <div class="meta">{% if scan.sampled_frame_count != scan.frame_count %}{{ scan.sampled_frame_count }} of {% endif %}{{ scan.frame_count }} frames</div>
                 {% if scan.mean_confidence is not none %}
                 <span class="confidence-badge" style="background:{{ scan.confidence_color }};color:{% if scan.mean_confidence > 0.5 %}#000{% else %}#fff{% endif %}" title="Normalized prediction confidence (0=low, 1=high)">
                     Score: {{ "%.2f"|format(scan.mean_confidence) }}
@@ -304,8 +304,8 @@
 
     <script>
         // Scan data embedded from Python
-        const scansData = {{ scans_json|safe }};
-        const renderMode = '{{ render_mode }}';
+        const scansData = {{ scans_data|tojson }};
+        const renderMode = {{ render_mode|tojson }};
 
         let currentScanIndex = -1;
         let currentFrameIndex = 0;
@@ -445,8 +445,13 @@
                 img.src = frameData.image;
             }
 
-            document.getElementById('frameCounter').textContent =
-                `Frame ${currentFrameIndex + 1} of ${scan.frame_count}`;
+            // Use sampled_frame_count for navigation, show total if different
+            const sampledCount = scan.sampled_frame_count || scan.frame_count;
+            const totalCount = scan.total_frame_count || scan.frame_count;
+            const frameText = sampledCount !== totalCount
+                ? `Frame ${currentFrameIndex + 1} of ${sampledCount} (${totalCount} total)`
+                : `Frame ${currentFrameIndex + 1} of ${totalCount}`;
+            document.getElementById('frameCounter').textContent = frameText;
 
             // Update stats
             const statsEl = document.getElementById('frameStats');
@@ -502,7 +507,8 @@
             if (currentScanIndex < 0) return;
 
             const scan = scansData[currentScanIndex];
-            currentFrameIndex = (currentFrameIndex + delta + scan.frame_count) % scan.frame_count;
+            const frameCount = scan.sampled_frame_count || scan.frame_count;
+            currentFrameIndex = (currentFrameIndex + delta + frameCount) % frameCount;
             updateFrameDisplay();
         }
 

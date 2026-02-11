@@ -1,7 +1,5 @@
 """HTML viewer generator for SLEAP prediction visualization."""
 
-import json
-import shutil
 import warnings
 import zipfile
 from pathlib import Path
@@ -488,23 +486,34 @@ class ViewerGenerator:
 
         # Create mapping from original paths to archive paths
         path_mapping: Dict[str, str] = {}
-        for i, img_path in enumerate(sorted(image_paths)):
-            # Extract filename, preserving extension
-            original_path = Path(img_path)
-            # Use a simple naming scheme: images/001.jpg, images/002.jpg, etc.
-            ext = original_path.suffix or ".jpg"
-            archive_name = f"images/{i+1:03d}{ext}"
-            path_mapping[img_path] = archive_name
+        html_dir = output_path.parent
+        image_counter = 1
 
-            # Copy image file to archive
+        for img_path in sorted(image_paths):
             # Try to resolve the path relative to HTML directory first
-            html_dir = output_path.parent
             img_file = html_dir / img_path
             if not img_file.exists():
                 # Try as absolute path
                 img_file = Path(img_path)
+
             if img_file.exists():
+                # Extract extension, preserving original
+                original_path = Path(img_path)
+                ext = original_path.suffix or ".jpg"
+                # Use a simple naming scheme: images/001.jpg, images/002.jpg, etc.
+                archive_name = f"images/{image_counter:03d}{ext}"
+
+                # Only add mapping after confirming file exists
+                path_mapping[img_path] = archive_name
                 zf.write(img_file, archive_name)
+                image_counter += 1
+            else:
+                # Warn about missing file, keep original path in HTML
+                warnings.warn(
+                    f"Image file for path '{img_path}' not found; "
+                    "keeping original path in HTML.",
+                    UserWarning,
+                )
 
         # Rewrite HTML with updated image paths
         html_content = output_path.read_text(encoding="utf-8")
@@ -558,7 +567,6 @@ class ViewerGenerator:
         # - embed=True: base64 embedding (current/backwards-compatible behavior)
         # - render=True: save matplotlib images to disk files
         use_client_render = not render and not embed
-        use_base64 = embed
         output_path = Path(output_path)
 
         # Discover all scans
@@ -689,7 +697,12 @@ class ViewerGenerator:
                         img_root = str(
                             root_path.relative_to(output_path.parent)
                         ).replace("\\", "/")
-                    except Exception:
+                    except Exception as exc:
+                        warnings.warn(
+                            f"Failed to render root type frame {frame_idx} for "
+                            f"scan '{scan.name}': {exc}",
+                            UserWarning,
+                        )
                         img_root = ""
 
                     try:
@@ -701,7 +714,12 @@ class ViewerGenerator:
                         img_conf = str(
                             conf_path.relative_to(output_path.parent)
                         ).replace("\\", "/")
-                    except Exception:
+                    except Exception as exc:
+                        warnings.warn(
+                            f"Failed to render confidence frame {frame_idx} for "
+                            f"scan '{scan.name}': {exc}",
+                            UserWarning,
+                        )
                         img_conf = img_root
 
                     scan_data["frames_root_type"].append(
@@ -723,13 +741,23 @@ class ViewerGenerator:
                     try:
                         fig_root = render_frame_root_type(series, frame_idx)
                         img_root = figure_to_base64(fig_root, close=True)
-                    except Exception:
+                    except Exception as exc:
+                        warnings.warn(
+                            f"Failed to render root type frame {frame_idx} for "
+                            f"scan '{scan.name}': {exc}",
+                            UserWarning,
+                        )
                         img_root = ""
 
                     try:
                         fig_conf = render_frame_confidence(series, frame_idx)
                         img_conf = figure_to_base64(fig_conf, close=True)
-                    except Exception:
+                    except Exception as exc:
+                        warnings.warn(
+                            f"Failed to render confidence frame {frame_idx} for "
+                            f"scan '{scan.name}': {exc}",
+                            UserWarning,
+                        )
                         img_conf = img_root
 
                     scan_data["frames_root_type"].append(
@@ -770,11 +798,16 @@ class ViewerGenerator:
                 else None
             )
 
+            # Add sampled frame count to scan_data for JavaScript
+            scan_data["total_frame_count"] = scan.frame_count
+            scan_data["sampled_frame_count"] = len(frame_indices)
+
             scans_data.append(scan_data)
             scans_template.append(
                 {
                     "name": scan.name,
                     "frame_count": scan.frame_count,
+                    "sampled_frame_count": len(frame_indices),
                     "thumbnail": thumbnail,
                     "mean_confidence": overall_confidence,
                 }
@@ -835,7 +868,7 @@ class ViewerGenerator:
 
         html_content = template.render(
             scans=scans_template,
-            scans_json=json.dumps(scans_data),
+            scans_data=scans_data,
             render_mode=render_mode,
         )
 
