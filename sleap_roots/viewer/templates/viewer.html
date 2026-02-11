@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLEAP Roots Prediction Viewer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+        }
+        .header {
+            background: #16213e;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #0f3460;
+        }
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+        .mode-indicator {
+            padding: 0.5rem 1rem;
+            background: #0f3460;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            background: #e94560;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .btn:hover {
+            background: #ff6b6b;
+        }
+        .btn.secondary {
+            background: #0f3460;
+        }
+        .btn.secondary:hover {
+            background: #1a4a7a;
+        }
+
+        /* Overview Grid */
+        .overview {
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+        .scan-card {
+            background: #16213e;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 2px solid transparent;
+        }
+        .scan-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        .scan-card.selected {
+            border-color: #e94560;
+        }
+        .scan-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            background: #0f3460;
+        }
+        .scan-card .info {
+            padding: 1rem;
+        }
+        .scan-card .name {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        .scan-card .meta {
+            font-size: 0.85rem;
+            color: #888;
+        }
+        .confidence-badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+            cursor: help;
+        }
+
+        /* Frame View */
+        .frame-view {
+            display: none;
+            flex-direction: column;
+            height: calc(100vh - 60px);
+        }
+        .frame-view.active {
+            display: flex;
+        }
+        .overview.hidden {
+            display: none;
+        }
+        .frame-header {
+            background: #16213e;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #0f3460;
+        }
+        .frame-info {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        .frame-counter {
+            font-size: 1.1rem;
+        }
+        .frame-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: #888;
+        }
+        .frame-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            overflow: auto;
+        }
+        .frame-content img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .frame-container {
+            position: relative;
+            display: inline-block;
+        }
+        .frame-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        .overlay-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .overlay-controls label {
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .overlay-controls input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .nav-hint {
+            position: fixed;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(22, 33, 62, 0.9);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #888;
+        }
+        .nav-hint kbd {
+            background: #0f3460;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            margin: 0 0.25rem;
+        }
+
+        /* Color legend for confidence view */
+        .color-legend {
+            display: none;
+            position: fixed;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(22, 33, 62, 0.95);
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .color-legend.visible {
+            display: block;
+        }
+        .color-legend h4 {
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        .legend-gradient {
+            width: 20px;
+            height: 150px;
+            background: linear-gradient(to bottom, #440154, #21918c, #fde725);
+            border-radius: 2px;
+            margin: 0.5rem 0;
+        }
+        .legend-labels {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 150px;
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body tabindex="-1" id="mainBody">
+    <header class="header">
+        <h1>SLEAP Roots Prediction Viewer</h1>
+        <div class="controls">
+            <span class="mode-indicator" id="modeIndicator">Root Type View</span>
+            {% if render_mode == 'client' %}
+            <div class="overlay-controls">
+                <input type="checkbox" id="showOverlay" checked>
+                <label for="showOverlay">Show Predictions</label>
+            </div>
+            {% endif %}
+            <button class="btn secondary" id="toggleMode">Toggle View (C)</button>
+        </div>
+    </header>
+
+    <!-- Overview Grid -->
+    <div class="overview" id="overview">
+        {% for scan in scans %}
+        <div class="scan-card" data-scan-index="{{ loop.index0 }}" onclick="openScan({{ loop.index0 }})">
+            {% if render_mode == 'embedded' %}
+            <img src="data:image/png;base64,{{ scan.thumbnail }}" alt="{{ scan.name }}">
+            {% else %}
+            <img src="{{ scan.thumbnail }}" alt="{{ scan.name }}" onerror="this.style.background='#0f3460'">
+            {% endif %}
+            <div class="info">
+                <div class="name">{{ scan.name }}</div>
+                <div class="meta">{% if scan.sampled_frame_count != scan.frame_count %}{{ scan.sampled_frame_count }} of {% endif %}{{ scan.frame_count }} frames</div>
+                {% if scan.mean_confidence is not none %}
+                <span class="confidence-badge" style="background:{{ scan.confidence_color }};color:{% if scan.mean_confidence > 0.5 %}#000{% else %}#fff{% endif %}" title="Normalized prediction confidence (0=low, 1=high)">
+                    Score: {{ "%.2f"|format(scan.mean_confidence) }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Frame View -->
+    <div class="frame-view" id="frameView">
+        <div class="frame-header">
+            <button class="btn secondary" onclick="closeFrameView()">Back to Overview (Esc)</button>
+            <div class="frame-info">
+                <span class="frame-counter" id="frameCounter">Frame 1 of 72</span>
+                <div class="frame-stats" id="frameStats"></div>
+            </div>
+            <button class="btn" id="toggleModeFrame" onclick="toggleViewMode()">Toggle View (C)</button>
+        </div>
+        <div class="frame-content">
+            <div class="frame-container">
+                <img id="frameImage" src="" alt="Frame">
+                <canvas id="overlayCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Color Legend (for confidence view) -->
+    <div class="color-legend" id="colorLegend">
+        <h4>Confidence</h4>
+        <div style="display: flex;">
+            <div class="legend-gradient"></div>
+            <div class="legend-labels">
+                <span>1.0</span>
+                <span>0.5</span>
+                <span>0.0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-hint" id="navHint">
+        <!-- Hints are dynamically updated based on view mode -->
+    </div>
+
+    <script>
+        // Scan data embedded from Python
+        const scansData = {{ scans_data|tojson }};
+        const renderMode = {{ render_mode|tojson }};
+
+        let currentScanIndex = -1;
+        let currentFrameIndex = 0;
+        let selectedCardIndex = 0;
+        let viewMode = 'root_type'; // or 'confidence'
+        let isFrameView = false;
+        let showOverlay = true;
+
+        // Root type colors (matching matplotlib colors)
+        const ROOT_TYPE_COLORS = {
+            'primary': '#1f77b4',   // blue
+            'lateral': '#ff7f0e',   // orange
+            'crown': '#2ca02c'      // green
+        };
+
+        // Viridis colormap approximation (for confidence scores)
+        function viridisColor(t) {
+            // t should be 0-1
+            t = Math.max(0, Math.min(1, t));
+            // Simplified viridis: dark purple -> teal -> yellow
+            const r = Math.round(68 + t * (253 - 68));
+            const g = Math.round(1 + t * (231 - 1));
+            const b = Math.round(84 + t * (37 - 84));
+            return `rgb(${r},${g},${b})`;
+        }
+
+        // Draw predictions on canvas
+        function drawPredictions(canvas, predictions, mode) {
+            if (!canvas || !predictions || predictions.length === 0) return;
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!showOverlay) return;
+
+            // For confidence mode, compute min/max scores for normalization
+            let minScore = Infinity, maxScore = -Infinity;
+            if (mode === 'confidence') {
+                for (const inst of predictions) {
+                    if (inst.score !== null && inst.score !== undefined) {
+                        minScore = Math.min(minScore, inst.score);
+                        maxScore = Math.max(maxScore, inst.score);
+                    }
+                }
+                // Handle edge cases
+                if (!isFinite(minScore)) minScore = 0;
+                if (!isFinite(maxScore)) maxScore = 1;
+                if (minScore === maxScore) {
+                    minScore = 0;
+                    maxScore = Math.max(1, maxScore);
+                }
+            }
+
+            for (const inst of predictions) {
+                // Determine color based on mode
+                let color;
+                if (mode === 'root_type') {
+                    color = ROOT_TYPE_COLORS[inst.root_type] || '#888888';
+                } else {
+                    // Confidence mode - normalize score to 0-1, then use viridis
+                    const rawScore = inst.score !== null ? inst.score : minScore;
+                    const normalizedScore = (rawScore - minScore) / (maxScore - minScore);
+                    color = viridisColor(normalizedScore);
+                }
+
+                ctx.strokeStyle = color;
+                ctx.fillStyle = color;
+                ctx.lineWidth = 2;
+
+                // Draw edges (lines between nodes)
+                if (inst.edges && inst.points) {
+                    for (const [i, j] of inst.edges) {
+                        const p1 = inst.points[i];
+                        const p2 = inst.points[j];
+                        // Skip if either point is null (invisible)
+                        if (!p1 || !p2 || p1[0] === null || p2[0] === null) continue;
+
+                        ctx.beginPath();
+                        ctx.moveTo(p1[0], p1[1]);
+                        ctx.lineTo(p2[0], p2[1]);
+                        ctx.stroke();
+                    }
+                }
+
+                // Draw nodes (circles at each point)
+                if (inst.points) {
+                    for (const point of inst.points) {
+                        if (!point || point[0] === null) continue;
+                        ctx.beginPath();
+                        ctx.arc(point[0], point[1], 3, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        function openScan(scanIndex) {
+            if (scanIndex < 0 || scanIndex >= scansData.length) return;
+
+            currentScanIndex = scanIndex;
+            currentFrameIndex = 0;
+            isFrameView = true;
+
+            document.getElementById('overview').classList.add('hidden');
+            document.getElementById('frameView').classList.add('active');
+
+            updateFrameDisplay();
+            updateNavHints();
+        }
+
+        function closeFrameView() {
+            isFrameView = false;
+            currentScanIndex = -1;
+
+            document.getElementById('overview').classList.remove('hidden');
+            document.getElementById('frameView').classList.remove('active');
+            document.getElementById('colorLegend').classList.remove('visible');
+            updateNavHints();
+        }
+
+        function updateFrameDisplay() {
+            if (currentScanIndex < 0) return;
+
+            const scan = scansData[currentScanIndex];
+            const frameData = viewMode === 'root_type'
+                ? scan.frames_root_type[currentFrameIndex]
+                : scan.frames_confidence[currentFrameIndex];
+
+            const img = document.getElementById('frameImage');
+            const canvas = document.getElementById('overlayCanvas');
+
+            // Set image source based on render mode
+            if (renderMode === 'embedded') {
+                img.src = 'data:image/png;base64,' + frameData.image;
+            } else {
+                // external or client mode - use path directly
+                img.src = frameData.image;
+            }
+
+            // Use sampled_frame_count for navigation, show total if different
+            const sampledCount = scan.sampled_frame_count || scan.frame_count;
+            const totalCount = scan.total_frame_count || scan.frame_count;
+            const frameText = sampledCount !== totalCount
+                ? `Frame ${currentFrameIndex + 1} of ${sampledCount} (${totalCount} total)`
+                : `Frame ${currentFrameIndex + 1} of ${totalCount}`;
+            document.getElementById('frameCounter').textContent = frameText;
+
+            // Update stats
+            const statsEl = document.getElementById('frameStats');
+            let statsHtml = '';
+            if (frameData.instance_counts) {
+                for (const [type, count] of Object.entries(frameData.instance_counts)) {
+                    statsHtml += `<span>${type}: ${count}</span>`;
+                }
+            }
+            if (frameData.mean_confidence !== undefined && frameData.mean_confidence !== null) {
+                statsHtml += `<span title="Normalized prediction confidence (0=low, 1=high)">Score: ${frameData.mean_confidence.toFixed(2)}</span>`;
+            }
+            statsEl.innerHTML = statsHtml;
+
+            // Show/hide color legend
+            document.getElementById('colorLegend').classList.toggle('visible', viewMode === 'confidence');
+
+            // For client mode, draw predictions on canvas after image loads
+            if (renderMode === 'client' && frameData.predictions) {
+                img.onload = function() {
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    canvas.style.width = img.width + 'px';
+                    canvas.style.height = img.height + 'px';
+                    drawPredictions(canvas, frameData.predictions, viewMode);
+                };
+                // If image is already loaded (cached)
+                if (img.complete) {
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    canvas.style.width = img.width + 'px';
+                    canvas.style.height = img.height + 'px';
+                    drawPredictions(canvas, frameData.predictions, viewMode);
+                }
+            } else {
+                // Clear canvas for non-client modes
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function toggleViewMode() {
+            viewMode = viewMode === 'root_type' ? 'confidence' : 'root_type';
+            document.getElementById('modeIndicator').textContent =
+                viewMode === 'root_type' ? 'Root Type View' : 'Confidence View';
+
+            if (isFrameView) {
+                updateFrameDisplay();
+            }
+        }
+
+        function navigateFrame(delta) {
+            if (currentScanIndex < 0) return;
+
+            const scan = scansData[currentScanIndex];
+            const frameCount = scan.sampled_frame_count || scan.frame_count;
+            currentFrameIndex = (currentFrameIndex + delta + frameCount) % frameCount;
+            updateFrameDisplay();
+        }
+
+        function updateCardSelection() {
+            document.querySelectorAll('.scan-card').forEach((card, idx) => {
+                card.classList.toggle('selected', idx === selectedCardIndex);
+            });
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (isFrameView) {
+                switch (e.key) {
+                    case 'ArrowLeft':
+                        navigateFrame(-1);
+                        e.preventDefault();
+                        break;
+                    case 'ArrowRight':
+                        navigateFrame(1);
+                        e.preventDefault();
+                        break;
+                    case 'Escape':
+                        closeFrameView();
+                        e.preventDefault();
+                        break;
+                    case 'c':
+                    case 'C':
+                        toggleViewMode();
+                        e.preventDefault();
+                        break;
+                }
+            } else {
+                // Overview navigation
+                const cards = document.querySelectorAll('.scan-card');
+                const cols = Math.floor(document.getElementById('overview').offsetWidth / 220);
+
+                switch (e.key) {
+                    case 'ArrowLeft':
+                        selectedCardIndex = Math.max(0, selectedCardIndex - 1);
+                        updateCardSelection();
+                        e.preventDefault();
+                        break;
+                    case 'ArrowRight':
+                        selectedCardIndex = Math.min(cards.length - 1, selectedCardIndex + 1);
+                        updateCardSelection();
+                        e.preventDefault();
+                        break;
+                    case 'ArrowUp':
+                        selectedCardIndex = Math.max(0, selectedCardIndex - cols);
+                        updateCardSelection();
+                        e.preventDefault();
+                        break;
+                    case 'ArrowDown':
+                        selectedCardIndex = Math.min(cards.length - 1, selectedCardIndex + cols);
+                        updateCardSelection();
+                        e.preventDefault();
+                        break;
+                    case 'Enter':
+                        openScan(selectedCardIndex);
+                        e.preventDefault();
+                        break;
+                    case 'c':
+                    case 'C':
+                        toggleViewMode();
+                        e.preventDefault();
+                        break;
+                }
+            }
+        });
+
+        function updateNavHints() {
+            const navHint = document.getElementById('navHint');
+            if (isFrameView) {
+                // Frame view hints
+                navHint.innerHTML = `
+                    <kbd>←</kbd> <kbd>→</kbd> Navigate frames
+                    <kbd>Esc</kbd> Back to overview
+                    <kbd>C</kbd> Toggle view
+                `;
+            } else {
+                // Overview hints
+                const hasScans = scansData.length > 0;
+                if (hasScans) {
+                    navHint.innerHTML = `
+                        <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> Select scan
+                        <kbd>Enter</kbd> Open scan
+                        <kbd>C</kbd> Toggle view
+                    `;
+                } else {
+                    navHint.innerHTML = `<span>No scans available</span>`;
+                }
+            }
+        }
+
+        // Initialize
+        updateCardSelection();
+        updateNavHints();
+
+        // Overlay toggle handler (client mode only)
+        const overlayCheckbox = document.getElementById('showOverlay');
+        if (overlayCheckbox) {
+            overlayCheckbox.addEventListener('change', function() {
+                showOverlay = this.checked;
+                if (isFrameView) {
+                    updateFrameDisplay();
+                }
+            });
+        }
+
+        // Focus body to enable keyboard navigation immediately
+        document.getElementById('mainBody').focus();
+    </script>
+</body>
+</html>

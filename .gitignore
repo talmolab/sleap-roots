@@ -137,3 +137,6 @@ dmypy.json
 
 # Benchmark baselines (managed by CI, not local development)
 /.benchmarks/
+
+# Investigation scratch files (never version controlled)
+_scratch/

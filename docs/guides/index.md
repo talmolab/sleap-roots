@@ -295,4 +295,5 @@ See [Trait Reference](trait-reference.md) for complete trait descriptions.
 - Explore detailed pipeline documentation in the [Pipelines](pipelines/dicot.md) section
 - See the [Trait Reference](trait-reference.md) for all computed traits
 - Learn about [Batch Processing](batch-processing.md) for high-throughput workflows
+- Use the [Prediction Viewer](prediction-viewer.md) for visual QC before computing traits
 - Check the [API Reference](../reference/) for detailed function documentation
