@@ -95,6 +95,16 @@ pts = series.get_primary_points(frame_idx=0)
 lengths = get_root_lengths(pts)
 ```
 
+### 👁️ Prediction Viewer
+
+Validate SLEAP predictions before computing traits with an interactive HTML viewer:
+
+```bash
+sleap-roots viewer predictions/ --output viewer.html
+```
+
+Features keyboard navigation, confidence scores, and multiple output modes. See the [Prediction Viewer Guide](https://roots.sleap.ai/guides/prediction-viewer/) for details.
+
 ---
 
 ## 📓 Notebooks & Tutorials

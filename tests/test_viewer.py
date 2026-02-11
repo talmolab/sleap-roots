@@ -119,6 +119,102 @@ class TestFrameRenderingConfidence:
         plt.close(fig)
 
 
+class TestRendererEdgeCases:
+    """Tests for edge cases in renderer module."""
+
+    def test_get_confidence_range_no_scores(self):
+        """Test get_confidence_range returns defaults when no scores available."""
+        from unittest.mock import MagicMock
+        from sleap_roots.viewer.renderer import get_confidence_range
+
+        series = MagicMock()
+        # Mock empty frames dict
+        series.get_frame.return_value = {}
+
+        min_conf, max_conf = get_confidence_range(series, 0)
+
+        assert min_conf == 0.0
+        assert max_conf == 1.0
+
+    def test_get_confidence_range_none_labeled_frame(self):
+        """Test get_confidence_range handles None labeled frames."""
+        from unittest.mock import MagicMock
+        from sleap_roots.viewer.renderer import get_confidence_range
+
+        series = MagicMock()
+        # Mock frames with None labeled frame
+        series.get_frame.return_value = {"primary": None, "lateral": None}
+
+        min_conf, max_conf = get_confidence_range(series, 0)
+
+        assert min_conf == 0.0
+        assert max_conf == 1.0
+
+    def test_render_frame_confidence_no_video_raises(self):
+        """Test render_frame_confidence raises when video is None."""
+        from unittest.mock import MagicMock
+        from sleap_roots.viewer.renderer import render_frame_confidence
+
+        series = MagicMock()
+        series.video = None
+        series.__len__ = MagicMock(return_value=10)
+
+        with pytest.raises(ValueError, match="Video is not available"):
+            render_frame_confidence(series, 0)
+
+    def test_render_frame_confidence_out_of_range_raises(self):
+        """Test render_frame_confidence raises for invalid frame index."""
+        from unittest.mock import MagicMock
+        from sleap_roots.viewer.renderer import render_frame_confidence
+
+        series = MagicMock()
+        series.__len__ = MagicMock(return_value=5)
+
+        with pytest.raises(IndexError, match="out of range"):
+            render_frame_confidence(series, 100)
+
+    def test_render_frame_confidence_with_empty_frames(
+        self, canola_h5, canola_primary_slp
+    ):
+        """Test render_frame_confidence handles frames with no predictions."""
+        from sleap_roots.viewer.renderer import render_frame_confidence
+
+        series = Series.load(
+            series_name="test",
+            h5_path=canola_h5,
+            primary_path=canola_primary_slp,
+        )
+
+        # This tests rendering a frame (even if it has predictions).
+        # The key is that the function should work without crashing.
+        fig = render_frame_confidence(series, frame_idx=0)
+        assert isinstance(fig, plt.Figure)
+        plt.close(fig)
+
+    def test_render_frame_confidence_no_skeleton_labels(
+        self, canola_h5, canola_primary_slp
+    ):
+        """Test render_frame_confidence when skeleton labels are None."""
+        from sleap_roots.viewer.renderer import render_frame_confidence
+
+        series = Series.load(
+            series_name="test",
+            h5_path=canola_h5,
+            primary_path=canola_primary_slp,
+        )
+
+        # Explicitly set labels to None (simulate missing labels)
+        original_lateral_labels = series.lateral_labels
+        series.lateral_labels = None
+
+        fig = render_frame_confidence(series, frame_idx=0)
+        assert isinstance(fig, plt.Figure)
+        plt.close(fig)
+
+        # Restore
+        series.lateral_labels = original_lateral_labels
+
+
 class TestConfidenceNormalization:
     """Tests for confidence score normalization."""
 
@@ -1244,6 +1340,175 @@ class TestClientRenderMode:
         assert "const renderMode = 'embedded'" in content
 
 
+class TestSerializerEdgeCases:
+    """Tests for edge cases in serializer module."""
+
+    def test_frame_to_base64_grayscale_image(self):
+        """Test frame_to_base64 handles 2D grayscale images."""
+        from unittest.mock import MagicMock
+        import numpy as np
+        from sleap_roots.viewer.serializer import frame_to_base64
+
+        series = MagicMock()
+        # Create a 2D grayscale image
+        series.video.__getitem__ = MagicMock(
+            return_value=np.ones((100, 100), dtype=np.uint8) * 128
+        )
+
+        result = frame_to_base64(series, frame_idx=0)
+
+        assert result.startswith("data:image/jpeg;base64,")
+
+    def test_frame_to_base64_grayscale_with_channel(self):
+        """Test frame_to_base64 handles 3D grayscale images with channel dim."""
+        from unittest.mock import MagicMock
+        import numpy as np
+        from sleap_roots.viewer.serializer import frame_to_base64
+
+        series = MagicMock()
+        # Create a 3D grayscale image with channel dimension (H, W, 1)
+        series.video.__getitem__ = MagicMock(
+            return_value=np.ones((100, 100, 1), dtype=np.uint8) * 128
+        )
+
+        result = frame_to_base64(series, frame_idx=0)
+
+        assert result.startswith("data:image/jpeg;base64,")
+
+    def test_frame_to_base64_rgba_image(self):
+        """Test frame_to_base64 handles RGBA images."""
+        from unittest.mock import MagicMock
+        import numpy as np
+        from sleap_roots.viewer.serializer import frame_to_base64
+
+        series = MagicMock()
+        # Create a 4-channel RGBA image
+        series.video.__getitem__ = MagicMock(
+            return_value=np.ones((100, 100, 4), dtype=np.uint8) * 128
+        )
+
+        result = frame_to_base64(series, frame_idx=0, image_format="png")
+
+        assert result.startswith("data:image/png;base64,")
+
+    def test_frame_to_base64_unknown_format_returns_empty(self):
+        """Test frame_to_base64 returns empty string for unknown image format."""
+        from unittest.mock import MagicMock
+        import numpy as np
+        from sleap_roots.viewer.serializer import frame_to_base64
+
+        series = MagicMock()
+        # Create an image with invalid dimensions (e.g., 5 channels)
+        series.video.__getitem__ = MagicMock(
+            return_value=np.ones((100, 100, 5), dtype=np.uint8) * 128
+        )
+
+        result = frame_to_base64(series, frame_idx=0)
+
+        assert result == ""
+
+    def test_frame_to_base64_exception_returns_empty(self):
+        """Test frame_to_base64 returns empty string on exception."""
+        from unittest.mock import MagicMock
+        from sleap_roots.viewer.serializer import frame_to_base64
+
+        series = MagicMock()
+        # Make video access raise an exception
+        series.video.__getitem__ = MagicMock(side_effect=Exception("Video error"))
+
+        result = frame_to_base64(series, frame_idx=0)
+
+        assert result == ""
+
+    def test_is_h5_video_exception_returns_false(self):
+        """Test is_h5_video returns False on exception."""
+        from unittest.mock import MagicMock, PropertyMock
+        from sleap_roots.viewer.serializer import is_h5_video
+
+        series = MagicMock()
+        # Make filename access raise an exception
+        type(series.video).filename = PropertyMock(side_effect=Exception("Error"))
+
+        result = is_h5_video(series)
+
+        assert result is False
+
+    def test_serialize_frame_predictions_skips_none_skeleton(self):
+        """Test serialize_frame_predictions skips instances with None skeleton."""
+        from unittest.mock import MagicMock
+        from sleap_roots.viewer.serializer import serialize_frame_predictions
+
+        series = MagicMock()
+
+        # Create mock instance with None skeleton
+        mock_instance = MagicMock()
+        mock_instance.skeleton = None
+
+        mock_labeled_frame = MagicMock()
+        mock_labeled_frame.instances = [mock_instance]
+
+        series.get_frame.return_value = {"primary": mock_labeled_frame}
+        series.video = None
+
+        result = serialize_frame_predictions(
+            series, frame_idx=0, html_path=Path("/tmp/viewer.html")
+        )
+
+        # Instance with None skeleton should be skipped
+        assert len(result["instances"]) == 0
+
+    def test_get_frame_image_path_no_video(self):
+        """Test _get_frame_image_path returns empty string when no video."""
+        from unittest.mock import MagicMock
+        from sleap_roots.viewer.serializer import _get_frame_image_path
+
+        series = MagicMock()
+        series.video = None
+
+        result = _get_frame_image_path(series, 0, Path("/tmp/viewer.html"))
+
+        assert result == ""
+
+    def test_get_frame_image_path_frame_out_of_range(self):
+        """Test _get_frame_image_path returns empty for out of range frame."""
+        from unittest.mock import MagicMock, PropertyMock
+        from sleap_roots.viewer.serializer import _get_frame_image_path
+
+        series = MagicMock()
+        # Mock an ImageVideo with only 2 frames
+        type(series.video).filename = PropertyMock(
+            return_value=["/path/0.jpg", "/path/1.jpg"]
+        )
+
+        result = _get_frame_image_path(series, 10, Path("/tmp/viewer.html"))
+
+        assert result == ""
+
+    def test_get_frame_image_path_exception_returns_empty(self):
+        """Test _get_frame_image_path returns empty on exception."""
+        from unittest.mock import MagicMock, PropertyMock
+        from sleap_roots.viewer.serializer import _get_frame_image_path
+
+        series = MagicMock()
+        type(series.video).filename = PropertyMock(side_effect=Exception("Error"))
+
+        result = _get_frame_image_path(series, 0, Path("/tmp/viewer.html"))
+
+        assert result == ""
+
+    def test_get_skeleton_edges(self):
+        """Test get_skeleton_edges extracts edges correctly."""
+        from unittest.mock import MagicMock
+        from sleap_roots.viewer.serializer import get_skeleton_edges
+
+        skeleton = MagicMock()
+        skeleton.edge_inds = [(0, 1), (1, 2), (2, 3)]
+
+        result = get_skeleton_edges(skeleton)
+
+        assert result == [[0, 1], [1, 2], [2, 3]]
+
+
 class TestH5FrameExtraction:
     """Tests for H5 frame extraction in client-render mode."""
 
@@ -1463,6 +1728,225 @@ class TestPreRenderedMode:
             assert header == b"\x89PNG\r\n\x1a\n"  # PNG magic number
 
         plt.close(fig)
+
+
+class TestCLI:
+    """Tests for the viewer CLI command."""
+
+    def test_cli_basic_invocation(self, rice_10do_pipeline_output_folder, tmp_path):
+        """Test basic CLI invocation creates viewer."""
+        from click.testing import CliRunner
+        from sleap_roots.viewer.cli import viewer
+
+        runner = CliRunner()
+        output_path = tmp_path / "cli_viewer.html"
+
+        result = runner.invoke(
+            viewer,
+            [
+                str(rice_10do_pipeline_output_folder),
+                "--output",
+                str(output_path),
+                "--max-frames",
+                "2",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert output_path.exists()
+
+    def test_cli_with_images_dir(self, canola_folder, tmp_path):
+        """Test CLI with explicit images directory."""
+        from click.testing import CliRunner
+        from sleap_roots.viewer.cli import viewer
+
+        runner = CliRunner()
+        output_path = tmp_path / "viewer.html"
+
+        result = runner.invoke(
+            viewer,
+            [
+                str(canola_folder),
+                "--images",
+                str(canola_folder),
+                "--output",
+                str(output_path),
+                "--max-frames",
+                "2",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert output_path.exists()
+
+    def test_cli_embed_mode(self, canola_folder, tmp_path):
+        """Test CLI with --embed flag."""
+        from click.testing import CliRunner
+        from sleap_roots.viewer.cli import viewer
+
+        runner = CliRunner()
+        output_path = tmp_path / "embedded.html"
+
+        result = runner.invoke(
+            viewer,
+            [
+                str(canola_folder),
+                "--output",
+                str(output_path),
+                "--max-frames",
+                "2",
+                "--embed",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        content = output_path.read_text(encoding="utf-8")
+        assert "data:image/png;base64," in content
+
+    def test_cli_render_mode(self, canola_folder, tmp_path):
+        """Test CLI with --render flag."""
+        from click.testing import CliRunner
+        from sleap_roots.viewer.cli import viewer
+
+        runner = CliRunner()
+        output_path = tmp_path / "rendered.html"
+
+        result = runner.invoke(
+            viewer,
+            [
+                str(canola_folder),
+                "--output",
+                str(output_path),
+                "--max-frames",
+                "2",
+                "--render",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert output_path.exists()
+        images_dir = tmp_path / "rendered_images"
+        assert images_dir.exists()
+
+    def test_cli_render_and_embed_mutually_exclusive(self, canola_folder, tmp_path):
+        """Test that --render and --embed together raises error."""
+        from click.testing import CliRunner
+        from sleap_roots.viewer.cli import viewer
+
+        runner = CliRunner()
+        output_path = tmp_path / "viewer.html"
+
+        result = runner.invoke(
+            viewer,
+            [
+                str(canola_folder),
+                "--output",
+                str(output_path),
+                "--render",
+                "--embed",
+            ],
+        )
+
+        assert result.exit_code != 0
+        assert "mutually exclusive" in result.output
+
+    def test_cli_zip_flag(self, canola_folder, tmp_path):
+        """Test CLI with --zip flag."""
+        from click.testing import CliRunner
+        from sleap_roots.viewer.cli import viewer
+
+        runner = CliRunner()
+        output_path = tmp_path / "viewer.html"
+
+        result = runner.invoke(
+            viewer,
+            [
+                str(canola_folder),
+                "--output",
+                str(output_path),
+                "--max-frames",
+                "2",
+                "--embed",
+                "--zip",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        zip_path = tmp_path / "viewer.zip"
+        assert zip_path.exists()
+
+    def test_cli_format_and_quality_options(self, canola_folder, tmp_path):
+        """Test CLI with --format and --quality options."""
+        from click.testing import CliRunner
+        from sleap_roots.viewer.cli import viewer
+
+        runner = CliRunner()
+        output_path = tmp_path / "viewer.html"
+
+        result = runner.invoke(
+            viewer,
+            [
+                str(canola_folder),
+                "--output",
+                str(output_path),
+                "--max-frames",
+                "2",
+                "--render",
+                "--format",
+                "png",
+                "--quality",
+                "90",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        images_dir = tmp_path / "viewer_images"
+        png_files = list(images_dir.glob("**/*.png"))
+        assert len(png_files) > 0
+
+    def test_cli_no_limit_flag(self, canola_folder, tmp_path):
+        """Test CLI with --no-limit flag."""
+        from click.testing import CliRunner
+        from sleap_roots.viewer.cli import viewer
+
+        runner = CliRunner()
+        output_path = tmp_path / "viewer.html"
+
+        result = runner.invoke(
+            viewer,
+            [
+                str(canola_folder),
+                "--output",
+                str(output_path),
+                "--max-frames",
+                "0",
+                "--no-limit",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert output_path.exists()
+
+    def test_cli_empty_directory_creates_empty_viewer(self, tmp_path):
+        """Test CLI with empty directory creates viewer with no scans."""
+        from click.testing import CliRunner
+        from sleap_roots.viewer.cli import viewer
+
+        runner = CliRunner()
+        empty_dir = tmp_path / "empty"
+        empty_dir.mkdir()
+        output_path = tmp_path / "viewer.html"
+
+        result = runner.invoke(
+            viewer,
+            [str(empty_dir), "--output", str(output_path)],
+        )
+
+        # CLI succeeds but creates an HTML with no scan data
+        assert result.exit_code == 0
+        assert output_path.exists()
+        content = output_path.read_text(encoding="utf-8")
+        assert "scansData = []" in content
 
 
 class TestZIPArchive:
