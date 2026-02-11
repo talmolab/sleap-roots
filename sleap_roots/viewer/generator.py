@@ -1,5 +1,6 @@
 """HTML viewer generator for SLEAP prediction visualization."""
 
+import fnmatch
 import warnings
 import zipfile
 from pathlib import Path
@@ -88,6 +89,8 @@ class ScanInfo:
         crown_path: Path to crown root predictions file.
         h5_path: Path to HDF5 image file.
         frame_count: Number of frames in the scan.
+        plant_name: Plant identifier (QR code) extracted from image directory.
+        group: Timepoint group name (parent directory of plant, e.g., "Day0").
     """
 
     name: str
@@ -96,6 +99,8 @@ class ScanInfo:
     crown_path: Optional[Path] = None
     h5_path: Optional[Path] = None
     frame_count: int = 0
+    plant_name: Optional[str] = None
+    group: Optional[str] = None
 
 
 class ViewerGenerator:
@@ -242,7 +247,9 @@ class ViewerGenerator:
         except Exception:
             return None
 
-    def _find_and_remap_video(self, series: Series) -> bool:
+    def _find_and_remap_video(
+        self, series: Series
+    ) -> tuple:
         """Find local image directory and remap video paths.
 
         Pipeline output .slp files use ImageVideo backend with embedded absolute
@@ -254,7 +261,10 @@ class ViewerGenerator:
             series: Series object with potentially invalid video paths.
 
         Returns:
-            True if video was successfully remapped, False otherwise.
+            Tuple of (success, plant_name, group) where:
+            - success: True if video was successfully remapped
+            - plant_name: Plant identifier from image directory (e.g., "Fado_1")
+            - group: Timepoint group from parent directory (e.g., "Day0_2025-11-27")
         """
         # Get video from one of the labels files
         video = None
@@ -268,13 +278,13 @@ class ViewerGenerator:
                 break
 
         if video is None:
-            return False
+            return (False, None, None)
 
         # Check if video already works
         try:
             if video.exists():
                 series.video = video
-                return True
+                return (True, None, None)
         except Exception as exc:
             warnings.warn(f"Failed to check video existence for {video!r}: {exc}")
 
@@ -290,10 +300,13 @@ class ViewerGenerator:
             else:
                 first_path = Path(filenames)
 
-            # Extract image directory name from embedded path
-            img_dir_name = first_path.parent.name
+            # Extract path components from embedded path for matching
+            # Use multiple levels to distinguish between same plant across different days
+            # e.g., /workspace/images/Wave1/Day0/Fado_1/1.jpg -> Wave1/Day0/Fado_1
+            img_dir = first_path.parent
+            path_parts = img_dir.parts
         except Exception:
-            return False
+            return (False, None, None)
 
         # Search for local image directory
         search_dirs = [self.predictions_dir]
@@ -301,24 +314,35 @@ class ViewerGenerator:
             search_dirs.append(self.images_dir)
 
         local_img_dir = None
-        for search_dir in search_dirs:
-            # Direct match
-            candidate = search_dir / img_dir_name
-            if candidate.is_dir():
-                local_img_dir = candidate
-                break
 
-            # Recursive search
-            for subdir in search_dir.glob(f"**/{img_dir_name}"):
-                if subdir.is_dir():
-                    local_img_dir = subdir
+        # Try matching with progressively fewer path components
+        # Start with more components for better uniqueness (e.g., Wave1/Day0/Fado_1)
+        # Fall back to fewer if not found
+        for num_parts in range(min(4, len(path_parts)), 0, -1):
+            suffix_parts = path_parts[-num_parts:]
+            suffix_pattern = "/".join(suffix_parts)
+
+            for search_dir in search_dirs:
+                # Direct path match
+                candidate = search_dir.joinpath(*suffix_parts)
+                if candidate.is_dir():
+                    local_img_dir = candidate
+                    break
+
+                # Recursive search with the suffix pattern
+                for subdir in search_dir.glob(f"**/{suffix_pattern}"):
+                    if subdir.is_dir():
+                        local_img_dir = subdir
+                        break
+
+                if local_img_dir:
                     break
 
             if local_img_dir:
                 break
 
         if local_img_dir is None:
-            return False
+            return (False, None, None)
 
         # Get sorted list of local images
         # Support common image extensions (case-insensitive)
@@ -328,7 +352,7 @@ class ViewerGenerator:
         ]
 
         if not local_images:
-            return False
+            return (False, None, None)
 
         # Sort images by numeric filename (e.g., 1.jpg, 2.jpg, ...)
         # Non-numeric filenames sort alphabetically after numeric ones
@@ -341,13 +365,17 @@ class ViewerGenerator:
 
         local_images = sorted(local_images, key=sort_key)
 
+        # Extract plant name and group from matched directory
+        plant_name = local_img_dir.name
+        group = local_img_dir.parent.name if local_img_dir.parent else None
+
         # Remap video paths
         try:
             video.replace_filename([str(p) for p in local_images])
             series.video = video
-            return True
+            return (True, plant_name, group)
         except Exception:
-            return False
+            return (False, None, None)
 
     def _get_instance_counts(self, series: Series, frame_idx: int) -> Dict[str, int]:
         """Get instance counts per root type for a frame.
@@ -538,6 +566,7 @@ class ViewerGenerator:
         image_format: str = "jpeg",
         image_quality: int = 85,
         create_zip: bool = False,
+        timepoint_patterns: Optional[List[str]] = None,
     ) -> None:
         """Generate the HTML viewer.
 
@@ -553,6 +582,7 @@ class ViewerGenerator:
             image_format: Image format for render mode ("jpeg" or "png").
             image_quality: JPEG quality (1-100) for render mode.
             create_zip: If True, create a zip archive for sharing.
+            timepoint_patterns: Optional list of glob patterns to filter by timepoint.
 
         Raises:
             FrameLimitExceededError: If total frames exceed 1000 without no_limit.
@@ -571,6 +601,38 @@ class ViewerGenerator:
 
         # Discover all scans
         scans = self.discover_scans()
+
+        # Filter by timepoint patterns if specified
+        if timepoint_patterns:
+            filtered_scans = []
+            for scan in scans:
+                # Get any available path from the scan
+                scan_path = (
+                    scan.primary_path or scan.lateral_path or scan.crown_path
+                )
+                if scan_path is None:
+                    continue
+
+                # Check if any parent directory matches a timepoint pattern
+                path_str = str(scan_path)
+                matches = False
+                for pattern in timepoint_patterns:
+                    # Check if pattern matches any part of the path
+                    if fnmatch.fnmatch(path_str, f"*{pattern}*"):
+                        matches = True
+                        break
+                    # Also check individual path parts
+                    for part in scan_path.parts:
+                        if fnmatch.fnmatch(part, pattern):
+                            matches = True
+                            break
+                    if matches:
+                        break
+
+                if matches:
+                    filtered_scans.append(scan)
+
+            scans = filtered_scans
 
         # Calculate total frames and check limits
         scan_frame_counts = []
@@ -610,8 +672,10 @@ class ViewerGenerator:
                 continue
 
             # Try to remap video paths for pipeline output with image directories
+            plant_name = None
+            group = None
             if series.video is None:
-                self._find_and_remap_video(series)
+                success, plant_name, group = self._find_and_remap_video(series)
 
             # Check if video is available for rendering
             if series.video is None:
@@ -625,8 +689,14 @@ class ViewerGenerator:
             # Select frames to render
             frame_indices = select_frame_indices(scan.frame_count, max_frames)
 
+            # Use plant_name if available, otherwise fall back to scan name
+            display_name = plant_name if plant_name else scan.name
+
             scan_data: Dict[str, Any] = {
                 "name": scan.name,
+                "display_name": display_name,
+                "plant_name": plant_name,
+                "group": group,
                 "frame_count": len(frame_indices),
                 "frames_root_type": [],
                 "frames_confidence": [],
@@ -805,7 +875,10 @@ class ViewerGenerator:
             scans_data.append(scan_data)
             scans_template.append(
                 {
+                    "_index": len(scans_template),  # Index for JavaScript openScan()
                     "name": scan.name,
+                    "display_name": display_name,
+                    "group": group,
                     "frame_count": scan.frame_count,
                     "sampled_frame_count": len(frame_indices),
                     "thumbnail": thumbnail,

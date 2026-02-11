@@ -960,14 +960,136 @@ class TestVideoRemapWarning:
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            result = generator._find_and_remap_video(series)
+            success, plant_name, group = generator._find_and_remap_video(series)
 
             # Should have warned about the failure
             warning_messages = [str(warning.message) for warning in w]
             assert any(
                 "failed to check video" in msg.lower() for msg in warning_messages
             ), f"Expected warning about video check failure, got: {warning_messages}"
-            assert not result
+            assert not success
+
+
+class TestMultiTimepointVideoRemapping:
+    """Tests for video remapping with multi-timepoint datasets.
+
+    When the same plant (e.g., Fado_1) exists across multiple timepoints (Day0, Day3),
+    the video remapping should correctly match the image directory based on the full
+    path context, not just the leaf directory name.
+    """
+
+    def test_remap_finds_correct_timepoint_directory(self, tmp_path):
+        """Test that remapping finds the correct day's directory for a plant."""
+        from unittest.mock import MagicMock
+
+        # Create multi-timepoint directory structure
+        # Day0/Fado_1/ and Day3/Fado_1/ should be distinguishable
+        day0_dir = tmp_path / "Wave1" / "Day0_2025-11-27" / "Fado_1"
+        day3_dir = tmp_path / "Wave1" / "Day3_2025-11-30" / "Fado_1"
+        day0_dir.mkdir(parents=True)
+        day3_dir.mkdir(parents=True)
+
+        # Create images in both directories
+        (day0_dir / "1.jpg").touch()
+        (day0_dir / "2.jpg").touch()
+        (day3_dir / "1.jpg").touch()
+        (day3_dir / "2.jpg").touch()
+
+        generator = ViewerGenerator(tmp_path)
+        series = MagicMock()
+
+        # Mock embedded path pointing to Day0 (the full pipeline path)
+        mock_video = MagicMock()
+        mock_video.exists.return_value = False
+        # Embedded path should include distinguishing components
+        mock_video.filename = [
+            "/workspace/images_input/images/Wave1/Day0_2025-11-27/Fado_1/1.jpg",
+            "/workspace/images_input/images/Wave1/Day0_2025-11-27/Fado_1/2.jpg",
+        ]
+
+        mock_labels = MagicMock()
+        mock_labels.videos = [mock_video]
+
+        series.primary_labels = mock_labels
+        series.lateral_labels = None
+        series.crown_labels = None
+
+        success, plant_name, group = generator._find_and_remap_video(series)
+
+        assert success is True
+        assert plant_name == "Fado_1"
+        assert "Day0" in group
+        # Verify the video was remapped to Day0's directory, not Day3's
+        mock_video.replace_filename.assert_called_once()
+        remapped_paths = mock_video.replace_filename.call_args[0][0]
+        assert "Day0" in remapped_paths[0]
+        assert "Day3" not in remapped_paths[0]
+
+    def test_remap_distinguishes_same_plant_across_days(self, tmp_path):
+        """Test that the same plant name in different days is correctly distinguished."""
+        from unittest.mock import MagicMock
+
+        # Create structure with same plant in multiple timepoints
+        for day in ["Day0", "Day3", "Day5", "Day7"]:
+            plant_dir = tmp_path / day / "Fado_1"
+            plant_dir.mkdir(parents=True)
+            (plant_dir / "1.jpg").touch()
+
+        generator = ViewerGenerator(tmp_path)
+
+        # Test each day individually
+        for target_day in ["Day0", "Day3", "Day5", "Day7"]:
+            series = MagicMock()
+            mock_video = MagicMock()
+            mock_video.exists.return_value = False
+            mock_video.filename = [f"/workspace/images/{target_day}/Fado_1/1.jpg"]
+
+            mock_labels = MagicMock()
+            mock_labels.videos = [mock_video]
+
+            series.primary_labels = mock_labels
+            series.lateral_labels = None
+            series.crown_labels = None
+
+            success, plant_name, group = generator._find_and_remap_video(series)
+
+            assert success is True, f"Failed for {target_day}"
+            assert plant_name == "Fado_1"
+            assert group == target_day
+            remapped_paths = mock_video.replace_filename.call_args[0][0]
+            assert target_day in remapped_paths[0], (
+                f"Expected {target_day} in remapped path, got {remapped_paths[0]}"
+            )
+
+    def test_remap_backwards_compatible_single_directory(self, tmp_path):
+        """Test that simple datasets with unique plant names still work."""
+        from unittest.mock import MagicMock
+
+        # Create simple structure without timepoints
+        plant_dir = tmp_path / "scan_12345"
+        plant_dir.mkdir()
+        (plant_dir / "1.jpg").touch()
+
+        generator = ViewerGenerator(tmp_path)
+        series = MagicMock()
+
+        mock_video = MagicMock()
+        mock_video.exists.return_value = False
+        mock_video.filename = ["/some/path/scan_12345/1.jpg"]
+
+        mock_labels = MagicMock()
+        mock_labels.videos = [mock_video]
+
+        series.primary_labels = mock_labels
+        series.lateral_labels = None
+        series.crown_labels = None
+
+        success, plant_name, group = generator._find_and_remap_video(series)
+
+        assert success is True
+        assert plant_name == "scan_12345"
+        remapped_paths = mock_video.replace_filename.call_args[0][0]
+        assert "scan_12345" in remapped_paths[0]
 
 
 class TestPredictionSerialization:
