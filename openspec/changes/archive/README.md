@@ -4,6 +4,95 @@ This directory contains completed OpenSpec changes that have been implemented an
 
 ## Active Archives
 
+### add-html-prediction-viewer (February 2026)
+
+**Status**: ✅ Completed - Merged in PR #142
+
+Added a self-contained HTML viewer for visual QC of SLEAP root predictions with multiple output modes, keyboard navigation, and confidence visualization.
+
+- **Proposal**: [proposal.md](2026-02-11-add-html-prediction-viewer/proposal.md)
+- **Design**: [design.md](2026-02-11-add-html-prediction-viewer/design.md)
+- **Tasks**: [tasks.md](2026-02-11-add-html-prediction-viewer/tasks.md)
+
+**Key Deliverables**:
+
+- `sleap-roots viewer` CLI command with three output modes
+- Client-render mode (default) for fast generation with Canvas overlays
+- Pre-rendered mode (`--render`) for matplotlib-rendered shareable images
+- Embedded mode (`--embed`) for single self-contained HTML files
+- ZIP archive support (`--zip`) for easy sharing
+- Keyboard navigation (arrow keys, Enter, Escape, C for mode toggle)
+- Dual visualization: root-type coloring and confidence-based colormap
+- Frame sampling with configurable limits
+- Comprehensive user documentation
+
+**Timeline**: ~5 days (iterative development across multiple sub-changes)
+
+---
+
+### add-external-image-mode (February 2026)
+
+**Status**: ✅ Completed - Merged in PR #142
+
+Implemented the three-mode output system (client-render, pre-rendered, embedded) and ZIP archive support for the HTML prediction viewer.
+
+- **Proposal**: [proposal.md](2026-02-11-add-external-image-mode/proposal.md)
+- **Tasks**: [tasks.md](2026-02-11-add-external-image-mode/tasks.md)
+
+**Key Deliverables**:
+
+- Client-render mode with JSON prediction data and Canvas rendering
+- Pre-rendered mode saving matplotlib images to disk as JPEG/PNG
+- Embedded mode maintaining backwards compatibility with base64
+- ZIP archive creation for all three modes
+- H5 video frame extraction for client-render mode
+- Overlay toggle (show/hide predictions) in client-render mode
+- CLI options: `--render`, `--embed`, `--format`, `--quality`, `--zip`
+
+---
+
+### add-viewer-documentation (February 2026)
+
+**Status**: ✅ Completed - Merged in PR #142
+
+Added user documentation for the HTML prediction viewer feature.
+
+- **Proposal**: [proposal.md](2026-02-11-add-viewer-documentation/proposal.md)
+- **Tasks**: [tasks.md](2026-02-11-add-viewer-documentation/tasks.md)
+
+**Key Deliverables**:
+
+- User guide at `docs/guides/prediction-viewer.md`
+- CLI reference with all options documented
+- Keyboard navigation reference
+- Output mode explanations and use cases
+- ZIP archive portability documentation
+- README.md updated with viewer section
+- docs/guides/index.md updated with link
+
+---
+
+### fix-viewer-code-quality (February 2026)
+
+**Status**: ✅ Completed - Merged in PR #142
+
+Addressed GitHub Copilot code review feedback for the HTML prediction viewer.
+
+- **Proposal**: [proposal.md](2026-02-11-fix-viewer-code-quality/proposal.md)
+- **Tasks**: [tasks.md](2026-02-11-fix-viewer-code-quality/tasks.md)
+
+**Key Deliverables**:
+
+- Removed unused imports from multiple files
+- Added warnings for silent exception handlers
+- Case-insensitive image extension matching
+- Improved sort_key for non-numeric filenames
+- Security fix: changed `|safe` to `|tojson` in template
+- Added sampled_frame_count for accurate frame navigation
+- Test coverage improvements (94%+ on viewer modules)
+
+---
+
 ### migrate-to-uv (November 2025)
 
 **Status**: ✅ Completed - Merged in PR #132
