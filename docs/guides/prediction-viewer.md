@@ -107,6 +107,7 @@ sleap-roots viewer PREDICTIONS_DIR [OPTIONS]
 | `--format FORMAT` | `jpeg` | Image format for `--render` (jpeg/png) |
 | `--quality N` | `85` | JPEG quality 1-100 for `--render` |
 | `--zip` | `false` | Create ZIP archive for sharing |
+| `--timepoint PATTERN` | *(none)* | Filter scans by timepoint pattern (e.g., `Day0*`) |
 
 ### ZIP Archive Portability
 
@@ -194,6 +195,42 @@ sleap-roots viewer predictions/ \
     --quality 95
 ```
 
+### Multi-Timepoint Experiments
+
+For experiments that track plants across multiple days, use `--timepoint` to filter:
+
+```bash
+# View only Day0 scans
+sleap-roots viewer predictions/ --images images/ --timepoint "Day0*"
+
+# View multiple timepoints (OR logic)
+sleap-roots viewer predictions/ --images images/ \
+    --timepoint "Day0*" \
+    --timepoint "Day3*"
+```
+
+The viewer automatically groups scans by timepoint (parent directory) and displays plant names prominently on scan cards.
+
+## Multi-Timepoint Features
+
+When working with experiments that scan the same plants across multiple days:
+
+### Gallery Grouping
+
+Scans are automatically grouped by timepoint (parent directory name). Each group shows a collapsible section with the timepoint name and scan count.
+
+### Plant Name Display
+
+Scan cards display the plant name (QR code / genotype) prominently instead of internal scan IDs. Hover over the plant name to see the scan ID in a tooltip. This makes it easy to identify the same plant across different timepoints.
+
+### Timepoint Filtering
+
+Use `--timepoint` to generate viewers for specific timepoints. Patterns are case-insensitive and support glob wildcards:
+
+- `--timepoint "Day0*"` - Match Day0, Day0_2025-11-27, etc.
+- `--timepoint "day*"` - Case-insensitive matching
+- Multiple `--timepoint` flags use OR logic
+
 ## Tips
 
 - **Start with defaults**: The default client-render mode with 10 frames per scan is fast and sufficient for most QC tasks
@@ -201,3 +238,4 @@ sleap-roots viewer predictions/ \
 - **H5 videos need render mode**: For H5 video sources, use `--render --zip` to create portable archives
 - **Toggle overlays**: In client-render mode, use the "Show Predictions" checkbox to compare raw images with overlays
 - **Check confidence scores**: The confidence badge on each scan card shows normalized mean prediction quality
+- **Filter by timepoint**: For large multi-timepoint datasets, use `--timepoint` to generate focused viewers

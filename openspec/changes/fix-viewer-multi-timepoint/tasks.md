@@ -46,11 +46,11 @@ doesn't exist.
 - [x] 5.2 Write TDD test: `test_filter_scans_indices_match_data_positions`
 - [x] 5.3 Fix: Reassign `_index` values in `_filter_scans_by_timepoint()` after filtering
 - [x] 5.4 Run tests and verify fix (142 tests pass)
-- [ ] 5.5 Regenerate viewers and verify clicking works
+- [x] 5.5 Regenerate viewers and verify clicking works
 
 ## 6. Documentation & Cleanup
 
-- [ ] 6.1 Update prediction-viewer.md with new features
-- [ ] 6.2 Update spec with new requirements
+- [x] 6.1 Update prediction-viewer.md with new features
+- [x] 6.2 Update spec with new requirements (documented in design.md)
 - [x] 6.3 Run full test suite (142 tests pass)
-- [ ] 6.4 Verify fix with Alfalfa GWAS dataset
+- [x] 6.4 Verify fix with Alfalfa GWAS dataset
