@@ -1092,6 +1092,161 @@ class TestMultiTimepointVideoRemapping:
         assert "scan_12345" in remapped_paths[0]
 
 
+class TestTimepointFiltering:
+    """Tests for timepoint filtering with flat prediction directories.
+
+    When predictions are in a flat directory (scan_123.slp) but images are organized
+    by timepoint (Day0/Fado_1/, Day3/Fado_1/), the filter should work based on the
+    discovered group from video remapping, not the scan path.
+    """
+
+    def test_filter_scans_by_group_basic(self):
+        """Test that _filter_scans_by_timepoint filters using group field."""
+        from sleap_roots.viewer.generator import ViewerGenerator, _filter_scans_by_timepoint
+
+        # Mock scans_data with different groups
+        scans_data = [
+            {"name": "scan1", "group": "Day0_2025-11-27", "display_name": "plant1"},
+            {"name": "scan2", "group": "Day3_2025-11-30", "display_name": "plant2"},
+            {"name": "scan3", "group": "Day5_2025-12-02", "display_name": "plant3"},
+        ]
+        scans_template = [
+            {"name": "scan1"},
+            {"name": "scan2"},
+            {"name": "scan3"},
+        ]
+
+        # Filter for Day0 only
+        filtered_data, filtered_template = _filter_scans_by_timepoint(
+            scans_data, scans_template, ["Day0*"]
+        )
+
+        assert len(filtered_data) == 1
+        assert filtered_data[0]["name"] == "scan1"
+        assert len(filtered_template) == 1
+        assert filtered_template[0]["name"] == "scan1"
+
+    def test_filter_scans_by_group_multiple_patterns_or_logic(self):
+        """Test that multiple --timepoint flags match ANY pattern (OR logic)."""
+        from sleap_roots.viewer.generator import _filter_scans_by_timepoint
+
+        # Mock scans_data with different groups
+        scans_data = [
+            {"name": "scan1", "group": "Day0", "display_name": "plant1"},
+            {"name": "scan2", "group": "Day3", "display_name": "plant2"},
+            {"name": "scan3", "group": "Day5", "display_name": "plant3"},
+            {"name": "scan4", "group": "Day7", "display_name": "plant4"},
+        ]
+        scans_template = [{"name": s["name"]} for s in scans_data]
+
+        # Filter for Day0 OR Day5
+        filtered_data, filtered_template = _filter_scans_by_timepoint(
+            scans_data, scans_template, ["Day0*", "Day5*"]
+        )
+
+        assert len(filtered_data) == 2
+        assert filtered_data[0]["group"] == "Day0"
+        assert filtered_data[1]["group"] == "Day5"
+        assert len(filtered_template) == 2
+
+    def test_filter_scans_warns_when_no_matches(self):
+        """Test that filtering warns when no scans match the pattern."""
+        import warnings
+        from sleap_roots.viewer.generator import _filter_scans_by_timepoint
+
+        scans_data = [
+            {"name": "scan1", "group": "Day0", "display_name": "plant1"},
+            {"name": "scan2", "group": "Day3", "display_name": "plant2"},
+        ]
+        scans_template = [{"name": s["name"]} for s in scans_data]
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            filtered_data, filtered_template = _filter_scans_by_timepoint(
+                scans_data, scans_template, ["NonexistentPattern*"]
+            )
+
+            # Should warn about no matching scans
+            warning_messages = [str(warning.message) for warning in w]
+            assert any(
+                "no scans" in msg.lower() or "pattern" in msg.lower()
+                for msg in warning_messages
+            ), f"Expected warning about no matching scans, got: {warning_messages}"
+
+        # Should return empty lists
+        assert len(filtered_data) == 0
+        assert len(filtered_template) == 0
+
+    def test_filter_scans_case_insensitive(self):
+        """Test that 'day0' matches 'Day0' (case insensitive)."""
+        from sleap_roots.viewer.generator import _filter_scans_by_timepoint
+
+        scans_data = [
+            {"name": "scan1", "group": "Day0_2025-11-27", "display_name": "plant1"},
+            {"name": "scan2", "group": "Day3_2025-11-30", "display_name": "plant2"},
+        ]
+        scans_template = [{"name": s["name"]} for s in scans_data]
+
+        # Use lowercase pattern to match uppercase group
+        filtered_data, filtered_template = _filter_scans_by_timepoint(
+            scans_data, scans_template, ["day0*"]  # lowercase
+        )
+
+        assert len(filtered_data) == 1
+        assert filtered_data[0]["group"] == "Day0_2025-11-27"
+
+    def test_filter_scans_excludes_none_group(self):
+        """Test that scans with group=None are excluded when filtering."""
+        from sleap_roots.viewer.generator import _filter_scans_by_timepoint
+
+        scans_data = [
+            {"name": "scan1", "group": "Day0", "display_name": "plant1"},
+            {"name": "scan2", "group": None, "display_name": "plant2"},  # Failed remap
+            {"name": "scan3", "group": "Day3", "display_name": "plant3"},
+        ]
+        scans_template = [{"name": s["name"]} for s in scans_data]
+
+        # Filter should exclude None groups
+        filtered_data, filtered_template = _filter_scans_by_timepoint(
+            scans_data, scans_template, ["Day*"]
+        )
+
+        assert len(filtered_data) == 2
+        assert all(s["group"] is not None for s in filtered_data)
+        assert "scan2" not in [s["name"] for s in filtered_data]
+
+    def test_filter_scans_keeps_data_and_template_in_sync(self):
+        """Test that scans_data and scans_template have same scans after filtering."""
+        from sleap_roots.viewer.generator import _filter_scans_by_timepoint
+
+        scans_data = [
+            {"name": "scan1", "group": "Day0", "display_name": "plant1", "frames": []},
+            {"name": "scan2", "group": "Day3", "display_name": "plant2", "frames": []},
+            {"name": "scan3", "group": "Day0", "display_name": "plant3", "frames": []},
+            {"name": "scan4", "group": "Day5", "display_name": "plant4", "frames": []},
+        ]
+        scans_template = [
+            {"name": "scan1", "other_field": "a"},
+            {"name": "scan2", "other_field": "b"},
+            {"name": "scan3", "other_field": "c"},
+            {"name": "scan4", "other_field": "d"},
+        ]
+
+        # Filter for Day0
+        filtered_data, filtered_template = _filter_scans_by_timepoint(
+            scans_data, scans_template, ["Day0*"]
+        )
+
+        # Both should have same length and same scan names
+        assert len(filtered_data) == len(filtered_template)
+        assert len(filtered_data) == 2
+
+        data_names = [s["name"] for s in filtered_data]
+        template_names = [s["name"] for s in filtered_template]
+        assert data_names == template_names
+        assert data_names == ["scan1", "scan3"]
+
+
 class TestPredictionSerialization:
     """Tests for prediction data serialization for client-side rendering."""
 

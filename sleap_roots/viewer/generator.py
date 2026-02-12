@@ -78,6 +78,63 @@ def confidence_to_hex(normalized_score: float, colormap: str = "viridis") -> str
     )
 
 
+def _filter_scans_by_timepoint(
+    scans_data: List[Dict[str, Any]],
+    scans_template: List[Dict[str, Any]],
+    patterns: List[str],
+) -> tuple:
+    """Filter scans by timepoint pattern using the group field.
+
+    Filters scans AFTER processing, using the group field discovered during
+    video remapping. This works with flat prediction directories where the
+    timepoint info is only in the embedded video paths.
+
+    Args:
+        scans_data: List of scan data dicts with 'group' field.
+        scans_template: List of template data dicts (must stay in sync).
+        patterns: List of glob patterns to match against group (e.g., ["Day0*"]).
+
+    Returns:
+        Tuple of (filtered_scans_data, filtered_scans_template).
+
+    Note:
+        - Matching is case-insensitive
+        - Scans with group=None (failed video remap) are excluded
+        - Multiple patterns use OR logic (match any)
+        - Issues a warning if no scans match
+    """
+    if not patterns:
+        return scans_data, scans_template
+
+    # Build set of matching scan names
+    matching_names: Set[str] = set()
+    for scan in scans_data:
+        group = scan.get("group")
+        if group is None:
+            continue
+
+        # Check if group matches any pattern (case-insensitive)
+        for pattern in patterns:
+            if fnmatch.fnmatch(group.lower(), pattern.lower()):
+                matching_names.add(scan["name"])
+                break
+
+    # Warn if no matches
+    if not matching_names:
+        pattern_str = ", ".join(patterns)
+        warnings.warn(
+            f"No scans match timepoint pattern(s): {pattern_str}. "
+            f"Viewer will be empty.",
+            UserWarning,
+        )
+
+    # Filter both lists to keep them in sync
+    filtered_data = [s for s in scans_data if s["name"] in matching_names]
+    filtered_template = [s for s in scans_template if s["name"] in matching_names]
+
+    return filtered_data, filtered_template
+
+
 @attrs.define
 class ScanInfo:
     """Information about a single scan for the viewer.
@@ -602,37 +659,8 @@ class ViewerGenerator:
         # Discover all scans
         scans = self.discover_scans()
 
-        # Filter by timepoint patterns if specified
-        if timepoint_patterns:
-            filtered_scans = []
-            for scan in scans:
-                # Get any available path from the scan
-                scan_path = (
-                    scan.primary_path or scan.lateral_path or scan.crown_path
-                )
-                if scan_path is None:
-                    continue
-
-                # Check if any parent directory matches a timepoint pattern
-                path_str = str(scan_path)
-                matches = False
-                for pattern in timepoint_patterns:
-                    # Check if pattern matches any part of the path
-                    if fnmatch.fnmatch(path_str, f"*{pattern}*"):
-                        matches = True
-                        break
-                    # Also check individual path parts
-                    for part in scan_path.parts:
-                        if fnmatch.fnmatch(part, pattern):
-                            matches = True
-                            break
-                    if matches:
-                        break
-
-                if matches:
-                    filtered_scans.append(scan)
-
-            scans = filtered_scans
+        # Note: Timepoint filtering is done AFTER scan processing (below)
+        # because the group field is discovered during video remapping
 
         # Calculate total frames and check limits
         scan_frame_counts = []
@@ -888,6 +916,12 @@ class ViewerGenerator:
 
         # Close any remaining matplotlib figures
         plt.close("all")
+
+        # Filter by timepoint patterns if specified (after processing, using group field)
+        if timepoint_patterns:
+            scans_data, scans_template = _filter_scans_by_timepoint(
+                scans_data, scans_template, timepoint_patterns
+            )
 
         # Normalize confidence scores across all scans using global min/max
         from sleap_roots.viewer.renderer import normalize_confidence

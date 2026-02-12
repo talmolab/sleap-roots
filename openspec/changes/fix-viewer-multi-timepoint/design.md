@@ -84,15 +84,32 @@ Match found:   ./images/Wave1/Day7_2025-12-04/Fado_1  (WRONG DAY!)
 
 **Decision**: Add `--timepoint` argument to filter scans by timepoint pattern.
 
-**Approach**:
+**Problem discovered**: Initial implementation filtered scan paths before processing, but for
+flat prediction directories (e.g., `predictions/scan_123.slp`), the timepoint info is only
+in the embedded video paths discovered during video remapping.
+
+**Approach (revised)**:
 - Accept glob-style pattern: `--timepoint "Day0*"` or `--timepoint "Day3*"`
-- Filter at scan discovery time before processing
-- Multiple patterns supported via multiple `--timepoint` flags
+- Filter AFTER processing, using the discovered `group` field from video remapping
+- Multiple patterns supported via multiple `--timepoint` flags (OR logic)
+- Case-insensitive matching for user-friendliness
+
+**Implementation**:
+1. Remove early scan path filtering (doesn't work for flat dirs)
+2. Process all scans (extracting group during video remapping)
+3. Filter `scans_data` and `scans_template` by matching `group` against patterns
+4. Warn user if no scans match the pattern
+
+**Edge cases**:
+- `group=None` (video remap failed): Excluded from filter matches
+- Empty pattern list: No filtering, include all scans
+- All scans filtered out: Empty viewer with warning
+- Case sensitivity: Use `fnmatch` with `.lower()` for case-insensitive
 
 **Rationale**:
-- Allows focusing on specific timepoints without regenerating everything
-- Reduces file size for targeted review
-- Pattern matching is intuitive for directory names
+- Works with both nested and flat prediction directory structures
+- Uses already-computed group info (no duplicate .slp loading)
+- Simple implementation with clear data flow
 
 ## Risks / Trade-offs
 
