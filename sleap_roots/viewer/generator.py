@@ -132,6 +132,11 @@ def _filter_scans_by_timepoint(
     filtered_data = [s for s in scans_data if s["name"] in matching_names]
     filtered_template = [s for s in scans_template if s["name"] in matching_names]
 
+    # Reassign _index values to match new positions in filtered array
+    # This is critical for JavaScript openScan(index) to work correctly
+    for i, scan in enumerate(filtered_template):
+        scan["_index"] = i
+
     return filtered_data, filtered_template
 
 

@@ -36,9 +36,21 @@
 - [x] 4.4 Add warning when no scans match pattern
 - [x] 4.5 Document `--timepoint` option in docstrings and help
 
-## 5. Documentation & Cleanup
+## 5. Fix Stale _index After Filtering (Critical Bug)
 
-- [ ] 5.1 Update prediction-viewer.md with new features
-- [ ] 5.2 Update spec with new requirements
-- [x] 5.3 Run full test suite (140 tests pass)
-- [ ] 5.4 Verify fix with Alfalfa GWAS dataset
+**Problem**: After timepoint filtering, scan cards have stale `_index` values that don't match
+the filtered `scansData` array positions. Clicking cards calls `openScan(16)` but `scansData[16]`
+doesn't exist.
+
+- [x] 5.1 Write TDD test: `test_filter_scans_reassigns_index_values`
+- [x] 5.2 Write TDD test: `test_filter_scans_indices_match_data_positions`
+- [x] 5.3 Fix: Reassign `_index` values in `_filter_scans_by_timepoint()` after filtering
+- [x] 5.4 Run tests and verify fix (142 tests pass)
+- [ ] 5.5 Regenerate viewers and verify clicking works
+
+## 6. Documentation & Cleanup
+
+- [ ] 6.1 Update prediction-viewer.md with new features
+- [ ] 6.2 Update spec with new requirements
+- [x] 6.3 Run full test suite (142 tests pass)
+- [ ] 6.4 Verify fix with Alfalfa GWAS dataset

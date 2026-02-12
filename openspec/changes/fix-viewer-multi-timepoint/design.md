@@ -122,6 +122,21 @@ in the embedded video paths discovered during video remapping.
 ### Risk: Large multi-timepoint experiments generate huge viewers
 **Mitigation**: Already have `--max-frames` and `--no-limit`; timepoint filtering reduces scope
 
+### BUG DISCOVERED: Stale _index after filtering (Critical)
+
+**Problem**: After timepoint filtering, clicking on scan cards fails because `_index` values
+are stale. The scan cards have their original indices (e.g., `onclick="openScan(16)"`),
+but `scansData` has been filtered to a shorter array where index 16 doesn't exist.
+
+**Root cause**: `_filter_scans_by_timepoint()` filters the arrays but doesn't reassign
+`_index` values to match the new array positions.
+
+**Fix**: After filtering, reassign `_index` values:
+```python
+for i, scan in enumerate(filtered_template):
+    scan["_index"] = i
+```
+
 ## Implementation Notes
 
 ### Video Remapping Fix (`generator.py:_find_and_remap_video`)

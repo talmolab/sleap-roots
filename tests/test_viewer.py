@@ -1246,6 +1246,64 @@ class TestTimepointFiltering:
         assert data_names == template_names
         assert data_names == ["scan1", "scan3"]
 
+    def test_filter_scans_reassigns_index_values(self):
+        """Test that _index values are updated to match filtered array positions.
+
+        TDD Test: This should FAIL until we fix _filter_scans_by_timepoint()
+        to reassign _index values after filtering.
+        """
+        from sleap_roots.viewer.generator import _filter_scans_by_timepoint
+
+        scans_data = [
+            {"name": "scan1", "group": "Day0"},
+            {"name": "scan2", "group": "Day3"},  # Will be filtered out
+            {"name": "scan3", "group": "Day0"},
+            {"name": "scan4", "group": "Day5"},  # Will be filtered out
+        ]
+        scans_template = [
+            {"name": "scan1", "_index": 0, "other": "a"},
+            {"name": "scan2", "_index": 1, "other": "b"},
+            {"name": "scan3", "_index": 2, "other": "c"},
+            {"name": "scan4", "_index": 3, "other": "d"},
+        ]
+
+        filtered_data, filtered_template = _filter_scans_by_timepoint(
+            scans_data, scans_template, ["Day0*"]
+        )
+
+        # After filtering, indices should be 0, 1 (not the original 0, 2)
+        assert len(filtered_template) == 2
+        assert filtered_template[0]["_index"] == 0, "First scan should have _index=0"
+        assert filtered_template[1]["_index"] == 1, "Second scan should have _index=1"
+        assert filtered_template[0]["name"] == "scan1"
+        assert filtered_template[1]["name"] == "scan3"
+
+    def test_filter_scans_indices_match_data_positions(self):
+        """Test that _index in template matches position in data array.
+
+        TDD Test: Critical for JavaScript openScan(index) to work correctly.
+        """
+        from sleap_roots.viewer.generator import _filter_scans_by_timepoint
+
+        # Create 10 scans with alternating groups
+        scans_data = [{"name": f"scan{i}", "group": f"Day{i % 3}"} for i in range(10)]
+        scans_template = [{"name": f"scan{i}", "_index": i} for i in range(10)]
+
+        # Filter for Day0 (indices 0, 3, 6, 9 in original)
+        filtered_data, filtered_template = _filter_scans_by_timepoint(
+            scans_data, scans_template, ["Day0*"]
+        )
+
+        # Each template's _index should be valid index into filtered_data
+        assert len(filtered_data) == 4  # scan0, scan3, scan6, scan9
+        assert len(filtered_template) == 4
+
+        for i, scan_t in enumerate(filtered_template):
+            # _index should equal position in array
+            assert scan_t["_index"] == i, f"scan_t[{i}] has _index={scan_t['_index']}, expected {i}"
+            # And should match corresponding data entry
+            assert filtered_data[i]["name"] == scan_t["name"]
+
 
 class TestPredictionSerialization:
     """Tests for prediction data serialization for client-side rendering."""
