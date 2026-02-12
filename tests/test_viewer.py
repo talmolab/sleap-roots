@@ -1057,9 +1057,9 @@ class TestMultiTimepointVideoRemapping:
             assert plant_name == "Fado_1"
             assert group == target_day
             remapped_paths = mock_video.replace_filename.call_args[0][0]
-            assert target_day in remapped_paths[0], (
-                f"Expected {target_day} in remapped path, got {remapped_paths[0]}"
-            )
+            assert (
+                target_day in remapped_paths[0]
+            ), f"Expected {target_day} in remapped path, got {remapped_paths[0]}"
 
     def test_remap_backwards_compatible_single_directory(self, tmp_path):
         """Test that simple datasets with unique plant names still work."""
@@ -1102,7 +1102,10 @@ class TestTimepointFiltering:
 
     def test_filter_scans_by_group_basic(self):
         """Test that _filter_scans_by_timepoint filters using group field."""
-        from sleap_roots.viewer.generator import ViewerGenerator, _filter_scans_by_timepoint
+        from sleap_roots.viewer.generator import (
+            ViewerGenerator,
+            _filter_scans_by_timepoint,
+        )
 
         # Mock scans_data with different groups
         scans_data = [
@@ -1300,7 +1303,9 @@ class TestTimepointFiltering:
 
         for i, scan_t in enumerate(filtered_template):
             # _index should equal position in array
-            assert scan_t["_index"] == i, f"scan_t[{i}] has _index={scan_t['_index']}, expected {i}"
+            assert (
+                scan_t["_index"] == i
+            ), f"scan_t[{i}] has _index={scan_t['_index']}, expected {i}"
             # And should match corresponding data entry
             assert filtered_data[i]["name"] == scan_t["name"]
 

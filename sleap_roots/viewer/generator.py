@@ -309,9 +309,7 @@ class ViewerGenerator:
         except Exception:
             return None
 
-    def _find_and_remap_video(
-        self, series: Series
-    ) -> tuple:
+    def _find_and_remap_video(self, series: Series) -> tuple:
         """Find local image directory and remap video paths.
 
         Pipeline output .slp files use ImageVideo backend with embedded absolute
