@@ -4,7 +4,7 @@ import fnmatch
 import warnings
 import zipfile
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 import attrs
 import jinja2
@@ -82,7 +82,7 @@ def _filter_scans_by_timepoint(
     scans_data: List[Dict[str, Any]],
     scans_template: List[Dict[str, Any]],
     patterns: List[str],
-) -> tuple:
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Filter scans by timepoint pattern using the group field.
 
     Filters scans AFTER processing, using the group field discovered during
@@ -151,8 +151,6 @@ class ScanInfo:
         crown_path: Path to crown root predictions file.
         h5_path: Path to HDF5 image file.
         frame_count: Number of frames in the scan.
-        plant_name: Plant identifier (QR code) extracted from image directory.
-        group: Timepoint group name (parent directory of plant, e.g., "Day0").
     """
 
     name: str
@@ -161,8 +159,6 @@ class ScanInfo:
     crown_path: Optional[Path] = None
     h5_path: Optional[Path] = None
     frame_count: int = 0
-    plant_name: Optional[str] = None
-    group: Optional[str] = None
 
 
 class ViewerGenerator:
@@ -309,7 +305,9 @@ class ViewerGenerator:
         except Exception:
             return None
 
-    def _find_and_remap_video(self, series: Series) -> tuple:
+    def _find_and_remap_video(
+        self, series: Series
+    ) -> Tuple[bool, Optional[str], Optional[str]]:
         """Find local image directory and remap video paths.
 
         Pipeline output .slp files use ImageVideo backend with embedded absolute
