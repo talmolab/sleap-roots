@@ -66,6 +66,12 @@ import click
     default=False,
     help="Create a ZIP archive containing the viewer and all required files.",
 )
+@click.option(
+    "--timepoint",
+    multiple=True,
+    default=None,
+    help="Filter scans by timepoint pattern (e.g., 'Day0*'). Can be used multiple times.",
+)
 def viewer(
     predictions_dir: Path,
     images: Optional[Path],
@@ -77,6 +83,7 @@ def viewer(
     image_format: str,
     quality: int,
     create_zip: bool,
+    timepoint: tuple,
 ) -> None:
     r"""Generate an HTML viewer for SLEAP prediction visualization.
 
@@ -91,6 +98,10 @@ def viewer(
     \b
     Portability:
       --zip       Create a ZIP archive for easy sharing (includes all images)
+
+    \b
+    Filtering:
+      --timepoint Filter scans by timepoint pattern (e.g., --timepoint 'Day0*')
 
     By default, samples 10 frames per scan for fast QC. Use --max-frames 0
     to include all frames (may produce large files).
@@ -108,6 +119,9 @@ def viewer(
         )
         sys.stdout.flush()
 
+    # Convert timepoint tuple to list (empty tuple means no filter)
+    timepoint_patterns = list(timepoint) if timepoint else None
+
     generator = ViewerGenerator(predictions_dir, images_dir=images)
     try:
         click.echo("Discovering scans...")
@@ -121,6 +135,7 @@ def viewer(
             image_format=image_format,
             image_quality=quality,
             create_zip=create_zip,
+            timepoint_patterns=timepoint_patterns,
         )
         # Clear progress line and show completion
         sys.stdout.write("\r" + " " * 60 + "\r")

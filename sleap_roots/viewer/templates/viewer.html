@@ -61,9 +61,47 @@
         /* Overview Grid */
         .overview {
             padding: 2rem;
+        }
+        .timepoint-group {
+            margin-bottom: 2rem;
+        }
+        .group-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            background: #0f3460;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            user-select: none;
+        }
+        .group-header:hover {
+            background: #1a4a7a;
+        }
+        .group-header h3 {
+            font-size: 1rem;
+            font-weight: 500;
+            margin: 0;
+        }
+        .group-header .group-count {
+            font-size: 0.85rem;
+            color: #888;
+        }
+        .group-header .collapse-icon {
+            margin-left: auto;
+            transition: transform 0.2s;
+        }
+        .group-header.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+        .scan-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 1.5rem;
+        }
+        .scan-grid.collapsed {
+            display: none;
         }
         .scan-card {
             background: #16213e;
@@ -130,6 +168,11 @@
             display: flex;
             gap: 2rem;
             align-items: center;
+        }
+        .scan-name {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #e94560;
         }
         .frame-counter {
             font-size: 1.1rem;
@@ -247,23 +290,43 @@
 
     <!-- Overview Grid -->
     <div class="overview" id="overview">
-        {% for scan in scans %}
-        <div class="scan-card" data-scan-index="{{ loop.index0 }}" onclick="openScan({{ loop.index0 }})">
-            {% if render_mode == 'embedded' %}
-            <img src="data:image/png;base64,{{ scan.thumbnail }}" alt="{{ scan.name }}">
-            {% else %}
-            <img src="{{ scan.thumbnail }}" alt="{{ scan.name }}" onerror="this.style.background='#0f3460'">
-            {% endif %}
-            <div class="info">
-                <div class="name">{{ scan.name }}</div>
-                <div class="meta">{% if scan.sampled_frame_count != scan.frame_count %}{{ scan.sampled_frame_count }} of {% endif %}{{ scan.frame_count }} frames</div>
-                {% if scan.mean_confidence is not none %}
-                <span class="confidence-badge" style="background:{{ scan.confidence_color }};color:{% if scan.mean_confidence > 0.5 %}#000{% else %}#fff{% endif %}" title="Normalized prediction confidence (0=low, 1=high)">
-                    Score: {{ "%.2f"|format(scan.mean_confidence) }}
-                </span>
-                {% endif %}
+        {% set grouped_scans = scans|groupby('group') %}
+        {% set unique_groups = grouped_scans|list %}
+        {% set show_groups = unique_groups|length > 1 %}
+        {% for group_name, group_scans in unique_groups %}
+        {% if show_groups %}
+        <div class="timepoint-group">
+            <div class="group-header" onclick="toggleGroup(this)">
+                <h3>{{ group_name if group_name else 'Ungrouped' }}</h3>
+                <span class="group-count">({{ group_scans|list|length }} scans)</span>
+                <span class="collapse-icon">▼</span>
             </div>
+            <div class="scan-grid">
+        {% else %}
+            <div class="scan-grid">
+        {% endif %}
+                {% for scan in group_scans %}
+                <div class="scan-card" data-scan-index="{{ scan._index }}" onclick="openScan({{ scan._index }})">
+                    {% if render_mode == 'embedded' %}
+                    <img src="data:image/png;base64,{{ scan.thumbnail }}" alt="{{ scan.name }}">
+                    {% else %}
+                    <img src="{{ scan.thumbnail }}" alt="{{ scan.name }}" onerror="this.style.background='#0f3460'">
+                    {% endif %}
+                    <div class="info">
+                        <div class="name" title="Scan ID: {{ scan.name }}">{{ scan.display_name }}</div>
+                        <div class="meta">{% if scan.sampled_frame_count != scan.frame_count %}{{ scan.sampled_frame_count }} of {% endif %}{{ scan.frame_count }} frames</div>
+                        {% if scan.mean_confidence is not none %}
+                        <span class="confidence-badge" style="background:{{ scan.confidence_color }};color:{% if scan.mean_confidence > 0.5 %}#000{% else %}#fff{% endif %}" title="Normalized prediction confidence (0=low, 1=high)">
+                            Score: {{ "%.2f"|format(scan.mean_confidence) }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% if show_groups %}
         </div>
+        {% endif %}
         {% endfor %}
     </div>
 
@@ -272,6 +335,7 @@
         <div class="frame-header">
             <button class="btn secondary" onclick="closeFrameView()">Back to Overview (Esc)</button>
             <div class="frame-info">
+                <span class="scan-name" id="scanName" title=""></span>
                 <span class="frame-counter" id="frameCounter">Frame 1 of 72</span>
                 <div class="frame-stats" id="frameStats"></div>
             </div>
@@ -416,6 +480,14 @@
             updateNavHints();
         }
 
+        function toggleGroup(header) {
+            header.classList.toggle('collapsed');
+            const grid = header.nextElementSibling;
+            if (grid) {
+                grid.classList.toggle('collapsed');
+            }
+        }
+
         function closeFrameView() {
             isFrameView = false;
             currentScanIndex = -1;
@@ -444,6 +516,11 @@
                 // external or client mode - use path directly
                 img.src = frameData.image;
             }
+
+            // Update scan name display
+            const scanNameEl = document.getElementById('scanName');
+            scanNameEl.textContent = scan.display_name || scan.name;
+            scanNameEl.title = `Scan ID: ${scan.name}` + (scan.group ? ` · ${scan.group}` : '');
 
             // Use sampled_frame_count for navigation, show total if different
             const sampledCount = scan.sampled_frame_count || scan.frame_count;

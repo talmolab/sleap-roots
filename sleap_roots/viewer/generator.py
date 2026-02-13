@@ -1,9 +1,10 @@
 """HTML viewer generator for SLEAP prediction visualization."""
 
+import fnmatch
 import warnings
 import zipfile
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 import attrs
 import jinja2
@@ -75,6 +76,68 @@ def confidence_to_hex(normalized_score: float, colormap: str = "viridis") -> str
     return "#{:02x}{:02x}{:02x}".format(
         int(rgba[0] * 255), int(rgba[1] * 255), int(rgba[2] * 255)
     )
+
+
+def _filter_scans_by_timepoint(
+    scans_data: List[Dict[str, Any]],
+    scans_template: List[Dict[str, Any]],
+    patterns: List[str],
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Filter scans by timepoint pattern using the group field.
+
+    Filters scans AFTER processing, using the group field discovered during
+    video remapping. This works with flat prediction directories where the
+    timepoint info is only in the embedded video paths.
+
+    Args:
+        scans_data: List of scan data dicts with 'group' field.
+        scans_template: List of template data dicts (must stay in sync).
+        patterns: List of glob patterns to match against group (e.g., ["Day0*"]).
+
+    Returns:
+        Tuple of (filtered_scans_data, filtered_scans_template).
+
+    Note:
+        - Matching is case-insensitive
+        - Scans with group=None (failed video remap) are excluded
+        - Multiple patterns use OR logic (match any)
+        - Issues a warning if no scans match
+    """
+    if not patterns:
+        return scans_data, scans_template
+
+    # Build set of matching scan names
+    matching_names: Set[str] = set()
+    for scan in scans_data:
+        group = scan.get("group")
+        if group is None:
+            continue
+
+        # Check if group matches any pattern (case-insensitive)
+        for pattern in patterns:
+            if fnmatch.fnmatch(group.lower(), pattern.lower()):
+                matching_names.add(scan["name"])
+                break
+
+    # Warn if no matches
+    if not matching_names:
+        pattern_str = ", ".join(patterns)
+        warnings.warn(
+            f"No scans match timepoint pattern(s): {pattern_str}. "
+            f"Viewer will be empty.",
+            UserWarning,
+        )
+
+    # Filter both lists to keep them in sync
+    filtered_data = [s for s in scans_data if s["name"] in matching_names]
+    filtered_template = [s for s in scans_template if s["name"] in matching_names]
+
+    # Reassign _index values to match new positions in filtered array
+    # This is critical for JavaScript openScan(index) to work correctly
+    for i, scan in enumerate(filtered_template):
+        scan["_index"] = i
+
+    return filtered_data, filtered_template
 
 
 @attrs.define
@@ -242,7 +305,9 @@ class ViewerGenerator:
         except Exception:
             return None
 
-    def _find_and_remap_video(self, series: Series) -> bool:
+    def _find_and_remap_video(
+        self, series: Series
+    ) -> Tuple[bool, Optional[str], Optional[str]]:
         """Find local image directory and remap video paths.
 
         Pipeline output .slp files use ImageVideo backend with embedded absolute
@@ -254,7 +319,10 @@ class ViewerGenerator:
             series: Series object with potentially invalid video paths.
 
         Returns:
-            True if video was successfully remapped, False otherwise.
+            Tuple of (success, plant_name, group) where:
+            - success: True if video was successfully remapped
+            - plant_name: Plant identifier from image directory (e.g., "Fado_1")
+            - group: Timepoint group from parent directory (e.g., "Day0_2025-11-27")
         """
         # Get video from one of the labels files
         video = None
@@ -268,13 +336,13 @@ class ViewerGenerator:
                 break
 
         if video is None:
-            return False
+            return (False, None, None)
 
         # Check if video already works
         try:
             if video.exists():
                 series.video = video
-                return True
+                return (True, None, None)
         except Exception as exc:
             warnings.warn(f"Failed to check video existence for {video!r}: {exc}")
 
@@ -290,10 +358,13 @@ class ViewerGenerator:
             else:
                 first_path = Path(filenames)
 
-            # Extract image directory name from embedded path
-            img_dir_name = first_path.parent.name
+            # Extract path components from embedded path for matching
+            # Use multiple levels to distinguish between same plant across different days
+            # e.g., /workspace/images/Wave1/Day0/Fado_1/1.jpg -> Wave1/Day0/Fado_1
+            img_dir = first_path.parent
+            path_parts = img_dir.parts
         except Exception:
-            return False
+            return (False, None, None)
 
         # Search for local image directory
         search_dirs = [self.predictions_dir]
@@ -301,24 +372,35 @@ class ViewerGenerator:
             search_dirs.append(self.images_dir)
 
         local_img_dir = None
-        for search_dir in search_dirs:
-            # Direct match
-            candidate = search_dir / img_dir_name
-            if candidate.is_dir():
-                local_img_dir = candidate
-                break
 
-            # Recursive search
-            for subdir in search_dir.glob(f"**/{img_dir_name}"):
-                if subdir.is_dir():
-                    local_img_dir = subdir
+        # Try matching with progressively fewer path components
+        # Start with more components for better uniqueness (e.g., Wave1/Day0/Fado_1)
+        # Fall back to fewer if not found
+        for num_parts in range(min(4, len(path_parts)), 0, -1):
+            suffix_parts = path_parts[-num_parts:]
+            suffix_pattern = "/".join(suffix_parts)
+
+            for search_dir in search_dirs:
+                # Direct path match
+                candidate = search_dir.joinpath(*suffix_parts)
+                if candidate.is_dir():
+                    local_img_dir = candidate
+                    break
+
+                # Recursive search with the suffix pattern
+                for subdir in search_dir.glob(f"**/{suffix_pattern}"):
+                    if subdir.is_dir():
+                        local_img_dir = subdir
+                        break
+
+                if local_img_dir:
                     break
 
             if local_img_dir:
                 break
 
         if local_img_dir is None:
-            return False
+            return (False, None, None)
 
         # Get sorted list of local images
         # Support common image extensions (case-insensitive)
@@ -328,7 +410,7 @@ class ViewerGenerator:
         ]
 
         if not local_images:
-            return False
+            return (False, None, None)
 
         # Sort images by numeric filename (e.g., 1.jpg, 2.jpg, ...)
         # Non-numeric filenames sort alphabetically after numeric ones
@@ -341,13 +423,17 @@ class ViewerGenerator:
 
         local_images = sorted(local_images, key=sort_key)
 
+        # Extract plant name and group from matched directory
+        plant_name = local_img_dir.name
+        group = local_img_dir.parent.name if local_img_dir.parent else None
+
         # Remap video paths
         try:
             video.replace_filename([str(p) for p in local_images])
             series.video = video
-            return True
+            return (True, plant_name, group)
         except Exception:
-            return False
+            return (False, None, None)
 
     def _get_instance_counts(self, series: Series, frame_idx: int) -> Dict[str, int]:
         """Get instance counts per root type for a frame.
@@ -538,6 +624,7 @@ class ViewerGenerator:
         image_format: str = "jpeg",
         image_quality: int = 85,
         create_zip: bool = False,
+        timepoint_patterns: Optional[List[str]] = None,
     ) -> None:
         """Generate the HTML viewer.
 
@@ -553,6 +640,7 @@ class ViewerGenerator:
             image_format: Image format for render mode ("jpeg" or "png").
             image_quality: JPEG quality (1-100) for render mode.
             create_zip: If True, create a zip archive for sharing.
+            timepoint_patterns: Optional list of glob patterns to filter by timepoint.
 
         Raises:
             FrameLimitExceededError: If total frames exceed 1000 without no_limit.
@@ -571,6 +659,9 @@ class ViewerGenerator:
 
         # Discover all scans
         scans = self.discover_scans()
+
+        # Note: Timepoint filtering is done AFTER scan processing (below)
+        # because the group field is discovered during video remapping
 
         # Calculate total frames and check limits
         scan_frame_counts = []
@@ -610,8 +701,10 @@ class ViewerGenerator:
                 continue
 
             # Try to remap video paths for pipeline output with image directories
+            plant_name = None
+            group = None
             if series.video is None:
-                self._find_and_remap_video(series)
+                success, plant_name, group = self._find_and_remap_video(series)
 
             # Check if video is available for rendering
             if series.video is None:
@@ -625,8 +718,14 @@ class ViewerGenerator:
             # Select frames to render
             frame_indices = select_frame_indices(scan.frame_count, max_frames)
 
+            # Use plant_name if available, otherwise fall back to scan name
+            display_name = plant_name if plant_name else scan.name
+
             scan_data: Dict[str, Any] = {
                 "name": scan.name,
+                "display_name": display_name,
+                "plant_name": plant_name,
+                "group": group,
                 "frame_count": len(frame_indices),
                 "frames_root_type": [],
                 "frames_confidence": [],
@@ -805,7 +904,10 @@ class ViewerGenerator:
             scans_data.append(scan_data)
             scans_template.append(
                 {
+                    "_index": len(scans_template),  # Index for JavaScript openScan()
                     "name": scan.name,
+                    "display_name": display_name,
+                    "group": group,
                     "frame_count": scan.frame_count,
                     "sampled_frame_count": len(frame_indices),
                     "thumbnail": thumbnail,
@@ -815,6 +917,12 @@ class ViewerGenerator:
 
         # Close any remaining matplotlib figures
         plt.close("all")
+
+        # Filter by timepoint patterns if specified (after processing, using group field)
+        if timepoint_patterns:
+            scans_data, scans_template = _filter_scans_by_timepoint(
+                scans_data, scans_template, timepoint_patterns
+            )
 
         # Normalize confidence scores across all scans using global min/max
         from sleap_roots.viewer.renderer import normalize_confidence
