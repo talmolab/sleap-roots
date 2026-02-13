@@ -2996,6 +2996,11 @@
 <td><code>false</code></td>
 <td>Create ZIP archive for sharing</td>
 </tr>
+<tr>
+<td><code>--timepoint PATTERN</code></td>
+<td><em>(none)</em></td>
+<td>Filter scans by timepoint pattern (e.g., <code>Day0*</code>)</td>
+</tr>
 </tbody>
 </table>
 <h3 id="zip-archive-portability">ZIP Archive Portability<a class="headerlink" href="#zip-archive-portability" title="Permanent link">&para;</a></h3>
@@ -3115,6 +3120,30 @@
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span>--format<span class="w"> </span>png<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span>--quality<span class="w"> </span><span class="m">95</span>
 </span></code></pre></div>
+<h3 id="multi-timepoint-experiments">Multi-Timepoint Experiments<a class="headerlink" href="#multi-timepoint-experiments" title="Permanent link">&para;</a></h3>
+<p>For experiments that track plants across multiple days, use <code>--timepoint</code> to filter:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># View only Day0 scans</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>sleap-roots<span class="w"> </span>viewer<span class="w"> </span>predictions/<span class="w"> </span>--images<span class="w"> </span>images/<span class="w"> </span>--timepoint<span class="w"> </span><span class="s2">&quot;Day0*&quot;</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># View multiple timepoints (OR logic)</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>sleap-roots<span class="w"> </span>viewer<span class="w"> </span>predictions/<span class="w"> </span>--images<span class="w"> </span>images/<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">    </span>--timepoint<span class="w"> </span><span class="s2">&quot;Day0*&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">    </span>--timepoint<span class="w"> </span><span class="s2">&quot;Day3*&quot;</span>
+</span></code></pre></div>
+<p>The viewer automatically groups scans by timepoint (parent directory) and displays plant names prominently on scan cards.</p>
+<h2 id="multi-timepoint-features">Multi-Timepoint Features<a class="headerlink" href="#multi-timepoint-features" title="Permanent link">&para;</a></h2>
+<p>When working with experiments that scan the same plants across multiple days:</p>
+<h3 id="gallery-grouping">Gallery Grouping<a class="headerlink" href="#gallery-grouping" title="Permanent link">&para;</a></h3>
+<p>Scans are automatically grouped by timepoint (parent directory name). Each group shows a collapsible section with the timepoint name and scan count.</p>
+<h3 id="plant-name-display">Plant Name Display<a class="headerlink" href="#plant-name-display" title="Permanent link">&para;</a></h3>
+<p>Scan cards display the plant name (QR code / genotype) prominently instead of internal scan IDs. Hover over the plant name to see the scan ID in a tooltip. This makes it easy to identify the same plant across different timepoints.</p>
+<h3 id="timepoint-filtering">Timepoint Filtering<a class="headerlink" href="#timepoint-filtering" title="Permanent link">&para;</a></h3>
+<p>Use <code>--timepoint</code> to generate viewers for specific timepoints. Patterns are case-insensitive and support glob wildcards:</p>
+<ul>
+<li><code>--timepoint "Day0*"</code> - Match Day0, Day0_2025-11-27, etc.</li>
+<li><code>--timepoint "day*"</code> - Case-insensitive matching</li>
+<li>Multiple <code>--timepoint</code> flags use OR logic</li>
+</ul>
 <h2 id="tips">Tips<a class="headerlink" href="#tips" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Start with defaults</strong>: The default client-render mode with 10 frames per scan is fast and sufficient for most QC tasks</li>
@@ -3122,6 +3151,7 @@
 <li><strong>H5 videos need render mode</strong>: For H5 video sources, use <code>--render --zip</code> to create portable archives</li>
 <li><strong>Toggle overlays</strong>: In client-render mode, use the "Show Predictions" checkbox to compare raw images with overlays</li>
 <li><strong>Check confidence scores</strong>: The confidence badge on each scan card shows normalized mean prediction quality</li>
+<li><strong>Filter by timepoint</strong>: For large multi-timepoint datasets, use <code>--timepoint</code> to generate focused viewers</li>
 </ul>
 
 
