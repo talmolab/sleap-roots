@@ -1,3 +1,7 @@
+## Purpose
+
+Extend the HTML prediction viewer to support multi-timepoint plant phenotyping experiments where the same plants are scanned across multiple days.
+
 ## MODIFIED Requirements
 
 ### Requirement: Support Multiple Video Sources
