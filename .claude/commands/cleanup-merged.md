@@ -10,10 +10,10 @@ First, confirm the PR has been merged:
 
 ```bash
 # View recent merged PRs
-unset GITHUB_TOKEN && gh pr list --state merged --limit 10
+gh pr list --state merged --limit 10
 
 # View specific PR status
-unset GITHUB_TOKEN && gh pr view <number>
+gh pr view <number>
 ```
 
 Ask the user for the branch name if needed (e.g., `feat/add-lateral-pipeline`).
@@ -114,7 +114,7 @@ Provide a summary when done:
 4. Done
 
 ```bash
-unset GITHUB_TOKEN && gh pr view <number>
+gh pr view <number>
 git checkout main
 git pull
 git branch -d fix/angle-nan-bug
@@ -131,7 +131,7 @@ git remote prune origin
 6. Verify cleanup
 
 ```bash
-unset GITHUB_TOKEN && gh pr view <number>
+gh pr view <number>
 git checkout main
 git pull
 git branch -d feat/add-lateral-pipeline
@@ -159,7 +159,7 @@ git push
 **Solution**: First verify the PR is actually merged on GitHub:
 
 ```bash
-unset GITHUB_TOKEN && gh pr view <number>
+gh pr view <number>
 ```
 
 If the PR is confirmed merged, you can safely force delete:

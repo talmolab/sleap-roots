@@ -18,16 +18,16 @@ Run the following in parallel to collect everything the subagents need:
 
 ```bash
 # Get PR metadata
-unset GITHUB_TOKEN && gh pr view $PR_NUMBER --json title,body,baseRefName,headRefName,author,labels,files
+gh pr view $PR_NUMBER --json title,body,baseRefName,headRefName,author,labels,files
 
 # Get the full diff
-unset GITHUB_TOKEN && gh pr diff $PR_NUMBER
+gh pr diff $PR_NUMBER
 
 # Get CI status
-unset GITHUB_TOKEN && gh pr checks $PR_NUMBER
+gh pr checks $PR_NUMBER
 
 # Get any existing Copilot review comments
-unset GITHUB_TOKEN && gh api graphql -f query='
+gh api graphql -f query='
 query {
   repository(owner: "talmolab", name: "sleap-roots") {
     pullRequest(number: '$PR_NUMBER') {
@@ -396,8 +396,8 @@ BODY="$(cat <<'EOF'
 EOF
 )"
 
-unset GITHUB_TOKEN && gh pr review $PR_NUMBER --request-changes -b "$BODY" 2>&1 || \
-unset GITHUB_TOKEN && gh pr review $PR_NUMBER --comment -b "$(printf '> **Verdict: REQUEST\_CHANGES** (posted as comment — GitHub does not allow requesting changes on your own PR)\n\n%s' "$BODY")"
+gh pr review $PR_NUMBER --request-changes -b "$BODY" 2>&1 || \
+gh pr review $PR_NUMBER --comment -b "$(printf '> **Verdict: REQUEST\_CHANGES** (posted as comment — GitHub does not allow requesting changes on your own PR)\n\n%s' "$BODY")"
 ```
 
 For APPROVE (attempt first, fall back to --comment on own-PR error):
@@ -417,14 +417,14 @@ BODY="$(cat <<'EOF'
 EOF
 )"
 
-unset GITHUB_TOKEN && gh pr review $PR_NUMBER --approve -b "$BODY" 2>&1 || \
-unset GITHUB_TOKEN && gh pr review $PR_NUMBER --comment -b "$(printf '> **Verdict: APPROVE** (posted as comment — GitHub does not allow approving your own PR)\n\n%s' "$BODY")"
+gh pr review $PR_NUMBER --approve -b "$BODY" 2>&1 || \
+gh pr review $PR_NUMBER --comment -b "$(printf '> **Verdict: APPROVE** (posted as comment — GitHub does not allow approving your own PR)\n\n%s' "$BODY")"
 ```
 
 For COMMENT (no fallback needed):
 
 ```bash
-unset GITHUB_TOKEN && gh pr review $PR_NUMBER --comment -b "..."
+gh pr review $PR_NUMBER --comment -b "..."
 ```
 
 5. After posting, show the user the full synthesized review and the GitHub link.
@@ -532,10 +532,10 @@ When to request optimization:
 To download benchmark artifacts for detailed analysis:
 ```bash
 # List recent workflow runs
-unset GITHUB_TOKEN && gh run list --limit 5
+gh run list --limit 5
 
 # Download benchmark artifacts from specific run
-unset GITHUB_TOKEN && gh run download <run-id> --name pr-benchmark-results
+gh run download <run-id> --name pr-benchmark-results
 
 # View comparison markdown
 cat benchmark-comparison.md

@@ -195,8 +195,8 @@ description: "Check GitHub issue alignment"
 >
 > **Tasks:**
 >
-> 1. Use `unset GITHUB_TOKEN && gh issue view {ISSUE_NUMBER}` to read each related GitHub issue mentioned in the proposal
-> 2. Also search for related issues: `unset GITHUB_TOKEN && gh issue list --search "{RELEVANT_KEYWORDS}" --limit 20`
+> 1. Use `gh issue view {ISSUE_NUMBER}` to read each related GitHub issue mentioned in the proposal
+> 2. Also search for related issues: `gh issue list --search "{RELEVANT_KEYWORDS}" --limit 20`
 > 3. For each issue, check:
 >    - Does the proposal fully address the issue's requirements?
 >    - Are there issue comments with additional context the proposal missed?

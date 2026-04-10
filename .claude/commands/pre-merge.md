@@ -21,7 +21,7 @@ Perform a complete pre-merge check following this workflow:
    - Run `uv run pytest tests/`
    - Run `uv run pytest --cov=sleap_roots --cov-report=term-missing tests/`
    - If an OpenSpec change exists: `openspec validate --strict`
-   - If benchmark-relevant: `uv run pytest tests/benchmarks/ --benchmark-only` (note #143 may block baseline -- use `unset GITHUB_TOKEN && gh run download` for manual comparison)
+   - If benchmark-relevant: `uv run pytest tests/benchmarks/ --benchmark-only` (note #143 may block baseline -- use `gh run download` for manual comparison)
 
 ### Phase 3: Documentation
 
@@ -33,21 +33,21 @@ Perform a complete pre-merge check following this workflow:
 ### Phase 4: PR Creation
 
 4. **Create or Update PR**
-   - Run `unset GITHUB_TOKEN && gh pr create --title "<title>" --body "<body>"`
+   - Run `gh pr create --title "<title>" --body "<body>"`
    - Include in description: summary, test results, breaking changes, OpenSpec proposal link (if applicable)
 
 ### Phase 5: CI Monitoring
 
 5. **Monitor GitHub Actions**
-   - Run `unset GITHUB_TOKEN && gh pr checks <PR_NUMBER>`
+   - Run `gh pr checks <PR_NUMBER>`
    - Watch for cross-platform failures (Ubuntu/Windows/macOS)
    - If any fail: investigate, use `/debug-test`
 
 ### Phase 6: Review Feedback
 
 6. **Review PR Comments**
-   - Run `unset GITHUB_TOKEN && gh pr view <PR_NUMBER> --json comments --jq '.comments[] | "\(.author.login): \(.body)"'`
-   - Run `unset GITHUB_TOKEN && gh pr view <PR_NUMBER> --json reviews --jq '.reviews[] | "\(.author.login) (\(.state)): \(.body)"'`
+   - Run `gh pr view <PR_NUMBER> --json comments --jq '.comments[] | "\(.author.login): \(.body)"'`
+   - Run `gh pr view <PR_NUMBER> --json reviews --jq '.reviews[] | "\(.author.login) (\(.state)): \(.body)"'`
    - Check: Copilot, Codecov, reviewer feedback
 
 ### Phase 7: Changelog
@@ -60,7 +60,7 @@ Perform a complete pre-merge check following this workflow:
 8. **Final Check**
    - Re-run local CI: `uv run black --check sleap_roots tests`, `uv run pydocstyle --convention=google sleap_roots/`, `uv run pytest tests/`
    - Push changes: `git push`
-   - Verify CI: `unset GITHUB_TOKEN && gh pr checks <PR_NUMBER>`
+   - Verify CI: `gh pr checks <PR_NUMBER>`
    - Confirm up-to-date: `git fetch origin main && git merge-base --is-ancestor origin/main HEAD`
 
 ## Output Format
