@@ -1,201 +1,443 @@
-# Review Pull Request
+# PR Code Review — Subagent Team
 
-Systematic workflow for reviewing PRs and responding to comments.
+You are a senior scientific programmer reviewing a pull request for sleap-roots,
+a pure Python library for plant root phenotyping using SLEAP pose estimation.
+You value testing, code quality, reproducibility, metadata preservation,
+traceability, interpretability, and performance above all else.
 
-## Quick Review Commands
+## How This Skill Works
 
-```bash
-# List open PRs
-gh pr list
+This skill launches **5 specialized subagents in parallel** to critically review the PR.
+Each subagent has a distinct review lens and is instructed to be adversarial — finding
+gaps, not rubber-stamping. After all subagents return, synthesize findings into a unified
+review and post it to GitHub.
 
-# View specific PR
-gh pr view <number>
+## Step 1: Gather PR Context
 
-# View PR diff
-gh pr diff <number>
-
-# Checkout PR locally
-gh pr checkout <number>
-
-# View PR checks
-gh pr checks <number>
-
-# Add review comment
-gh pr review <number> --comment --body "Great work!"
-
-# Approve PR
-gh pr review <number> --approve --body "LGTM! Excellent test coverage."
-
-# Request changes
-gh pr review <number> --request-changes --body "Please address the comments on trait calculations."
-```
-
-## Review Checklist
-
-### 1. Code Quality
-
-- [ ] Code follows PEP 8 conventions (enforced by Black)
-- [ ] Functions have clear, single responsibilities
-- [ ] Variable/function names are descriptive
-- [ ] No commented-out code or debug print statements
-- [ ] Error handling is appropriate
-- [ ] No hardcoded values that should be configurable
-
-### 2. Type Safety & Documentation
-
-- [ ] Type hints used for function arguments and returns
-- [ ] Google-style docstrings for all public functions/classes
-- [ ] Docstrings include Args, Returns, Raises sections
-- [ ] Examples provided in docstrings where helpful
-- [ ] Module-level docstrings present
-
-### 3. Testing
-
-- [ ] New features have test coverage
-- [ ] Tests are clear and descriptive
-- [ ] Edge cases are tested (empty arrays, single points, invalid inputs)
-- [ ] Coverage maintained or improved
-- [ ] Tests pass on all platforms (Ubuntu, Windows, macOS)
-
-### 4. Scientific Accuracy
-
-- [ ] Trait computations are biologically meaningful
-- [ ] Algorithm references credible sources (papers, textbooks)
-- [ ] Calculations validated against known data or manual measurements
-- [ ] Changes maintain reproducibility of published results
-- [ ] Units and coordinate systems are documented
-
-### 5. Cross-Platform Compatibility
-
-- [ ] Uses `pathlib.Path` for file paths (not string concatenation)
-- [ ] No platform-specific dependencies
-- [ ] Tests pass in CI on all platforms
-- [ ] File handling respects OS differences
-
-### 6. Performance
-
-- [ ] No unnecessary loops or redundant calculations
-- [ ] Large arrays handled efficiently (vectorized NumPy operations)
-- [ ] Batch processing doesn't load all data into memory at once
-- [ ] No blocking operations that could hang
-
-### 7. Benchmark Performance
-
-- [ ] Check if benchmark comment appears on PR (automated)
-- [ ] Review benchmark comparison table for regressions
-- [ ] Verify regressions are within 15% threshold (or justified)
-- [ ] Check for performance improvements (🚀 markers)
-- [ ] Understand which test data each benchmark uses (see comment details)
-- [ ] Download artifacts for detailed analysis if needed:
-  ```bash
-  # List recent workflow runs
-  gh run list --limit 5
-
-  # Download benchmark artifacts from specific run
-  gh run download <run-id> --name pr-benchmark-results
-
-  # View comparison markdown
-  cat benchmark-comparison.md
-
-  # View raw JSON results
-  cat benchmark-results.json | python -m json.tool
-  ```
-
-### 8. Breaking Changes
-
-- [ ] Breaking changes are clearly documented
-- [ ] Migration path provided for users
-- [ ] CHANGELOG.md updated with breaking changes
-- [ ] Version number follows SemVer (major bump for breaking changes)
-
-## Review Response Workflow
-
-### As a Reviewer
-
-1. **Read the PR description** - Understand the purpose and scope
-2. **Check CI status** - Don't review if CI is failing
-3. **Review diff file by file** - Start with test files to understand intent
-4. **Test locally** - Checkout the branch and run tests
-5. **Leave specific comments** - Reference line numbers and suggest alternatives
-6. **Approve or request changes** - Be clear and constructive
-
-### As a PR Author
-
-1. **Address all comments** - Don't ignore any feedback
-2. **Respond to each comment** - Explain your reasoning or agree to change
-3. **Push fixes** - Make requested changes in new commits
-4. **Mark resolved** - Resolve conversations after addressing them
-5. **Request re-review** - Notify reviewers when ready
-
-## Example Review Comments
-
-### Good Comments
-
-```markdown
-**Line 42 in sleap_roots/lengths.py**: Consider using `np.linalg.norm(axis=1)`
-instead of manual calculation for better performance and readability.
-
-**Line 87 in sleap_roots/angles.py**: This calculation assumes points are in
-image coordinates (y-down). Should we add a docstring note about coordinate system?
-
-**test_trait_pipelines.py**: Excellent test coverage! Could you add a test case
-for plants with missing lateral roots (primary only)?
-
-**General**: Great work on the lateral root pipeline! The code is clean and
-well-tested. Just a few minor suggestions above.
-```
-
-### Less Helpful Comments
-
-```markdown
-This doesn't look right. ❌
-Why did you do it this way? ❌
-Use a different method. ❌
-```
-
-### Constructive Feedback
-
-```markdown
-✅ "This approach works, but using `np.diff()` might be clearer. What do you think?"
-✅ "Great start! For edge case handling, consider what happens when points is empty."
-✅ "The logic here is correct, but the function name could be more descriptive. Maybe `calculate_lateral_root_angles`?"
-```
-
-## GitHub CLI Review Examples
+Run the following in parallel to collect everything the subagents need:
 
 ```bash
-# Start a review
-gh pr review 42 --comment --body "Starting review..."
+# Get PR metadata
+gh pr view $PR_NUMBER --json title,body,baseRefName,headRefName,author,labels,files
 
-# Approve with message
-gh pr review 42 --approve --body "LGTM! Excellent test coverage on the new pipeline."
+# Get the full diff
+gh pr diff $PR_NUMBER
 
-# Request changes
-gh pr review 42 --request-changes --body "Please address the comments about trait validation in test_trait_pipelines.py"
+# Get CI status
+gh pr checks $PR_NUMBER
 
-# View review comments
-gh pr view 42 --comments
+# Get any existing Copilot review comments
+REPO_OWNER=$(gh repo view --json owner --jq '.owner.login')
+REPO_NAME=$(gh repo view --json name --jq '.name')
+gh api graphql \
+  -f owner="$REPO_OWNER" \
+  -f name="$REPO_NAME" \
+  -F prNumber="$PR_NUMBER" \
+  -f query='
+query($owner: String!, $name: String!, $prNumber: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $prNumber) {
+      reviews(first: 10) {
+        nodes {
+          author { login }
+          comments(first: 50) {
+            nodes { path line body }
+          }
+        }
+      }
+    }
+  }
+}
+' --jq '.data.repository.pullRequest.reviews.nodes[] | select(.author.login == "copilot-pull-request-reviewer[bot]") | .comments.nodes[] | "File: \(.path):\(.line)\n\(.body)"'
 ```
 
-## Responding to Review Comments
+Also read any OpenSpec proposal linked in the PR body (look for `openspec/changes/` paths).
+
+## Step 2: Launch Subagent Review Team
+
+Launch ALL 5 subagents in a single message (parallel execution). Embed the full diff,
+PR description, CI status, and Copilot comments in each prompt.
+
+---
+
+### Subagent 1: Code Quality & Architecture
+
+```
+subagent_type: "general-purpose"
+description: "Review code quality and architecture"
+```
+
+**Prompt:**
+
+> You are reviewing a pull request for sleap-roots, a pure Python library for plant root
+> phenotyping built on SLEAP pose estimation.
+> Your role: **Code Quality & Architecture Reviewer**.
+> Be adversarial. Read actual source files. Find real problems, not hypotheticals.
+>
+> Architecture overview:
+>
+> - Pure Python library with attrs-based dataclasses for structured data
+> - Trait computations are numpy-based functions in modules like `sleap_roots/lengths.py`, `sleap_roots/angles.py`, etc.
+> - Trait dependency graph is built with networkx in pipeline classes (`sleap_roots/trait_pipelines.py`)
+> - SLEAP file loading (`.slp`, `.h5`) via sleap-io (>= 0.0.11)
+> - No CLI entry point — library consumed as Python API
+>
+> **Check:**
+>
+> 1. Style: PEP 8 enforced by Black, Google-style docstrings (pydocstyle) — any violations?
+> 2. attrs patterns: are dataclasses defined correctly with proper validators, defaults, and type annotations?
+> 3. Type hints: are function signatures fully annotated? Any missing return types?
+> 4. Magic numbers/strings: are constants named and co-located?
+> 5. Numpy idioms: are operations vectorized? Are there unnecessary Python loops over arrays?
+> 6. Suppression justification: any `# type: ignore`, `# noqa`, `np.errstate`, or `warnings.filterwarnings` added? Each must have a comment explaining why.
+> 7. Error handling: are errors surfaced with meaningful messages or silently swallowed?
+> 8. Ripple effects: are there impacts in files NOT changed by the PR? (read them)
+> 9. Dead code: does the PR introduce unreachable branches, unused imports, or stale comments?
+> 10. sleap-io compatibility: does the PR maintain compatibility with sleap-io >= 0.0.11?
+>
+> **PR diff:**
+> {PR_DIFF}
+>
+> **PR description:**
+> {PR_BODY}
+>
+> Read any source files you need using the Read/Grep tools. Return:
+>
+> - BLOCKING issues (incorrect types, broken attrs patterns, swallowed errors, sleap-io incompatibility)
+> - IMPORTANT issues (code smell, missing constants, unclear logic, unjustified suppressions)
+> - SUGGESTIONS (style, readability, numpy idiom improvements)
+> - Overall code quality score 1-10 with justification
+
+---
+
+### Subagent 2: Testing Strategy & TDD Discipline
+
+```
+subagent_type: "general-purpose"
+description: "Review testing strategy and TDD discipline"
+```
+
+**Prompt:**
+
+> You are reviewing a pull request for sleap-roots.
+> Your role: **Testing Strategy & TDD Discipline Reviewer**.
+> Be adversarial. Check every claim. Run mental red-green-refactor on the diff.
+>
+> **Testing infrastructure:**
+>
+> - **pytest** (`tests/`): unit tests in `test_*.py` files, integration-level tests in `test_trait_pipelines.py`
+> - **Coverage**: ~84% via Codecov, enforced in CI
+> - **CI matrix**: Ubuntu, Windows, macOS — tests must pass on all three platforms
+> - **Test data**: stored in `tests/data/` via Git LFS (`.slp`, `.h5`, `.csv` files)
+> - **Benchmark tests**: performance benchmarks with 15% regression threshold; note that PR #143 blocks baseline establishment, so fallback is `gh run download` for artifact comparison
+> - **Fixtures**: pytest fixtures provide loaded SLEAP data for trait function testing
+>
+> **Check:**
+>
+> 1. Were tests written BEFORE implementation (TDD)? Evidence: test files in earlier commits?
+> 2. Is the RIGHT test level used?
+>    - Pure trait function logic -> unit test in `test_<module>.py`
+>    - Full pipeline integration -> `test_trait_pipelines.py`
+>    - Performance -> benchmark test
+> 3. Are tests specific enough? ("returns NaN for empty array" not "works correctly")
+> 4. Missing tests — check each of these:
+>    - Empty arrays (zero landmarks, zero frames)
+>    - NaN inputs (missing keypoints from SLEAP)
+>    - Single-point inputs (degenerate geometry)
+>    - Edge cases at coordinate boundaries
+>    - Metadata preservation through pipeline stages
+>    - Data flow correctness (intermediate results through pipeline DAG)
+> 5. Will tests pass in CI? (all three platforms, no hardcoded paths, no platform-specific assumptions)
+> 6. Do existing tests break due to the PR? (read `tests/` for impacted files)
+> 7. Are test fixtures realistic? (do they use actual SLEAP prediction data from `tests/data/`?)
+> 8. Is there a 1:1 mapping between spec scenarios and tests?
+> 9. Benchmark regression: if performance tests exist, check for >15% regressions. If baseline is unavailable (PR #143), use `gh run download` to fetch artifacts for comparison.
+>
+> **PR diff:**
+> {PR_DIFF}
+>
+> **CI status:**
+> {CI_STATUS}
+>
+> Read existing test files using Glob/Read tools before concluding. Return:
+>
+> - BLOCKING: missing tests for new code paths, tests that won't run in CI, existing tests broken by PR
+> - IMPORTANT: wrong test level, vague test descriptions, missing edge cases
+> - SUGGESTIONS: additional coverage, test refactors
+> - TDD verdict: was red-green-refactor actually followed?
+
+---
+
+### Subagent 3: Scientific Rigor & Reproducibility
+
+```
+subagent_type: "general-purpose"
+description: "Review scientific rigor and reproducibility"
+```
+
+**Prompt:**
+
+> You are reviewing a pull request for sleap-roots, a scientific library used by plant
+> biologists to extract root phenotyping traits from SLEAP pose estimation data.
+> Your role: **Scientific Rigor & Reproducibility Reviewer**.
+> Be adversarial. Mistakes in trait computation or metadata can invalidate research.
+>
+> **Core scientific values:**
+>
+> 1. **Trait accuracy** — every trait computation must be biologically meaningful and
+>    algorithmically correct. If a function computes root angles, lengths, or curvatures,
+>    the math must be sound and referenced to published methods where applicable.
+> 2. **Units** — all values must have explicit units documented in docstrings (pixels, mm,
+>    degrees, radians). Mixing units silently is a blocking issue.
+> 3. **Coordinate systems** — sleap-roots operates in image coordinates (y-down). Any
+>    assumption about coordinate orientation must be documented and consistent.
+> 4. **Published results impact** — changes to existing trait calculations could invalidate
+>    results already published by users. This requires extreme care.
+> 5. **Metadata preservation** — trait metadata (source files, parameters, pipeline config)
+>    must flow through the pipeline and appear in output. Future researchers must be able
+>    to trace a CSV row back to its source data.
+> 6. **Numerical stability** — NaN propagation must be handled deliberately. Float precision
+>    issues must be acknowledged. Any `warnings.filterwarnings` suppression that hides
+>    numerical warnings must be justified.
+> 7. **Data format stability** — CSV column names and ordering must not change silently, as
+>    downstream scripts depend on them. Breaking format changes must be versioned.
+>
+> **Check:**
+>
+> 1. Are trait computations mathematically correct? Trace the algorithm step by step.
+> 2. Are algorithm references provided (papers, textbooks)? If a novel method is introduced,
+>    is it documented and justified?
+> 3. Are units explicitly stated in every docstring? Are there any implicit unit conversions?
+> 4. Is the coordinate system (y-down) handled consistently? Are any operations sensitive to
+>    coordinate orientation (e.g., angle calculations, curvature direction)?
+> 5. Could this change affect previously published results? If so, is there a migration path?
+> 6. Is metadata preserved through pipeline stages? Can output be traced back to input?
+> 7. How does the code handle NaN propagation? Does it fail silently or produce scientifically
+>    defensible results?
+> 8. Are there any float precision issues (e.g., comparing floats with `==`)?
+> 9. Does the PR maintain sleap-io >= 0.0.11 compatibility for data loading?
+> 10. Does the PR change CSV output column names or ordering? If so, is this documented as
+>     a breaking change?
+>
+> **PR diff:**
+> {PR_DIFF}
+>
+> **PR description:**
+> {PR_BODY}
+>
+> Return:
+>
+> - BLOCKING: incorrect algorithms, unit confusion, coordinate system errors, silent format breakage, missing metadata
+> - IMPORTANT: missing references, undocumented assumptions, NaN handling gaps
+> - SUGGESTIONS: additional validation, documentation improvements, reference citations
+
+---
+
+### Subagent 4: Performance, Memory & Cross-Platform
+
+```
+subagent_type: "general-purpose"
+description: "Review performance, memory, and cross-platform safety"
+```
+
+**Prompt:**
+
+> You are reviewing a pull request for sleap-roots.
+> Your role: **Performance, Memory & Cross-Platform Reviewer**.
+> Be adversarial. Check every loop, every allocation, every path operation.
+>
+> sleap-roots processes SLEAP pose estimation output which can include thousands of frames
+> with dozens of landmarks per frame. Memory and performance matter.
+>
+> **Check:**
+>
+> Performance:
+>
+> 1. Are numpy operations vectorized? Are there Python-level loops over arrays that should
+>    be vectorized? Each loop over frames or landmarks is suspect.
+> 2. Benchmark regressions: does the CI benchmark show >15% regression? Check the PR's
+>    benchmark results. If baseline is unavailable (PR #143 blocks), use `gh run download`
+>    to fetch the latest benchmark artifacts for comparison.
+> 3. Are there redundant computations? Is the same trait computed multiple times when it
+>    could be cached in the pipeline DAG?
+>
+> Memory:
+>
+> 4. Does the code load all frames/data into memory at once? For large Series (10k+ frames),
+>    this can cause OOM. Is there streaming or batch processing?
+> 5. Are intermediate numpy arrays unnecessarily large? Could slicing or views be used
+>    instead of copies?
+> 6. Does the pipeline DAG hold references to intermediate results longer than needed?
+>
+> Cross-Platform:
+>
+> 7. Are file paths constructed with `pathlib.Path` — never string concatenation or
+>    hardcoded `/` separators?
+> 8. Are there any platform-specific behaviors that would cause test failures on
+>    Ubuntu, Windows, or macOS?
+> 9. Check CI status for platform-specific failures.
+>
+> Thread Safety:
+>
+> 10. `warnings.filterwarnings` is process-global state. If the PR adds or modifies
+>     warning filters, could this cause issues in concurrent or testing contexts?
+>
+> **PR diff:**
+> {PR_DIFF}
+>
+> **CI status:**
+> {CI_STATUS}
+>
+> Return:
+>
+> - BLOCKING: OOM risks with large datasets, Python loops where vectorization is required, >15% benchmark regression without justification
+> - IMPORTANT: missing batch processing, path string concatenation, platform-specific assumptions
+> - SUGGESTIONS: vectorization opportunities, memory optimizations, caching improvements
+
+---
+
+### Subagent 5: Behavioural Correctness & Edge Cases
+
+```
+subagent_type: "general-purpose"
+description: "Review behavioural correctness and edge cases"
+```
+
+**Prompt:**
+
+> You are reviewing a pull request for sleap-roots.
+> Your role: **Behavioural Correctness & Edge Case Reviewer**.
+> Be adversarial. Play adversarial user. Try to break the feature with pathological inputs.
+>
+> Focus on: does the implementation actually do what the spec/PR description claims?
+> sleap-roots trait functions must be robust to the messy reality of SLEAP pose estimation
+> output — missing keypoints (NaN), single-frame videos, empty prediction sets, and
+> partially failed tracking.
+>
+> **Check:**
+>
+> 1. Read the PR description's stated behaviour. Now read the diff. Does the code actually
+>    implement what it claims?
+> 2. Trace the full call chain for each new feature through the pipeline DAG (input loading
+>    -> trait dependencies -> trait computation -> output).
+> 3. What happens with pathological inputs?
+>    - Empty arrays (zero frames, zero landmarks, zero roots)?
+>    - All-NaN inputs (SLEAP failed to track anything)?
+>    - Single-point inputs (degenerate geometry — can't compute angles or lengths)?
+>    - Mixed valid/NaN inputs (partial tracking failure)?
+> 4. Does the code return scientifically defensible results under partial failure? NaN
+>    propagation should produce NaN output, not zeros or crashes. Empty inputs should
+>    produce empty arrays, not exceptions.
+> 5. SLEAP file loading edge cases: what if the `.slp`/`.h5` file has no predictions?
+>    What if it has predictions but zero instances? What if skeleton topology is unexpected?
+> 6. Pipeline error propagation: if one trait computation fails or returns NaN, do
+>    downstream traits in the DAG handle this gracefully?
+> 7. Memory with large Series: if processing 10k+ frames, does the code stream or batch?
+>    Or does it try to hold everything in memory at once?
+> 8. Idempotency and statelessness: trait functions should be pure functions (same input ->
+>    same output, no side effects). Does the PR introduce any mutable state, caching with
+>    side effects, or global state modification?
+> 9. Does the Copilot review raise any issues that were not yet addressed?
+>
+> **PR diff:**
+> {PR_DIFF}
+>
+> **PR description:**
+> {PR_BODY}
+>
+> **Existing Copilot review comments:**
+> {COPILOT_COMMENTS}
+>
+> Read source files as needed using Read/Grep tools. Return:
+>
+> - BLOCKING: spec-implementation mismatches, crashes on empty/NaN input, data corruption under partial failure
+> - IMPORTANT: edge cases not handled, NaN propagation gaps, statelessness violations
+> - SUGGESTIONS: defensive guards, additional input validation, robustness improvements
+
+---
+
+## Step 3: Synthesize and Post Review
+
+After ALL subagents return:
+
+1. **Deduplicate** overlapping findings
+2. **Prioritize**:
+   - **BLOCKING** — must fix before merge (data loss, broken tests, scientific inaccuracy, spec mismatch)
+   - **IMPORTANT** — should fix before merge (missing edge cases, NaN handling gaps, platform risks)
+   - **SUGGESTION** — optional improvements
+3. **Determine verdict**:
+   - `APPROVE` — no blocking issues, all important issues are minor
+   - `COMMENT` — no blocking issues but important items worth noting
+   - `REQUEST_CHANGES` — any blocking issues present
+
+4. **Post the review to GitHub**:
+
+> **Note:** GitHub does not allow requesting changes or approving your own PRs.
+> Always attempt the desired action first; if it fails with "Can not request changes on your own pull request"
+> or "Can not approve your own pull request", automatically fall back to `--comment` with the same body
+> and a note at the top indicating the intended verdict.
+
+For REQUEST_CHANGES (attempt first, fall back to --comment on own-PR error):
 
 ```bash
-# View PR with comments
-gh pr view 42 --comments
+BODY="$(cat <<'EOF'
+## Review Summary
 
-# Checkout PR to make fixes
-gh pr checkout 42
+[2-3 sentence overall assessment]
 
-# Make changes, commit, push
-git add sleap_roots/lengths.py
-git commit -m "fix: address review comments on length calculation"
-git push
+## Blocking Issues
 
-# Notify reviewer
-gh pr comment 42 --body "✅ Addressed all review comments. Ready for re-review!"
+[Must fix before merge]
+
+## Important Issues
+
+[Should fix before merge]
+
+## Suggestions
+
+[Optional improvements]
+
+---
+*Review by Claude Code subagent team (Code Quality · Testing · Scientific Rigor · Performance/Memory · Behavioural Correctness)*
+EOF
+)"
+
+gh pr review $PR_NUMBER --request-changes -b "$BODY" 2>&1 || \
+gh pr review $PR_NUMBER --comment -b "$(printf '> **Verdict: REQUEST\_CHANGES** (posted as comment — GitHub does not allow requesting changes on your own PR)\n\n%s' "$BODY")"
 ```
 
-## Common Review Patterns for sleap-roots
+For APPROVE (attempt first, fall back to --comment on own-PR error):
+
+```bash
+BODY="$(cat <<'EOF'
+## Review Summary
+
+[2-3 sentence assessment]
+
+## Notes
+
+[Any suggestions or minor observations]
+
+---
+*Review by Claude Code subagent team (Code Quality · Testing · Scientific Rigor · Performance/Memory · Behavioural Correctness)*
+EOF
+)"
+
+gh pr review $PR_NUMBER --approve -b "$BODY" 2>&1 || \
+gh pr review $PR_NUMBER --comment -b "$(printf '> **Verdict: APPROVE** (posted as comment — GitHub does not allow approving your own PR)\n\n%s' "$BODY")"
+```
+
+For COMMENT (no fallback needed):
+
+```bash
+gh pr review $PR_NUMBER --comment -b "..."
+```
+
+5. After posting, show the user the full synthesized review and the GitHub link.
+
+---
+
+## Domain-Specific Review Patterns
 
 ### Pattern 1: Trait Computation Changes
 
@@ -232,7 +474,7 @@ Suggestions:
 1. Line 234: Consider adding a `min_length` parameter to filter short false positives
 2. Test coverage is excellent (100%)!
 3. Could you add a usage example to README.md similar to `DicotPipeline`?
-4. Trait names match existing conventions ✓
+4. Trait names match existing conventions
 ```
 
 ### Pattern 3: Bug Fixes
@@ -249,10 +491,10 @@ Example:
 **sleap_roots/angles.py**: Good catch on the NaN issue!
 
 Review notes:
-1. The epsilon tolerance fix looks correct ✓
-2. Regression test clearly demonstrates the bug ✓
-3. Consider testing with very small angles (< 0.1°) as well
-4. No impact on other angle calculations verified ✓
+1. The epsilon tolerance fix looks correct
+2. Regression test clearly demonstrates the bug
+3. Consider testing with very small angles (< 0.1 degrees) as well
+4. No impact on other angle calculations verified
 ```
 
 ### Pattern 4: Performance Changes
@@ -261,17 +503,17 @@ When reviewing PRs with benchmark results:
 
 1. **Check automated comment** - Benchmark comparison appears automatically on PRs
 2. **Interpret the table** - Compare PR times against main branch baseline
-3. **Evaluate regressions** - ⚠️ indicates >15% regression (fails CI by default)
-4. **Celebrate improvements** - 🚀 indicates >5% improvement
+3. **Evaluate regressions** - Warnings indicate >15% regression (fails CI by default)
+4. **Celebrate improvements** - Look for >5% improvement markers
 5. **Understand context** - Review test data details to understand what's being measured
 
 Example benchmark comment interpretation:
 ```markdown
 **Benchmark Results**: I see a few points worth discussing:
 
-1. `test_dicot_pipeline_performance`: +2.3% change is within noise, looks fine ✓
-2. `test_multiple_dicot_pipeline_performance`: 🚀 -12% improvement, nice work!
-3. `test_lateral_root_pipeline_performance`: +18% regression ⚠️
+1. `test_dicot_pipeline_performance`: +2.3% change is within noise, looks fine
+2. `test_multiple_dicot_pipeline_performance`: -12% improvement, nice work!
+3. `test_lateral_root_pipeline_performance`: +18% regression
    - This exceeds the 15% threshold. Can you investigate?
    - Is this expected from the algorithm change?
    - The test uses canola_7do sample 919QDUH with lateral roots
@@ -292,6 +534,21 @@ When to request optimization:
 - **Unexpected regressions** - No clear reason in code changes
 - **Large regressions** - >20% slowdown without justification
 - **Accumulating costs** - Multiple small regressions adding up
+
+To download benchmark artifacts for detailed analysis:
+```bash
+# List recent workflow runs
+gh run list --limit 5
+
+# Download benchmark artifacts from specific run
+gh run download <run-id> --name pr-benchmark-results
+
+# View comparison markdown
+cat benchmark-comparison.md
+
+# View raw JSON results
+cat benchmark-results.json | python -m json.tool
+```
 
 ## Domain-Specific Review Criteria
 
@@ -326,12 +583,7 @@ If in doubt, request validation against known good data.
 6. **Explain why** - Help the author learn, don't just point out issues
 7. **Approve quickly** - If it's good, say so and approve
 
-## When to Request Changes vs Comment
-
-- **Request Changes**: Test failures, incorrect algorithms, missing validation, scientific inaccuracy
-- **Comment**: Style suggestions, performance optimizations, nice-to-haves, questions
-
-## Escalation
+## When to Escalate
 
 If a PR discussion is getting stuck:
 
@@ -339,23 +591,3 @@ If a PR discussion is getting stuck:
 2. Create a GitHub Discussion for architectural questions
 3. Update `openspec/project.md` or `CLAUDE.md` with decision for future reference
 4. Consult with domain experts (plant biologists) for trait validation
-
-## Review Approval Criteria
-
-Only approve if:
-
-- [ ] All CI checks pass (tests, linting, coverage)
-- [ ] Code quality meets standards
-- [ ] Tests adequately cover new code
-- [ ] Documentation is sufficient
-- [ ] No unresolved questions or concerns
-- [ ] Scientific accuracy validated (if applicable)
-
-## Post-Review
-
-After approval:
-
-1. **Merge the PR** - Use squash or merge based on project preference
-2. **Delete the branch** - Clean up merged branches
-3. **Archive OpenSpec** - If applicable, use `/cleanup-merged`
-4. **Update CHANGELOG** - Use `/changelog` if releasing soon
