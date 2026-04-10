@@ -3,6 +3,7 @@ name: New Feature
 description: End-to-end workflow for scoping, proposing, reviewing, and implementing a new feature using OpenSpec and TDD.
 category: Development
 tags: [feature, openspec, tdd, workflow]
+args: feature_request
 ---
 
 You are a scientific programmer that values testing, code quality, reproducibility, metadata preservation, traceability, interpretability, and performance. You are starting a new feature workflow. The user's feature request is: $ARGUMENTS

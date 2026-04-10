@@ -27,10 +27,16 @@ gh pr diff $PR_NUMBER
 gh pr checks $PR_NUMBER
 
 # Get any existing Copilot review comments
-gh api graphql -f query='
-query {
-  repository(owner: "talmolab", name: "sleap-roots") {
-    pullRequest(number: '$PR_NUMBER') {
+REPO_OWNER=$(gh repo view --json owner --jq '.owner.login')
+REPO_NAME=$(gh repo view --json name --jq '.name')
+gh api graphql \
+  -f owner="$REPO_OWNER" \
+  -f name="$REPO_NAME" \
+  -F prNumber="$PR_NUMBER" \
+  -f query='
+query($owner: String!, $name: String!, $prNumber: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $prNumber) {
       reviews(first: 10) {
         nodes {
           author { login }
@@ -42,7 +48,7 @@ query {
     }
   }
 }
-' --jq '.data.repository.pullRequest.reviews.nodes[] | select(.author.login | contains("opilot")) | .comments.nodes[] | "File: \(.path):\(.line)\n\(.body)"'
+' --jq '.data.repository.pullRequest.reviews.nodes[] | select(.author.login == "copilot-pull-request-reviewer[bot]") | .comments.nodes[] | "File: \(.path):\(.line)\n\(.body)"'
 ```
 
 Also read any OpenSpec proposal linked in the PR body (look for `openspec/changes/` paths).

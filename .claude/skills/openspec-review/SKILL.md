@@ -26,7 +26,7 @@ After all subagents return, you synthesize their findings into a unified review 
 Determine which proposal to review:
 
 - If the user specifies a change ID, use it directly
-- Otherwise, run `ls openspec/changes/` to find active proposals and ask the user which one to review
+- Otherwise, run `openspec list` to find active proposals and ask the user which one to review
 - Read the proposal's `proposal.md`, `tasks.md`, `design.md` (if exists), and all delta spec files
 
 ## Step 2: Gather Context
