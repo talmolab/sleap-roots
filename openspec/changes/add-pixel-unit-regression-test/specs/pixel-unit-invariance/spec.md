@@ -1,19 +1,21 @@
 # Capability: Pixel Unit Invariance
 
-Trait calculations MUST produce results in pixel units regardless of image DPI metadata.
+Trait calculations MUST produce results in pixel units regardless of image DPI metadata, at every layer from file I/O through trait output.
 
 ## ADDED Requirements
 
-### Requirement: Pipeline MUST return pixel-unit trait values regardless of source image DPI metadata
+### Requirement: Pipeline MUST return pixel-unit trait values regardless of source image DPI metadata, end-to-end through .slp serialization
 
-The full pipeline — from data loading through trait computation — MUST produce trait values in pixel units. No layer (image loading, coordinate extraction, pipeline orchestration, or trait computation) SHALL apply DPI-based unit conversion.
+The full data path — image I/O, `.slp` serialization, `sio.load_slp()`, `Series.load()`, pipeline orchestration, and trait computation — MUST produce trait values in pixel units. No layer SHALL apply DPI-based unit conversion.
 
-#### Scenario: Primary root length through PrimaryRootPipeline is in pixels, not DPI-converted mm
+#### Scenario: Primary root length through full load+pipeline round-trip is in pixels, not DPI-converted mm
 
 - **Given** a synthetic TIFF image of size 200x400 with 1200 DPI metadata created via Pillow
-- **And** a synthetic sleap-io Labels object with a Skeleton containing two nodes
-- **And** an Instance with node coordinates at (100, 50) and (100, 150), representing a 100px vertical root
-- **And** a Series object constructed from these synthetic predictions
+- **And** the TIFF is opened via `sio.Video.from_filename()`, forcing the backend to read file metadata
+- **And** a synthetic sleap-io Labels object with a 6-node Skeleton
+- **And** an Instance with node coordinates spanning (100, 50) to (100, 150), 100px vertically
+- **And** the Labels are serialized to a `.slp` file via `sio.save_slp()`
+- **And** the `.slp` file is reloaded via `Series.load(primary_path=...)`
 - **When** `PrimaryRootPipeline().compute_plant_traits(series)` is called
 - **Then** the `primary_length` column value is 100.0 (pixels)
 - **And** the `primary_base_tip_dist` column value is 100.0 (pixels)

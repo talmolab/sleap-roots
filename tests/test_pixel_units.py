@@ -23,18 +23,24 @@ DPI_WRONG_VALUE = 100.0 / 1200 * 25.4  # ~2.117mm at 1200 DPI
 
 @pytest.fixture
 def synthetic_series(tmp_path):
-    """Create a Series with a synthetic 1200 DPI TIFF and known pixel coordinates.
+    """Create a Series by round-tripping synthetic data through .slp and Series.load.
+
+    Exercises the full I/O layer where DPI-aware coordinate scaling could be
+    introduced: TIFF backend open (via sio.Video.from_filename), sio.save_slp
+    serialization, sio.load_slp deserialization, and Series.load.
 
     The TIFF is 200x400 with 1200 DPI metadata. A 6-node primary root skeleton
     spans 100px vertically (nodes evenly spaced 20px apart from y=50 to y=150).
+    Six nodes are required because PrimaryRootPipeline computes angle traits
+    via get_node_ind(), which crashes on roots with fewer than 3 nodes (#150).
     """
-    # Create synthetic TIFF with 1200 DPI metadata
     img_array = np.zeros((400, 200), dtype=np.uint8)
-    img = Image.fromarray(img_array)
-    tif_path = str(tmp_path / "test_1200dpi.tif")
-    img.save(tif_path, dpi=(1200, 1200))
+    tif_path = tmp_path / "test_1200dpi.tif"
+    Image.fromarray(img_array).save(tif_path.as_posix(), dpi=(1200, 1200))
 
-    # Create sleap-io objects with known pixel coordinates
+    # Open TIFF via backend so video metadata is populated for .slp serialization
+    video = sio.Video.from_filename(tif_path.as_posix())
+
     skeleton = sio.Skeleton(nodes=[sio.Node(f"node_{i}") for i in range(6)])
     pts = np.array(
         [
@@ -47,11 +53,16 @@ def synthetic_series(tmp_path):
         ]
     )
     inst = sio.Instance.from_numpy(pts, skeleton=skeleton)
-    video = sio.Video(tif_path, open_backend=False)
     lf = sio.LabeledFrame(video=video, frame_idx=0, instances=[inst])
     labels = sio.Labels(labeled_frames=[lf], skeletons=[skeleton], videos=[video])
 
-    return Series(series_name="synthetic_dpi_test", primary_labels=labels)
+    # Serialize to .slp and reload via Series.load to exercise the I/O path
+    slp_path = tmp_path / "synthetic.primary.predictions.slp"
+    sio.save_slp(labels, slp_path.as_posix())
+
+    return Series.load(
+        series_name="synthetic_dpi_test", primary_path=slp_path.as_posix()
+    )
 
 
 class TestPipelinePixelUnits:
