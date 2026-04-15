@@ -30,6 +30,14 @@ Perform a complete pre-merge check following this workflow:
    - Check OpenSpec tasks completed: `openspec list`
    - README up-to-date if public API changed
 
+### Phase 3.5: Pre-PR Self-Review
+
+3.5. **Self-review the diff with the subagent team**
+   - Before creating the PR, run `/review-pr` on the local branch diff (use the branch name, not a PR number, since the PR doesn't exist yet)
+   - This launches 5 critical subagents to review the change the same way they would review an external PR — catching issues that GitHub Copilot or human reviewers would otherwise flag after the PR is open
+   - If any BLOCKING or IMPORTANT findings are raised, address them before creating the PR (re-run from Phase 1)
+   - **Rationale**: In past sessions, GitHub Copilot has flagged exactly what the subagent team would have found — for example, a test that bypassed the data loading path it was supposed to regression-test. Running our own review tooling pre-PR catches these issues in one iteration instead of two, and avoids burning a Copilot review cycle on something we could have caught ourselves.
+
 ### Phase 4: PR Creation
 
 4. **Create or Update PR**
@@ -188,5 +196,6 @@ This command orchestrates these other commands:
 - `/lint` - Check code style
 - `/fix-formatting` - Auto-fix style issues
 - `/debug-test` - Debug failing tests
-- `/review-pr` - Comprehensive PR review
+- `/review-pr` - Comprehensive PR review (used in Phase 3.5 pre-PR and Phase 6 post-PR)
+- `/copilot-review` - Fetch GitHub Copilot inline comments on an open PR
 - `/changelog` - Update changelog
