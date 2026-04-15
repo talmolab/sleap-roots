@@ -41,6 +41,26 @@ You are a scientific programmer that values testing, code quality, reproducibili
 
 5. **Review the proposal**: Run the openspec-review skill to have the proposal critically reviewed by 5 specialized subagents. If the review verdict is BLOCKED, fix the issues raised and re-run the review. Repeat until the verdict is APPROVED or NEEDS REVISION.
 
-6. **Get user approval**: Present the reviewed proposal to the user and wait for explicit approval before proceeding to implementation.
+6. **Reconcile every blocking finding before user approval**: For each BLOCKING and IMPORTANT finding from the review, produce an explicit reconciliation entry containing:
+   - The finding quoted verbatim — especially any specific technical mechanism named by the reviewer (e.g., "round-trip through a synthetic `.slp` file", "use `sio.load_slp`", "open the TIFF backend to read metadata")
+   - How the finding is addressed in the revised proposal
+   - The exact line in the proposal where the reviewer's specified mechanism now appears
 
-7. **Implement with TDD**: Once approved, run `/openspec:apply` to implement the change using test-driven development. Write tests before implementation code.
+   **Critical**: Take reviewer language literally. If a reviewer specified "round-trip through a synthetic .slp file", do not substitute "construct Labels in memory and pass them through the pipeline" — those are not equivalent. Past sessions have silently swapped reviewer-specified mechanisms for convenient approximations, only for the same issue to be flagged later by GitHub Copilot.
+
+   If a finding is genuinely unaddressable in this proposal, defer it with a written justification and (if appropriate) file a follow-up GitHub issue. Do NOT proceed to user approval until every BLOCKING finding has a concrete reconciliation.
+
+7. **Get user approval**: Present the reviewed proposal and the reconciliation entries from step 6 to the user. Wait for explicit approval before proceeding to implementation.
+
+8. **Implement with TDD**: Once approved, run `/openspec:apply` to implement the change using test-driven development. Write tests before implementation code.
+
+9. **Reconcile implementation with proposal before committing**: After implementation but BEFORE running `/pre-merge` or creating a commit, re-read the approved `proposal.md`, `spec.md`, and `tasks.md`. For every described behavior, data structure, and mechanism, verify the actual implementation matches. In particular:
+   - If the spec says "6-node skeleton", verify the test/fixture uses 6 nodes
+   - If the spec says "round-trip through `.slp`", verify the test actually calls `sio.save_slp` and `sio.load_slp` (or `Series.load` with a real file)
+   - If the proposal names specific functions/APIs, verify those exact functions/APIs are used
+
+   If the implementation had to deviate from the approved proposal (e.g., because a bug was discovered during implementation, a library constraint was hit, or a reviewer's assumption was wrong), you MUST update `proposal.md`, `spec.md`, and `tasks.md` to reflect reality, including a short `### Why N instead of M?` section explaining the deviation. Silent drift between the approved proposal and the committed implementation is NOT acceptable.
+
+   If a bug was discovered during implementation that required a workaround, file a new GitHub issue for it before committing and reference the issue in the updated proposal.
+
+10. **Proceed to pre-merge**: Run `/pre-merge` to complete the verification and PR workflow.
