@@ -1829,6 +1829,88 @@ def test_multiple_dicot_pipeline(
     pd.testing.assert_frame_equal(computed_group_batch_traits, group_batch_df_fixture)
 
 
+def test_multiple_dicot_pipeline_without_csv(
+    multiple_arabidopsis_11do_primary_slp,
+    multiple_arabidopsis_11do_lateral_slp,
+):
+    """MultipleDicotPipeline runs end-to-end when Series is loaded without csv_path.
+
+    Regression guard for issue #125: Series.expected_count returns np.nan when the
+    CSV is absent, and filter_plants_with_unexpected_ct must treat NaN as "skip
+    filter" rather than stripping all plants. This test protects the downstream
+    dependency that issue #126 will rely on.
+    """
+    series = Series.load(
+        series_name="997_1",
+        primary_path=multiple_arabidopsis_11do_primary_slp,
+        lateral_path=multiple_arabidopsis_11do_lateral_slp,
+    )
+    assert np.isnan(series.expected_count)
+
+    pipeline = MultipleDicotPipeline()
+    result = pipeline.compute_multiple_dicots_traits(series)
+
+    # Strict equality is intentional: new keys require an explicit spec update.
+    assert set(result.keys()) == {
+        "series",
+        "group",
+        "qc_fail",
+        "traits",
+        "summary_stats",
+    }
+
+    # `primary_pts_expected_plant_ct` is an `include_in_csv=False` per-frame
+    # TraitDef that is discarded after each frame inside
+    # `compute_multiple_dicots_traits`, so we invoke the pipeline directly
+    # frame-by-frame to verify the NaN path did not strip all plants. Iterating
+    # over all frames (rather than hard-coding frame 0) avoids flakiness from
+    # per-sample labeling drift where a specific frame has all-NaN predictions.
+    max_n_instances = 0
+    for frame_idx in range(len(series)):
+        frame_traits = pipeline.compute_frame_traits(
+            pipeline.get_initial_frame_traits(series, frame_idx)
+        )
+        max_n_instances = max(
+            max_n_instances,
+            int(frame_traits["primary_pts_expected_plant_ct"].shape[0]),
+        )
+    assert (
+        max_n_instances >= 1
+    ), "Pipeline with no CSV should not strip all plants from all frames"
+
+
+def test_multiple_dicot_pipeline_none_expected_plant_ct_through_trait_dag():
+    """Python `None` as expected_plant_ct flows through MultipleDicotPipeline's TraitDef DAG.
+
+    The existing `test_multiple_dicot_pipeline_without_csv` exercises the NaN
+    path via `Series.expected_count`. This test exercises the literal Python
+    `None` path directly through `compute_frame_traits` by constructing an
+    initial-traits dict with `expected_plant_ct=None`. Issue #126
+    (`MultipleDicotPlatePipeline`) will be the first real consumer of this
+    path; pinning it here prevents a regression before it lands.
+    """
+    primary_pts = np.random.rand(2, 6, 2)
+    lateral_pts = np.random.rand(3, 6, 2)
+
+    pipeline = MultipleDicotPipeline()
+    initial_frame_traits = {
+        "primary_pts": primary_pts,
+        "lateral_pts": lateral_pts,
+        "expected_plant_ct": None,
+    }
+    frame_traits = pipeline.compute_frame_traits(initial_frame_traits)
+
+    # With `None`, the count filter must pass plant points through unchanged.
+    # Both arrays should retain their input instance count.
+    assert frame_traits["primary_pts_expected_plant_ct"].shape[0] == 2
+    assert frame_traits["lateral_pts_expected_plant_ct"].shape[0] == 3
+
+    # And the downstream plant-association TraitDef must run without error
+    # on the `None`-path output.
+    assert "plant_associations_dict" in frame_traits
+    assert isinstance(frame_traits["plant_associations_dict"], dict)
+
+
 def test_primary_root_pipeline(
     canola_folder,
     canola_traits_csv,

@@ -373,11 +373,25 @@ After ALL subagents return:
 4. **Post the review to GitHub**:
 
 > **Note:** GitHub does not allow requesting changes or approving your own PRs.
-> Always attempt the desired action first; if it fails with "Can not request changes on your own pull request"
-> or "Can not approve your own pull request", automatically fall back to `--comment` with the same body
-> and a note at the top indicating the intended verdict.
+> Before posting, detect whether the PR is your own by comparing the PR author to the
+> authenticated user. If it's your own PR, skip the `--approve`/`--request-changes` attempt
+> entirely and go straight to `--comment` with a verdict banner. This avoids noisy
+> `GraphQL: Review Can not approve your own pull request` errors in the output.
 
-For REQUEST_CHANGES (attempt first, fall back to --comment on own-PR error):
+**Step 1: Detect own-PR upfront** (run once before posting):
+
+```bash
+PR_AUTHOR=$(gh pr view $PR_NUMBER --json author --jq '.author.login')
+GH_USER=$(gh api user --jq '.login')
+IS_OWN_PR=false
+if [ "$PR_AUTHOR" = "$GH_USER" ]; then
+  IS_OWN_PR=true
+fi
+```
+
+**Step 2: Post the review** using the appropriate method based on `$IS_OWN_PR`:
+
+For REQUEST_CHANGES:
 
 ```bash
 BODY="$(cat <<'EOF'
@@ -402,11 +416,14 @@ BODY="$(cat <<'EOF'
 EOF
 )"
 
-gh pr review $PR_NUMBER --request-changes -b "$BODY" 2>&1 || \
-gh pr review $PR_NUMBER --comment -b "$(printf '> **Verdict: REQUEST\_CHANGES** (posted as comment — GitHub does not allow requesting changes on your own PR)\n\n%s' "$BODY")"
+if [ "$IS_OWN_PR" = "true" ]; then
+  gh pr review $PR_NUMBER --comment -b "$(printf '> **Verdict: REQUEST_CHANGES** (posted as comment — cannot request changes on your own PR)\n\n%s' "$BODY")"
+else
+  gh pr review $PR_NUMBER --request-changes -b "$BODY"
+fi
 ```
 
-For APPROVE (attempt first, fall back to --comment on own-PR error):
+For APPROVE:
 
 ```bash
 BODY="$(cat <<'EOF'
@@ -423,11 +440,14 @@ BODY="$(cat <<'EOF'
 EOF
 )"
 
-gh pr review $PR_NUMBER --approve -b "$BODY" 2>&1 || \
-gh pr review $PR_NUMBER --comment -b "$(printf '> **Verdict: APPROVE** (posted as comment — GitHub does not allow approving your own PR)\n\n%s' "$BODY")"
+if [ "$IS_OWN_PR" = "true" ]; then
+  gh pr review $PR_NUMBER --comment -b "$(printf '> **Verdict: APPROVE** (posted as comment — cannot approve your own PR)\n\n%s' "$BODY")"
+else
+  gh pr review $PR_NUMBER --approve -b "$BODY"
+fi
 ```
 
-For COMMENT (no fallback needed):
+For COMMENT (no detection needed):
 
 ```bash
 gh pr review $PR_NUMBER --comment -b "..."

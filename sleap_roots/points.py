@@ -362,33 +362,55 @@ def filter_roots_with_nans(pts: np.ndarray) -> np.ndarray:
 
 
 def filter_plants_with_unexpected_ct(
-    primary_pts: np.ndarray, lateral_pts: np.ndarray, expected_count: float
+    primary_pts: np.ndarray,
+    lateral_pts: np.ndarray,
+    expected_count: Optional[float] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Filter out primary and lateral roots with an unexpected number of plants.
 
     Args:
         primary_pts: A numpy array of primary root points with shape
-            (instances, nodes, 2), where 'instances' is the number of primary roots,
-            'nodes' is the number of points in each root, and '2' corresponds to the x and y
-            coordinates.
-        lateral_pts: A numpy array of lateral root points with a shape similar
-            to primary_pts, representing the lateral roots.
-        expected_count: The expected number of primary roots as a float or NaN. If NaN,
-            no filtering is applied based on count. If a number, it will be rounded to
-            the nearest integer for comparison.
+            (instances, nodes, 2), where 'instances' is the number of primary
+            roots, 'nodes' is the number of points in each root, and '2'
+            corresponds to the x and y coordinates.
+        lateral_pts: A numpy array of lateral root points with a shape similar to
+            primary_pts, representing the lateral roots.
+        expected_count: Optional expected number of primary roots. If ``None`` or
+            ``np.nan``, no count-based filtering is applied and both input arrays
+            are returned unchanged. ``None`` conceptually indicates "no expected
+            count was configured"; ``np.nan`` conceptually indicates "configured
+            but missing from metadata" (e.g. CSV entry absent). The cylinder
+            pipeline treats both identically because it has no way to distinguish
+            them downstream — the distinction is a deferred concern for future
+            plate-pipeline work (issue #126). If a finite number, it is rounded
+            via Python's built-in ``round()`` (banker's rounding, half-to-even:
+            ``round(2.5) == 2``, ``round(3.5) == 4``); if ``len(primary_pts)``
+            does not match the rounded value, both arrays are replaced with empty
+            ``(0, n_nodes, 2)`` placeholders so ``MultipleDicotPipeline``'s
+            per-series aggregation drops the frame. The value ``0`` is a valid
+            finite ``expected_count``: it takes the pass-through branch if
+            ``primary_pts`` is also empty, and the mismatch branch otherwise.
+            Defaults to ``None``.
 
     Returns:
-        A tuple containing the filtered primary and lateral root points arrays. If the
-        input types are incorrect, the function will raise a ValueError.
+        A tuple containing the filtered primary and lateral root points arrays.
 
     Raises:
-        ValueError: If input types are incorrect.
+        ValueError: If ``primary_pts`` or ``lateral_pts`` are not numpy arrays,
+            or if ``expected_count`` is neither ``None`` nor a numeric type.
     """
     # Type checking
     if not isinstance(primary_pts, np.ndarray) or not isinstance(
         lateral_pts, np.ndarray
     ):
         raise ValueError("primary_pts and lateral_pts must be numpy arrays.")
+
+    # None means "no expected count was configured" — skip filtering entirely.
+    # This branch runs before the numeric subdtype check below, which would
+    # otherwise reject type(None).
+    if expected_count is None:
+        return primary_pts, lateral_pts
+
     if not np.issubdtype(type(expected_count), np.number):
         raise ValueError("expected_count must be a numeric type.")
 
