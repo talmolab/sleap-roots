@@ -767,6 +767,120 @@ def test_filter_plants_with_unexpected_ct_incorrect_input_types():
         filter_plants_with_unexpected_ct(primary_pts, lateral_pts, expected_count)
 
 
+def test_filter_plants_with_unexpected_ct_none_expected_count():
+    """`None` as expected_count skips filtering and returns inputs unchanged."""
+    primary_pts = np.random.rand(5, 10, 2)
+    lateral_pts = np.random.rand(5, 10, 2)
+    filtered_primary, filtered_lateral = filter_plants_with_unexpected_ct(
+        primary_pts, lateral_pts, expected_count=None
+    )
+    assert np.array_equal(filtered_primary, primary_pts)
+    assert np.array_equal(filtered_lateral, lateral_pts)
+
+
+def test_filter_plants_with_unexpected_ct_none_with_mismatched_shapes():
+    """`None` is a genuine skip, not a stealth match-against-primary-count path."""
+    primary_pts = np.random.rand(5, 10, 2)
+    lateral_pts = np.random.rand(3, 10, 2)
+    filtered_primary, filtered_lateral = filter_plants_with_unexpected_ct(
+        primary_pts, lateral_pts, expected_count=None
+    )
+    assert filtered_primary.shape == (5, 10, 2)
+    assert filtered_lateral.shape == (3, 10, 2)
+    assert np.array_equal(filtered_primary, primary_pts)
+    assert np.array_equal(filtered_lateral, lateral_pts)
+
+
+def test_filter_plants_with_unexpected_ct_default_expected_count():
+    """Omitting expected_count relies on the new default of `None` and skips filtering."""
+    primary_pts = np.random.rand(5, 10, 2)
+    lateral_pts = np.random.rand(5, 10, 2)
+    filtered_primary, filtered_lateral = filter_plants_with_unexpected_ct(
+        primary_pts, lateral_pts
+    )
+    assert np.array_equal(filtered_primary, primary_pts)
+    assert np.array_equal(filtered_lateral, lateral_pts)
+
+
+def test_filter_plants_with_unexpected_ct_zero_count_empty_primary():
+    """expected_count=0 with empty primary_pts passes through (round(0)==0==len)."""
+    primary_pts = np.empty((0, 10, 2))
+    lateral_pts = np.empty((0, 10, 2))
+    filtered_primary, filtered_lateral = filter_plants_with_unexpected_ct(
+        primary_pts, lateral_pts, 0
+    )
+    assert filtered_primary.shape == (0, 10, 2)
+    assert filtered_lateral.shape == (0, 10, 2)
+
+
+def test_filter_plants_with_unexpected_ct_zero_count_nonempty_primary():
+    """expected_count=0 with 3 primary instances takes the mismatch branch."""
+    primary_pts = np.random.rand(3, 10, 2)
+    lateral_pts = np.random.rand(3, 10, 2)
+    filtered_primary, filtered_lateral = filter_plants_with_unexpected_ct(
+        primary_pts, lateral_pts, 0
+    )
+    assert filtered_primary.shape == (0, 10, 2)
+    assert filtered_lateral.shape == (0, 10, 2)
+
+
+def test_filter_plants_with_unexpected_ct_half_integer_expected_count():
+    """Pin Python banker's rounding: round(2.5)==2, round(3.5)==4, round(4.5)==4.
+
+    The third case is the one that actually distinguishes banker's rounding
+    (half-to-even) from plain `int(x + 0.5)` rounding: for `expected_count=4.5`
+    banker's gives 4 (pass-through against 4 primaries), but plain rounding
+    would give 5 (mismatch → empty arrays). A future refactor that swapped
+    `round()` for `int(x + 0.5)` or `math.ceil` would be caught by the third
+    assertion block below.
+    """
+    # round(2.5) == 2 — symmetric case
+    primary_pts_2 = np.random.rand(2, 10, 2)
+    lateral_pts_2 = np.random.rand(2, 10, 2)
+    filtered_primary_2, filtered_lateral_2 = filter_plants_with_unexpected_ct(
+        primary_pts_2, lateral_pts_2, 2.5
+    )
+    assert np.array_equal(filtered_primary_2, primary_pts_2)
+    assert np.array_equal(filtered_lateral_2, lateral_pts_2)
+
+    # round(3.5) == 4 — symmetric case
+    primary_pts_4 = np.random.rand(4, 10, 2)
+    lateral_pts_4 = np.random.rand(4, 10, 2)
+    filtered_primary_4, filtered_lateral_4 = filter_plants_with_unexpected_ct(
+        primary_pts_4, lateral_pts_4, 3.5
+    )
+    assert np.array_equal(filtered_primary_4, primary_pts_4)
+    assert np.array_equal(filtered_lateral_4, lateral_pts_4)
+
+    # round(4.5) == 4 (banker's half-to-even) — THIS is the asymmetric case.
+    # Plain int(4.5 + 0.5) would give 5, which would mismatch len=4 and
+    # return empty arrays. By asserting pass-through here, we pin banker's
+    # rounding specifically.
+    primary_pts_4b = np.random.rand(4, 10, 2)
+    lateral_pts_4b = np.random.rand(4, 10, 2)
+    filtered_primary_4b, filtered_lateral_4b = filter_plants_with_unexpected_ct(
+        primary_pts_4b, lateral_pts_4b, 4.5
+    )
+    assert np.array_equal(filtered_primary_4b, primary_pts_4b)
+    assert np.array_equal(filtered_lateral_4b, lateral_pts_4b)
+
+
+def test_filter_plants_with_unexpected_ct_bool_expected_count_raises():
+    """expected_count=False raises ValueError (bool is not a numpy numeric subtype).
+
+    Pins NumPy 2.x behavior where `np.issubdtype(type(False), np.number)` is
+    False, so booleans are rejected rather than silently treated as 0. Older
+    NumPy versions treated bool as a numeric subtype, which would have created
+    a silent-zero footgun — this test locks in the safer current behavior.
+    """
+    primary_pts = np.random.rand(5, 10, 2)
+    lateral_pts = np.random.rand(5, 10, 2)
+    with pytest.raises(ValueError):
+        filter_plants_with_unexpected_ct(primary_pts, lateral_pts, False)
+    with pytest.raises(ValueError):
+        filter_plants_with_unexpected_ct(primary_pts, lateral_pts, True)
+
+
 def test_filter_primary_roots_with_unexpected_ct_valid_inputs():
     """Test with valid input types to check expected output shape."""
     primary_pts = np.random.rand(5, 10, 2)
