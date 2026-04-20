@@ -64,9 +64,26 @@ Tertiary roots branch from laterals biologically, but for per-plant trait aggreg
 
 The per-plant JSON includes `primary_points`, `lateral_points`, `primary_sleap_idx`, `lateral_sleap_idxs`, and the full `traits` dict. This makes the JSON a self-sufficient analysis/visualization artifact independent of the `.slp` file. File size is negligible (~30KB per plate uncompressed). CSV remains scalars-only (arrays don't fit tabular format).
 
-The JSON MUST emit `NaN` values as JSON `null` (not the Python-only bare `NaN` literal that `json.dumps` emits by default). Python's default `json.dumps` with `allow_nan=True` produces strings like `{"x": NaN}` that are **not valid JSON per RFC 8259** and are rejected by strict parsers (JavaScript `JSON.parse`, Go `encoding/json`, Jackson strict mode, `jq`). Because the plate JSON is intended as a cross-language analysis artifact (consumed by the plate viewer follow-up C), the plate pipeline MUST use an encoder that converts float NaN / numpy NaN to JSON `null`. Implementation: extend `NumpyArrayEncoder` locally (or add a plate-specific encoder) to intercept `float('nan')` and `np.float*('nan')` values and emit `None`. Add a test that grep's the written file content for the literal string `"NaN"` and fails if found.
+The JSON MUST emit `NaN` values as JSON `null` (not the Python-only bare `NaN` literal that `json.dumps` emits by default). Python's default `json.dumps` with `allow_nan=True` produces strings like `{"x": NaN}` that are **not valid JSON per RFC 8259** and are rejected by strict parsers (JavaScript `JSON.parse`, Go `encoding/json`, Jackson strict mode, `jq`). Because the plate JSON is intended as a cross-language analysis artifact (consumed by the plate viewer follow-up C), the plate pipeline MUST convert NaN to `None` **before** `json.dump` sees the value.
 
-The top-level JSON dict MUST include `"schema_version": 1` and `"units": "pixels"` fields so downstream consumers can gracefully handle future schema growth (PR 2 adds tertiary columns, PR 3 may add filter-config provenance) and know the coordinate/length units without out-of-band documentation.
+**Why not a JSONEncoder subclass with `default()`**: CPython's `json.JSONEncoder` has a fast path for native `float` (including `np.float64`, which subclasses `float`) that bypasses `default()` entirely. With `allow_nan=True`, bare `NaN` is emitted; with `allow_nan=False`, a `ValueError` is raised **before** `default()` is called. The encoder hook cannot intercept scalar NaN.
+
+**Required mechanism — recursive pre-serialization sanitizer**: the plate pipeline MUST call a helper like `_json_sanitize(obj)` that walks the result dict recursively, recognizes `float('nan')` / `np.floating` NaN (via `math.isnan` / `np.isnan`), and replaces with `None`. The walker must also convert `np.ndarray` → `list` via `.tolist()` at array boundaries so nested NaN inside arrays is caught too (`arr.tolist()` emits bare `float('nan')` that would otherwise slip through). Then call `json.dump(sanitized, f, allow_nan=False, cls=NumpyArrayEncoder, ensure_ascii=False, indent=4)` — `allow_nan=False` is defense-in-depth: if any NaN slips through the walker, the write raises a clear error rather than producing invalid JSON. The `NumpyArrayEncoder` subclass (or a plate-specific encoder) is retained to handle residual `np.int64` and any ndarrays the walker missed.
+
+The top-level JSON dict MUST include `"schema_version": 1` and a structured `"units"` object so downstream consumers can gracefully handle future schema growth and know the per-trait-family units without out-of-band documentation. Use:
+
+```python
+{"units": {"lengths": "pixels", "angles": "degrees", "counts": "unitless", "ratios": "dimensionless"}}
+```
+
+A single top-level `"units": "pixels"` would be **factually wrong**: `DicotPipeline` emits `lateral_angles_distal`, `lateral_angles_proximal`, `primary_angle_distal`, `primary_angle_proximal` in **degrees** (see `sleap_roots/angle.py:85` which multiplies by `180 / np.pi`). A consumer assuming the single-unit string applies to all numeric traits could apply a DPI conversion to degree angles and silently corrupt results.
+
+### D5c: `schema_version` bump policy
+
+- `schema_version` is incremented ONLY for **breaking** changes (field rename, removal, type change, or semantic change of an existing field).
+- **Additive** changes (new optional fields, new plant-row keys) are permitted at the same version; consumers MUST tolerate unknown fields.
+- PR 2's tertiary columns land at `schema_version: 1` (additive — new `tertiary_*` trait keys added to `plants[i].traits` and new CSV columns appended at the end).
+- The version bumps to `2` only when (e.g.) a field's semantic interpretation changes (e.g., if follow-up F replaces `primary_base_tip_dist` with a max-y-extent scalar under the same column name).
 
 ### D5b: Restore `count_mismatch` / `count_validated` flags in JSON (transferred from #125)
 
@@ -80,7 +97,8 @@ The original design draft's D6 rejected these as "redundant flag columns" — bu
 - `count_validated = expected_count is not None and not math.isnan(expected_count) and int(round(expected_count)) == detected_count`
 - `count_mismatch = expected_count is not None and not math.isnan(expected_count) and int(round(expected_count)) != detected_count`
 - When `expected_count` is None or NaN, both flags are `False` (not validated, not mismatched — just "unknown"). This is the "skip-filter" semantics from #125.
-- On mismatch (any plant row where `count_mismatch=True`), emit one warning per series via `warnings.warn(f"MultipleDicotPlatePipeline: {series.series_name} detected {detected_count} primaries but expected {expected_count}; no frames dropped", UserWarning)`.
+- **Semantic note — divergence from #125 literal wording**: the #125 scope-split comment text says `count_validated: True` on the mismatch path. This proposal uses the stricter reading `count_validated` means "passed validation" (so `False` on mismatch). To disambiguate "unknown" from "validated-and-matched-wrong", consumers should always pair `count_validated` with `count_mismatch` AND check whether `expected_count` is null/NaN. For explicit tri-state signalling, follow-up work may change both flags to nullable `Optional[bool]` (`null` when unknown); PR 1 ships the two-flag variant as documented here.
+- On mismatch (any plant row where `count_mismatch=True`), the pipeline MUST log each distinct `(series_name, frame_idx)` pair at most once via `logging.getLogger(__name__).warning(f"MultipleDicotPlatePipeline: {series.series_name} frame {frame_idx} detected {detected_count} primaries but expected {expected_count}; no plants dropped")`. **Uses `logging.warning`, not `warnings.warn`**, because: (a) `warnings.warn(UserWarning)` is commonly suppressed via `warnings.simplefilter('ignore', UserWarning)` in batch jobs and the signal would silently disappear; (b) `logging` is the established Python pattern for per-event diagnostics; (c) granularity is per-frame so timelapse mismatches at frame 50 name frame 50, not just the series. Tests MUST use `caplog` (pytest's log-capture fixture) rather than `pytest.warns`.
 
 ### D6: Metadata columns first in CSV, trait columns last; reuse DicotPipeline's CSV trait set unchanged
 
@@ -332,7 +350,7 @@ Integration tests round-trip through **synthetic `.slp` files** written via `sio
 | New `associate_tertiary_to_lateral()` function | superseded by D4 — reuse `associate_lateral_to_primary` with tertiary input in PR 2 |
 | Filtering parameters configurable via constructor kwargs | PR 3 |
 | `expected_count` optional, no error when missing | in PR 1 |
-| `count_mismatch` flag in output | superseded by D6 — use raw `expected_count` / `detected_count` columns instead |
+| `count_mismatch` flag in output | in PR 1 (D5b) — JSON-only field (not a CSV column); consumers of CSV derive from raw `expected_count` / `detected_count`. Paired with `count_validated` + per-frame `logging.warning` on mismatch. |
 | Per-plant output: one dict per plant with scalar trait values in pixels | in PR 1 |
 | All traits in pixel units (no DPI conversion) | in PR 1 |
 | Tests: synthetic multi-plant point arrays with known geometry | in PR 1 |

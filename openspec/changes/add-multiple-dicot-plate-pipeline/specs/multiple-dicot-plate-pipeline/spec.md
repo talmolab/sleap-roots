@@ -71,7 +71,7 @@ A new helper `argsort_primaries_by_base_x(plant_associations_dict: dict) -> List
 
 ### Requirement: `compute_plate_traits(series)` SHALL emit a per-series dict with a flat per-plant-per-frame list
 
-`MultipleDicotPlatePipeline.compute_plate_traits(series, write_csv=False, write_json=False, output_dir=".", csv_suffix=".plate_traits.csv", json_suffix=".plate_traits.json")` MUST return a dict with top-level keys `series`, `group`, `qc_fail`, `expected_count`, and `plants`. The `plants` field MUST be a list in which each entry represents exactly one (frame, plant) pair. For every frame `frame_idx` in `range(len(series))`, the method MUST append one entry to `plants` for each plant detected in that frame, in `plant_id` order (left-to-right by primary base x).
+`MultipleDicotPlatePipeline.compute_plate_traits(series, write_csv=False, write_json=False, output_dir=".", csv_suffix=".plate_traits.csv", json_suffix=".plate_traits.json")` MUST return a dict with top-level keys `schema_version`, `units`, `series`, `group`, `qc_fail`, `expected_count`, and `plants`. The same keys appear in the written JSON after `json.dump` (see Requirement 4). The `plants` field MUST be a list in which each entry represents exactly one (frame, plant) pair. For every frame `frame_idx` in `range(len(series))`, the method MUST append one entry to `plants` for each plant detected in that frame, in `plant_id` order (left-to-right by primary base x).
 
 Each `plants[i]` entry MUST contain the keys `frame`, `plant_id`, `primary_sleap_idx`, `lateral_sleap_idxs`, `primary_points`, `lateral_points`, `expected_count`, `detected_count`, and `traits`. The `traits` dict MUST be the full output of `DicotPipeline().compute_frame_traits(...)` invoked on that plant's isolated primary and lateral points (no trait renaming, no curation). The `primary_sleap_idx` value MUST be the original SLEAP instance index (into `series.get_primary_points(frame_idx)` pre-`filter_roots_with_nans`); the `lateral_sleap_idxs` value MUST be the list of original SLEAP lateral instance indices associated to this primary.
 
@@ -130,53 +130,64 @@ Each `plants[i]` entry MUST contain the keys `frame`, `plant_id`, `primary_sleap
 
 #### Scenario: Zero-laterals plant yields `lateral_count == 0` (not 1)
 
-- **Given** a synthetic `.slp` with one primary and ZERO laterals associated to it (i.e. `associate_lateral_to_primary` returns its `(1, n_nodes, 2)` NaN-filled placeholder for this primary's `lateral_points` entry)
+- **Given** a synthetic `.slp` with one primary and ZERO laterals associated to it
 - **When** `MultipleDicotPlatePipeline().compute_plate_traits(series)` is called
-- **Then** `plants[0]["traits"]["lateral_count"] == 0` (NOT `1`; the NaN placeholder must not be counted as a lateral)
+- **Then** `plants[0]["traits"]["lateral_count"] == 0` (NOT `1`; the `(1, n_nodes, 2)` NaN-filled placeholder returned by `associate_lateral_to_primary` for zero-lateral plants must not be counted as a lateral)
 - **And** `plants[0]["traits"]["lateral_lengths"]` is an empty array (length 0), not `[nan]`
 - **And** `plants[0]["traits"]["network_length"] == plants[0]["traits"]["primary_length"]` (laterals contribute 0, not NaN)
-- **And** the implementation MUST detect the NaN placeholder via the condition `assoc["lateral_points"].shape[0] == 1 and not is_line_valid(assoc["lateral_points"][0])` and pass `np.empty((0, n_nodes, 2))` to the nested `DicotPipeline` instead of the placeholder
+- **Implementation mechanism is specified in tasks.md § 4.3 and design doc § D2; the spec asserts only the observable outputs above.**
 
-#### Scenario: Count mismatch sets `count_mismatch=True`, `count_validated=False`, and emits a warning
+#### Scenario: Count mismatch sets `count_mismatch=True`, `count_validated=False`, and logs per frame
 
 - **Given** a synthetic `.slp` with 3 detected primaries and a Series loaded with a CSV specifying `expected_count=2`
-- **When** `MultipleDicotPlatePipeline().compute_plate_traits(series)` is called inside `pytest.warns(UserWarning)` context
+- **When** `MultipleDicotPlatePipeline().compute_plate_traits(series)` is called with `caplog` capturing log records at WARNING level
 - **Then** every `plants[i]["count_mismatch"] is True`
 - **And** every `plants[i]["count_validated"] is False`
-- **And** exactly one `UserWarning` is emitted per series, whose message names both the detected count (3) and the expected count (2)
+- **And** `caplog` contains at least one WARNING record from logger `sleap_roots.trait_pipelines` whose message names both the detected count (3) and the expected count (2) AND the frame index
 - **And** no CSV column `count_mismatch` or `count_validated` exists (these are JSON-only fields; consumers derive them from raw `expected_count`/`detected_count` in CSV)
 
-#### Scenario: Count match sets `count_validated=True`, `count_mismatch=False`, and emits no warning
+#### Scenario: Count match sets `count_validated=True`, `count_mismatch=False`, and logs nothing
 
 - **Given** a synthetic `.slp` with 3 detected primaries and a Series loaded with a CSV specifying `expected_count=3`
-- **When** `MultipleDicotPlatePipeline().compute_plate_traits(series)` is called
+- **When** `MultipleDicotPlatePipeline().compute_plate_traits(series)` is called with `caplog` at WARNING level
 - **Then** every `plants[i]["count_validated"] is True`
 - **And** every `plants[i]["count_mismatch"] is False`
-- **And** no `UserWarning` is emitted
+- **And** no WARNING record appears in `caplog` from `sleap_roots.trait_pipelines`
 
-#### Scenario: Missing `expected_count` yields both flags `False` and emits no warning
+#### Scenario: Missing `expected_count` yields both flags `False` and logs nothing
 
 - **Given** a Series loaded without a CSV (`series.expected_count` is `np.nan`) with 3 detected primaries
-- **When** `MultipleDicotPlatePipeline().compute_plate_traits(series)` is called
+- **When** `MultipleDicotPlatePipeline().compute_plate_traits(series)` is called with `caplog` at WARNING level
 - **Then** every `plants[i]["count_validated"] is False`
-- **And** every `plants[i]["count_mismatch"] is False` (unknown ≠ mismatch)
-- **And** no `UserWarning` is emitted
+- **And** every `plants[i]["count_mismatch"] is False` (unknown ≠ mismatch; consumers MUST disambiguate "unknown" from "matched" by additionally inspecting whether `expected_count` is null/NaN)
+- **And** no WARNING record appears in `caplog` from `sleap_roots.trait_pipelines`
 
 #### Scenario: Duplicate lateral coordinates disambiguate back to distinct SLEAP indices
 
 - **Given** a synthetic `.slp` with 1 primary and 2 laterals that have **bit-identical** `(n_nodes, 2)` coordinates (pathological case: SLEAP duplicate prediction)
 - **When** `MultipleDicotPlatePipeline().compute_plate_traits(series)` is called
-- **Then** `plants[0]["lateral_sleap_idxs"]` contains both original SLEAP lateral instance indices (a set of size 2)
-- **And** no SLEAP index is silently dropped or duplicated
-- **Implementation note**: the implementation MUST NOT rely solely on `np.array_equal` first-match for back-mapping (which would assign both identical laterals to the same SLEAP index). The plate pipeline MUST track SLEAP indices explicitly — e.g., build a parallel `lateral_sleap_idx_by_primary: Dict[int, List[int]]` map inside `compute_plate_traits` that is populated in the same loop as the nearest-primary distance computation, using the same `LineString.distance` semantics as `associate_lateral_to_primary`. This avoids identity-matching on coordinate arrays entirely.
+- **Then** `len(plants[0]["lateral_sleap_idxs"]) == 2` (both laterals present)
+- **And** `set(plants[0]["lateral_sleap_idxs"]) == {0, 1}` (distinct SLEAP indices, NOT `{0}` from first-match collision)
+- **Implementation mechanism is specified in tasks.md § 4.3 and design doc § "SLEAP instance index mapping"; the spec asserts only the observable outputs above.**
 
 ### Requirement: Per-plant JSON output SHALL include raw points, schema metadata, and RFC-8259-valid encoding
 
-When `compute_plate_traits(series, write_json=True, output_dir=...)` is invoked, the method MUST write a JSON file whose top-level dict mirrors the in-memory return value. The top-level dict MUST include `"schema_version": 1` (int) and `"units": "pixels"` (str) so downstream consumers can detect format growth and know coordinate/length units without external documentation.
+When `compute_plate_traits(series, write_json=True, output_dir=...)` is invoked, the method MUST write a JSON file whose top-level dict mirrors the in-memory return value. The top-level dict MUST include `"schema_version": 1` (int) and a `"units"` object that identifies the unit for each trait family, structured as:
+
+```json
+"units": {
+  "lengths": "pixels",
+  "angles": "degrees",
+  "counts": "unitless",
+  "ratios": "dimensionless"
+}
+```
+
+This structure is required because `DicotPipeline` emits traits in multiple unit families (e.g., `lateral_angles_distal` in degrees — see [angle.py:85](../../../sleap_roots/angle.py#L85) — alongside `primary_length` in pixels). A single-string `"units": "pixels"` would mislead any consumer that applied a pixel-to-physical conversion to angle values.
 
 Within each `plants[i]` entry, `primary_points` MUST be a nested list representing the full `(n_nodes, 2)` primary-root points for that plant, and `lateral_points` MUST be the `(n_laterals, n_nodes, 2)` laterals associated to that primary (nested lists). The `traits` dict MUST carry every trait emitted by `DicotPipeline.compute_frame_traits`, preserving both scalar and non-scalar entries (non-scalars serialize as nested lists). Round-tripping the JSON via `json.load` MUST yield structurally equivalent nested-list content for `primary_points`, `lateral_points`, `primary_sleap_idx` (int), and `lateral_sleap_idxs` (list of ints; `[]` when the plant has zero laterals, NOT `[null]` or missing key).
 
-The JSON encoder MUST emit Python `float('nan')` and numpy NaN values as JSON `null`, NOT the non-standard bare `NaN` literal that Python's default `json.dumps` produces (which is invalid per RFC 8259 and rejected by JavaScript `JSON.parse`, Jackson strict mode, Go `encoding/json`, and `jq`). Implementation: extend `NumpyArrayEncoder` at [trait_pipelines.py:123](../../../sleap_roots/trait_pipelines.py#L123) to intercept float-NaN / numpy-NaN scalars and return `None`; invoke `json.dump(..., cls=PlateEncoder, allow_nan=False)` (with `allow_nan=False` to force raising if any NaN slips through the encoder).
+The JSON writer MUST emit Python `float('nan')` and numpy NaN values as JSON `null`, NOT the non-standard bare `NaN` literal that Python's default `json.dumps` produces (which is invalid per RFC 8259 and rejected by JavaScript `JSON.parse`, Jackson strict mode, Go `encoding/json`, and `jq`). **Implementation mechanism**: the result dict MUST be passed through a recursive pre-serialization sanitizer (a helper walking dicts, lists, and converting ndarrays to lists via `.tolist()`) that replaces all NaN floats with `None` **before** `json.dump` is called. A `JSONEncoder.default()` subclass hook alone is insufficient — CPython's fast path for native `float` (including `np.float64`, which subclasses `float`) bypasses `default()`. After sanitizing, call `json.dump(sanitized, f, cls=NumpyArrayEncoder, allow_nan=False, ...)` — `allow_nan=False` is defense-in-depth: if any NaN survives the walker, `json.dump` raises with a clear error rather than producing invalid output.
 
 #### Scenario: Written JSON is self-contained and round-trips
 
@@ -184,26 +195,38 @@ The JSON encoder MUST emit Python `float('nan')` and numpy NaN values as JSON `n
 - **When** `MultipleDicotPlatePipeline().compute_plate_traits(series, write_json=True, output_dir=tmp_path)` is called
 - **And** the resulting JSON file is read back via `json.load`
 - **Then** the parsed top-level dict contains keys `schema_version`, `units`, `series`, `group`, `qc_fail`, `expected_count`, `plants`
-- **And** `schema_version == 1` and `units == "pixels"`
+- **And** `schema_version == 1`
+- **And** `units == {"lengths": "pixels", "angles": "degrees", "counts": "unitless", "ratios": "dimensionless"}`
 - **And** each plant entry contains `primary_points` as a list of `[x, y]` pairs
 - **And** each plant entry contains `lateral_points` as a list of lists of `[x, y]` pairs
 - **And** each plant entry contains `primary_sleap_idx` as an integer and `lateral_sleap_idxs` as a list of integers
-- **And** each plant entry contains `count_validated` (bool) and `count_mismatch` (bool) as JSON-native booleans
+- **And** each plant entry contains `count_validated` (bool) and `count_mismatch` (bool) as JSON-native booleans (verified via `isinstance(plants[i]["count_validated"], bool)`)
 - **And** each plant entry's `traits` dict contains the DicotPipeline trait names unchanged (no `_root_` infix, no plate-specific renames)
 
-#### Scenario: Zero-laterals plant emits `lateral_sleap_idxs: []` in JSON
+#### Scenario: Zero-laterals plant emits `lateral_sleap_idxs: []` and `lateral_points: []` in JSON round-trip
 
-- **Given** a synthetic `.slp` with one primary and zero associated laterals, written via `compute_plate_traits(series, write_json=True, output_dir=tmp_path)` and read back via `json.load`
-- **Then** `plants[0]["lateral_sleap_idxs"] == []` (empty list, NOT `[null]`, NOT missing)
-- **And** `plants[0]["lateral_points"] == []` (empty list; the NaN placeholder from `associate_lateral_to_primary` MUST NOT be serialized into the JSON)
-
-#### Scenario: Written JSON is RFC-8259-valid (NaN emitted as null)
-
-- **Given** a synthetic `.slp` that produces at least one NaN value somewhere in the output (e.g., a Series loaded without CSV so `expected_count` is NaN)
+- **Given** a synthetic `.slp` with one primary and zero associated laterals
 - **When** `compute_plate_traits(series, write_json=True, output_dir=tmp_path)` is called
-- **Then** the written file text MUST NOT contain the literal three-character substring `NaN` (verified via `"NaN" not in tmp_path.read_text()`)
-- **And** the file parses via a strict RFC-8259 parser (e.g. `json.loads(tmp_path.read_text(), parse_constant=lambda s: (_ for _ in ()).throw(ValueError(s)))` MUST NOT raise — any `NaN` would trigger `parse_constant`)
-- **And** re-loading via `json.load` yields `None` where the original in-memory value was `np.nan` (caller can check with `loaded["expected_count"] is None`)
+- **And** the resulting JSON file is read back via `json.load`
+- **Then** `plants[0]["lateral_sleap_idxs"] == []` (empty list, NOT `[null]`, NOT missing key)
+- **And** `plants[0]["lateral_points"] == []` (empty list; the NaN placeholder from `associate_lateral_to_primary` MUST NOT be serialized into the JSON)
+- **And** the written file text does NOT contain the literal substring `NaN` (same strict check as the RFC-8259 scenario below)
+
+#### Scenario: Written JSON is RFC-8259-valid (NaN emitted as null) with NaN deep in traits dict
+
+- **Given** a synthetic `.slp` with one zero-laterals plant (which deterministically produces NaN values deep in `plants[0]["traits"]` — e.g. `lateral_angles_distal` is scalar NaN per [angle.py:70-71](../../../sleap_roots/angle.py#L70-L71) when called on empty node-index input) AND a Series loaded without CSV so `expected_count` at the top level is also NaN
+- **When** `compute_plate_traits(series, write_json=True, output_dir=tmp_path)` is called
+- **Then** the call MUST NOT raise (the pre-serialization sanitizer converts every NaN to `None` before `json.dump`; `allow_nan=False` is defense-in-depth and MUST NOT fire in the happy path)
+- **And** the written file text MUST NOT contain the literal three-character substring `NaN` (verified via `"NaN" not in tmp_path.read_text()`)
+- **And** the file parses via a strict RFC-8259 parser:
+
+```python
+def _raise_on_constant(s):
+    raise ValueError(f"bare constant {s!r} is not RFC 8259-valid JSON")
+json.loads(tmp_path.read_text(), parse_constant=_raise_on_constant)  # MUST NOT raise
+```
+
+- **And** re-loading via `json.load` yields `None` where the original in-memory value was `np.nan` — both at the top level (`loaded["expected_count"] is None`) AND nested deep in the traits dict (`loaded["plants"][0]["traits"]["lateral_angles_distal"] is None`)
 
 ### Requirement: Per-plant CSV output SHALL emit metadata columns first, then the full DicotPipeline CSV trait set with unchanged names
 
@@ -225,7 +248,7 @@ When `compute_plate_traits(series, write_csv=True, output_dir=...)` is invoked, 
 - **When** `MultipleDicotPlatePipeline().compute_plate_traits(series, write_csv=True, output_dir=tmp_path)` is called
 - **And** the resulting CSV is loaded via `df = pd.read_csv(path)`
 - **Then** `pd.isna(df.loc[0, "expected_count"])` is `True` (the cell was empty and pandas parsed it as NaN)
-- **And** `df.loc[0, "detected_count"] == 3` (populated, non-null)
+- **And** `df.loc[0, "detected_count"] == 1` (populated, non-null; matches the 1 detected plant in the Given)
 - **And** `"count_validated"` is NOT in `df.columns`
 - **And** `"count_mismatch"` is NOT in `df.columns`
 
@@ -248,4 +271,5 @@ When `compute_plate_traits(series, write_csv=True, output_dir=...)` is invoked, 
 - **When** `compute_batch_plate_traits([seriesA, seriesB], write_json=True, output_dir=tmp_path, json_name="batch.json")` is called
 - **And** the resulting `tmp_path/batch.json` is read back via `json.load`
 - **Then** the parsed value is a list of length 2
-- **And** each element is a dict with keys `series`, `group`, `qc_fail`, `expected_count`, `plants`
+- **And** each element is a dict with keys `schema_version`, `units`, `series`, `group`, `qc_fail`, `expected_count`, `plants` (each per-series dict is the same self-contained format as the single-series JSON)
+- **And** the written file text does NOT contain the literal substring `NaN` (same RFC-8259-strict check as the single-series JSON scenario)
