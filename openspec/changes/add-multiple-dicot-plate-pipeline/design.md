@@ -1,16 +1,16 @@
 # Design: `add-multiple-dicot-plate-pipeline`
 
-**Architectural source of truth**: [`docs/superpowers/specs/2026-04-16-multiple-dicot-plate-pipeline-design.md`](../../../docs/superpowers/specs/2026-04-16-multiple-dicot-plate-pipeline-design.md) (committed on this branch; corrections committed as `8b02698`).
+**Architectural source of truth**: [`docs/superpowers/specs/2026-04-16-multiple-dicot-plate-pipeline-design.md`](../../../docs/superpowers/specs/2026-04-16-multiple-dicot-plate-pipeline-design.md) on branch `feature/multiple-dicot-plate-pipeline-126`. Amendment history visible via `git log` on that file.
 
 That document describes:
 
-- **Decision framework D1–D7** (cylinder-vs-plate semantics, count-filter skip, deterministic `plant_id`, tertiary→primary direct association for PR 2, raw points in JSON, CSV column order, no base-class changes).
+- **Decision framework D1–D7** plus **D5b** (count_mismatch/count_validated JSON flags + warning log transferred from #125's scope split).
 - **TraitDef DAG** for the plate pipeline.
-- **Compute flow** (frame loop + nested DicotPipeline per plant).
-- **SLEAP instance index mapping** (validity mask computed before `filter_roots_with_nans` so original indices survive the filter's index collapse).
-- **Per-plant trait set** — reuses `DicotPipeline.csv_traits` unchanged; no renaming.
-- **Output structures** (per-series JSON, per-plant CSV, batch DataFrame / JSON list).
-- **Follow-up issues** (PR 2, PR 3, A, B, C, D, E).
+- **Compute flow** (frame loop + nested DicotPipeline per plant; zero-laterals detection; warning-log-on-mismatch).
+- **SLEAP instance index mapping** (validity mask computed before `filter_roots_with_nans` so original indices survive the filter's index collapse; lateral back-mapping tracked alongside distance-based association, NOT via `np.array_equal` first-match).
+- **Per-plant trait set** — reuses `DicotPipeline.csv_traits` unchanged; no renaming. `primary_base_tip_dist` substitutes for #126's `primary_root_depth` (Euclidean vs. max-y-extent — tracked in follow-up F).
+- **Output structures** (per-series JSON with `schema_version: 1` + `units: "pixels"` + count flags + NaN-emitted-as-null; per-plant CSV with metadata columns first then full `DicotPipeline.csv_traits`; batch DataFrame / JSON list).
+- **Follow-up issues** (PR 2, PR 3, A, B, C, D, E, F — 8 total).
 
 ## Why this proposal defers to the design doc
 

@@ -35,7 +35,8 @@ Create a new pipeline class `MultipleDicotPlatePipeline` for plate images with m
 | B | Include raw points in single-plant pipeline JSON | Apply to `DicotPipeline`, `YoungerMonocotPipeline`, `OlderMonocotPipeline` for self-contained analysis artifacts |
 | C | Plate visualization / viewer | Consumes plate pipeline JSON to render colored per-plant overlays; related to #128 |
 | D | Real plate `.slp` fixture tests | MK22 dataset once available |
-| E | Generalize `qc_fail` for plates | `Series.qc_fail` at [series.py:196-208](../../../sleap_roots/series.py#L196-L208) currently reads the CSV column `qc_cylinder`. Plates need a `qc_plate` column (or a unified `qc` column). For PR 1, `qc_fail` is emitted unchanged — consumers must understand it reflects cylinder QC status when applied to a plate series. |
+| E | Generalize cylinder-conventional CSV column names for plates | Three `Series` properties read cylinder-named CSV columns that plates also have to use: `qc_fail` reads `qc_cylinder` ([series.py:196-208](../../../sleap_roots/series.py#L196-L208)), `expected_count` reads `number_of_plants_cylinder` ([series.py:165-180](../../../sleap_roots/series.py#L165-L180)), `group` reads `genotype` (plate-agnostic, OK). PR 1 documents this constraint in the class docstring and a spec scenario but does not change it. Follow-up E adds plate-aware column-name resolution (e.g., a `qc_plate` / `number_of_plants_plate` column, or a constructor kwarg). |
+| F | Plate-specific depth trait (`primary_depth`) | Issue #126 defined `primary_root_depth` as max y-extent; PR 1 substitutes `primary_base_tip_dist` (Euclidean) as the closest existing DicotPipeline trait. Follow-up F introduces a dedicated max-y-extent or pure-y-depth scalar after real plate data informs which variant is correct. See § "Deviation from #126 on `primary_root_depth`". |
 
 ## Key design decisions
 
@@ -46,6 +47,8 @@ The `MultipleDicotPipeline` aggregates across ~72 rotational frames (each is a n
 ### D2: Skip `filter_plants_with_unexpected_ct` entirely
 
 `MultipleDicotPipeline` uses this function to drop frames with mismatched count. Plates cannot afford to drop data (one frame = one timepoint = potentially the whole series). The plate pipeline's TraitDef DAG does NOT include a count-filter step. The pipeline keeps all detected plants regardless of `expected_count`, and surfaces the discrepancy via `expected_count` / `detected_count` columns in the output. Per the #125 scope split comment, this is the designated home for "keep all plants on mismatch" semantics.
+
+**Zero-laterals handling** (verified against [points.py:588-591](../../../sleap_roots/points.py#L588-L591)): `associate_lateral_to_primary` returns a `(1, n_nodes, 2)` all-NaN placeholder when a primary has zero associated laterals. Passing this placeholder into the nested `DicotPipeline` causes `get_count(lateral_pts)` to return `1` (silently wrong — should be `0`) and propagates NaN through `lateral_lengths` → `network_length` → `network_solidity`, corrupting downstream traits. The plate pipeline MUST detect this placeholder in `compute_plate_traits` (via `assoc["lateral_points"].shape[0] == 1 and not is_line_valid(assoc["lateral_points"][0])`) and pass `np.empty((0, n_nodes, 2))` to the nested `DicotPipeline` instead. Test `test_multiple_dicot_plate_pipeline_zero_laterals` MUST assert `plants[0]["traits"]["lateral_count"] == 0` (not 1) for a plant with no laterals.
 
 ### D3: Deterministic plant_id by sorting on primary root base x-coordinate, paired with original SLEAP indices
 
@@ -59,7 +62,25 @@ Tertiary roots branch from laterals biologically, but for per-plant trait aggreg
 
 ### D5: JSON includes raw points for self-contained artifacts
 
-The per-plant JSON includes `primary_points`, `lateral_points`, `primary_instance_idx`, `lateral_instance_idxs`, and the full `traits` dict. This makes the JSON a self-sufficient analysis/visualization artifact independent of the `.slp` file. File size is negligible (~30KB per plate uncompressed). CSV remains scalars-only (arrays don't fit tabular format).
+The per-plant JSON includes `primary_points`, `lateral_points`, `primary_sleap_idx`, `lateral_sleap_idxs`, and the full `traits` dict. This makes the JSON a self-sufficient analysis/visualization artifact independent of the `.slp` file. File size is negligible (~30KB per plate uncompressed). CSV remains scalars-only (arrays don't fit tabular format).
+
+The JSON MUST emit `NaN` values as JSON `null` (not the Python-only bare `NaN` literal that `json.dumps` emits by default). Python's default `json.dumps` with `allow_nan=True` produces strings like `{"x": NaN}` that are **not valid JSON per RFC 8259** and are rejected by strict parsers (JavaScript `JSON.parse`, Go `encoding/json`, Jackson strict mode, `jq`). Because the plate JSON is intended as a cross-language analysis artifact (consumed by the plate viewer follow-up C), the plate pipeline MUST use an encoder that converts float NaN / numpy NaN to JSON `null`. Implementation: extend `NumpyArrayEncoder` locally (or add a plate-specific encoder) to intercept `float('nan')` and `np.float*('nan')` values and emit `None`. Add a test that grep's the written file content for the literal string `"NaN"` and fails if found.
+
+The top-level JSON dict MUST include `"schema_version": 1` and `"units": "pixels"` fields so downstream consumers can gracefully handle future schema growth (PR 2 adds tertiary columns, PR 3 may add filter-config provenance) and know the coordinate/length units without out-of-band documentation.
+
+### D5b: Restore `count_mismatch` / `count_validated` flags in JSON (transferred from #125)
+
+The #125 scope-split comment transferred these acceptance criteria from #125 to #126:
+- `count_mismatch: True` on mismatch
+- `count_validated: True/False` depending on whether expected_count was resolvable and matched
+- Warning log on mismatch
+
+The original design draft's D6 rejected these as "redundant flag columns" — but that argument only applies to CSV where column-count bloat is real. JSON does not have that constraint. PR 1 MUST emit `count_mismatch` (bool) and `count_validated` (bool) fields in each per-plant JSON entry AND log a warning (via `warnings.warn` or `print`) on mismatch. These fields do NOT appear as CSV columns (consumers can derive them from raw `expected_count` / `detected_count`). Semantics:
+
+- `count_validated = expected_count is not None and not math.isnan(expected_count) and int(round(expected_count)) == detected_count`
+- `count_mismatch = expected_count is not None and not math.isnan(expected_count) and int(round(expected_count)) != detected_count`
+- When `expected_count` is None or NaN, both flags are `False` (not validated, not mismatched — just "unknown"). This is the "skip-filter" semantics from #125.
+- On mismatch (any plant row where `count_mismatch=True`), emit one warning per series via `warnings.warn(f"MultipleDicotPlatePipeline: {series.series_name} detected {detected_count} primaries but expected {expected_count}; no frames dropped", UserWarning)`.
 
 ### D6: Metadata columns first in CSV, trait columns last; reuse DicotPipeline's CSV trait set unchanged
 
@@ -251,7 +272,7 @@ All in pixel units. Computed via nested `DicotPipeline` per plant. **No trait re
 | Conceptual measurement | Existing trait name | Type | Notes |
 |------------------------|---------------------|------|-------|
 | Primary root length | `primary_length` | scalar | Polyline length of the primary root. Defined at [trait_pipelines.py:1425](../../../sleap_roots/trait_pipelines.py#L1425). |
-| Primary base-to-tip distance (proxy for "depth") | `primary_base_tip_dist` | scalar | Euclidean distance from base to tip (not pure y-depth). Defined at [trait_pipelines.py:1658](../../../sleap_roots/trait_pipelines.py#L1658). Individual y-coordinates available as `primary_base_pt_y` and `primary_tip_pt_y`. |
+| Primary base-to-tip distance (proxy for "depth") | `primary_base_tip_dist` | scalar | Euclidean distance from base to tip (NOT pure y-depth, NOT max y-extent). Defined at [trait_pipelines.py:1658](../../../sleap_roots/trait_pipelines.py#L1658). `primary_tip_pt_y` is in `DicotPipeline.csv_traits` ([trait_pipelines.py:1538](../../../sleap_roots/trait_pipelines.py#L1538)); `primary_base_pt_y` is NOT (`include_in_csv=False` at [trait_pipelines.py:1529](../../../sleap_roots/trait_pipelines.py#L1529)), so CSV-only consumers cannot reconstruct `tip_y - base_y`. See design-doc § "Deviation from #126 on `primary_root_depth`" below for the recorded substitution and follow-up issue F. |
 | Lateral root count | `lateral_count` | scalar | Defined at [trait_pipelines.py:1264](../../../sleap_roots/trait_pipelines.py#L1264). |
 | Individual lateral lengths | `lateral_lengths` | non-scalar (array) | Defined at [trait_pipelines.py:1291](../../../sleap_roots/trait_pipelines.py#L1291). CSV auto-expands to `lateral_lengths_{min,max,mean,median,std,p5,p25,p75,p95}`. |
 | Total network length (primary + sum of laterals) | `network_length` | scalar | Defined at [trait_pipelines.py:1520](../../../sleap_roots/trait_pipelines.py#L1520); `fn=get_network_length` with inputs `["primary_length", "lateral_lengths"]` — simple sum, NOT convex-hull math. Reusable directly. |
@@ -259,6 +280,18 @@ All in pixel units. Computed via nested `DicotPipeline` per plant. **No trait re
 **Correction from earlier design drafts**: An earlier version of this document claimed `network_length` uses convex-hull math and should not be reused. That was incorrect — `get_network_length` computes `primary_length + sum(lateral_lengths)`. The plate pipeline reuses it unchanged.
 
 **Derived statistics** (e.g., "avg lateral length") are produced by the existing CSV stat-suffix mechanism (`lateral_lengths_mean`, `lateral_lengths_max`). No new trait-name synonyms are introduced.
+
+### Deviation from #126 on `primary_root_depth` (recorded substitution)
+
+Issue #126's original acceptance criteria define `primary_root_depth` as "max y-extent (deepest node y − base node y)". No existing `DicotPipeline` trait computes that quantity exactly. The closest three candidates are:
+
+1. `primary_base_tip_dist` — Euclidean distance between node 0 (base) and node N−1 (tip). Correct magnitude for straight-down roots; over-/under-counts for curved roots.
+2. `primary_tip_pt_y − primary_base_pt_y` — signed y-distance from base to tip. Correct only when tip is the deepest node (usually true but not guaranteed).
+3. True max-y-extent `max(primary_pts[:, 1]) − primary_pts[0, 1]` — matches #126 semantically but requires a NEW trait.
+
+PR 1 adopts substitution (1): emit `primary_base_tip_dist` as the depth-proxy and DO NOT introduce a new trait. Rationale: (a) `primary_base_tip_dist` is an existing tested DicotPipeline trait, (b) for plate primary roots that grow roughly straight down, it matches max-y-extent to within rounding error, (c) introducing a new trait in PR 1 expands scope beyond "port DicotPipeline to plates". The pure-y and max-y alternatives are tracked as follow-up issue F so the maintainer can decide between them based on real plate data.
+
+**Action**: a comment MUST be posted on #126 documenting this substitution and linking follow-up issue F before PR 1 merges (see tasks.md § 5.7b).
 
 ## Test plan
 
