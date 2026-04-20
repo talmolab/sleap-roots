@@ -24,6 +24,7 @@ from sleap_roots.points import (
     get_right_normalized_vector,
     get_line_equation_from_points,
     associate_lateral_to_primary,
+    argsort_primaries_by_base_x,
     flatten_associated_points,
     filter_roots_with_nans,
 )
@@ -1003,3 +1004,52 @@ def test_extract_from_multilinestring(geometry, expected):
 )
 def test_extract_from_unsupported_geometry(unexpected_input, expected_output):
     assert extract_points_from_geometry(unexpected_input) == expected_output
+
+
+# ---- argsort_primaries_by_base_x (issue #126 PR 1) ----
+
+
+def _assoc_from_primaries(primaries):
+    """Build a plant_associations_dict-like mapping from a list of (idx, primary_pts).
+
+    Mirrors the shape produced by associate_lateral_to_primary: keys are primary
+    indices, values are dicts with "primary_points" (n_nodes, 2) and
+    "lateral_points" entries. Only "primary_points" is needed for the argsort.
+    """
+    return {
+        idx: {
+            "primary_points": np.asarray(pts, dtype=float),
+            "lateral_points": np.empty((0, pts.shape[0], 2), dtype=float),
+        }
+        for idx, pts in primaries
+    }
+
+
+def test_argsort_primaries_by_base_x_basic():
+    """Three primaries at base x=[100, 50, 200] sort left-to-right to [1, 0, 2]."""
+    primaries = [
+        (0, np.array([[100.0, 0.0], [100.0, 50.0], [100.0, 100.0]])),
+        (1, np.array([[50.0, 0.0], [50.0, 50.0], [50.0, 100.0]])),
+        (2, np.array([[200.0, 0.0], [200.0, 50.0], [200.0, 100.0]])),
+    ]
+    assoc = _assoc_from_primaries(primaries)
+    assert argsort_primaries_by_base_x(assoc) == [1, 0, 2]
+
+
+def test_argsort_primaries_by_base_x_single_plant():
+    """One primary returns a one-element list with that dict key."""
+    primaries = [(5, np.array([[42.0, 0.0], [42.0, 10.0], [42.0, 20.0]]))]
+    assoc = _assoc_from_primaries(primaries)
+    assert argsort_primaries_by_base_x(assoc) == [5]
+
+
+def test_argsort_primaries_by_base_x_empty():
+    """Empty input returns [] without raising."""
+    assert argsort_primaries_by_base_x({}) == []
+
+
+def test_argsort_primaries_by_base_x_identical_x():
+    """Identical base x values preserve insertion order (stable sort tiebreak)."""
+    pts = np.array([[100.0, 0.0], [100.0, 50.0], [100.0, 100.0]])
+    assoc = _assoc_from_primaries([(0, pts.copy()), (1, pts.copy()), (2, pts.copy())])
+    assert argsort_primaries_by_base_x(assoc) == [0, 1, 2]

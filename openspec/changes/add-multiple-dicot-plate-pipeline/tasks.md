@@ -10,17 +10,17 @@
 
 ## 1. Write failing unit tests for `argsort_primaries_by_base_x`
 
-- [ ] 1.1 Add `test_argsort_primaries_by_base_x_basic` to `tests/test_points.py`. Verifies three primaries at base x=[100, 50, 200] return index order `[1, 0, 2]`.
-- [ ] 1.2 Add `test_argsort_primaries_by_base_x_single_plant` to `tests/test_points.py`. Verifies a one-entry dict returns a one-element list with that key.
-- [ ] 1.3 Add `test_argsort_primaries_by_base_x_empty` to `tests/test_points.py`. Verifies empty dict input returns `[]` without raising.
-- [ ] 1.4 Add `test_argsort_primaries_by_base_x_identical_x` to `tests/test_points.py`. Verifies identical x-values preserve insertion order (stable sort tiebreak).
-- [ ] 1.5 Run `uv run pytest tests/test_points.py::test_argsort_primaries_by_base_x_basic -x` and confirm it FAILS with an `AttributeError` / `ImportError` (function does not yet exist).
+- [x] 1.1 Add `test_argsort_primaries_by_base_x_basic` to `tests/test_points.py`. Verifies three primaries at base x=[100, 50, 200] return index order `[1, 0, 2]`.
+- [x] 1.2 Add `test_argsort_primaries_by_base_x_single_plant` to `tests/test_points.py`. Verifies a one-entry dict returns a one-element list with that key.
+- [x] 1.3 Add `test_argsort_primaries_by_base_x_empty` to `tests/test_points.py`. Verifies empty dict input returns `[]` without raising.
+- [x] 1.4 Add `test_argsort_primaries_by_base_x_identical_x` to `tests/test_points.py`. Verifies identical x-values preserve insertion order (stable sort tiebreak).
+- [x] 1.5 Run `uv run pytest tests/test_points.py::test_argsort_primaries_by_base_x_basic -x` and confirm it FAILS with an `AttributeError` / `ImportError` (function does not yet exist). **Result**: collection error `ImportError: cannot import name 'argsort_primaries_by_base_x' from 'sleap_roots.points'` — red phase confirmed.
 
 ## 2. Implement `argsort_primaries_by_base_x`
 
-- [ ] 2.1 Add `argsort_primaries_by_base_x(plant_associations_dict: dict) -> List[int]` to `sleap_roots/points.py`. Google-style docstring. Stable sort via `np.argsort(..., kind="stable")`. Empty input → empty list.
-- [ ] 2.2 Run `uv run pytest tests/test_points.py -k argsort_primaries_by_base_x -v` — all four tests pass.
-- [ ] 2.3 Run `uv run pytest tests/test_points.py -x` — full file passes (no regressions).
+- [x] 2.1 Add `argsort_primaries_by_base_x(plant_associations_dict: dict) -> List[int]` to `sleap_roots/points.py`. Google-style docstring. Stable sort via `np.argsort(..., kind="stable")`. Empty input → empty list.
+- [x] 2.2 Run `uv run pytest tests/test_points.py -k argsort_primaries_by_base_x -v` — all four tests pass. **Result**: 4 passed, 92 deselected.
+- [x] 2.3 Run `uv run pytest tests/test_points.py -x` — full file passes (no regressions). **Result**: 96 passed.
 
 ## 3. Write failing tests for `MultipleDicotPlatePipeline` (TDD)
 

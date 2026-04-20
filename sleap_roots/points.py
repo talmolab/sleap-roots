@@ -593,6 +593,37 @@ def associate_lateral_to_primary(
     return plant_associations
 
 
+def argsort_primaries_by_base_x(plant_associations_dict: dict) -> List[int]:
+    """Return primary instance indices sorted left-to-right by base-node x-coordinate.
+
+    Takes the output of :func:`associate_lateral_to_primary` and returns a list of
+    primary instance indices (the keys of ``plant_associations_dict``) sorted in
+    ascending order of the x-coordinate of each primary's base node (node index 0).
+    Sorting is stable: identical x-values preserve the original key insertion order.
+
+    Used by ``MultipleDicotPlatePipeline`` to assign deterministic left-to-right
+    ``plant_id`` values. See issue #126.
+
+    Args:
+        plant_associations_dict: Dict keyed by primary instance index, with values
+            containing a ``"primary_points"`` array of shape ``(n_nodes, 2)``. The
+            node-0 x-coordinate is used as the sort key.
+
+    Returns:
+        A list of primary instance indices in left-to-right order. Length matches
+        ``len(plant_associations_dict)``. Empty list if the input is empty.
+    """
+    if not plant_associations_dict:
+        return []
+    keys = list(plant_associations_dict.keys())
+    base_xs = np.array(
+        [plant_associations_dict[k]["primary_points"][0, 0] for k in keys],
+        dtype=float,
+    )
+    order = np.argsort(base_xs, kind="stable")
+    return [keys[i] for i in order]
+
+
 def flatten_associated_points(associations: dict) -> dict:
     """Creates a dictionary of flattened arrays containing primary and lateral root points.
 
