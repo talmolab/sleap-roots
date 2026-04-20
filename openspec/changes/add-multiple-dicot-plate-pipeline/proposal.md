@@ -43,11 +43,22 @@ This proposal covers PR 1 of a 3-PR decomposition laid out in `docs/superpowers/
 
 - **Affected specs**: new capability `multiple-dicot-plate-pipeline` (ADDED requirements for the pipeline class, the helper, and output format). No modifications to existing specs.
 - **Affected code**:
-  - `sleap_roots/trait_pipelines.py` — add `MultipleDicotPlatePipeline` class AND a plate-aware JSON encoder (either extending `NumpyArrayEncoder` to emit NaN→null or adding a sibling encoder class).
+  - `sleap_roots/trait_pipelines.py` — add `MultipleDicotPlatePipeline` class + private `_json_sanitize` recursive NaN→None walker.
   - `sleap_roots/points.py` — add `argsort_primaries_by_base_x` helper.
   - `sleap_roots/__init__.py` — add `MultipleDicotPlatePipeline` to the top-level re-exports (parity with existing pipelines).
+  - `sleap_roots/bases.py` — guard `get_base_length` against empty-array input (one-line `if size == 0: return np.nan` fallback). See "### Why bases.py change?" below and issue #156.
   - `tests/test_points.py` — unit tests for the helper.
-  - `tests/test_trait_pipelines.py` — unit + integration tests for the pipeline (synthetic `.slp` round-trip via `sio.save_slp` + `Series.load`; real plate fixtures deferred to issue D).
+  - `tests/test_multiple_dicot_plate_pipeline.py` — unit + integration tests for the pipeline (synthetic `.slp` round-trip via `sio.save_slp` + `Series.load`; real plate fixtures deferred to issue D). This is a new dedicated file rather than appending ~500 lines to the 2900-line `tests/test_trait_pipelines.py` — see "### Why separate test file?" below.
+
+### Why bases.py change?
+
+`sleap_roots/bases.py:get_base_length` uses `np.nanmax(arr) - np.nanmin(arr)`, which raises `ValueError` on zero-size input arrays. This is triggered in PR 1 when the plate pipeline's zero-laterals handling passes `np.empty((0, n_nodes, 2))` to the nested `DicotPipeline` (so that `lateral_count` correctly returns 0 instead of the silently-wrong 1 that the `(1, n_nodes, 2)` NaN placeholder would produce). The fix is a one-line `size == 0 → return np.nan` guard that makes `get_base_length` robust to the zero-input case. It does not change behavior for any non-empty input. Tracked as issue [#156](https://github.com/talmolab/sleap-roots/issues/156).
+
+This is a scope deviation from the proposal's "Not breaking" claim (it touches `bases.py` which was not originally listed in Impact). The deviation is intentional and minimal — alternatives were (a) modify `DicotPipeline` to skip the crashing trait (violates D7), (b) wrap the nested-pipeline call in per-trait error handling (much larger change), (c) pass the NaN placeholder through and post-override `lateral_count` (creates inconsistency between `lateral_count` and other lateral-derived traits). The `bases.py` fix is the cleanest and most broadly useful option.
+
+### Why separate test file?
+
+Tasks 3 originally said "add a test helper at the top of `tests/test_trait_pipelines.py`". The new tests total ~550 lines and include 18 test functions plus a ~100-line synthetic-`.slp` builder helper. Appending that to the existing 2900-line file would make navigation painful. Instead, tests live in `tests/test_multiple_dicot_plate_pipeline.py`. No functional change to the task's TDD flow — the helper is still shared within the new file, and round-trips through `sio.save_slp + Series.load` as specified.
 - **Source of truth for architecture**: `docs/superpowers/specs/2026-04-16-multiple-dicot-plate-pipeline-design.md` — this proposal references it; do not duplicate. See that document for decisions D1, D2 (incl. zero-laterals handling), D3, D4, D5 + D5b (incl. JSON-NaN, schema_version, units, count_mismatch/count_validated flags), D6, D7, the SLEAP instance index mapping mechanism, the `primary_root_depth` substitution rationale, and the 8 follow-up issues (PR 2, PR 3, A, B, C, D, E, F).
 - **Reproducibility**: all new traits are in pixel units (no DPI conversion); JSON output is self-contained (includes raw points + original SLEAP indices + trait values) so analyses can be rerun from the JSON alone if the `.slp` file is ever lost.
 - **Dependencies**: unblocked by issue [#125](https://github.com/talmolab/sleap-roots/issues/125) (optional `expected_count`), which landed in PR [#155](https://github.com/talmolab/sleap-roots/pull/155).

@@ -135,8 +135,14 @@ def get_base_length(lateral_base_ys: np.ndarray) -> float:
 
     Return:
         The distance between the top base y-coordinate and the deepest
-        base y-coordinate.
+        base y-coordinate. Returns `np.nan` when the input array is empty
+        (e.g. plate frames with zero detected laterals). See issue #156.
     """
+    # Empty input — zero laterals detected. np.nanmax/nanmin raise ValueError
+    # on zero-size arrays, so guard explicitly. (Non-empty all-NaN arrays are
+    # fine: np.nanmax([nan, nan]) returns nan with a warning.)
+    if lateral_base_ys.size == 0:
+        return np.nan
     # Compute the difference between the maximum and minimum y-coordinates
     base_length = np.nanmax(lateral_base_ys) - np.nanmin(lateral_base_ys)
     return base_length
