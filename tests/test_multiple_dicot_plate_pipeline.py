@@ -11,7 +11,7 @@ All integration tests round-trip through synthetic `.slp` files written via
 
 import json
 import logging
-import math
+import re
 
 import numpy as np
 import pandas as pd
@@ -434,7 +434,16 @@ def test_multiple_dicot_plate_pipeline_expected_count_mismatch(tmp_path, caplog)
     ]
     assert len(plate_warnings) >= 1, "expected at least one WARNING record"
     combined = " ".join(r.message for r in plate_warnings)
-    assert "3" in combined and "2" in combined and "frame" in combined.lower()
+    # Tight regex: exact "detected 3" and "expected 2" phrases near "frame 0".
+    assert re.search(
+        r"detected\s+3\b", combined
+    ), f"message missing 'detected 3': {combined!r}"
+    assert re.search(
+        r"expected\s+2\b", combined
+    ), f"message missing 'expected 2': {combined!r}"
+    assert re.search(
+        r"frame\s+0\b", combined
+    ), f"message missing 'frame 0': {combined!r}"
 
 
 def test_multiple_dicot_plate_pipeline_expected_count_match(tmp_path, caplog):
@@ -657,9 +666,12 @@ def test_multiple_dicot_plate_pipeline_json_output(tmp_path):
     assert loaded["schema_version"] == 1
     assert loaded["units"] == {
         "lengths": "pixels",
+        "areas": "pixels^2",
+        "inverse_lengths": "1/pixels",
         "angles": "degrees",
         "counts": "unitless",
         "ratios": "dimensionless",
+        "indices": "unitless",
     }
 
     for plant in loaded["plants"]:

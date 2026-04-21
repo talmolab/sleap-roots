@@ -76,8 +76,6 @@ from sleap_roots.points import (
     is_line_valid,
     join_pts,
 )
-
-logger = logging.getLogger(__name__)
 from sleap_roots.scanline import (
     count_scanline_intersections,
     get_scanline_first_ind,
@@ -86,6 +84,8 @@ from sleap_roots.scanline import (
 from sleap_roots.series import Series
 from sleap_roots.summary import SUMMARY_SUFFIXES, get_summary
 from sleap_roots.tips import get_tip_xs, get_tip_ys, get_tips
+
+logger = logging.getLogger(__name__)
 
 warnings.filterwarnings(
     "ignore",
@@ -2709,12 +2709,27 @@ class MultipleDicotPipeline(Pipeline):
 
 # Structured units metadata for MultipleDicotPlatePipeline JSON output.
 # A single-string "pixels" would be factually wrong because DicotPipeline
-# emits angles in degrees (see sleap_roots/angle.py).
+# emits angles in degrees (sleap_roots/angle.py), areas in pixels squared
+# (sleap_roots/convhull.py), and inverse-length ratios (e.g. network_solidity
+# = network_length / chull_area, base_ct_density = base_count / primary_length).
+#
+# This is a COARSE categorization by unit family, not a per-trait map.
+# Consumers that need per-trait units must consult the source functions:
+#   - lengths: primary_length, lateral_lengths, network_length, primary_base_tip_dist, base_length, chull_perimeter, chull_line_lengths, chull_max_width, chull_max_height, ellipse_a, ellipse_b
+#   - areas: chull_area, ellipse_ratio (dimensionless, but derived from areas)
+#   - inverse_lengths: network_solidity, base_ct_density
+#   - angles: primary_angle_proximal, primary_angle_distal, lateral_angles_proximal, lateral_angles_distal
+#   - counts: lateral_count, detected_count, expected_count
+#   - ratios: network_distribution_ratio, network_width_depth_ratio, base_length_ratio, base_median_ratio, curve_index
+#   - indices: primary_proximal_node_ind, primary_distal_node_ind, scanline_first_ind, scanline_last_ind
 _PLATE_UNITS = {
     "lengths": "pixels",
+    "areas": "pixels^2",
+    "inverse_lengths": "1/pixels",
     "angles": "degrees",
     "counts": "unitless",
     "ratios": "dimensionless",
+    "indices": "unitless",
 }
 
 
@@ -2894,12 +2909,24 @@ class MultipleDicotPlatePipeline(Pipeline):
     ) -> Dict[int, List[int]]:
         """Map each valid lateral to the nearest primary by LineString distance.
 
-        KEEP IN SYNC WITH `associate_lateral_to_primary` in `sleap_roots/points.py`
-        (the distance-based association logic). This duplicated loop tracks original
-        SLEAP indices alongside the assignment so `lateral_sleap_idxs` per primary
-        is robust to bit-identical duplicate lateral coordinates (where
-        `np.array_equal` first-match would collide). A shared helper refactor is
-        tracked as future work beyond PR 1 scope (design D7).
+        Diverges from `associate_lateral_to_primary` in `sleap_roots/points.py`
+        by tracking original SLEAP indices alongside the distance assignment,
+        making `lateral_sleap_idxs` per primary robust to bit-identical
+        duplicate lateral coordinates (where post-hoc `np.array_equal`
+        first-match back-mapping would collide). Both functions MUST apply the
+        same distance tie-break rule (strict `<`, first primary wins) so that
+        `assoc["lateral_points"]` from `associate_lateral_to_primary` and
+        `lateral_sleap_idxs` from this method agree per-primary. A shared
+        helper refactor is tracked as future work beyond PR 1 scope (design
+        D7; refactor could land alongside follow-up issue A).
+
+        Behavioral divergence (intentional): `associate_lateral_to_primary`
+        wraps `LineString`+`distance` in try/except-print at
+        `sleap_roots/points.py:566-571` for defensive shapely error swallowing.
+        This function does not — since `primary_pts_no_nans` and
+        `lateral_pts_no_nans` have already passed `filter_roots_with_nans`,
+        the residual failure surface is narrow and raising is preferred for
+        visibility.
 
         Args:
             primary_pts_no_nans: Primary points post-NaN-filter, shape
@@ -3147,8 +3174,11 @@ class MultipleDicotPlatePipeline(Pipeline):
         detected_count` followed by the full `DicotPipeline().csv_traits` set.
         `count_validated` / `count_mismatch` are JSON-only — NOT CSV columns.
         """
-        dicot_csv_traits = DicotPipeline().csv_traits
-        dicot_traits_defs = {t.name: t for t in DicotPipeline().traits}
+        # Build DicotPipeline once per method call — not per plant row — to avoid
+        # rebuilding the ~25-node networkx DAG and topological sort every time.
+        dicot = DicotPipeline()
+        dicot_csv_traits = dicot.csv_traits
+        csv_trait_defs = [t for t in dicot.traits if t.include_in_csv]
 
         rows = []
         for plant in result["plants"]:
@@ -3162,9 +3192,7 @@ class MultipleDicotPlatePipeline(Pipeline):
             }
             # For each DicotPipeline CSV-included trait, emit the scalar directly
             # or a `{name}_{suffix}` row from get_summary for non-scalar traits.
-            for trait_def in DicotPipeline().traits:
-                if not trait_def.include_in_csv:
-                    continue
+            for trait_def in csv_trait_defs:
                 trait_value = plant["traits"].get(trait_def.name)
                 if trait_def.scalar:
                     row[trait_def.name] = trait_value

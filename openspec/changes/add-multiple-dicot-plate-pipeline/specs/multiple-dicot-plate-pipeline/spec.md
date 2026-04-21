@@ -177,13 +177,16 @@ When `compute_plate_traits(series, write_json=True, output_dir=...)` is invoked,
 ```json
 "units": {
   "lengths": "pixels",
+  "areas": "pixels^2",
+  "inverse_lengths": "1/pixels",
   "angles": "degrees",
   "counts": "unitless",
-  "ratios": "dimensionless"
+  "ratios": "dimensionless",
+  "indices": "unitless"
 }
 ```
 
-This structure is required because `DicotPipeline` emits traits in multiple unit families (e.g., `lateral_angles_distal` in degrees — see [angle.py:85](../../../sleap_roots/angle.py#L85) — alongside `primary_length` in pixels). A single-string `"units": "pixels"` would mislead any consumer that applied a pixel-to-physical conversion to angle values.
+This structure is required because `DicotPipeline` emits traits in multiple unit families: `lateral_angles_distal` is in degrees (see [angle.py:85](../../../sleap_roots/angle.py#L85)), `chull_area` is in pixels² (see [convhull.py:112](../../../sleap_roots/convhull.py#L112)), `network_solidity = network_length / chull_area` is in 1/pixels, and `scanline_first_ind` is an index (not a count). A single-string `"units": "pixels"` would mislead any consumer that applied a linear pixel-to-physical conversion. The dict is a coarse categorization, not a per-trait map — consumers must consult the source functions to determine which family a specific trait belongs to.
 
 Within each `plants[i]` entry, `primary_points` MUST be a nested list representing the full `(n_nodes, 2)` primary-root points for that plant, and `lateral_points` MUST be the `(n_laterals, n_nodes, 2)` laterals associated to that primary (nested lists). The `traits` dict MUST carry every trait emitted by `DicotPipeline.compute_frame_traits`, preserving both scalar and non-scalar entries (non-scalars serialize as nested lists). Round-tripping the JSON via `json.load` MUST yield structurally equivalent nested-list content for `primary_points`, `lateral_points`, `primary_sleap_idx` (int), and `lateral_sleap_idxs` (list of ints; `[]` when the plant has zero laterals, NOT `[null]` or missing key).
 
@@ -196,7 +199,7 @@ The JSON writer MUST emit Python `float('nan')` and numpy NaN values as JSON `nu
 - **And** the resulting JSON file is read back via `json.load`
 - **Then** the parsed top-level dict contains keys `schema_version`, `units`, `series`, `group`, `qc_fail`, `expected_count`, `plants`
 - **And** `schema_version == 1`
-- **And** `units == {"lengths": "pixels", "angles": "degrees", "counts": "unitless", "ratios": "dimensionless"}`
+- **And** `units` is a structured dict containing at least keys `{"lengths", "areas", "inverse_lengths", "angles", "counts", "ratios", "indices"}` with the values matching the top-level Requirement (coarse categorization across DicotPipeline trait families)
 - **And** each plant entry contains `primary_points` as a list of `[x, y]` pairs
 - **And** each plant entry contains `lateral_points` as a list of lists of `[x, y]` pairs
 - **And** each plant entry contains `primary_sleap_idx` as an integer and `lateral_sleap_idxs` as a list of integers
