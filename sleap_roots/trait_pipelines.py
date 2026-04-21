@@ -2972,6 +2972,7 @@ class MultipleDicotPlatePipeline(Pipeline):
         assoc: Dict[str, np.ndarray],
         expected_count: Any,
         detected_count: int,
+        dicot_pipeline: "DicotPipeline",
     ) -> Dict[str, Any]:
         """Compute the per-plant output row via a nested DicotPipeline.
 
@@ -2980,6 +2981,11 @@ class MultipleDicotPlatePipeline(Pipeline):
         `associate_lateral_to_primary` when a primary has no laterals. This
         prevents `lateral_count=1` and NaN-propagation into `network_length`
         (design D2, Req 3 zero-laterals scenario).
+
+        `dicot_pipeline` is passed in by the caller (a single shared instance
+        constructed once per series in `compute_plate_traits`) to avoid
+        rebuilding its ~25-node trait DAG per plant row. `compute_frame_traits`
+        does not mutate pipeline state, so sharing is safe.
         """
         primary_pts = assoc["primary_points"]
         lateral_pts = assoc["lateral_points"]
@@ -2995,7 +3001,6 @@ class MultipleDicotPlatePipeline(Pipeline):
             lateral_points_out = [lat for lat in lateral_pts]
             lateral_sleap_idxs_out = list(lateral_sleap_idxs_for_plant)
 
-        dicot_pipeline = DicotPipeline()
         initial_frame_traits = {
             # DicotPipeline expects primary_pts shape (n_instances, n_nodes, 2).
             "primary_pts": primary_pts[None, ...],
@@ -3003,10 +3008,12 @@ class MultipleDicotPlatePipeline(Pipeline):
         }
         plant_traits = dicot_pipeline.compute_frame_traits(initial_frame_traits)
 
-        # Emit only the user-facing traits (skip intermediate helpers like
-        # `primary_pts`, `lateral_pts`, and the various `*_pts` raw arrays).
-        # Use csv_traits_multiple_plants which gives the full trait set
-        # DicotPipeline flags for multi-plant CSV output.
+        # Emit traits flagged `include_in_csv=True` in DicotPipeline (i.e.
+        # `csv_traits_multiple_plants`). Intermediate helpers flagged
+        # `include_in_csv=False` — raw point arrays, Shapely `Point` objects,
+        # scipy `ConvexHull`, and similar geometry primitives — are excluded
+        # because they are not JSON-serializable and are internal DAG plumbing
+        # rather than analysis-ready outputs. See spec Req 3 for the contract.
         emit_names = set(dicot_pipeline.csv_traits_multiple_plants)
         traits_out = {}
         for name in emit_names:
@@ -3089,6 +3096,11 @@ class MultipleDicotPlatePipeline(Pipeline):
         if len(series) == 0:
             return result
 
+        # Build DicotPipeline once per series call — reused across all plants
+        # and frames. `compute_frame_traits` doesn't mutate pipeline state so
+        # sharing is safe. Avoids rebuilding the ~25-node trait DAG + topsort
+        # per plant row (Copilot review feedback on PR #165).
+        dicot_pipeline = DicotPipeline()
         warned_frames: set = set()
         expected_count_raw = series.expected_count
 
@@ -3144,6 +3156,7 @@ class MultipleDicotPlatePipeline(Pipeline):
                     assoc=assoc,
                     expected_count=expected_count_raw,
                     detected_count=detected_count,
+                    dicot_pipeline=dicot_pipeline,
                 )
                 result["plants"].append(plant_row)
 
