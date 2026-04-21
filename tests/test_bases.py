@@ -351,6 +351,18 @@ def test_get_base_length_no_roots(pts_no_roots):
     assert np.isnan(base_length)
 
 
+def test_get_base_length_empty_array():
+    """Regression test for issue #156: empty input must return NaN, not raise.
+
+    MultipleDicotPlatePipeline passes np.empty((0,)) to get_base_length when a
+    plant has zero detected laterals (see design D2). np.nanmax/nanmin raise
+    ValueError on zero-size arrays, so an explicit size==0 guard is required.
+    """
+    empty_base_ys = np.empty((0,), dtype=float)
+    result = get_base_length(empty_base_ys)
+    assert np.isnan(result)
+
+
 # test get_base_ct_density function with defined primary and lateral points
 def test_get_base_ct_density(primary_pts, lateral_pts):
     primary_max_length_pts = get_max_length_pts(primary_pts)
