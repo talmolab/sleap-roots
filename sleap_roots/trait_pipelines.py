@@ -2957,9 +2957,7 @@ class MultipleDicotPlatePipeline(Pipeline):
         primary_pts = assoc["primary_points"]
         lateral_pts = assoc["lateral_points"]
         n_nodes = primary_pts.shape[0]
-        zero_laterals = (
-            lateral_pts.shape[0] == 1 and not is_line_valid(lateral_pts[0])
-        )
+        zero_laterals = lateral_pts.shape[0] == 1 and not is_line_valid(lateral_pts[0])
         if zero_laterals:
             # Substitute empty array so lateral_count=0, lateral_lengths=[], etc.
             lateral_pts_for_pipeline = np.empty((0, n_nodes, 2), dtype=float)

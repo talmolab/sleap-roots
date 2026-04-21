@@ -145,47 +145,47 @@ Implement in `sleap_roots/trait_pipelines.py`. Keep the implementation minimal �
 
 Eight issues must be filed and verified before the PR is marked ready for review. Each `gh issue create` command below includes `follow-up of #126` in the body so the verification query in 5.8 matches all of them.
 
-- [ ] 5.1 File issue **PR 2** — "Add tertiary root support to `MultipleDicotPlatePipeline`". Body references this PR and design doc section on tertiary→primary direct association (D4).
+- [x] 5.1 File issue **PR 2** — "Add tertiary root support to `MultipleDicotPlatePipeline`". Body references this PR and design doc section on tertiary→primary direct association (D4).
   ```
   gh issue create --title "Add tertiary root support to MultipleDicotPlatePipeline (PR 2 of #126)" \
     --body "Follow-up of #126 (PR 2 of 3). See docs/superpowers/specs/2026-04-16-multiple-dicot-plate-pipeline-design.md § D4. Scope: Series.get_tertiary_points, tertiary_path attribute, reuse associate_lateral_to_primary with tertiary input, emit tertiary columns. Note: once PR 2 lands, network_length semantics change (tertiaries add into the sum); downstream consumers of PR 1's network_length column must be aware."
   ```
-- [ ] 5.2 File issue **PR 3** — "Add configurable filtering thresholds to `MultipleDicotPlatePipeline`".
+- [x] 5.2 File issue **PR 3** — "Add configurable filtering thresholds to `MultipleDicotPlatePipeline`".
   ```
   gh issue create --title "Add configurable filtering thresholds to MultipleDicotPlatePipeline (PR 3 of #126)" \
     --body "Follow-up of #126 (PR 3 of 3). Add min_primary_length_px, min_lateral_length_px, node_score_threshold, primary_angle_filter as constructor kwargs with plate-specific defaults."
   ```
-- [ ] 5.3 File issue **A** — "Standardize multi-plant pipeline JSON output + deterministic plant_id".
+- [x] 5.3 File issue **A** — "Standardize multi-plant pipeline JSON output + deterministic plant_id".
   ```
   gh issue create --title "Standardize multi-plant pipeline JSON output (follow-up A from #126)" \
     --body "Follow-up of #126. Apply plate JSON format (raw points, SLEAP instance indices, left-to-right sorted plant_id, schema_version, units, NaN->null encoding) to MultipleDicotPipeline and MultiplePrimaryRootPipeline."
   ```
-- [ ] 5.4 File issue **B** — "Include raw points in single-plant pipeline JSON".
+- [x] 5.4 File issue **B** — "Include raw points in single-plant pipeline JSON".
   ```
   gh issue create --title "Include raw points in single-plant pipeline JSON (follow-up B from #126)" \
     --body "Follow-up of #126. Apply to DicotPipeline, YoungerMonocotPipeline, OlderMonocotPipeline for self-contained analysis artifacts."
   ```
-- [ ] 5.5 File issue **C** — "Plate visualization / viewer".
+- [x] 5.5 File issue **C** — "Plate visualization / viewer".
   ```
   gh issue create --title "Plate visualization / viewer for MultipleDicotPlatePipeline JSON (follow-up C from #126)" \
     --body "Follow-up of #126. Consume plate pipeline JSON (schema_version=1, units=pixels) to render colored per-plant overlays with plant_id labels near primary base nodes. Related to #128."
   ```
-- [ ] 5.6 File issue **D** — "Real plate `.slp` fixture tests".
+- [x] 5.6 File issue **D** — "Real plate `.slp` fixture tests".
   ```
   gh issue create --title "Real plate .slp fixture tests for MultipleDicotPlatePipeline (follow-up D from #126)" \
     --body "Follow-up of #126. Add MK22 dataset integration tests once fixtures are available. Synthetic-only tests land in PR 1. Related to #119 (plate test data)."
   ```
-- [ ] 5.7 File issue **E** — "Generalize cylinder-conventional CSV column names for plates".
+- [x] 5.7 File issue **E** — "Generalize cylinder-conventional CSV column names for plates".
   ```
   gh issue create --title "Generalize cylinder-conventional CSV column names in Series (follow-up E from #126)" \
     --body "Follow-up of #126. Three Series properties read cylinder-named CSV columns that plates also have to use: Series.qc_fail reads qc_cylinder (series.py:196-208), Series.expected_count reads number_of_plants_cylinder (series.py:165-180). Plate CSV schemas should be able to use plate-named columns (qc_plate, number_of_plants_plate) or a unified name. Options: add plate-aware fallback column names, or add constructor kwargs for column-name resolution."
   ```
-- [ ] 5.7b File issue **F** — "Plate-specific depth trait (max y-extent)".
+- [x] 5.7b File issue **F** — "Plate-specific depth trait (max y-extent)".
   ```
   gh issue create --title "Plate-specific depth trait matching #126's max y-extent definition (follow-up F from #126)" \
     --body "Follow-up of #126. Issue #126 defines primary_root_depth as 'max y-extent (deepest node y - base node y)'. PR 1 substitutes primary_base_tip_dist (Euclidean base-to-tip) as the closest existing DicotPipeline trait; see design doc § 'Deviation from #126 on primary_root_depth'. This issue tracks introducing a dedicated max-y-extent or pure-y-depth scalar after real plate data informs which variant is biologically correct."
   ```
-- [ ] 5.7c Post a comment on #126 documenting the trait-name mapping (Subagent 3 Finding I1) so the original requester can see the substitution and push back if needed.
+- [x] 5.7c Post a comment on #126 documenting the trait-name mapping (Subagent 3 Finding I1) so the original requester can see the substitution and push back if needed.
   ```
   gh issue comment 126 --body "$(cat <<'EOF'
 ## PR 1 trait-name mapping — summary for the requester
@@ -209,7 +209,7 @@ EOF
 
 ### Verification gate
 
-- [ ] 5.8 Run the verification command and confirm exactly 8 new issues come back. The query matches any open issue whose body contains `#126` (all 8 bodies include the phrase `Follow-up of #126` OR `PR 2 of #126` / `PR 3 of #126`):
+- [x] 5.8 Run the verification command and confirm exactly 8 new issues come back. The query matches any open issue whose body contains `#126` (all 8 bodies include the phrase `Follow-up of #126` OR `PR 2 of #126` / `PR 3 of #126`):
   ```
   gh issue list --state open --search "follow-up #126 in:body" --limit 20 --json number,title,body
   gh issue list --state open --search "Tracks PR of #126 in:body" --limit 20 --json number,title,body
@@ -219,7 +219,7 @@ EOF
   gh issue list --state open --search "#126 in:body" --limit 50 --json number,title,body
   ```
   Manually confirm **exactly 8** distinct new issues in the output (one each for PR 2, PR 3, A, B, C, D, E, F — excluding #126 itself). If the count is not 8, re-file any missing ones before proceeding.
-- [ ] 5.9 Copy the 8 issue numbers into the PR body under a `## Follow-up issues filed during this PR` heading with each issue's title and number.
+- [x] 5.9 Copy the 8 issue numbers into the PR body under a `## Follow-up issues filed during this PR` heading with each issue's title and number.
 
 ## 6. Pre-merge validation
 

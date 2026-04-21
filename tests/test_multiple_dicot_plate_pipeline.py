@@ -41,10 +41,7 @@ def _default_primary(x_base: float, y_base: float = 50.0) -> np.ndarray:
     evenly spaced at 20px intervals.
     """
     return np.array(
-        [
-            [x_base, y_base + i * 20.0]
-            for i in range(N_NODES)
-        ],
+        [[x_base, y_base + i * 20.0] for i in range(N_NODES)],
         dtype=float,
     )
 
@@ -55,10 +52,7 @@ def _default_lateral(x_base: float, y_base: float = 80.0) -> np.ndarray:
     The lateral extends diagonally 20px right and 100px down from its base.
     """
     return np.array(
-        [
-            [x_base + i * 4.0, y_base + i * 20.0]
-            for i in range(N_NODES)
-        ],
+        [[x_base + i * 4.0, y_base + i * 20.0] for i in range(N_NODES)],
         dtype=float,
     )
 
@@ -178,9 +172,9 @@ def test_multiple_dicot_plate_pipeline_define_traits():
     for name in expected_in_order:
         assert name in names, f"missing TraitDef: {name}"
     indices = [names.index(n) for n in expected_in_order]
-    assert indices == sorted(indices), (
-        f"TraitDefs not in expected order: got indices {indices} for {expected_in_order}"
-    )
+    assert indices == sorted(
+        indices
+    ), f"TraitDefs not in expected order: got indices {indices} for {expected_in_order}"
 
     by_name = {t.name: t for t in traits}
     assert by_name["detected_count"].scalar is True
@@ -196,9 +190,9 @@ def test_multiple_dicot_plate_pipeline_define_traits():
 
     # Plates skip count-filter entirely (design D2).
     for t in traits:
-        assert t.fn is not filter_plants_with_unexpected_ct, (
-            "plate pipeline must NOT use filter_plants_with_unexpected_ct"
-        )
+        assert (
+            t.fn is not filter_plants_with_unexpected_ct
+        ), "plate pipeline must NOT use filter_plants_with_unexpected_ct"
 
     assert by_name["primary_pts_no_nans"].fn is filter_roots_with_nans
     assert by_name["primary_pts_no_nans"].input_traits == ["primary_pts"]
@@ -222,6 +216,7 @@ def test_multiple_dicot_plate_pipeline_top_level_import():
     from sleap_roots.trait_pipelines import (
         MultipleDicotPlatePipeline as PlatePipelineNested,
     )
+
     assert PlatePipelineTop is PlatePipelineNested
     assert hasattr(sleap_roots, "MultipleDicotPlatePipeline")
 
@@ -393,12 +388,13 @@ def test_multiple_dicot_plate_pipeline_expected_count_none(tmp_path, caplog):
         )
         assert plant["detected_count"] >= 0
     plate_warnings = [
-        r for r in caplog.records
+        r
+        for r in caplog.records
         if r.name == "sleap_roots.trait_pipelines" and r.levelno >= logging.WARNING
     ]
-    assert plate_warnings == [], (
-        f"expected no WARNING records, got: {[r.message for r in plate_warnings]}"
-    )
+    assert (
+        plate_warnings == []
+    ), f"expected no WARNING records, got: {[r.message for r in plate_warnings]}"
 
 
 def test_multiple_dicot_plate_pipeline_expected_count_mismatch(tmp_path, caplog):
@@ -432,7 +428,8 @@ def test_multiple_dicot_plate_pipeline_expected_count_mismatch(tmp_path, caplog)
         assert plant["count_validated"] is False
 
     plate_warnings = [
-        r for r in caplog.records
+        r
+        for r in caplog.records
         if r.name == "sleap_roots.trait_pipelines" and r.levelno >= logging.WARNING
     ]
     assert len(plate_warnings) >= 1, "expected at least one WARNING record"
@@ -467,7 +464,8 @@ def test_multiple_dicot_plate_pipeline_expected_count_match(tmp_path, caplog):
         assert plant["count_mismatch"] is False
 
     plate_warnings = [
-        r for r in caplog.records
+        r
+        for r in caplog.records
         if r.name == "sleap_roots.trait_pipelines" and r.levelno >= logging.WARNING
     ]
     assert plate_warnings == []
@@ -702,9 +700,9 @@ def test_multiple_dicot_plate_pipeline_json_rfc8259_valid_with_nested_nan(tmp_pa
     )
     json_path = tmp_path / "test_rfc8259.plate_traits.json"
     text = json_path.read_text()
-    assert "NaN" not in text, (
-        f"bare NaN literal found in JSON — invalid per RFC 8259:\n{text[:500]}"
-    )
+    assert (
+        "NaN" not in text
+    ), f"bare NaN literal found in JSON — invalid per RFC 8259:\n{text[:500]}"
 
     def _raise_on_constant(s):
         raise ValueError(f"bare constant {s!r}")
