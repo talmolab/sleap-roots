@@ -1,0 +1,3400 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Analysis tools for SLEAP-based plant root phenotyping">
+      
+      
+        <meta name="author" content="Talmo Lab">
+      
+      
+        <link rel="canonical" href="https://roots.sleap.ai/latest/superpowers/specs/2026-04-16-multiple-dicot-plate-pipeline-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Design: MultipleDicotPlatePipeline - sleap-roots</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="light-green">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#design-multipledicotplatepipeline" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="sleap-roots" class="md-header__button md-logo" aria-label="sleap-roots" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            sleap-roots
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Design: MultipleDicotPlatePipeline
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="light-green"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="green" data-md-color-accent="light-green"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/talmolab/sleap-roots" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    talmolab/sleap-roots
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../tutorials/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../guides/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../dev/contributing/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../api/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../cookbook/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Cookbook
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../changelog/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="sleap-roots" class="md-nav__button md-logo" aria-label="sleap-roots" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    sleap-roots
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/talmolab/sleap-roots" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    talmolab/sleap-roots
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/what-is-sleap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    What is SLEAP?
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../tutorials/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/dicot-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dicot Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/younger-monocot-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Younger Monocot Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/older-monocot-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Older Monocot Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/multiple-dicot-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multiple Dicot Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/multiple-primary-root-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multiple Primary Root Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/primary-root-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primary Root Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/lateral-root-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lateral Root Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../guides/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipelines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Pipelines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/pipelines/dicot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DicotPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/pipelines/younger-monocot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YoungerMonocotPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/pipelines/older-monocot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OlderMonocotPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/pipelines/multiple-primary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MultiplePrimaryRootPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/pipelines/multiple-dicot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MultipleDicotPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/pipelines/primary-root/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PrimaryRootPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/pipelines/lateral-root/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LateralRootPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Formats
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Formats
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/data-formats/sleap-files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SLEAP Files (.slp)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/data-formats/hdf5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HDF5 Output
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/data-formats/csv-traits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CSV Traits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/trait-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trait Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/batch-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/custom-pipelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Pipelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/creating-pipelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating Pipelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/adding-traits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adding Traits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/code-style/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Style
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/release-process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../api/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Core
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/core/series/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Series
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/core/pipelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Traits
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Traits
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/lengths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lengths
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/angles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Angles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/tips/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tips
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/bases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/convhull/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Convex Hull
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/ellipse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ellipse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/networklength/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network Length
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/scanline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scanline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Points
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Utilities
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Utilities
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/utilities/summary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Summary Statistics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/examples/common-workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Common Workflows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../cookbook/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cookbook
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7" id="__nav_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cookbook
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../cookbook/filtering-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Filtering Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../cookbook/custom-traits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Traits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../cookbook/batch-optimization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Optimization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../cookbook/exporting-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exporting Results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="design-multipledicotplatepipeline">Design: <code>MultipleDicotPlatePipeline</code><a class="headerlink" href="#design-multipledicotplatepipeline" title="Permanent link">&para;</a></h1>
+<p><strong>Date</strong>: 2026-04-16
+<strong>Issue</strong>: https://github.com/talmolab/sleap-roots/issues/126
+<strong>Depends on</strong>: #125 (<code>filter_plants_with_unexpected_ct</code> accepts <code>Optional[float]</code>) — landed in PR #155
+<strong>Status</strong>: Brainstorm complete, spec drafted</p>
+<h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
+<p>Create a new pipeline class <code>MultipleDicotPlatePipeline</code> for plate images with multiple dicot plants per frame. Distinct from the existing <code>MultipleDicotPipeline</code> (cylinder) because plates have <strong>one frame per timepoint</strong> (not ~72 rotational views) and require <strong>per-plant scalar output</strong> (not cross-frame summary stats). Output is a flat list of per-plant-per-frame rows, usable for a single plate today and a timelapse series tomorrow without code changes.</p>
+<h2 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">&para;</a></h2>
+<h3 id="in-scope-this-pr-pr-1">In scope (this PR — "PR 1")<a class="headerlink" href="#in-scope-this-pr-pr-1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>New class <code>MultipleDicotPlatePipeline</code> in <code>sleap_roots/trait_pipelines.py</code></li>
+<li>Primary + lateral root handling only (tertiary deferred to PR 2)</li>
+<li>Deterministic <code>plant_id</code> assignment via left-to-right sort on primary root base x-coordinate (node index 0)</li>
+<li>Original SLEAP instance indices preserved in output (<code>primary_sleap_idx</code>, <code>lateral_sleap_idxs</code>) for traceability back to the <code>.slp</code> file; <code>plant_id</code> is an additional left-to-right ordering for consumer convenience</li>
+<li>Optional <code>expected_count</code> (None or NaN both tolerated) — no error when missing, no silent filtering on mismatch</li>
+<li><code>expected_count</code> and <code>detected_count</code> columns in output (no boolean flags — consumers derive mismatch from raw values)</li>
+<li>Per-plant output: flat list of per-plant-per-frame rows</li>
+<li>JSON (self-contained, includes raw points + SLEAP instance indices) + CSV (scalars only) output</li>
+<li>Per-plant scalar traits reuse existing <code>DicotPipeline</code> trait names unchanged (no renaming)</li>
+<li>Frame loop that supports future timelapse (&gt;1 frame per series) without architecture changes</li>
+<li>Synthetic-data tests for all new code paths</li>
+</ul>
+<h3 id="explicitly-deferred-separate-follow-up-issues-must-be-filed-before-pr-merges">Explicitly deferred (separate follow-up issues — MUST be filed before PR merges)<a class="headerlink" href="#explicitly-deferred-separate-follow-up-issues-must-be-filed-before-pr-merges" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Issue</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PR 2</td>
+<td>Tertiary root support</td>
+<td><code>Series.get_tertiary_points</code>, <code>tertiary_path</code> attribute, reuse <code>associate_lateral_to_primary</code> with tertiary input (tertiary→primary direct; lateral-level granularity deferred), extend pipeline to emit tertiary columns</td>
+</tr>
+<tr>
+<td>PR 3</td>
+<td>Configurable filtering thresholds</td>
+<td><code>min_primary_length_px</code>, <code>min_lateral_length_px</code>, <code>node_score_threshold</code>, <code>primary_angle_filter</code> as constructor kwargs with plate-specific defaults</td>
+</tr>
+<tr>
+<td>A</td>
+<td>Standardize multi-plant pipeline JSON output + deterministic plant_id</td>
+<td>Apply plate JSON format (raw points, association indices, sorted plant_id) to <code>MultipleDicotPipeline</code> and <code>MultiplePrimaryRootPipeline</code></td>
+</tr>
+<tr>
+<td>B</td>
+<td>Include raw points in single-plant pipeline JSON</td>
+<td>Apply to <code>DicotPipeline</code>, <code>YoungerMonocotPipeline</code>, <code>OlderMonocotPipeline</code> for self-contained analysis artifacts</td>
+</tr>
+<tr>
+<td>C</td>
+<td>Plate visualization / viewer</td>
+<td>Consumes plate pipeline JSON to render colored per-plant overlays; related to #128</td>
+</tr>
+<tr>
+<td>D</td>
+<td>Real plate <code>.slp</code> fixture tests</td>
+<td>MK22 dataset once available</td>
+</tr>
+<tr>
+<td>E</td>
+<td>Generalize cylinder-conventional CSV column names for plates</td>
+<td>Three <code>Series</code> properties read cylinder-named CSV columns that plates also have to use: <code>qc_fail</code> reads <code>qc_cylinder</code> (<a href="../../../sleap_roots/series.py#L196-L208">series.py:196-208</a>), <code>expected_count</code> reads <code>number_of_plants_cylinder</code> (<a href="../../../sleap_roots/series.py#L165-L180">series.py:165-180</a>), <code>group</code> reads <code>genotype</code> (plate-agnostic, OK). PR 1 documents this constraint in the class docstring and a spec scenario but does not change it. Follow-up E adds plate-aware column-name resolution (e.g., a <code>qc_plate</code> / <code>number_of_plants_plate</code> column, or a constructor kwarg).</td>
+</tr>
+<tr>
+<td>F</td>
+<td>Plate-specific depth trait (<code>primary_depth</code>)</td>
+<td>Issue #126 defined <code>primary_root_depth</code> as max y-extent; PR 1 substitutes <code>primary_base_tip_dist</code> (Euclidean) as the closest existing DicotPipeline trait. Follow-up F introduces a dedicated max-y-extent or pure-y-depth scalar after real plate data informs which variant is correct. See § "Deviation from #126 on <code>primary_root_depth</code>".</td>
+</tr>
+</tbody>
+</table>
+<h2 id="key-design-decisions">Key design decisions<a class="headerlink" href="#key-design-decisions" title="Permanent link">&para;</a></h2>
+<h3 id="d1-cylinder-vs-plate-difference-is-aggregation-strategy-not-frame-count">D1: Cylinder vs plate — difference is aggregation strategy, not frame count<a class="headerlink" href="#d1-cylinder-vs-plate-difference-is-aggregation-strategy-not-frame-count" title="Permanent link">&para;</a></h3>
+<p>The <code>MultipleDicotPipeline</code> aggregates across ~72 rotational frames (each is a noisy view of the same plant state) and produces summary stats per series. The plate pipeline treats each frame as a distinct physical state (e.g., a timepoint in a timelapse) and emits per-plant rows without cross-frame summarization. Because of this, the plate pipeline's frame loop naturally supports future timelapse: more frames → more rows, no architecture changes.</p>
+<h3 id="d2-skip-filter_plants_with_unexpected_ct-entirely">D2: Skip <code>filter_plants_with_unexpected_ct</code> entirely<a class="headerlink" href="#d2-skip-filter_plants_with_unexpected_ct-entirely" title="Permanent link">&para;</a></h3>
+<p><code>MultipleDicotPipeline</code> uses this function to drop frames with mismatched count. Plates cannot afford to drop data (one frame = one timepoint = potentially the whole series). The plate pipeline's TraitDef DAG does NOT include a count-filter step. The pipeline keeps all detected plants regardless of <code>expected_count</code>, and surfaces the discrepancy via <code>expected_count</code> / <code>detected_count</code> columns in the output. Per the #125 scope split comment, this is the designated home for "keep all plants on mismatch" semantics.</p>
+<p><strong>Zero-laterals handling</strong> (verified against <a href="../../../sleap_roots/points.py#L588-L591">points.py:588-591</a>): <code>associate_lateral_to_primary</code> returns a <code>(1, n_nodes, 2)</code> all-NaN placeholder when a primary has zero associated laterals. Passing this placeholder into the nested <code>DicotPipeline</code> causes <code>get_count(lateral_pts)</code> to return <code>1</code> (silently wrong — should be <code>0</code>) and propagates NaN through <code>lateral_lengths</code> → <code>network_length</code> → <code>network_solidity</code>, corrupting downstream traits. The plate pipeline MUST detect this placeholder in <code>compute_plate_traits</code> (via <code>assoc["lateral_points"].shape[0] == 1 and not is_line_valid(assoc["lateral_points"][0])</code>) and pass <code>np.empty((0, n_nodes, 2))</code> to the nested <code>DicotPipeline</code> instead. Test <code>test_multiple_dicot_plate_pipeline_zero_laterals</code> MUST assert <code>plants[0]["traits"]["lateral_count"] == 0</code> (not 1) for a plant with no laterals.</p>
+<h3 id="d3-deterministic-plant_id-by-sorting-on-primary-root-base-x-coordinate-paired-with-original-sleap-indices">D3: Deterministic plant_id by sorting on primary root base x-coordinate, paired with original SLEAP indices<a class="headerlink" href="#d3-deterministic-plant_id-by-sorting-on-primary-root-base-x-coordinate-paired-with-original-sleap-indices" title="Permanent link">&para;</a></h3>
+<p><code>plant_id</code> is 0-indexed, assigned left-to-right by the x-coordinate of the primary root's base node (node 0). Uses stable <code>np.argsort</code> so identical x-values fall back to original instance order (tiebreaker is arbitrary but deterministic). <strong>Known limitation</strong>: if SLEAP misses a primary root prediction, all downstream plant_ids shift by one. This fragility is accepted for PR 1. Visualization tooling (follow-up issue C) is the mitigation — users can see which plant maps to which ID on the image.</p>
+<p>The output ALSO emits <code>primary_sleap_idx</code> (scalar int) and <code>lateral_sleap_idxs</code> (list of ints) per plant, which are the <strong>original SLEAP instance indices</strong> into <code>Series.get_primary_points(frame_idx)</code> and <code>Series.get_lateral_points(frame_idx)</code> — pre-<code>filter_roots_with_nans</code>. This means both views of "which plant" are available: (a) <code>plant_id</code> for user-facing left-to-right order, (b) <code>primary_sleap_idx</code> / <code>lateral_sleap_idxs</code> for back-mapping to the source <code>.slp</code> file during debugging or visualization overlays. Because <code>filter_roots_with_nans</code> at <a href="../../../sleap_roots/points.py#L338-L361">points.py:338-361</a> collapses indices without preserving a mapping, the pipeline computes a per-frame validity mask BEFORE filtering, then maps post-filter association-dict keys back to the original indices.</p>
+<h3 id="d4-tertiaryprimary-direct-association-pr-2">D4: Tertiary→primary direct association (PR 2)<a class="headerlink" href="#d4-tertiaryprimary-direct-association-pr-2" title="Permanent link">&para;</a></h3>
+<p>Tertiary roots branch from laterals biologically, but for per-plant trait aggregation the association chain tertiary → lateral → primary is unnecessary indirection. PR 2 will reuse <code>associate_lateral_to_primary</code> with tertiary input to directly associate tertiaries to the nearest primary root. <strong>This decision MUST be documented in PR 2's docstrings</strong> — future code readers should see why we're not tracking tertiary → lateral granularity. If per-lateral tertiary counts become a real need, a separate follow-up can add that.</p>
+<h3 id="d5-json-includes-raw-points-for-self-contained-artifacts">D5: JSON includes raw points for self-contained artifacts<a class="headerlink" href="#d5-json-includes-raw-points-for-self-contained-artifacts" title="Permanent link">&para;</a></h3>
+<p>The per-plant JSON includes <code>primary_points</code>, <code>lateral_points</code>, <code>primary_sleap_idx</code>, <code>lateral_sleap_idxs</code>, and the full <code>traits</code> dict. This makes the JSON a self-sufficient analysis/visualization artifact independent of the <code>.slp</code> file. File size is negligible (~30KB per plate uncompressed). CSV remains scalars-only (arrays don't fit tabular format).</p>
+<p>The JSON MUST emit <code>NaN</code> values as JSON <code>null</code> (not the Python-only bare <code>NaN</code> literal that <code>json.dumps</code> emits by default). Python's default <code>json.dumps</code> with <code>allow_nan=True</code> produces strings like <code>{"x": NaN}</code> that are <strong>not valid JSON per RFC 8259</strong> and are rejected by strict parsers (JavaScript <code>JSON.parse</code>, Go <code>encoding/json</code>, Jackson strict mode, <code>jq</code>). Because the plate JSON is intended as a cross-language analysis artifact (consumed by the plate viewer follow-up C), the plate pipeline MUST convert NaN to <code>None</code> <strong>before</strong> <code>json.dump</code> sees the value.</p>
+<p><strong>Why not a JSONEncoder subclass with <code>default()</code></strong>: CPython's <code>json.JSONEncoder</code> has a fast path for native <code>float</code> (including <code>np.float64</code>, which subclasses <code>float</code>) that bypasses <code>default()</code> entirely. With <code>allow_nan=True</code>, bare <code>NaN</code> is emitted; with <code>allow_nan=False</code>, a <code>ValueError</code> is raised <strong>before</strong> <code>default()</code> is called. The encoder hook cannot intercept scalar NaN.</p>
+<p><strong>Required mechanism — recursive pre-serialization sanitizer</strong>: the plate pipeline MUST call a helper like <code>_json_sanitize(obj)</code> that walks the result dict recursively, recognizes <code>float('nan')</code> / <code>np.floating</code> NaN (via <code>math.isnan</code> / <code>np.isnan</code>), and replaces with <code>None</code>. The walker must also convert <code>np.ndarray</code> → <code>list</code> via <code>.tolist()</code> at array boundaries so nested NaN inside arrays is caught too (<code>arr.tolist()</code> emits bare <code>float('nan')</code> that would otherwise slip through). Then call <code>json.dump(sanitized, f, allow_nan=False, cls=NumpyArrayEncoder, ensure_ascii=False, indent=4)</code> — <code>allow_nan=False</code> is defense-in-depth: if any NaN slips through the walker, the write raises a clear error rather than producing invalid JSON. The <code>NumpyArrayEncoder</code> subclass (or a plate-specific encoder) is retained to handle residual <code>np.int64</code> and any ndarrays the walker missed.</p>
+<p>The top-level JSON dict MUST include <code>"schema_version": 1</code> and a structured <code>"units"</code> object so downstream consumers can gracefully handle future schema growth and know the per-trait-family units without out-of-band documentation. Use:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span><span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;lengths&quot;</span><span class="p">:</span> <span class="s2">&quot;pixels&quot;</span><span class="p">,</span> <span class="s2">&quot;angles&quot;</span><span class="p">:</span> <span class="s2">&quot;degrees&quot;</span><span class="p">,</span> <span class="s2">&quot;counts&quot;</span><span class="p">:</span> <span class="s2">&quot;unitless&quot;</span><span class="p">,</span> <span class="s2">&quot;ratios&quot;</span><span class="p">:</span> <span class="s2">&quot;dimensionless&quot;</span><span class="p">}}</span>
+</span></code></pre></div>
+<p>A single top-level <code>"units": "pixels"</code> would be <strong>factually wrong</strong>: <code>DicotPipeline</code> emits <code>lateral_angles_distal</code>, <code>lateral_angles_proximal</code>, <code>primary_angle_distal</code>, <code>primary_angle_proximal</code> in <strong>degrees</strong> (see <code>sleap_roots/angle.py:85</code> which multiplies by <code>180 / np.pi</code>). A consumer assuming the single-unit string applies to all numeric traits could apply a DPI conversion to degree angles and silently corrupt results.</p>
+<h3 id="d5c-schema_version-bump-policy">D5c: <code>schema_version</code> bump policy<a class="headerlink" href="#d5c-schema_version-bump-policy" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>schema_version</code> is incremented ONLY for <strong>breaking</strong> changes (field rename, removal, type change, or semantic change of an existing field).</li>
+<li><strong>Additive</strong> changes (new optional fields, new plant-row keys) are permitted at the same version; consumers MUST tolerate unknown fields.</li>
+<li>PR 2's tertiary columns land at <code>schema_version: 1</code> (additive — new <code>tertiary_*</code> trait keys added to <code>plants[i].traits</code> and new CSV columns appended at the end).</li>
+<li>The version bumps to <code>2</code> only when (e.g.) a field's semantic interpretation changes (e.g., if follow-up F replaces <code>primary_base_tip_dist</code> with a max-y-extent scalar under the same column name).</li>
+</ul>
+<h3 id="d5b-restore-count_mismatch-count_validated-flags-in-json-transferred-from-125">D5b: Restore <code>count_mismatch</code> / <code>count_validated</code> flags in JSON (transferred from #125)<a class="headerlink" href="#d5b-restore-count_mismatch-count_validated-flags-in-json-transferred-from-125" title="Permanent link">&para;</a></h3>
+<p>The #125 scope-split comment transferred these acceptance criteria from #125 to #126:
+- <code>count_mismatch: True</code> on mismatch
+- <code>count_validated: True/False</code> depending on whether expected_count was resolvable and matched
+- Warning log on mismatch</p>
+<p>The original design draft's D6 rejected these as "redundant flag columns" — but that argument only applies to CSV where column-count bloat is real. JSON does not have that constraint. PR 1 MUST emit <code>count_mismatch</code> (bool) and <code>count_validated</code> (bool) fields in each per-plant JSON entry AND log a warning (via <code>warnings.warn</code> or <code>print</code>) on mismatch. These fields do NOT appear as CSV columns (consumers can derive them from raw <code>expected_count</code> / <code>detected_count</code>). Semantics:</p>
+<ul>
+<li><code>count_validated = expected_count is not None and not math.isnan(expected_count) and int(round(expected_count)) == detected_count</code></li>
+<li><code>count_mismatch = expected_count is not None and not math.isnan(expected_count) and int(round(expected_count)) != detected_count</code></li>
+<li>When <code>expected_count</code> is None or NaN, both flags are <code>False</code> (not validated, not mismatched — just "unknown"). This is the "skip-filter" semantics from #125.</li>
+<li><strong>Semantic note — divergence from #125 literal wording</strong>: the #125 scope-split comment text says <code>count_validated: True</code> on the mismatch path. This proposal uses the stricter reading <code>count_validated</code> means "passed validation" (so <code>False</code> on mismatch). To disambiguate "unknown" from "validated-and-matched-wrong", consumers should always pair <code>count_validated</code> with <code>count_mismatch</code> AND check whether <code>expected_count</code> is null/NaN. For explicit tri-state signalling, follow-up work may change both flags to nullable <code>Optional[bool]</code> (<code>null</code> when unknown); PR 1 ships the two-flag variant as documented here.</li>
+<li>On mismatch (any plant row where <code>count_mismatch=True</code>), the pipeline MUST log each distinct <code>(series_name, frame_idx)</code> pair at most once via <code>logging.getLogger(__name__).warning(f"MultipleDicotPlatePipeline: {series.series_name} frame {frame_idx} detected {detected_count} primaries but expected {expected_count}; no plants dropped")</code>. <strong>Uses <code>logging.warning</code>, not <code>warnings.warn</code></strong>, because: (a) <code>warnings.warn(UserWarning)</code> is commonly suppressed via <code>warnings.simplefilter('ignore', UserWarning)</code> in batch jobs and the signal would silently disappear; (b) <code>logging</code> is the established Python pattern for per-event diagnostics; (c) granularity is per-frame so timelapse mismatches at frame 50 name frame 50, not just the series. Tests MUST use <code>caplog</code> (pytest's log-capture fixture) rather than <code>pytest.warns</code>.</li>
+</ul>
+<h3 id="d6-metadata-columns-first-in-csv-trait-columns-last-reuse-dicotpipelines-csv-trait-set-unchanged">D6: Metadata columns first in CSV, trait columns last; reuse DicotPipeline's CSV trait set unchanged<a class="headerlink" href="#d6-metadata-columns-first-in-csv-trait-columns-last-reuse-dicotpipelines-csv-trait-set-unchanged" title="Permanent link">&para;</a></h3>
+<p>Follow the existing <code>MultiplePrimaryRootPipeline</code> flattened CSV convention: <code>series, frame, plant_id, primary_sleap_idx, expected_count, detected_count, &lt;traits&gt;</code>. Consumers derive <code>count_validated</code> / <code>count_mismatch</code> booleans from the raw <code>expected_count</code> / <code>detected_count</code> pair. No redundant flag columns.</p>
+<p><strong>Trait columns come from <code>DicotPipeline.csv_traits</code> unchanged</strong> — no renaming. This preserves the project-wide naming convention (<code>primary_length</code>, <code>lateral_count</code>, <code>lateral_lengths_{min,max,mean,...}</code>, <code>network_length</code>, <code>primary_base_tip_dist</code>, angle/base/tip traits, etc.) and avoids introducing a parallel <code>primary_root_length</code>-style dialect. <code>lateral_sleap_idxs</code> is JSON-only (variable-length list; does not belong in a flat CSV cell).</p>
+<h3 id="d7-no-pipeline-base-class-changes-no-refactor-of-other-pipelines">D7: No <code>Pipeline</code> base class changes, no refactor of other pipelines<a class="headerlink" href="#d7-no-pipeline-base-class-changes-no-refactor-of-other-pipelines" title="Permanent link">&para;</a></h3>
+<p>Approach A from brainstorming: mirror <code>MultipleDicotPipeline</code>'s compute method structure in a new <code>compute_plate_traits(series)</code> method on the new class. Accept some code duplication (frame loop + per-plant inner loop) in exchange for a clean parallel between cylinder and plate pipelines. Shared helper refactor is out of scope for PR 1 — can be done later if duplication pain accumulates across 3+ pipelines.</p>
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
+<h3 id="class-structure">Class structure<a class="headerlink" href="#class-structure" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@attrs</span><span class="o">.</span><span class="n">define</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">MultipleDicotPlatePipeline</span><span class="p">(</span><span class="n">Pipeline</span><span class="p">):</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Pipeline for multi-plant dicot plate images.&quot;&quot;&quot;</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">define_traits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">TraitDef</span><span class="p">]:</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="k">return</span> <span class="p">[</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>            <span class="n">TraitDef</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;primary_pts_no_nans&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">filter_roots_with_nans</span><span class="p">,</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>                     <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;primary_pts&quot;</span><span class="p">],</span> <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>            <span class="n">TraitDef</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;lateral_pts_no_nans&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">filter_roots_with_nans</span><span class="p">,</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>                     <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;lateral_pts&quot;</span><span class="p">],</span> <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>            <span class="n">TraitDef</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;detected_count&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">get_count</span><span class="p">,</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>                     <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;primary_pts_no_nans&quot;</span><span class="p">],</span> <span class="n">scalar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>            <span class="n">TraitDef</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;plant_associations_dict&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">associate_lateral_to_primary</span><span class="p">,</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>                     <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;primary_pts_no_nans&quot;</span><span class="p">,</span> <span class="s2">&quot;lateral_pts_no_nans&quot;</span><span class="p">],</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>                     <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>            <span class="n">TraitDef</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;plant_id_order&quot;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">argsort_primaries_by_base_x</span><span class="p">,</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>                     <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;plant_associations_dict&quot;</span><span class="p">],</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>                     <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>        <span class="p">]</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_initial_frame_traits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plant</span><span class="p">,</span> <span class="n">frame_idx</span><span class="p">):</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>        <span class="n">primary_pts_raw</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">get_primary_points</span><span class="p">(</span><span class="n">frame_idx</span><span class="p">)</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>        <span class="n">lateral_pts_raw</span> <span class="o">=</span> <span class="n">plant</span><span class="o">.</span><span class="n">get_lateral_points</span><span class="p">(</span><span class="n">frame_idx</span><span class="p">)</span>
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>        <span class="c1"># Preserve original SLEAP instance indices through filter_roots_with_nans</span>
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>        <span class="n">primary_sleap_idxs</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>            <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">primary_pts_raw</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>        <span class="p">]</span>
+</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>        <span class="n">lateral_sleap_idxs</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>            <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lateral_pts_raw</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>        <span class="p">]</span>
+</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>        <span class="k">return</span> <span class="p">{</span>
+</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>            <span class="s2">&quot;primary_pts&quot;</span><span class="p">:</span> <span class="n">primary_pts_raw</span><span class="p">,</span>
+</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>            <span class="s2">&quot;lateral_pts&quot;</span><span class="p">:</span> <span class="n">lateral_pts_raw</span><span class="p">,</span>
+</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a>            <span class="s2">&quot;primary_sleap_idxs&quot;</span><span class="p">:</span> <span class="n">primary_sleap_idxs</span><span class="p">,</span>
+</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a>            <span class="s2">&quot;lateral_sleap_idxs&quot;</span><span class="p">:</span> <span class="n">lateral_sleap_idxs</span><span class="p">,</span>
+</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>            <span class="s2">&quot;expected_count&quot;</span><span class="p">:</span> <span class="n">plant</span><span class="o">.</span><span class="n">expected_count</span><span class="p">,</span>
+</span><span id="__span-1-37"><a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a>        <span class="p">}</span>
+</span><span id="__span-1-38"><a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a>
+</span><span id="__span-1-39"><a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute_plate_traits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">series</span><span class="p">,</span> <span class="n">write_csv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">write_json</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-1-40"><a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a>                             <span class="n">output_dir</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="__span-1-41"><a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Run the plate pipeline on a Series (one or more frames).</span>
+</span><span id="__span-1-42"><a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a>
+</span><span id="__span-1-43"><a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a><span class="sd">        Returns a per-series dict with a flat `plants` list.</span>
+</span><span id="__span-1-44"><a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-1-45"><a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a>        <span class="o">...</span>
+</span><span id="__span-1-46"><a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a>
+</span><span id="__span-1-47"><a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute_batch_plate_traits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">all_series</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="__span-1-48"><a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Run the plate pipeline across multiple Series, concatenate per-plant rows.&quot;&quot;&quot;</span>
+</span><span id="__span-1-49"><a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a>        <span class="o">...</span>
+</span></code></pre></div>
+<h3 id="new-helper-function-in-sleap_rootspointspy">New helper function in <code>sleap_roots/points.py</code><a class="headerlink" href="#new-helper-function-in-sleap_rootspointspy" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">argsort_primaries_by_base_x</span><span class="p">(</span><span class="n">plant_associations_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return primary instance indices sorted left-to-right by base node x-coordinate.</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="sd">    Stable sort: identical x-values keep original instance order.</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="sd">    Args:</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="sd">        plant_associations_dict: Output of associate_lateral_to_primary, keyed by</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="sd">            primary instance index.</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="sd">    Returns:</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="sd">        List of primary instance indices in left-to-right order. Length matches</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="sd">        len(plant_associations_dict). Empty list if input is empty.</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span></code></pre></div>
+<h3 id="compute-flow-per-series">Compute flow (per series)<a class="headerlink" href="#compute-flow-per-series" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>series (N frames)
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a> └─ for frame_idx in range(N):
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>     ├─ initial = get_initial_frame_traits(series, frame_idx)
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>     │   → {&quot;primary_pts&quot;, &quot;lateral_pts&quot;, &quot;primary_sleap_idxs&quot;,
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>     │      &quot;lateral_sleap_idxs&quot;, &quot;expected_count&quot;}
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>     ├─ frame_traits = compute_frame_traits(initial)
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>     │   → adds &quot;primary_pts_no_nans&quot;, &quot;lateral_pts_no_nans&quot;,
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>     │     &quot;detected_count&quot;, &quot;plant_associations_dict&quot;, &quot;plant_id_order&quot;
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>     └─ for plant_id, primary_idx in enumerate(frame_traits[&quot;plant_id_order&quot;]):
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>         # primary_idx is the POST-FILTER index (into plant_associations_dict)
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>         assoc = frame_traits[&quot;plant_associations_dict&quot;][primary_idx]
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>         primary_sleap_idx = initial[&quot;primary_sleap_idxs&quot;][primary_idx]
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>         # lateral_sleap_idxs for this plant: map the laterals associated to this
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>         # primary back through initial[&quot;lateral_sleap_idxs&quot;] via is_line_valid
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>         # matching against lateral_pts_no_nans (see implementation notes)
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>         dicot_pipeline = DicotPipeline()
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>         per_plant_traits = dicot_pipeline.compute_frame_traits({
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>             &quot;primary_pts&quot;: assoc[&quot;primary_points&quot;][None, ...],  # (1, n_nodes, 2)
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>             &quot;lateral_pts&quot;: assoc[&quot;lateral_points&quot;],
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>         })
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>         extract full DicotPipeline CSV trait set (scalars + summary of non-scalars)
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>         from per_plant_traits → plant_row_dict
+</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>         append plant_row_dict to output[&quot;plants&quot;]
+</span></code></pre></div>
+<p>Per-plant trait computation uses a nested <code>DicotPipeline</code> on each plant's isolated primary + lateral points — same pattern as <code>MultipleDicotPipeline.compute_multiple_dicots_traits</code> at <a href="../../../sleap_roots/trait_pipelines.py#L453">trait_pipelines.py:453</a>. The plate pipeline emits the full <code>DicotPipeline.csv_traits</code> set per plant, unchanged — no trait renaming.</p>
+<h3 id="sleap-instance-index-mapping">SLEAP instance index mapping<a class="headerlink" href="#sleap-instance-index-mapping" title="Permanent link">&para;</a></h3>
+<p><code>filter_roots_with_nans</code> collapses indices. <code>associate_lateral_to_primary</code> returns a dict keyed by post-filter primary indices. To recover original SLEAP indices:</p>
+<ul>
+<li><strong>Primary</strong>: <code>initial["primary_sleap_idxs"][post_filter_primary_idx]</code> gives the original index.</li>
+<li><strong>Lateral</strong>: after filtering, each association dict's <code>"lateral_points"</code> entry is a <code>(k, n_nodes, 2)</code> array of the post-filter laterals associated to that primary. The mapping back to original SLEAP lateral indices is computed by matching each associated lateral against <code>lateral_pts_no_nans</code> via <code>is_line_valid</code> + coordinate equality (Shapely-distance-based association is deterministic, so post-filter identity is stable). Concretely: for each lateral in <code>assoc["lateral_points"]</code>, find its index in <code>lateral_pts_no_nans</code> (array-equal), then look up that index in <code>initial["lateral_sleap_idxs"]</code>.</li>
+</ul>
+<h2 id="output-structures">Output structures<a class="headerlink" href="#output-structures" title="Permanent link">&para;</a></h2>
+<h3 id="per-series-dict-returned-by-compute_plate_traits">Per-series dict (returned by <code>compute_plate_traits</code>)<a class="headerlink" href="#per-series-dict-returned-by-compute_plate_traits" title="Permanent link">&para;</a></h3>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;series&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;MK22_plate1&quot;</span><span class="p">,</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;group&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;MK22&quot;</span><span class="p">,</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;qc_fail&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">&quot;expected_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="nt">&quot;plants&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">      </span><span class="nt">&quot;frame&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">      </span><span class="nt">&quot;plant_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">      </span><span class="nt">&quot;detected_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">      </span><span class="nt">&quot;expected_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">      </span><span class="nt">&quot;primary_sleap_idx&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">      </span><span class="nt">&quot;primary_points&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[[</span><span class="err">x</span><span class="p">,</span><span class="w"> </span><span class="err">y</span><span class="p">],</span><span class="w"> </span><span class="err">...</span><span class="p">],</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">      </span><span class="nt">&quot;lateral_sleap_idxs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="p">],</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">      </span><span class="nt">&quot;lateral_points&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[[[</span><span class="err">x</span><span class="p">,</span><span class="w"> </span><span class="err">y</span><span class="p">],</span><span class="w"> </span><span class="err">...</span><span class="p">],</span><span class="w"> </span><span class="err">...</span><span class="p">],</span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">      </span><span class="nt">&quot;traits&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">        </span><span class="nt">&quot;primary_length&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">234.5</span><span class="p">,</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">        </span><span class="nt">&quot;primary_base_tip_dist&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">198.7</span><span class="p">,</span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">        </span><span class="nt">&quot;lateral_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="w">        </span><span class="nt">&quot;lateral_lengths&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">45.2</span><span class="p">,</span><span class="w"> </span><span class="mf">56.1</span><span class="p">,</span><span class="w"> </span><span class="mf">67.3</span><span class="p">],</span>
+</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="w">        </span><span class="nt">&quot;network_length&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">402.9</span><span class="p">,</span>
+</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="w">        </span><span class="nt">&quot;primary_angle_proximal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">12.3</span><span class="p">,</span>
+</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">        </span><span class="nt">&quot;primary_angle_distal&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">8.7</span><span class="p">,</span>
+</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">        </span><span class="nt">&quot;...&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...full DicotPipeline trait set...&quot;</span>
+</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">      </span><span class="p">}</span>
+</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Important</strong>: the <code>traits</code> dict contains the <strong>full DicotPipeline output</strong> (every trait produced by <code>DicotPipeline.compute_frame_traits</code> — scalars AND non-scalars). The CSV emits scalars directly and non-scalars via the automatic <code>{name}_{min,max,mean,median,std,p5,p25,p75,p95}</code> expansion at <a href="../../../sleap_roots/trait_pipelines.py#L262-L274">trait_pipelines.py:262-274</a>.</p>
+<h3 id="per-series-csv-one-row-per-plant-per-frame">Per-series CSV (one row per plant per frame)<a class="headerlink" href="#per-series-csv-one-row-per-plant-per-frame" title="Permanent link">&para;</a></h3>
+<p>Columns: <code>series, frame, plant_id, primary_sleap_idx, expected_count, detected_count, &lt;DicotPipeline.csv_traits unchanged&gt;</code></p>
+<p><code>expected_count</code> is nullable (empty cell if None or NaN); <code>detected_count</code> is always populated. <code>lateral_sleap_idxs</code> is NOT in CSV (variable-length list; JSON-only).</p>
+<p>The DicotPipeline CSV trait set includes (non-exhaustive; authoritative list comes from <code>DicotPipeline().csv_traits</code>): <code>primary_length</code>, <code>primary_base_tip_dist</code>, <code>primary_angle_proximal</code>, <code>primary_angle_distal</code>, <code>primary_tip_pt_y</code>, <code>lateral_count</code>, <code>lateral_lengths_{min,max,mean,median,std,p5,p25,p75,p95}</code>, <code>lateral_angles_distal_{...}</code>, <code>lateral_angles_proximal_{...}</code>, <code>lateral_base_xs_{...}</code>, <code>lateral_base_ys_{...}</code>, <code>lateral_tip_xs_{...}</code>, <code>lateral_tip_ys_{...}</code>, <code>network_length</code>, <code>network_length_lower</code>, <code>network_distribution_ratio</code>, <code>network_solidity</code>, <code>network_width_depth_ratio</code>, and others.</p>
+<h3 id="batch-output">Batch output<a class="headerlink" href="#batch-output" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>compute_batch_plate_traits(all_series)</code> → <code>pd.DataFrame</code> concatenating all per-series CSV rows.</li>
+<li>Batch JSON (if requested) → list of per-series dicts at the top level.</li>
+</ul>
+<h3 id="serialization">Serialization<a class="headerlink" href="#serialization" title="Permanent link">&para;</a></h3>
+<ul>
+<li>JSON: reuse existing <code>NumpyArrayEncoder</code> at <a href="../../../sleap_roots/trait_pipelines.py#L123">trait_pipelines.py:123</a>.</li>
+<li>CSV: <code>pd.DataFrame.to_csv(path, index=False)</code>.</li>
+</ul>
+<h2 id="per-plant-traits-pr-1">Per-plant traits (PR 1)<a class="headerlink" href="#per-plant-traits-pr-1" title="Permanent link">&para;</a></h2>
+<p>All in pixel units. Computed via nested <code>DicotPipeline</code> per plant. <strong>No trait renaming</strong> — the plate pipeline emits DicotPipeline trait names unchanged, preserving the project-wide naming convention (<code>primary_*</code>, <code>lateral_*</code>, <code>network_*</code> prefixes; never <code>_root_</code> infix).</p>
+<p><strong>What the plate pipeline emits per plant:</strong></p>
+<ul>
+<li><strong>JSON</strong> (<code>plants[i].traits</code>): the full <code>DicotPipeline.compute_frame_traits</code> output — every trait (scalars and non-scalar arrays).</li>
+<li><strong>CSV</strong> (per-plant row): <code>DicotPipeline.csv_traits</code> — scalars emitted as-is, non-scalars expanded to <code>{name}_{min,max,mean,median,std,p5,p25,p75,p95}</code> via the existing summary mechanism at <a href="../../../sleap_roots/trait_pipelines.py#L262-L274">trait_pipelines.py:262-274</a>.</li>
+</ul>
+<p><strong>Core traits of interest for plate analysis</strong> (mapping from this PR's conceptual requirements to existing DicotPipeline trait names):</p>
+<table>
+<thead>
+<tr>
+<th>Conceptual measurement</th>
+<th>Existing trait name</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primary root length</td>
+<td><code>primary_length</code></td>
+<td>scalar</td>
+<td>Polyline length of the primary root. Defined at <a href="../../../sleap_roots/trait_pipelines.py#L1425">trait_pipelines.py:1425</a>.</td>
+</tr>
+<tr>
+<td>Primary base-to-tip distance (proxy for "depth")</td>
+<td><code>primary_base_tip_dist</code></td>
+<td>scalar</td>
+<td>Euclidean distance from base to tip (NOT pure y-depth, NOT max y-extent). Defined at <a href="../../../sleap_roots/trait_pipelines.py#L1658">trait_pipelines.py:1658</a>. <code>primary_tip_pt_y</code> is in <code>DicotPipeline.csv_traits</code> (<a href="../../../sleap_roots/trait_pipelines.py#L1538">trait_pipelines.py:1538</a>); <code>primary_base_pt_y</code> is NOT (<code>include_in_csv=False</code> at <a href="../../../sleap_roots/trait_pipelines.py#L1529">trait_pipelines.py:1529</a>), so CSV-only consumers cannot reconstruct <code>tip_y - base_y</code>. See design-doc § "Deviation from #126 on <code>primary_root_depth</code>" below for the recorded substitution and follow-up issue F.</td>
+</tr>
+<tr>
+<td>Lateral root count</td>
+<td><code>lateral_count</code></td>
+<td>scalar</td>
+<td>Defined at <a href="../../../sleap_roots/trait_pipelines.py#L1264">trait_pipelines.py:1264</a>.</td>
+</tr>
+<tr>
+<td>Individual lateral lengths</td>
+<td><code>lateral_lengths</code></td>
+<td>non-scalar (array)</td>
+<td>Defined at <a href="../../../sleap_roots/trait_pipelines.py#L1291">trait_pipelines.py:1291</a>. CSV auto-expands to <code>lateral_lengths_{min,max,mean,median,std,p5,p25,p75,p95}</code>.</td>
+</tr>
+<tr>
+<td>Total network length (primary + sum of laterals)</td>
+<td><code>network_length</code></td>
+<td>scalar</td>
+<td>Defined at <a href="../../../sleap_roots/trait_pipelines.py#L1520">trait_pipelines.py:1520</a>; <code>fn=get_network_length</code> with inputs <code>["primary_length", "lateral_lengths"]</code> — simple sum, NOT convex-hull math. Reusable directly.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Correction from earlier design drafts</strong>: An earlier version of this document claimed <code>network_length</code> uses convex-hull math and should not be reused. That was incorrect — <code>get_network_length</code> computes <code>primary_length + sum(lateral_lengths)</code>. The plate pipeline reuses it unchanged.</p>
+<p><strong>Derived statistics</strong> (e.g., "avg lateral length") are produced by the existing CSV stat-suffix mechanism (<code>lateral_lengths_mean</code>, <code>lateral_lengths_max</code>). No new trait-name synonyms are introduced.</p>
+<h3 id="deviation-from-126-on-primary_root_depth-recorded-substitution">Deviation from #126 on <code>primary_root_depth</code> (recorded substitution)<a class="headerlink" href="#deviation-from-126-on-primary_root_depth-recorded-substitution" title="Permanent link">&para;</a></h3>
+<p>Issue #126's original acceptance criteria define <code>primary_root_depth</code> as "max y-extent (deepest node y − base node y)". No existing <code>DicotPipeline</code> trait computes that quantity exactly. The closest three candidates are:</p>
+<ol>
+<li><code>primary_base_tip_dist</code> — Euclidean distance between node 0 (base) and node N−1 (tip). Correct magnitude for straight-down roots; over-/under-counts for curved roots.</li>
+<li><code>primary_tip_pt_y − primary_base_pt_y</code> — signed y-distance from base to tip. Correct only when tip is the deepest node (usually true but not guaranteed).</li>
+<li>True max-y-extent <code>max(primary_pts[:, 1]) − primary_pts[0, 1]</code> — matches #126 semantically but requires a NEW trait.</li>
+</ol>
+<p>PR 1 adopts substitution (1): emit <code>primary_base_tip_dist</code> as the depth-proxy and DO NOT introduce a new trait. Rationale: (a) <code>primary_base_tip_dist</code> is an existing tested DicotPipeline trait, (b) for plate primary roots that grow roughly straight down, it matches max-y-extent to within rounding error, (c) introducing a new trait in PR 1 expands scope beyond "port DicotPipeline to plates". The pure-y and max-y alternatives are tracked as follow-up issue F so the maintainer can decide between them based on real plate data.</p>
+<p><strong>Action</strong>: a comment MUST be posted on #126 documenting this substitution and linking follow-up issue F before PR 1 merges (see tasks.md § 5.7b).</p>
+<h2 id="test-plan">Test plan<a class="headerlink" href="#test-plan" title="Permanent link">&para;</a></h2>
+<h3 id="unit-tests-teststest_pointspy">Unit tests (<code>tests/test_points.py</code>)<a class="headerlink" href="#unit-tests-teststest_pointspy" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>test_argsort_primaries_by_base_x_basic</code> — three primaries at x=[100, 50, 200] → [1, 0, 2]</li>
+<li><code>test_argsort_primaries_by_base_x_single_plant</code> — one primary → [0]</li>
+<li><code>test_argsort_primaries_by_base_x_empty</code> — empty dict → []</li>
+<li><code>test_argsort_primaries_by_base_x_identical_x</code> — identical x-values → stable tiebreak (original order)</li>
+</ul>
+<h3 id="unit-tests-teststest_trait_pipelinespy">Unit tests (<code>tests/test_trait_pipelines.py</code>)<a class="headerlink" href="#unit-tests-teststest_trait_pipelinespy" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>test_multiple_dicot_plate_pipeline_define_traits</code> — TraitDef names, inputs, and DAG are correct (including <code>primary_pts_no_nans</code>, <code>lateral_pts_no_nans</code>, <code>detected_count</code>, <code>plant_associations_dict</code>, <code>plant_id_order</code>)</li>
+<li><code>test_multiple_dicot_plate_pipeline_get_initial_frame_traits</code> — returns <code>{primary_pts, lateral_pts, primary_sleap_idxs, lateral_sleap_idxs, expected_count}</code></li>
+</ul>
+<h3 id="integration-tests-teststest_trait_pipelinespy">Integration tests (<code>tests/test_trait_pipelines.py</code>)<a class="headerlink" href="#integration-tests-teststest_trait_pipelinespy" title="Permanent link">&para;</a></h3>
+<p>Integration tests round-trip through <strong>synthetic <code>.slp</code> files</strong> written via <code>sio.save_slp</code> and loaded via <code>Series.load</code> — same idiom used in <code>tests/test_pixel_units.py</code>. This exercises the full <code>compute_plate_traits(series)</code> frame loop including the Series interface. Real plate <code>.slp</code> fixtures (MK22 dataset) deferred to follow-up issue D.</p>
+<ul>
+<li><code>test_multiple_dicot_plate_pipeline_basic</code> — 3 synthetic plants with known geometry, verify <code>plant_id</code> order is left-to-right, <code>primary_sleap_idx</code> values match the original SLEAP instance indices pre-filter, full DicotPipeline CSV trait set present on each plant row, <code>detected_count == 3</code> on every plant row</li>
+<li><code>test_multiple_dicot_plate_pipeline_sleap_idx_traceability</code> — inject a NaN primary at SLEAP index 1 among 3 predictions so post-filter indices {0, 1} must map back to original {0, 2}; verify <code>primary_sleap_idx</code> in output is <code>[0, 2]</code> (not <code>[0, 1]</code>) in left-to-right sorted order</li>
+<li><code>test_multiple_dicot_plate_pipeline_expected_count_none</code> — no CSV attached to Series, <code>expected_count</code> is <code>NaN</code> (or <code>None</code>) in output, pipeline runs without error</li>
+<li><code>test_multiple_dicot_plate_pipeline_expected_count_mismatch</code> — 3 detected primaries, <code>expected_count=2</code>, verify all 3 plants still in output AND <code>expected_count=2, detected_count=3</code> (no filtering)</li>
+<li><code>test_multiple_dicot_plate_pipeline_empty_frame</code> — all-NaN primary predictions → empty <code>plants</code> list, no crash</li>
+<li><code>test_multiple_dicot_plate_pipeline_timelapse_shape</code> — 2-frame synthetic <code>.slp</code>, verify <code>len(result["plants"]) == N_plants × 2</code>, each plant row carries correct <code>frame</code> value</li>
+<li><code>test_multiple_dicot_plate_pipeline_csv_output</code> — CSV round-trip, column order starts with <code>series, frame, plant_id, primary_sleap_idx, expected_count, detected_count</code>, then full DicotPipeline csv_traits</li>
+<li><code>test_multiple_dicot_plate_pipeline_json_output</code> — JSON round-trip, <code>primary_points</code> as nested list, <code>lateral_sleap_idxs</code> as list of ints, top-level <code>series</code>/<code>group</code>/<code>qc_fail</code> fields present</li>
+<li><code>test_compute_batch_plate_traits</code> — two synthetic <code>.slp</code> series, batch DataFrame concatenation + batch JSON list structure</li>
+</ul>
+<h3 id="acceptance-criteria-mapped-from-issue-126">Acceptance criteria (mapped from issue #126)<a class="headerlink" href="#acceptance-criteria-mapped-from-issue-126" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>New class <code>MultipleDicotPlatePipeline</code> in trait_pipelines.py</td>
+<td>in PR 1</td>
+</tr>
+<tr>
+<td>Extends <code>Pipeline</code> via <code>@attrs.define</code></td>
+<td>in PR 1</td>
+</tr>
+<tr>
+<td><code>define_traits()</code> returns TraitDef list</td>
+<td>in PR 1 (tertiary deferred to PR 2)</td>
+</tr>
+<tr>
+<td><code>get_initial_frame_traits()</code> returns primary + lateral (+ tertiary)</td>
+<td>primary/lateral in PR 1, tertiary in PR 2</td>
+</tr>
+<tr>
+<td>New <code>associate_tertiary_to_lateral()</code> function</td>
+<td>superseded by D4 — reuse <code>associate_lateral_to_primary</code> with tertiary input in PR 2</td>
+</tr>
+<tr>
+<td>Filtering parameters configurable via constructor kwargs</td>
+<td>PR 3</td>
+</tr>
+<tr>
+<td><code>expected_count</code> optional, no error when missing</td>
+<td>in PR 1</td>
+</tr>
+<tr>
+<td><code>count_mismatch</code> flag in output</td>
+<td>in PR 1 (D5b) — JSON-only field (not a CSV column); consumers of CSV derive from raw <code>expected_count</code> / <code>detected_count</code>. Paired with <code>count_validated</code> + per-frame <code>logging.warning</code> on mismatch.</td>
+</tr>
+<tr>
+<td>Per-plant output: one dict per plant with scalar trait values in pixels</td>
+<td>in PR 1</td>
+</tr>
+<tr>
+<td>All traits in pixel units (no DPI conversion)</td>
+<td>in PR 1</td>
+</tr>
+<tr>
+<td>Tests: synthetic multi-plant point arrays with known geometry</td>
+<td>in PR 1</td>
+</tr>
+<tr>
+<td>Tests: expected_count present vs missing</td>
+<td>in PR 1</td>
+</tr>
+<tr>
+<td>Tests: expected_count mismatch (detected != expected)</td>
+<td>in PR 1</td>
+</tr>
+<tr>
+<td>Tests: plant indexing deterministic (sorted by primary base x)</td>
+<td>in PR 1</td>
+</tr>
+<tr>
+<td>Tests: <code>primary_sleap_idx</code> / <code>lateral_sleap_idxs</code> traceability through filter collapse</td>
+<td>in PR 1</td>
+</tr>
+<tr>
+<td>Tests: tertiary-to-lateral association</td>
+<td>PR 2</td>
+</tr>
+<tr>
+<td>Tests: filtering thresholds</td>
+<td>PR 3</td>
+</tr>
+</tbody>
+</table>
+<h2 id="implementation-sequencing">Implementation sequencing<a class="headerlink" href="#implementation-sequencing" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Write failing tests first</strong> (TDD): unit tests for <code>argsort_primaries_by_base_x</code>, integration tests for the pipeline class</li>
+<li><strong>Implement <code>argsort_primaries_by_base_x</code></strong> in <code>sleap_roots/points.py</code></li>
+<li><strong>Implement <code>MultipleDicotPlatePipeline</code></strong> class in <code>sleap_roots/trait_pipelines.py</code></li>
+<li><strong>Implement <code>compute_plate_traits</code></strong> and <code>compute_batch_plate_traits</code> methods</li>
+<li><strong>Run full test suite</strong> to verify no regressions in existing pipelines</li>
+<li><strong>File follow-up issues</strong> (PR 2, PR 3, A, B, C, D) before the PR is marked ready for review</li>
+<li><strong>Run pre-merge checks</strong> (black, pydocstyle, openspec validate --strict, full pytest suite)</li>
+<li><strong>Pre-PR self-review</strong> via <code>/review-pr</code> on the branch</li>
+<li><strong>Create PR</strong> with follow-up issue links in the body</li>
+</ol>
+<h2 id="risks-and-mitigations">Risks and mitigations<a class="headerlink" href="#risks-and-mitigations" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>plant_id</code> fragility if SLEAP misses a primary prediction</td>
+<td>Accepted for PR 1; visualization (issue C) is the follow-up mitigation. Document the limitation in the class docstring.</td>
+</tr>
+<tr>
+<td>Code duplication between cylinder and plate compute methods</td>
+<td>Accepted; both compute methods share only the frame loop skeleton, aggregation strategies differ enough that a shared helper would paper over real differences. Refactor later if duplication pain grows.</td>
+</tr>
+<tr>
+<td>Scope creep into tertiary / filtering config during implementation</td>
+<td>Strict PR boundaries enforced by the 3-PR decomposition. Any tertiary or filtering work that sneaks in must be moved back to PR 2 / PR 3.</td>
+</tr>
+<tr>
+<td>Breaking changes to <code>MultipleDicotPipeline</code> or other existing pipelines</td>
+<td>None proposed — PR 1 only adds a new class and a new helper function. <code>Pipeline</code> base class is untouched.</td>
+</tr>
+<tr>
+<td>Real plate <code>.slp</code> fixtures not yet available</td>
+<td>Tests use synthetic arrays; real-data regression tests deferred to issue D (MK22 dataset).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="open-questions">Open questions<a class="headerlink" href="#open-questions" title="Permanent link">&para;</a></h2>
+<p>None blocking. All design decisions are resolved through the brainstorming dialogue (D1-D7 above).</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 Talmo Lab
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/talmolab/sleap-roots" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://pypi.org/project/sleap-roots/" target="_blank" rel="noopener" title="pypi.org" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.follow", "toc.integrate", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

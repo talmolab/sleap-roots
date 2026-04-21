@@ -5747,6 +5747,161 @@ to primary_pts, representing the lateral roots. Points cannot have NaN values.</
 <div class="doc doc-object doc-function">
 
 
+<h3 id="sleap_roots.points.argsort_primaries_by_base_x" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">argsort_primaries_by_base_x</span>
+
+
+<a href="#sleap_roots.points.argsort_primaries_by_base_x" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">argsort_primaries_by_base_x</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">plant_associations_dict</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.List">List</span></span><span class="p">[</span><span class="n"><span title="int">int</span></span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Return primary instance indices sorted left-to-right by base-node x-coordinate.</p>
+<p>Takes the output of :func:<code>associate_lateral_to_primary</code> and returns a list of
+primary instance indices (the keys of <code>plant_associations_dict</code>) sorted in
+ascending order of the x-coordinate of each primary's base node (node index 0).
+Sorting is stable: identical x-values preserve the original key insertion order.</p>
+<p>Used by <code>MultipleDicotPlatePipeline</code> to assign deterministic left-to-right
+<code>plant_id</code> values. See issue #126.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>plant_associations_dict</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dict keyed by primary instance index, with values
+containing a <code>"primary_points"</code> array of shape <code>(n_nodes, 2)</code>. The
+node-0 x-coordinate is used as the sort key.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="int">int</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A list of primary instance indices in left-to-right order. Length matches</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="int">int</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>len(plant_associations_dict)</code>. Empty list if the input is empty.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>sleap_roots/points.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-596">596</a></span>
+<span class="normal"><a href="#__codelineno-0-597">597</a></span>
+<span class="normal"><a href="#__codelineno-0-598">598</a></span>
+<span class="normal"><a href="#__codelineno-0-599">599</a></span>
+<span class="normal"><a href="#__codelineno-0-600">600</a></span>
+<span class="normal"><a href="#__codelineno-0-601">601</a></span>
+<span class="normal"><a href="#__codelineno-0-602">602</a></span>
+<span class="normal"><a href="#__codelineno-0-603">603</a></span>
+<span class="normal"><a href="#__codelineno-0-604">604</a></span>
+<span class="normal"><a href="#__codelineno-0-605">605</a></span>
+<span class="normal"><a href="#__codelineno-0-606">606</a></span>
+<span class="normal"><a href="#__codelineno-0-607">607</a></span>
+<span class="normal"><a href="#__codelineno-0-608">608</a></span>
+<span class="normal"><a href="#__codelineno-0-609">609</a></span>
+<span class="normal"><a href="#__codelineno-0-610">610</a></span>
+<span class="normal"><a href="#__codelineno-0-611">611</a></span>
+<span class="normal"><a href="#__codelineno-0-612">612</a></span>
+<span class="normal"><a href="#__codelineno-0-613">613</a></span>
+<span class="normal"><a href="#__codelineno-0-614">614</a></span>
+<span class="normal"><a href="#__codelineno-0-615">615</a></span>
+<span class="normal"><a href="#__codelineno-0-616">616</a></span>
+<span class="normal"><a href="#__codelineno-0-617">617</a></span>
+<span class="normal"><a href="#__codelineno-0-618">618</a></span>
+<span class="normal"><a href="#__codelineno-0-619">619</a></span>
+<span class="normal"><a href="#__codelineno-0-620">620</a></span>
+<span class="normal"><a href="#__codelineno-0-621">621</a></span>
+<span class="normal"><a href="#__codelineno-0-622">622</a></span>
+<span class="normal"><a href="#__codelineno-0-623">623</a></span>
+<span class="normal"><a href="#__codelineno-0-624">624</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-596"><a id="__codelineno-0-596" name="__codelineno-0-596"></a><span class="k">def</span><span class="w"> </span><span class="nf">argsort_primaries_by_base_x</span><span class="p">(</span><span class="n">plant_associations_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+</span><span id="__span-0-597"><a id="__codelineno-0-597" name="__codelineno-0-597"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return primary instance indices sorted left-to-right by base-node x-coordinate.</span>
+</span><span id="__span-0-598"><a id="__codelineno-0-598" name="__codelineno-0-598"></a>
+</span><span id="__span-0-599"><a id="__codelineno-0-599" name="__codelineno-0-599"></a><span class="sd">    Takes the output of :func:`associate_lateral_to_primary` and returns a list of</span>
+</span><span id="__span-0-600"><a id="__codelineno-0-600" name="__codelineno-0-600"></a><span class="sd">    primary instance indices (the keys of ``plant_associations_dict``) sorted in</span>
+</span><span id="__span-0-601"><a id="__codelineno-0-601" name="__codelineno-0-601"></a><span class="sd">    ascending order of the x-coordinate of each primary&#39;s base node (node index 0).</span>
+</span><span id="__span-0-602"><a id="__codelineno-0-602" name="__codelineno-0-602"></a><span class="sd">    Sorting is stable: identical x-values preserve the original key insertion order.</span>
+</span><span id="__span-0-603"><a id="__codelineno-0-603" name="__codelineno-0-603"></a>
+</span><span id="__span-0-604"><a id="__codelineno-0-604" name="__codelineno-0-604"></a><span class="sd">    Used by ``MultipleDicotPlatePipeline`` to assign deterministic left-to-right</span>
+</span><span id="__span-0-605"><a id="__codelineno-0-605" name="__codelineno-0-605"></a><span class="sd">    ``plant_id`` values. See issue #126.</span>
+</span><span id="__span-0-606"><a id="__codelineno-0-606" name="__codelineno-0-606"></a>
+</span><span id="__span-0-607"><a id="__codelineno-0-607" name="__codelineno-0-607"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-608"><a id="__codelineno-0-608" name="__codelineno-0-608"></a><span class="sd">        plant_associations_dict: Dict keyed by primary instance index, with values</span>
+</span><span id="__span-0-609"><a id="__codelineno-0-609" name="__codelineno-0-609"></a><span class="sd">            containing a ``&quot;primary_points&quot;`` array of shape ``(n_nodes, 2)``. The</span>
+</span><span id="__span-0-610"><a id="__codelineno-0-610" name="__codelineno-0-610"></a><span class="sd">            node-0 x-coordinate is used as the sort key.</span>
+</span><span id="__span-0-611"><a id="__codelineno-0-611" name="__codelineno-0-611"></a>
+</span><span id="__span-0-612"><a id="__codelineno-0-612" name="__codelineno-0-612"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-613"><a id="__codelineno-0-613" name="__codelineno-0-613"></a><span class="sd">        A list of primary instance indices in left-to-right order. Length matches</span>
+</span><span id="__span-0-614"><a id="__codelineno-0-614" name="__codelineno-0-614"></a><span class="sd">        ``len(plant_associations_dict)``. Empty list if the input is empty.</span>
+</span><span id="__span-0-615"><a id="__codelineno-0-615" name="__codelineno-0-615"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-616"><a id="__codelineno-0-616" name="__codelineno-0-616"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">plant_associations_dict</span><span class="p">:</span>
+</span><span id="__span-0-617"><a id="__codelineno-0-617" name="__codelineno-0-617"></a>        <span class="k">return</span> <span class="p">[]</span>
+</span><span id="__span-0-618"><a id="__codelineno-0-618" name="__codelineno-0-618"></a>    <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">plant_associations_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+</span><span id="__span-0-619"><a id="__codelineno-0-619" name="__codelineno-0-619"></a>    <span class="n">base_xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+</span><span id="__span-0-620"><a id="__codelineno-0-620" name="__codelineno-0-620"></a>        <span class="p">[</span><span class="n">plant_associations_dict</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s2">&quot;primary_points&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">],</span>
+</span><span id="__span-0-621"><a id="__codelineno-0-621" name="__codelineno-0-621"></a>        <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-0-622"><a id="__codelineno-0-622" name="__codelineno-0-622"></a>    <span class="p">)</span>
+</span><span id="__span-0-623"><a id="__codelineno-0-623" name="__codelineno-0-623"></a>    <span class="n">order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">base_xs</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;stable&quot;</span><span class="p">)</span>
+</span><span id="__span-0-624"><a id="__codelineno-0-624" name="__codelineno-0-624"></a>    <span class="k">return</span> <span class="p">[</span><span class="n">keys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">order</span><span class="p">]</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="sleap_roots.points.flatten_associated_points" class="doc doc-heading">
             <span class="doc doc-object-name doc-function-name">flatten_associated_points</span>
 
@@ -5820,77 +5975,77 @@ array containing all the primary and lateral root points for that plant.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>sleap_roots/points.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-596">596</a></span>
-<span class="normal"><a href="#__codelineno-0-597">597</a></span>
-<span class="normal"><a href="#__codelineno-0-598">598</a></span>
-<span class="normal"><a href="#__codelineno-0-599">599</a></span>
-<span class="normal"><a href="#__codelineno-0-600">600</a></span>
-<span class="normal"><a href="#__codelineno-0-601">601</a></span>
-<span class="normal"><a href="#__codelineno-0-602">602</a></span>
-<span class="normal"><a href="#__codelineno-0-603">603</a></span>
-<span class="normal"><a href="#__codelineno-0-604">604</a></span>
-<span class="normal"><a href="#__codelineno-0-605">605</a></span>
-<span class="normal"><a href="#__codelineno-0-606">606</a></span>
-<span class="normal"><a href="#__codelineno-0-607">607</a></span>
-<span class="normal"><a href="#__codelineno-0-608">608</a></span>
-<span class="normal"><a href="#__codelineno-0-609">609</a></span>
-<span class="normal"><a href="#__codelineno-0-610">610</a></span>
-<span class="normal"><a href="#__codelineno-0-611">611</a></span>
-<span class="normal"><a href="#__codelineno-0-612">612</a></span>
-<span class="normal"><a href="#__codelineno-0-613">613</a></span>
-<span class="normal"><a href="#__codelineno-0-614">614</a></span>
-<span class="normal"><a href="#__codelineno-0-615">615</a></span>
-<span class="normal"><a href="#__codelineno-0-616">616</a></span>
-<span class="normal"><a href="#__codelineno-0-617">617</a></span>
-<span class="normal"><a href="#__codelineno-0-618">618</a></span>
-<span class="normal"><a href="#__codelineno-0-619">619</a></span>
-<span class="normal"><a href="#__codelineno-0-620">620</a></span>
-<span class="normal"><a href="#__codelineno-0-621">621</a></span>
-<span class="normal"><a href="#__codelineno-0-622">622</a></span>
-<span class="normal"><a href="#__codelineno-0-623">623</a></span>
-<span class="normal"><a href="#__codelineno-0-624">624</a></span>
-<span class="normal"><a href="#__codelineno-0-625">625</a></span>
-<span class="normal"><a href="#__codelineno-0-626">626</a></span>
-<span class="normal"><a href="#__codelineno-0-627">627</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-627">627</a></span>
 <span class="normal"><a href="#__codelineno-0-628">628</a></span>
 <span class="normal"><a href="#__codelineno-0-629">629</a></span>
 <span class="normal"><a href="#__codelineno-0-630">630</a></span>
-<span class="normal"><a href="#__codelineno-0-631">631</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-596"><a id="__codelineno-0-596" name="__codelineno-0-596"></a><span class="k">def</span><span class="w"> </span><span class="nf">flatten_associated_points</span><span class="p">(</span><span class="n">associations</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span id="__span-0-597"><a id="__codelineno-0-597" name="__codelineno-0-597"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a dictionary of flattened arrays containing primary and lateral root points.</span>
-</span><span id="__span-0-598"><a id="__codelineno-0-598" name="__codelineno-0-598"></a>
-</span><span id="__span-0-599"><a id="__codelineno-0-599" name="__codelineno-0-599"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-600"><a id="__codelineno-0-600" name="__codelineno-0-600"></a><span class="sd">        associations: A dictionary where each key is an index of a primary root and each value</span>
-</span><span id="__span-0-601"><a id="__codelineno-0-601" name="__codelineno-0-601"></a><span class="sd">            is a dictionary containing &#39;primary_points&#39; as the points of the primary root</span>
-</span><span id="__span-0-602"><a id="__codelineno-0-602" name="__codelineno-0-602"></a><span class="sd">            and &#39;lateral_points&#39; as an array of lateral root points that are closest to</span>
-</span><span id="__span-0-603"><a id="__codelineno-0-603" name="__codelineno-0-603"></a><span class="sd">            that primary root.</span>
-</span><span id="__span-0-604"><a id="__codelineno-0-604" name="__codelineno-0-604"></a>
-</span><span id="__span-0-605"><a id="__codelineno-0-605" name="__codelineno-0-605"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-606"><a id="__codelineno-0-606" name="__codelineno-0-606"></a><span class="sd">        A dictionary with the same keys as associations. Each key corresponds to a flattened</span>
-</span><span id="__span-0-607"><a id="__codelineno-0-607" name="__codelineno-0-607"></a><span class="sd">            array containing all the primary and lateral root points for that plant.</span>
-</span><span id="__span-0-608"><a id="__codelineno-0-608" name="__codelineno-0-608"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-609"><a id="__codelineno-0-609" name="__codelineno-0-609"></a>    <span class="n">flattened_points</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span id="__span-0-610"><a id="__codelineno-0-610" name="__codelineno-0-610"></a>
-</span><span id="__span-0-611"><a id="__codelineno-0-611" name="__codelineno-0-611"></a>    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">associations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span id="__span-0-612"><a id="__codelineno-0-612" name="__codelineno-0-612"></a>        <span class="c1"># Get the primary root points for the current key</span>
-</span><span id="__span-0-613"><a id="__codelineno-0-613" name="__codelineno-0-613"></a>        <span class="n">primary_root_points</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;primary_points&quot;</span><span class="p">]</span>
-</span><span id="__span-0-614"><a id="__codelineno-0-614" name="__codelineno-0-614"></a>
-</span><span id="__span-0-615"><a id="__codelineno-0-615" name="__codelineno-0-615"></a>        <span class="c1"># Get the lateral root points array</span>
-</span><span id="__span-0-616"><a id="__codelineno-0-616" name="__codelineno-0-616"></a>        <span class="n">lateral_root_points</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;lateral_points&quot;</span><span class="p">]</span>
-</span><span id="__span-0-617"><a id="__codelineno-0-617" name="__codelineno-0-617"></a>
-</span><span id="__span-0-618"><a id="__codelineno-0-618" name="__codelineno-0-618"></a>        <span class="c1"># Initialize an array with the primary root points</span>
-</span><span id="__span-0-619"><a id="__codelineno-0-619" name="__codelineno-0-619"></a>        <span class="n">all_points</span> <span class="o">=</span> <span class="p">[</span><span class="n">primary_root_points</span><span class="p">]</span>
-</span><span id="__span-0-620"><a id="__codelineno-0-620" name="__codelineno-0-620"></a>
-</span><span id="__span-0-621"><a id="__codelineno-0-621" name="__codelineno-0-621"></a>        <span class="c1"># Check if there are lateral points and extend the array if so</span>
-</span><span id="__span-0-622"><a id="__codelineno-0-622" name="__codelineno-0-622"></a>        <span class="k">if</span> <span class="n">lateral_root_points</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">lateral_root_points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]):</span>
-</span><span id="__span-0-623"><a id="__codelineno-0-623" name="__codelineno-0-623"></a>            <span class="n">all_points</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">lateral_root_points</span><span class="p">)</span>
-</span><span id="__span-0-624"><a id="__codelineno-0-624" name="__codelineno-0-624"></a>
-</span><span id="__span-0-625"><a id="__codelineno-0-625" name="__codelineno-0-625"></a>        <span class="c1"># Concatenate all the points into a single array</span>
-</span><span id="__span-0-626"><a id="__codelineno-0-626" name="__codelineno-0-626"></a>        <span class="n">all_points_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">all_points</span><span class="p">)</span>
-</span><span id="__span-0-627"><a id="__codelineno-0-627" name="__codelineno-0-627"></a>
-</span><span id="__span-0-628"><a id="__codelineno-0-628" name="__codelineno-0-628"></a>        <span class="c1"># Flatten the array and add to the dictionary</span>
-</span><span id="__span-0-629"><a id="__codelineno-0-629" name="__codelineno-0-629"></a>        <span class="n">flattened_points</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">all_points_array</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
-</span><span id="__span-0-630"><a id="__codelineno-0-630" name="__codelineno-0-630"></a>
-</span><span id="__span-0-631"><a id="__codelineno-0-631" name="__codelineno-0-631"></a>    <span class="k">return</span> <span class="n">flattened_points</span>
+<span class="normal"><a href="#__codelineno-0-631">631</a></span>
+<span class="normal"><a href="#__codelineno-0-632">632</a></span>
+<span class="normal"><a href="#__codelineno-0-633">633</a></span>
+<span class="normal"><a href="#__codelineno-0-634">634</a></span>
+<span class="normal"><a href="#__codelineno-0-635">635</a></span>
+<span class="normal"><a href="#__codelineno-0-636">636</a></span>
+<span class="normal"><a href="#__codelineno-0-637">637</a></span>
+<span class="normal"><a href="#__codelineno-0-638">638</a></span>
+<span class="normal"><a href="#__codelineno-0-639">639</a></span>
+<span class="normal"><a href="#__codelineno-0-640">640</a></span>
+<span class="normal"><a href="#__codelineno-0-641">641</a></span>
+<span class="normal"><a href="#__codelineno-0-642">642</a></span>
+<span class="normal"><a href="#__codelineno-0-643">643</a></span>
+<span class="normal"><a href="#__codelineno-0-644">644</a></span>
+<span class="normal"><a href="#__codelineno-0-645">645</a></span>
+<span class="normal"><a href="#__codelineno-0-646">646</a></span>
+<span class="normal"><a href="#__codelineno-0-647">647</a></span>
+<span class="normal"><a href="#__codelineno-0-648">648</a></span>
+<span class="normal"><a href="#__codelineno-0-649">649</a></span>
+<span class="normal"><a href="#__codelineno-0-650">650</a></span>
+<span class="normal"><a href="#__codelineno-0-651">651</a></span>
+<span class="normal"><a href="#__codelineno-0-652">652</a></span>
+<span class="normal"><a href="#__codelineno-0-653">653</a></span>
+<span class="normal"><a href="#__codelineno-0-654">654</a></span>
+<span class="normal"><a href="#__codelineno-0-655">655</a></span>
+<span class="normal"><a href="#__codelineno-0-656">656</a></span>
+<span class="normal"><a href="#__codelineno-0-657">657</a></span>
+<span class="normal"><a href="#__codelineno-0-658">658</a></span>
+<span class="normal"><a href="#__codelineno-0-659">659</a></span>
+<span class="normal"><a href="#__codelineno-0-660">660</a></span>
+<span class="normal"><a href="#__codelineno-0-661">661</a></span>
+<span class="normal"><a href="#__codelineno-0-662">662</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-627"><a id="__codelineno-0-627" name="__codelineno-0-627"></a><span class="k">def</span><span class="w"> </span><span class="nf">flatten_associated_points</span><span class="p">(</span><span class="n">associations</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="__span-0-628"><a id="__codelineno-0-628" name="__codelineno-0-628"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a dictionary of flattened arrays containing primary and lateral root points.</span>
+</span><span id="__span-0-629"><a id="__codelineno-0-629" name="__codelineno-0-629"></a>
+</span><span id="__span-0-630"><a id="__codelineno-0-630" name="__codelineno-0-630"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-631"><a id="__codelineno-0-631" name="__codelineno-0-631"></a><span class="sd">        associations: A dictionary where each key is an index of a primary root and each value</span>
+</span><span id="__span-0-632"><a id="__codelineno-0-632" name="__codelineno-0-632"></a><span class="sd">            is a dictionary containing &#39;primary_points&#39; as the points of the primary root</span>
+</span><span id="__span-0-633"><a id="__codelineno-0-633" name="__codelineno-0-633"></a><span class="sd">            and &#39;lateral_points&#39; as an array of lateral root points that are closest to</span>
+</span><span id="__span-0-634"><a id="__codelineno-0-634" name="__codelineno-0-634"></a><span class="sd">            that primary root.</span>
+</span><span id="__span-0-635"><a id="__codelineno-0-635" name="__codelineno-0-635"></a>
+</span><span id="__span-0-636"><a id="__codelineno-0-636" name="__codelineno-0-636"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-637"><a id="__codelineno-0-637" name="__codelineno-0-637"></a><span class="sd">        A dictionary with the same keys as associations. Each key corresponds to a flattened</span>
+</span><span id="__span-0-638"><a id="__codelineno-0-638" name="__codelineno-0-638"></a><span class="sd">            array containing all the primary and lateral root points for that plant.</span>
+</span><span id="__span-0-639"><a id="__codelineno-0-639" name="__codelineno-0-639"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-640"><a id="__codelineno-0-640" name="__codelineno-0-640"></a>    <span class="n">flattened_points</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="__span-0-641"><a id="__codelineno-0-641" name="__codelineno-0-641"></a>
+</span><span id="__span-0-642"><a id="__codelineno-0-642" name="__codelineno-0-642"></a>    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">associations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span id="__span-0-643"><a id="__codelineno-0-643" name="__codelineno-0-643"></a>        <span class="c1"># Get the primary root points for the current key</span>
+</span><span id="__span-0-644"><a id="__codelineno-0-644" name="__codelineno-0-644"></a>        <span class="n">primary_root_points</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;primary_points&quot;</span><span class="p">]</span>
+</span><span id="__span-0-645"><a id="__codelineno-0-645" name="__codelineno-0-645"></a>
+</span><span id="__span-0-646"><a id="__codelineno-0-646" name="__codelineno-0-646"></a>        <span class="c1"># Get the lateral root points array</span>
+</span><span id="__span-0-647"><a id="__codelineno-0-647" name="__codelineno-0-647"></a>        <span class="n">lateral_root_points</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;lateral_points&quot;</span><span class="p">]</span>
+</span><span id="__span-0-648"><a id="__codelineno-0-648" name="__codelineno-0-648"></a>
+</span><span id="__span-0-649"><a id="__codelineno-0-649" name="__codelineno-0-649"></a>        <span class="c1"># Initialize an array with the primary root points</span>
+</span><span id="__span-0-650"><a id="__codelineno-0-650" name="__codelineno-0-650"></a>        <span class="n">all_points</span> <span class="o">=</span> <span class="p">[</span><span class="n">primary_root_points</span><span class="p">]</span>
+</span><span id="__span-0-651"><a id="__codelineno-0-651" name="__codelineno-0-651"></a>
+</span><span id="__span-0-652"><a id="__codelineno-0-652" name="__codelineno-0-652"></a>        <span class="c1"># Check if there are lateral points and extend the array if so</span>
+</span><span id="__span-0-653"><a id="__codelineno-0-653" name="__codelineno-0-653"></a>        <span class="k">if</span> <span class="n">lateral_root_points</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">lateral_root_points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]):</span>
+</span><span id="__span-0-654"><a id="__codelineno-0-654" name="__codelineno-0-654"></a>            <span class="n">all_points</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">lateral_root_points</span><span class="p">)</span>
+</span><span id="__span-0-655"><a id="__codelineno-0-655" name="__codelineno-0-655"></a>
+</span><span id="__span-0-656"><a id="__codelineno-0-656" name="__codelineno-0-656"></a>        <span class="c1"># Concatenate all the points into a single array</span>
+</span><span id="__span-0-657"><a id="__codelineno-0-657" name="__codelineno-0-657"></a>        <span class="n">all_points_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">all_points</span><span class="p">)</span>
+</span><span id="__span-0-658"><a id="__codelineno-0-658" name="__codelineno-0-658"></a>
+</span><span id="__span-0-659"><a id="__codelineno-0-659" name="__codelineno-0-659"></a>        <span class="c1"># Flatten the array and add to the dictionary</span>
+</span><span id="__span-0-660"><a id="__codelineno-0-660" name="__codelineno-0-660"></a>        <span class="n">flattened_points</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">all_points_array</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+</span><span id="__span-0-661"><a id="__codelineno-0-661" name="__codelineno-0-661"></a>
+</span><span id="__span-0-662"><a id="__codelineno-0-662" name="__codelineno-0-662"></a>    <span class="k">return</span> <span class="n">flattened_points</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5950,38 +6105,7 @@ inverts the y-axis for image coordinate system.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>sleap_roots/points.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-634">634</a></span>
-<span class="normal"><a href="#__codelineno-0-635">635</a></span>
-<span class="normal"><a href="#__codelineno-0-636">636</a></span>
-<span class="normal"><a href="#__codelineno-0-637">637</a></span>
-<span class="normal"><a href="#__codelineno-0-638">638</a></span>
-<span class="normal"><a href="#__codelineno-0-639">639</a></span>
-<span class="normal"><a href="#__codelineno-0-640">640</a></span>
-<span class="normal"><a href="#__codelineno-0-641">641</a></span>
-<span class="normal"><a href="#__codelineno-0-642">642</a></span>
-<span class="normal"><a href="#__codelineno-0-643">643</a></span>
-<span class="normal"><a href="#__codelineno-0-644">644</a></span>
-<span class="normal"><a href="#__codelineno-0-645">645</a></span>
-<span class="normal"><a href="#__codelineno-0-646">646</a></span>
-<span class="normal"><a href="#__codelineno-0-647">647</a></span>
-<span class="normal"><a href="#__codelineno-0-648">648</a></span>
-<span class="normal"><a href="#__codelineno-0-649">649</a></span>
-<span class="normal"><a href="#__codelineno-0-650">650</a></span>
-<span class="normal"><a href="#__codelineno-0-651">651</a></span>
-<span class="normal"><a href="#__codelineno-0-652">652</a></span>
-<span class="normal"><a href="#__codelineno-0-653">653</a></span>
-<span class="normal"><a href="#__codelineno-0-654">654</a></span>
-<span class="normal"><a href="#__codelineno-0-655">655</a></span>
-<span class="normal"><a href="#__codelineno-0-656">656</a></span>
-<span class="normal"><a href="#__codelineno-0-657">657</a></span>
-<span class="normal"><a href="#__codelineno-0-658">658</a></span>
-<span class="normal"><a href="#__codelineno-0-659">659</a></span>
-<span class="normal"><a href="#__codelineno-0-660">660</a></span>
-<span class="normal"><a href="#__codelineno-0-661">661</a></span>
-<span class="normal"><a href="#__codelineno-0-662">662</a></span>
-<span class="normal"><a href="#__codelineno-0-663">663</a></span>
-<span class="normal"><a href="#__codelineno-0-664">664</a></span>
-<span class="normal"><a href="#__codelineno-0-665">665</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-665">665</a></span>
 <span class="normal"><a href="#__codelineno-0-666">666</a></span>
 <span class="normal"><a href="#__codelineno-0-667">667</a></span>
 <span class="normal"><a href="#__codelineno-0-668">668</a></span>
@@ -6009,66 +6133,97 @@ inverts the y-axis for image coordinate system.</p>
 <span class="normal"><a href="#__codelineno-0-690">690</a></span>
 <span class="normal"><a href="#__codelineno-0-691">691</a></span>
 <span class="normal"><a href="#__codelineno-0-692">692</a></span>
-<span class="normal"><a href="#__codelineno-0-693">693</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-634"><a id="__codelineno-0-634" name="__codelineno-0-634"></a><span class="k">def</span><span class="w"> </span><span class="nf">plot_root_associations</span><span class="p">(</span><span class="n">associations</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
-</span><span id="__span-0-635"><a id="__codelineno-0-635" name="__codelineno-0-635"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Plots the associations between primary and lateral roots.</span>
-</span><span id="__span-0-636"><a id="__codelineno-0-636" name="__codelineno-0-636"></a>
-</span><span id="__span-0-637"><a id="__codelineno-0-637" name="__codelineno-0-637"></a><span class="sd">    Plots the associations between primary and lateral roots, including the line</span>
-</span><span id="__span-0-638"><a id="__codelineno-0-638" name="__codelineno-0-638"></a><span class="sd">    connecting the closest points between each lateral root and its closest primary root,</span>
-</span><span id="__span-0-639"><a id="__codelineno-0-639" name="__codelineno-0-639"></a><span class="sd">    and ensures the color map does not include red. Adds explanations in the legend and</span>
-</span><span id="__span-0-640"><a id="__codelineno-0-640" name="__codelineno-0-640"></a><span class="sd">    inverts the y-axis for image coordinate system.</span>
-</span><span id="__span-0-641"><a id="__codelineno-0-641" name="__codelineno-0-641"></a>
-</span><span id="__span-0-642"><a id="__codelineno-0-642" name="__codelineno-0-642"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-643"><a id="__codelineno-0-643" name="__codelineno-0-643"></a><span class="sd">        associations: The output dictionary from associate_lateral_to_primary function.</span>
-</span><span id="__span-0-644"><a id="__codelineno-0-644" name="__codelineno-0-644"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-645"><a id="__codelineno-0-645" name="__codelineno-0-645"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
-</span><span id="__span-0-646"><a id="__codelineno-0-646" name="__codelineno-0-646"></a>
-</span><span id="__span-0-647"><a id="__codelineno-0-647" name="__codelineno-0-647"></a>    <span class="c1"># Generate a color map for primary roots</span>
-</span><span id="__span-0-648"><a id="__codelineno-0-648" name="__codelineno-0-648"></a>    <span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">viridis</span>  <span class="c1"># Using viridis which doesn&#39;t contain red</span>
-</span><span id="__span-0-649"><a id="__codelineno-0-649" name="__codelineno-0-649"></a>    <span class="n">colors</span> <span class="o">=</span> <span class="n">cmap</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">associations</span><span class="p">)))</span>
-</span><span id="__span-0-650"><a id="__codelineno-0-650" name="__codelineno-0-650"></a>
-</span><span id="__span-0-651"><a id="__codelineno-0-651" name="__codelineno-0-651"></a>    <span class="k">for</span> <span class="n">primary_index</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">associations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span id="__span-0-652"><a id="__codelineno-0-652" name="__codelineno-0-652"></a>        <span class="n">primary_points</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;primary_points&quot;</span><span class="p">]</span>
-</span><span id="__span-0-653"><a id="__codelineno-0-653" name="__codelineno-0-653"></a>        <span class="n">lateral_points_list</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;lateral_points&quot;</span><span class="p">]</span>
-</span><span id="__span-0-654"><a id="__codelineno-0-654" name="__codelineno-0-654"></a>        <span class="n">color</span> <span class="o">=</span> <span class="n">colors</span><span class="p">[</span><span class="n">primary_index</span><span class="p">]</span>
-</span><span id="__span-0-655"><a id="__codelineno-0-655" name="__codelineno-0-655"></a>
-</span><span id="__span-0-656"><a id="__codelineno-0-656" name="__codelineno-0-656"></a>        <span class="c1"># Convert primary points to LineString</span>
-</span><span id="__span-0-657"><a id="__codelineno-0-657" name="__codelineno-0-657"></a>        <span class="n">primary_line</span> <span class="o">=</span> <span class="n">LineString</span><span class="p">(</span><span class="n">primary_points</span><span class="p">)</span>
-</span><span id="__span-0-658"><a id="__codelineno-0-658" name="__codelineno-0-658"></a>
-</span><span id="__span-0-659"><a id="__codelineno-0-659" name="__codelineno-0-659"></a>        <span class="c1"># Plot primary root</span>
-</span><span id="__span-0-660"><a id="__codelineno-0-660" name="__codelineno-0-660"></a>        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">primary_points</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">primary_points</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-</span><span id="__span-0-661"><a id="__codelineno-0-661" name="__codelineno-0-661"></a>
-</span><span id="__span-0-662"><a id="__codelineno-0-662" name="__codelineno-0-662"></a>        <span class="c1"># Plot each associated lateral root</span>
-</span><span id="__span-0-663"><a id="__codelineno-0-663" name="__codelineno-0-663"></a>        <span class="k">for</span> <span class="n">lateral_points</span> <span class="ow">in</span> <span class="n">lateral_points_list</span><span class="p">:</span>
-</span><span id="__span-0-664"><a id="__codelineno-0-664" name="__codelineno-0-664"></a>            <span class="c1"># Convert lateral points to LineString</span>
-</span><span id="__span-0-665"><a id="__codelineno-0-665" name="__codelineno-0-665"></a>            <span class="n">lateral_line</span> <span class="o">=</span> <span class="n">LineString</span><span class="p">(</span><span class="n">lateral_points</span><span class="p">)</span>
-</span><span id="__span-0-666"><a id="__codelineno-0-666" name="__codelineno-0-666"></a>            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
-</span><span id="__span-0-667"><a id="__codelineno-0-667" name="__codelineno-0-667"></a>                <span class="n">lateral_points</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
-</span><span id="__span-0-668"><a id="__codelineno-0-668" name="__codelineno-0-668"></a>                <span class="n">lateral_points</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
-</span><span id="__span-0-669"><a id="__codelineno-0-669" name="__codelineno-0-669"></a>                <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
-</span><span id="__span-0-670"><a id="__codelineno-0-670" name="__codelineno-0-670"></a>                <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span>
-</span><span id="__span-0-671"><a id="__codelineno-0-671" name="__codelineno-0-671"></a>                <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-</span><span id="__span-0-672"><a id="__codelineno-0-672" name="__codelineno-0-672"></a>            <span class="p">)</span>
-</span><span id="__span-0-673"><a id="__codelineno-0-673" name="__codelineno-0-673"></a>
-</span><span id="__span-0-674"><a id="__codelineno-0-674" name="__codelineno-0-674"></a>            <span class="c1"># Use nearest_points to find the closest points between the two lines</span>
-</span><span id="__span-0-675"><a id="__codelineno-0-675" name="__codelineno-0-675"></a>            <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span> <span class="o">=</span> <span class="n">nearest_points</span><span class="p">(</span><span class="n">primary_line</span><span class="p">,</span> <span class="n">lateral_line</span><span class="p">)</span>
-</span><span id="__span-0-676"><a id="__codelineno-0-676" name="__codelineno-0-676"></a>            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">p1</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">p2</span><span class="o">.</span><span class="n">x</span><span class="p">],</span> <span class="p">[</span><span class="n">p1</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">p2</span><span class="o">.</span><span class="n">y</span><span class="p">],</span> <span class="s2">&quot;r--&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-693">693</a></span>
+<span class="normal"><a href="#__codelineno-0-694">694</a></span>
+<span class="normal"><a href="#__codelineno-0-695">695</a></span>
+<span class="normal"><a href="#__codelineno-0-696">696</a></span>
+<span class="normal"><a href="#__codelineno-0-697">697</a></span>
+<span class="normal"><a href="#__codelineno-0-698">698</a></span>
+<span class="normal"><a href="#__codelineno-0-699">699</a></span>
+<span class="normal"><a href="#__codelineno-0-700">700</a></span>
+<span class="normal"><a href="#__codelineno-0-701">701</a></span>
+<span class="normal"><a href="#__codelineno-0-702">702</a></span>
+<span class="normal"><a href="#__codelineno-0-703">703</a></span>
+<span class="normal"><a href="#__codelineno-0-704">704</a></span>
+<span class="normal"><a href="#__codelineno-0-705">705</a></span>
+<span class="normal"><a href="#__codelineno-0-706">706</a></span>
+<span class="normal"><a href="#__codelineno-0-707">707</a></span>
+<span class="normal"><a href="#__codelineno-0-708">708</a></span>
+<span class="normal"><a href="#__codelineno-0-709">709</a></span>
+<span class="normal"><a href="#__codelineno-0-710">710</a></span>
+<span class="normal"><a href="#__codelineno-0-711">711</a></span>
+<span class="normal"><a href="#__codelineno-0-712">712</a></span>
+<span class="normal"><a href="#__codelineno-0-713">713</a></span>
+<span class="normal"><a href="#__codelineno-0-714">714</a></span>
+<span class="normal"><a href="#__codelineno-0-715">715</a></span>
+<span class="normal"><a href="#__codelineno-0-716">716</a></span>
+<span class="normal"><a href="#__codelineno-0-717">717</a></span>
+<span class="normal"><a href="#__codelineno-0-718">718</a></span>
+<span class="normal"><a href="#__codelineno-0-719">719</a></span>
+<span class="normal"><a href="#__codelineno-0-720">720</a></span>
+<span class="normal"><a href="#__codelineno-0-721">721</a></span>
+<span class="normal"><a href="#__codelineno-0-722">722</a></span>
+<span class="normal"><a href="#__codelineno-0-723">723</a></span>
+<span class="normal"><a href="#__codelineno-0-724">724</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-665"><a id="__codelineno-0-665" name="__codelineno-0-665"></a><span class="k">def</span><span class="w"> </span><span class="nf">plot_root_associations</span><span class="p">(</span><span class="n">associations</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+</span><span id="__span-0-666"><a id="__codelineno-0-666" name="__codelineno-0-666"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Plots the associations between primary and lateral roots.</span>
+</span><span id="__span-0-667"><a id="__codelineno-0-667" name="__codelineno-0-667"></a>
+</span><span id="__span-0-668"><a id="__codelineno-0-668" name="__codelineno-0-668"></a><span class="sd">    Plots the associations between primary and lateral roots, including the line</span>
+</span><span id="__span-0-669"><a id="__codelineno-0-669" name="__codelineno-0-669"></a><span class="sd">    connecting the closest points between each lateral root and its closest primary root,</span>
+</span><span id="__span-0-670"><a id="__codelineno-0-670" name="__codelineno-0-670"></a><span class="sd">    and ensures the color map does not include red. Adds explanations in the legend and</span>
+</span><span id="__span-0-671"><a id="__codelineno-0-671" name="__codelineno-0-671"></a><span class="sd">    inverts the y-axis for image coordinate system.</span>
+</span><span id="__span-0-672"><a id="__codelineno-0-672" name="__codelineno-0-672"></a>
+</span><span id="__span-0-673"><a id="__codelineno-0-673" name="__codelineno-0-673"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-674"><a id="__codelineno-0-674" name="__codelineno-0-674"></a><span class="sd">        associations: The output dictionary from associate_lateral_to_primary function.</span>
+</span><span id="__span-0-675"><a id="__codelineno-0-675" name="__codelineno-0-675"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-676"><a id="__codelineno-0-676" name="__codelineno-0-676"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
 </span><span id="__span-0-677"><a id="__codelineno-0-677" name="__codelineno-0-677"></a>
-</span><span id="__span-0-678"><a id="__codelineno-0-678" name="__codelineno-0-678"></a>    <span class="c1"># Invert y-axis</span>
-</span><span id="__span-0-679"><a id="__codelineno-0-679" name="__codelineno-0-679"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">invert_yaxis</span><span class="p">()</span>
-</span><span id="__span-0-680"><a id="__codelineno-0-680" name="__codelineno-0-680"></a>
-</span><span id="__span-0-681"><a id="__codelineno-0-681" name="__codelineno-0-681"></a>    <span class="c1"># Custom legend</span>
-</span><span id="__span-0-682"><a id="__codelineno-0-682" name="__codelineno-0-682"></a>    <span class="n">custom_lines</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-0-683"><a id="__codelineno-0-683" name="__codelineno-0-683"></a>        <span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
-</span><span id="__span-0-684"><a id="__codelineno-0-684" name="__codelineno-0-684"></a>        <span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">),</span>
-</span><span id="__span-0-685"><a id="__codelineno-0-685" name="__codelineno-0-685"></a>        <span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">),</span>
-</span><span id="__span-0-686"><a id="__codelineno-0-686" name="__codelineno-0-686"></a>    <span class="p">]</span>
-</span><span id="__span-0-687"><a id="__codelineno-0-687" name="__codelineno-0-687"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">custom_lines</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;Primary Root&quot;</span><span class="p">,</span> <span class="s2">&quot;Lateral Root&quot;</span><span class="p">,</span> <span class="s2">&quot;Minimum Distance&quot;</span><span class="p">])</span>
-</span><span id="__span-0-688"><a id="__codelineno-0-688" name="__codelineno-0-688"></a>
-</span><span id="__span-0-689"><a id="__codelineno-0-689" name="__codelineno-0-689"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;X Coordinate&quot;</span><span class="p">)</span>
-</span><span id="__span-0-690"><a id="__codelineno-0-690" name="__codelineno-0-690"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Y Coordinate&quot;</span><span class="p">)</span>
-</span><span id="__span-0-691"><a id="__codelineno-0-691" name="__codelineno-0-691"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Primary and Lateral Root Associations with Minimum Distances&quot;</span><span class="p">)</span>
-</span><span id="__span-0-692"><a id="__codelineno-0-692" name="__codelineno-0-692"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>  <span class="c1"># Ensure equal aspect ratio for x and y axes</span>
-</span><span id="__span-0-693"><a id="__codelineno-0-693" name="__codelineno-0-693"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span><span id="__span-0-678"><a id="__codelineno-0-678" name="__codelineno-0-678"></a>    <span class="c1"># Generate a color map for primary roots</span>
+</span><span id="__span-0-679"><a id="__codelineno-0-679" name="__codelineno-0-679"></a>    <span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">viridis</span>  <span class="c1"># Using viridis which doesn&#39;t contain red</span>
+</span><span id="__span-0-680"><a id="__codelineno-0-680" name="__codelineno-0-680"></a>    <span class="n">colors</span> <span class="o">=</span> <span class="n">cmap</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">associations</span><span class="p">)))</span>
+</span><span id="__span-0-681"><a id="__codelineno-0-681" name="__codelineno-0-681"></a>
+</span><span id="__span-0-682"><a id="__codelineno-0-682" name="__codelineno-0-682"></a>    <span class="k">for</span> <span class="n">primary_index</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">associations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span id="__span-0-683"><a id="__codelineno-0-683" name="__codelineno-0-683"></a>        <span class="n">primary_points</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;primary_points&quot;</span><span class="p">]</span>
+</span><span id="__span-0-684"><a id="__codelineno-0-684" name="__codelineno-0-684"></a>        <span class="n">lateral_points_list</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;lateral_points&quot;</span><span class="p">]</span>
+</span><span id="__span-0-685"><a id="__codelineno-0-685" name="__codelineno-0-685"></a>        <span class="n">color</span> <span class="o">=</span> <span class="n">colors</span><span class="p">[</span><span class="n">primary_index</span><span class="p">]</span>
+</span><span id="__span-0-686"><a id="__codelineno-0-686" name="__codelineno-0-686"></a>
+</span><span id="__span-0-687"><a id="__codelineno-0-687" name="__codelineno-0-687"></a>        <span class="c1"># Convert primary points to LineString</span>
+</span><span id="__span-0-688"><a id="__codelineno-0-688" name="__codelineno-0-688"></a>        <span class="n">primary_line</span> <span class="o">=</span> <span class="n">LineString</span><span class="p">(</span><span class="n">primary_points</span><span class="p">)</span>
+</span><span id="__span-0-689"><a id="__codelineno-0-689" name="__codelineno-0-689"></a>
+</span><span id="__span-0-690"><a id="__codelineno-0-690" name="__codelineno-0-690"></a>        <span class="c1"># Plot primary root</span>
+</span><span id="__span-0-691"><a id="__codelineno-0-691" name="__codelineno-0-691"></a>        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">primary_points</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">primary_points</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-0-692"><a id="__codelineno-0-692" name="__codelineno-0-692"></a>
+</span><span id="__span-0-693"><a id="__codelineno-0-693" name="__codelineno-0-693"></a>        <span class="c1"># Plot each associated lateral root</span>
+</span><span id="__span-0-694"><a id="__codelineno-0-694" name="__codelineno-0-694"></a>        <span class="k">for</span> <span class="n">lateral_points</span> <span class="ow">in</span> <span class="n">lateral_points_list</span><span class="p">:</span>
+</span><span id="__span-0-695"><a id="__codelineno-0-695" name="__codelineno-0-695"></a>            <span class="c1"># Convert lateral points to LineString</span>
+</span><span id="__span-0-696"><a id="__codelineno-0-696" name="__codelineno-0-696"></a>            <span class="n">lateral_line</span> <span class="o">=</span> <span class="n">LineString</span><span class="p">(</span><span class="n">lateral_points</span><span class="p">)</span>
+</span><span id="__span-0-697"><a id="__codelineno-0-697" name="__codelineno-0-697"></a>            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+</span><span id="__span-0-698"><a id="__codelineno-0-698" name="__codelineno-0-698"></a>                <span class="n">lateral_points</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+</span><span id="__span-0-699"><a id="__codelineno-0-699" name="__codelineno-0-699"></a>                <span class="n">lateral_points</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+</span><span id="__span-0-700"><a id="__codelineno-0-700" name="__codelineno-0-700"></a>                <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span>
+</span><span id="__span-0-701"><a id="__codelineno-0-701" name="__codelineno-0-701"></a>                <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span>
+</span><span id="__span-0-702"><a id="__codelineno-0-702" name="__codelineno-0-702"></a>                <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-0-703"><a id="__codelineno-0-703" name="__codelineno-0-703"></a>            <span class="p">)</span>
+</span><span id="__span-0-704"><a id="__codelineno-0-704" name="__codelineno-0-704"></a>
+</span><span id="__span-0-705"><a id="__codelineno-0-705" name="__codelineno-0-705"></a>            <span class="c1"># Use nearest_points to find the closest points between the two lines</span>
+</span><span id="__span-0-706"><a id="__codelineno-0-706" name="__codelineno-0-706"></a>            <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span> <span class="o">=</span> <span class="n">nearest_points</span><span class="p">(</span><span class="n">primary_line</span><span class="p">,</span> <span class="n">lateral_line</span><span class="p">)</span>
+</span><span id="__span-0-707"><a id="__codelineno-0-707" name="__codelineno-0-707"></a>            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">p1</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">p2</span><span class="o">.</span><span class="n">x</span><span class="p">],</span> <span class="p">[</span><span class="n">p1</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">p2</span><span class="o">.</span><span class="n">y</span><span class="p">],</span> <span class="s2">&quot;r--&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-0-708"><a id="__codelineno-0-708" name="__codelineno-0-708"></a>
+</span><span id="__span-0-709"><a id="__codelineno-0-709" name="__codelineno-0-709"></a>    <span class="c1"># Invert y-axis</span>
+</span><span id="__span-0-710"><a id="__codelineno-0-710" name="__codelineno-0-710"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">invert_yaxis</span><span class="p">()</span>
+</span><span id="__span-0-711"><a id="__codelineno-0-711" name="__codelineno-0-711"></a>
+</span><span id="__span-0-712"><a id="__codelineno-0-712" name="__codelineno-0-712"></a>    <span class="c1"># Custom legend</span>
+</span><span id="__span-0-713"><a id="__codelineno-0-713" name="__codelineno-0-713"></a>    <span class="n">custom_lines</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-0-714"><a id="__codelineno-0-714" name="__codelineno-0-714"></a>        <span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+</span><span id="__span-0-715"><a id="__codelineno-0-715" name="__codelineno-0-715"></a>        <span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">),</span>
+</span><span id="__span-0-716"><a id="__codelineno-0-716" name="__codelineno-0-716"></a>        <span class="n">Line2D</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">),</span>
+</span><span id="__span-0-717"><a id="__codelineno-0-717" name="__codelineno-0-717"></a>    <span class="p">]</span>
+</span><span id="__span-0-718"><a id="__codelineno-0-718" name="__codelineno-0-718"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">custom_lines</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;Primary Root&quot;</span><span class="p">,</span> <span class="s2">&quot;Lateral Root&quot;</span><span class="p">,</span> <span class="s2">&quot;Minimum Distance&quot;</span><span class="p">])</span>
+</span><span id="__span-0-719"><a id="__codelineno-0-719" name="__codelineno-0-719"></a>
+</span><span id="__span-0-720"><a id="__codelineno-0-720" name="__codelineno-0-720"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;X Coordinate&quot;</span><span class="p">)</span>
+</span><span id="__span-0-721"><a id="__codelineno-0-721" name="__codelineno-0-721"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Y Coordinate&quot;</span><span class="p">)</span>
+</span><span id="__span-0-722"><a id="__codelineno-0-722" name="__codelineno-0-722"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Primary and Lateral Root Associations with Minimum Distances&quot;</span><span class="p">)</span>
+</span><span id="__span-0-723"><a id="__codelineno-0-723" name="__codelineno-0-723"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>  <span class="c1"># Ensure equal aspect ratio for x and y axes</span>
+</span><span id="__span-0-724"><a id="__codelineno-0-724" name="__codelineno-0-724"></a>    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
