@@ -491,6 +491,62 @@ def test_multiple_dicot_plate_pipeline_empty_frame(tmp_path):
     assert result["plants"] == []
 
 
+def test_multiple_dicot_plate_pipeline_mixed_nan_laterals(tmp_path):
+    """One valid lateral + one all-NaN lateral: NaN-filter drops the latter.
+
+    Guards the lateral-path whole-root-drop behavior (invariant g in the class
+    docstring) — only the valid lateral is associated and appears in
+    `lateral_sleap_idxs`; `lateral_count == 1`.
+    """
+    primaries = [np.stack([_default_primary(100.0)])]
+    laterals = [np.stack([_default_lateral(100.0), _nan_instance()])]
+    series = _build_synthetic_slp(
+        tmp_path, "test_mixed_nan_lat", primaries, laterals, csv_content=None
+    )
+    result = MultipleDicotPlatePipeline().compute_plate_traits(series)
+    plant = result["plants"][0]
+    assert plant["traits"]["lateral_count"] == 1
+    # The NaN lateral at SLEAP index 1 must be filtered; only index 0 survives.
+    assert plant["lateral_sleap_idxs"] == [0]
+
+
+def test_multiple_dicot_plate_pipeline_zero_frames(tmp_path):
+    """Zero-frame Series: early-return path yields empty `plants` list."""
+    # Build a Series with an empty-labels .slp (no frames).
+    image_h, image_w = 400, 300
+    img_array = np.zeros((image_h, image_w), dtype=np.uint8)
+    tif_path = tmp_path / "zero_frames.tif"
+    Image.fromarray(img_array).save(tif_path.as_posix(), dpi=(72, 72))
+    video = sio.Video.from_filename(tif_path.as_posix())
+    skeleton_primary = sio.Skeleton(
+        nodes=[sio.Node(f"pnode_{i}") for i in range(N_NODES)]
+    )
+    skeleton_lateral = sio.Skeleton(
+        nodes=[sio.Node(f"lnode_{i}") for i in range(N_NODES)]
+    )
+    # No labeled frames at all.
+    primary_labels = sio.Labels(
+        labeled_frames=[], skeletons=[skeleton_primary], videos=[video]
+    )
+    lateral_labels = sio.Labels(
+        labeled_frames=[], skeletons=[skeleton_lateral], videos=[video]
+    )
+    primary_path = tmp_path / "zero_frames.primary.predictions.slp"
+    lateral_path = tmp_path / "zero_frames.lateral.predictions.slp"
+    sio.save_slp(primary_labels, primary_path.as_posix())
+    sio.save_slp(lateral_labels, lateral_path.as_posix())
+    series = Series.load(
+        series_name="zero_frames",
+        primary_path=primary_path.as_posix(),
+        lateral_path=lateral_path.as_posix(),
+    )
+    result = MultipleDicotPlatePipeline().compute_plate_traits(series)
+    assert result["plants"] == []
+    # Top-level metadata still populated.
+    assert result["schema_version"] == 1
+    assert result["series"] == "zero_frames"
+
+
 def test_multiple_dicot_plate_pipeline_zero_laterals(tmp_path):
     """Req 3 scenario: zero-laterals plant yields lateral_count==0 (not 1)."""
     primaries = [np.stack([_default_primary(100.0)])]

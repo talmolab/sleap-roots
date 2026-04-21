@@ -2714,14 +2714,22 @@ class MultipleDicotPipeline(Pipeline):
 # = network_length / chull_area, base_ct_density = base_count / primary_length).
 #
 # This is a COARSE categorization by unit family, not a per-trait map.
-# Consumers that need per-trait units must consult the source functions:
-#   - lengths: primary_length, lateral_lengths, network_length, primary_base_tip_dist, base_length, chull_perimeter, chull_line_lengths, chull_max_width, chull_max_height, ellipse_a, ellipse_b
-#   - areas: chull_area, ellipse_ratio (dimensionless, but derived from areas)
-#   - inverse_lengths: network_solidity, base_ct_density
-#   - angles: primary_angle_proximal, primary_angle_distal, lateral_angles_proximal, lateral_angles_distal
-#   - counts: lateral_count, detected_count, expected_count
-#   - ratios: network_distribution_ratio, network_width_depth_ratio, base_length_ratio, base_median_ratio, curve_index
-#   - indices: primary_proximal_node_ind, primary_distal_node_ind, scanline_first_ind, scanline_last_ind
+# Consumers that need per-trait units must consult the source functions.
+# Category assignment for the 35 traits in DicotPipeline.csv_traits_multiple_plants:
+#   - lengths (pixels): primary_length, lateral_lengths, network_length,
+#     network_length_lower, primary_base_tip_dist, base_length, chull_perimeter,
+#     chull_line_lengths, chull_max_width, chull_max_height, ellipse_a, ellipse_b,
+#     root_widths, lateral_base_xs, lateral_base_ys, lateral_tip_xs,
+#     lateral_tip_ys, primary_tip_pt_y
+#   - areas (pixels^2): chull_area
+#   - inverse_lengths (1/pixels): network_solidity, base_ct_density
+#   - angles (degrees): primary_angle_proximal, primary_angle_distal,
+#     lateral_angles_proximal, lateral_angles_distal
+#   - counts (unitless integers): lateral_count, detected_count, expected_count,
+#     scanline_intersection_counts
+#   - ratios (dimensionless): network_distribution_ratio, network_width_depth_ratio,
+#     base_length_ratio, base_median_ratio, curve_index, ellipse_ratio
+#   - indices (unitless integers): scanline_first_ind, scanline_last_ind
 _PLATE_UNITS = {
     "lengths": "pixels",
     "areas": "pixels^2",
@@ -3175,21 +3183,28 @@ class MultipleDicotPlatePipeline(Pipeline):
 
         if write_csv:
             csv_path = Path(output_dir) / f"{series.series_name}{csv_suffix}"
-            df = self._build_plate_dataframe(result)
+            df = self._build_plate_dataframe(result, dicot_pipeline=dicot_pipeline)
             df.to_csv(csv_path.as_posix(), index=False)
 
         return result
 
-    def _build_plate_dataframe(self, result: Dict[str, Any]) -> pd.DataFrame:
+    def _build_plate_dataframe(
+        self,
+        result: Dict[str, Any],
+        dicot_pipeline: Optional["DicotPipeline"] = None,
+    ) -> pd.DataFrame:
         """Build the per-plant flattened DataFrame for CSV output.
 
         Columns: `series, frame, plant_id, primary_sleap_idx, expected_count,
         detected_count` followed by the full `DicotPipeline().csv_traits` set.
         `count_validated` / `count_mismatch` are JSON-only — NOT CSV columns.
+
+        Pass an existing `dicot_pipeline` to avoid rebuilding it per series in
+        `compute_batch_plate_traits` calls; defaults to constructing a fresh one.
         """
         # Build DicotPipeline once per method call — not per plant row — to avoid
         # rebuilding the ~25-node networkx DAG and topological sort every time.
-        dicot = DicotPipeline()
+        dicot = dicot_pipeline if dicot_pipeline is not None else DicotPipeline()
         dicot_csv_traits = dicot.csv_traits
         csv_trait_defs = [t for t in dicot.traits if t.include_in_csv]
 
@@ -3261,12 +3276,19 @@ class MultipleDicotPlatePipeline(Pipeline):
         Returns:
             A concatenated `pandas.DataFrame` across all input Series.
         """
+        # Share one DicotPipeline across all series in the batch — avoids
+        # rebuilding its ~25-node trait DAG once per series. compute_plate_traits
+        # constructs its own internally (one per call), but the DataFrame builder
+        # here explicitly shares across the batch.
+        shared_dicot = DicotPipeline()
         per_series_results: List[Dict[str, Any]] = []
         per_series_dfs: List[pd.DataFrame] = []
         for series in all_series:
             result = self.compute_plate_traits(series)
             per_series_results.append(result)
-            per_series_dfs.append(self._build_plate_dataframe(result))
+            per_series_dfs.append(
+                self._build_plate_dataframe(result, dicot_pipeline=shared_dicot)
+            )
 
         if per_series_dfs:
             batch_df = pd.concat(per_series_dfs, axis=0, ignore_index=True)
