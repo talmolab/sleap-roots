@@ -24,18 +24,36 @@ Without this layer, Workstream 2 (TrackedTipPipeline, issue #129) and Workstream
   - Every per-plant row gains `sample_uid` and `timepoint` keys.
   - CSV emits `sample_uid` and `timepoint` columns right after `series` (positions 1 and 2), shifting the remaining metadata columns by 2.
 
-**Not breaking.** Existing `Series` API is preserved (`expected_count`, `group`, `qc_fail` keep their signatures and return values). Existing `MultipleDicotPlatePipeline` consumers who read CSV by column NAME continue to work; consumers who read CSV by column POSITION will see columns shifted — the plate pipeline is new enough (PR #165) that no published downstream scripts exist. CSV column rename to `sample_uid` / `timepoint` (from `plant_qr_code` / n/a) is explicitly deferred to #163.
+- **MODIFIED** existing `Series(...)` direct construction now defaults `sample_uid` via `__attrs_post_init__` — necessary because existing test fixtures and production call sites construct `Series(...)` directly (bypassing `Series.load`). Without this, `sample_uid=None` → lookup fails → `expected_count` etc. silently return NaN where they used to return values.
+- **MODIFIED** `MultipleDicotPlatePipeline` capability spec — CSV column order goes from 6 metadata columns to 8, top-level dict gains 2 keys, per-plant rows gain 2 keys. `schema_version` bumps to **2** (positional shift is non-additive). See `specs/multiple-dicot-plate-pipeline/spec.md` in this change for the full MODIFIED requirements.
+- **NEW** `"time"` entry in `_PLATE_UNITS` so the plate JSON carries the unit for `timepoint` (default `"unspecified"`; user can override via pipeline kwarg or CSV column — see follow-up issue below). Without this, two collaborators recording `timepoint=3` in days vs seconds silently produce incompatible data.
+
+**Partially breaking for CSV positional readers.** The plate CSV column order shifts by 2 positions (new columns at 1 and 2, old columns slide right). `schema_version` bumps to 2. Consumers who read CSV by column NAME continue to work unchanged. Consumers who read CSV by column POSITION will need to update — PR #165 is days old, no known downstream scripts exist. CSV column rename (`plant_qr_code` → `sample_uid`, etc.) is explicitly deferred to #163.
+
+**`Series.expected_count` / `.group` / `.qc_fail` observable behavior preserved byte-for-byte for the default-kwarg path** (i.e. when `Series.load` / `Series(...)` is called without an explicit `sample_uid` kwarg — which is the only path any existing code uses). If a caller passes an explicit `sample_uid` kwarg, the lookup key changes from `series_name` to `sample_uid` — this is the desired semantic for cross-scan identity but IS a behavior change. Documented in the spec's "sample_uid" requirement.
 
 ## Impact
 
-- **Affected specs**: new capability `series-metadata` (ADDED requirements for `sample_uid`, `timepoint`, `get_metadata`, CSV-builder helpers, pipeline output emission). No modifications to existing specs.
+- **Affected specs**:
+  - **NEW capability** `series-metadata` (ADDED requirements for `sample_uid`, `timepoint`, `get_metadata`, wrapper-refactor regression, CSV-builder helpers). Pipeline emission is explicitly NOT a requirement of this capability.
+  - **MODIFIED** `multiple-dicot-plate-pipeline` capability (CSV column order, top-level dict shape, per-plant row shape, `schema_version` bump, `units` dict gains a `time` entry).
 - **Affected code**:
-  - `sleap_roots/series.py` — new kwarg, new method, new property, refactor of three existing properties.
-  - `sleap_roots/metadata.py` — new module.
+  - `sleap_roots/series.py` — new kwarg, new attrs field, new `__attrs_post_init__`, new method, new property, refactor of three existing properties. New `logger = logging.getLogger(__name__)` at module top for the `plant_id`-ignored warning.
+  - `sleap_roots/metadata.py` — new module with `build_metadata_csv` + `infer_timepoints_from_filenames` (both with `logger.warning` on skip).
   - `sleap_roots/__init__.py` — re-export additions.
-  - `sleap_roots/trait_pipelines.py` — plate pipeline output additions (~10 lines).
-  - `tests/test_series.py` — new test coverage; regression coverage for refactored properties.
+  - `sleap_roots/trait_pipelines.py` — plate pipeline output additions: `_PLATE_UNITS` gains `"time"` key, `compute_plate_traits` result dict gains `sample_uid` + `timepoint` + `schema_version=2`, `_build_plant_row` gains two keys, `_build_plate_dataframe` builds row dicts that include `sample_uid` + `timepoint`, `meta_cols` grows by 2. ~30 lines total.
+  - `tests/test_series.py` — new test coverage for `get_metadata`, `sample_uid`, `timepoint`; **existing tests** `test_expected_count_error` (stdout assertion no longer valid because refactored `get_metadata` drops the `print`) and `test_expected_count`/`test_qc_cylinder` (fixtures use direct `Series(...)` which now defaults `sample_uid` via `__attrs_post_init__`) are **updated in-place** — NOT rewritten.
   - `tests/test_metadata.py` — new test file.
-  - `tests/test_multiple_dicot_plate_pipeline.py` — new emission tests; update existing CSV column-order assertions.
+  - `tests/test_multiple_dicot_plate_pipeline.py` — new emission tests; **4 existing tests updated**: `test_multiple_dicot_plate_pipeline_csv_output` (column order), `test_multiple_dicot_plate_pipeline_json_output` (top-level key set), `test_compute_batch_plate_traits` (per-series dict key set), `test_multiple_dicot_plate_pipeline_json_rfc8259_valid_with_nested_nan` (potentially affected if it asserts exact key sets).
 - **Source design doc**: `docs/superpowers/specs/2026-04-23-timelapse-diff-and-tip-kinematics-design.md` § Workstream 1. PR #171.
-- **Dependencies**: Unblocks #129 (TrackedTipPipeline) and #170 (TimeDiffPipeline).
+- **Dependencies**:
+  - **Fully unblocks #129** (TrackedTipPipeline consumes `Series.sample_uid` / `Series.timepoint` directly, not via inner-pipeline output).
+  - **Partially unblocks #170** (TimeDiffPipeline): the plate-intra-series case (`time_col="frame"`) and the tracked-tip case (via #129) are unblocked. The **cylinder-inter-series case** (`time_col="timepoint"` with identity `["sample_uid"]`) is NOT fully unblocked here because `MultipleDicotPipeline`, `DicotPipeline`, `MultiplePrimaryRootPipeline`, etc. do not yet emit `sample_uid` + `timepoint`. That's tracked as a dedicated follow-up issue filed during this PR (see `tasks.md` § 9.1). #170's proposal can land against the plate-intra-series case only; cylinder-case tests wait for the follow-up.
+
+## Known limitations / follow-ups tracked during this PR
+
+- **CSV `plant_qr_code` column dtype coercion**: if a user writes a CSV where `plant_qr_code` values are pure integers (e.g. `1002`), pandas infers `int64` dtype and `df["plant_qr_code"] == self.sample_uid` (str) silently matches no rows. Pre-existing behavior (inherited by the `get_metadata` refactor); not worsened. Follow-up issue: "Coerce `plant_qr_code` CSV column to string dtype on read to prevent silent no-match on pure-numeric QR codes."
+- **NaN-in-cell vs no-matching-row collapse**: both return `np.nan`, losing the distinction between "row exists, value unrecorded" and "no row for this sample". Follow-up issue: "Add a `strict=True` mode to `Series.get_metadata` that raises on missing rows."
+- **CSV read on every `get_metadata` call**: no caching. At plate-timelapse scale (1000s of property accesses per series) this is measurable. Follow-up issue: "Add lazy `_metadata_df` cache on Series."
+- **Emit `sample_uid` + `timepoint` in remaining pipelines** (cylinder, single-plant, lateral, crown, tracked-tip): see `tasks.md` § 9.1.
+- **`_PLATE_UNITS["time"]` population mechanism**: this PR ships with default `"unspecified"`. A future follow-up adds a pipeline kwarg (`time_unit="days"`) or a `timepoint_unit` CSV column to populate it explicitly.
