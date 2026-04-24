@@ -1,17 +1,17 @@
-# Design: Timelapse diffs, tracked-tip circumnutation, and metadata generalization
+# Design: Timelapse diffs, tracked-tip kinematics, and metadata generalization
 
 **Date**: 2026-04-23
-**Related issues**: #112 (close as obsolete), #129 (rewrite), #163 (broaden), #159 (related)
-**New issues to file**: TimeDiffPipeline, sample_uid/timepoint metadata layer, circumnutation traits
+**Related issues**: #112 (close as obsolete), #129 (refresh), #163 (broaden), #159 (related)
+**New issues to file**: TimeDiffPipeline, sample_uid/timepoint metadata layer
 **Depends on**: PR #165 (MultipleDicotPlatePipeline) — merged 2026-04-21
-**Status**: Brainstorm complete, spec drafted
+**Status**: Brainstorm complete, spec drafted. Circumnutation trait set deferred to a follow-up design once the maintainer has assembled a literature reference for method selection.
 
 ## Summary
 
-Three coordinated workstreams that replace the obsolete `PrimaryRootTimelapsePipeline` idea (#112) and supersede the original `TrackedTipPipeline` scope (#129) with:
+Three coordinated workstreams that replace the obsolete `PrimaryRootTimelapsePipeline` idea (#112) and refresh the existing `TrackedTipPipeline` scope (#129) with:
 
 1. A generalized metadata layer on `Series` that reads arbitrary CSV columns — enables `sample_uid` (cross-scan stable identity) and `timepoint` (time-axis value) as first-class concepts.
-2. A rewritten `TrackedTipPipeline` that consumes tracked `.slp` predictions and emits tip-kinematics AND circumnutation traits in one pipeline (not two).
+2. A refreshed `TrackedTipPipeline` that consumes tracked `.slp` predictions and emits per-track tip-kinematics (trajectory + growth-kinematic scalars). Circumnutation traits are deferred to a follow-up PR that will be designed against published literature.
 3. A new `TimeDiffPipeline` wrapper class that takes any inner pipeline and emits the inner output plus a parallel between-timepoint delta table. Works uniformly for plate intra-series timelapses (frame-based time axis), plate inter-series scans (CSV-timepoint-based), and cylinder inter-series scans (per-series aggregate diffs).
 
 Consolidates the "timelapse" concern into existing per-frame pipelines + one post-processing wrapper. Closes #112 as "obsolete — superseded by the plate pipeline's frame loop + `TimeDiffPipeline`".
@@ -45,9 +45,9 @@ Small extension of the existing metadata pattern (`Series.expected_count`, `.gro
 
 **Why this ordering matters:** `sample_uid` is the rename for a role that was previously implicit and entangled with `plant_qr_code`. Naming the role separately makes the other two workstreams cleaner — the diff pipeline doesn't need to care what row-granularity the user is diffing (plant, cylinder aggregate, tracked tip).
 
-### Workstream 2 — `TrackedTipPipeline` (rewrite of #129)
+### Workstream 2 — `TrackedTipPipeline` (refresh of #129)
 
-Root-agnostic pipeline consuming a **tracked** `.slp` file. One pipeline emits both tip-kinematics and circumnutation traits. Replaces the original `TrackedTipPipeline` scope (which was kinematics-only) by absorbing circumnutation as part of the same trajectory analysis.
+Root-agnostic pipeline consuming a **tracked** `.slp` file. Emits per-track tip trajectories + per-track growth-kinematic scalars. Scope matches the original #129 (kinematics only). Circumnutation-specific traits (period, amplitude, angular velocity, rotation direction, etc.) are deferred to a separate follow-up that will be designed against published literature — see "Deferred: circumnutation trait set" below.
 
 **Inputs:**
 
@@ -60,23 +60,19 @@ Root-agnostic pipeline consuming a **tracked** `.slp` file. One pipeline emits b
    ```
    series, sample_uid, track_id, frame, timepoint, tip_x, tip_y
    ```
-   One row per `(track_id, frame)`. This is the trajectory data circumnutation traits are derived from.
+   One row per `(track_id, frame)`. Self-contained tip-position timeline suitable as input to downstream circumnutation analysis once that workstream lands.
 
-2. **Track summary rows** (per-track, all kinematic + circumnutation scalars):
+2. **Track summary rows** (per-track, growth-kinematic scalars):
    ```
    series, sample_uid, track_id, n_frames_tracked, n_frames_total, tracking_coverage,
-   # Kinematics
    tip_trajectory_length, tip_displacement_net, tip_velocity_mean, tip_velocity_max,
-   tip_curvature_mean, tip_curvature_max,
-   # Circumnutation
-   nutation_period_mean, nutation_amplitude_mean, nutation_amplitude_max,
-   angular_velocity_mean, rotation_direction, n_nutation_cycles
+   tip_curvature_mean, tip_curvature_max
    ```
    One row per `track_id`. Summary scalars over the whole trajectory.
 
 Both tables emit in one call. CSV/JSON contract inherits from the plate pipeline: `schema_version=1`, structured `units` dict, NaN→null JSON via `_json_sanitize`.
 
-**Circumnutation trait module** (`sleap_roots/circumnutation.py`, new):
+**Tip-kinematics trait module** (`sleap_roots/tip_kinematics.py`, new):
 
 Pure functions operating on `(t, x, y)` arrays, parallel to `sleap_roots/angle.py` and `sleap_roots/lengths.py`. The pipeline calls these in its TraitDef DAG.
 
@@ -84,12 +80,6 @@ Trait definitions (all per-track):
 
 | Trait | Definition | Units family |
 |---|---|---|
-| `nutation_period_mean` | Mean time between zero-crossings of detrended `dx(t)` (or peak-to-peak; user kwarg) | times (user-defined) |
-| `nutation_amplitude_mean` | Mean peak magnitude of detrended `sqrt(dx² + dy²)` | lengths (pixels) |
-| `nutation_amplitude_max` | Max peak magnitude of detrended `sqrt(dx² + dy²)` | lengths (pixels) |
-| `angular_velocity_mean` | Mean `d/dt atan2(dy, dx)` — signed | angles / time |
-| `rotation_direction` | `sign(median(angular_velocity))` → +1 CCW, -1 CW, 0 none | unitless |
-| `n_nutation_cycles` | Completed 2π rotations | counts |
 | `tip_trajectory_length` | Cumulative arclength of raw `(x, y)` | lengths |
 | `tip_displacement_net` | Euclidean distance first → last point | lengths |
 | `tip_velocity_mean` | Mean `dt`-normalized step length | lengths / time |
@@ -98,17 +88,23 @@ Trait definitions (all per-track):
 | `tip_curvature_max` | Max `abs(dθ/ds)` | inverse_lengths |
 | `tracking_coverage` | `n_frames_tracked / n_frames_total` | ratios (dimensionless) |
 
-**Detrending:** low-pass / moving-average on `(x(t), y(t))` with window ≈ one expected nutation period. Window expressed in frames (integer) via a constructor kwarg `detrend_window_frames: int`, default `max(3, n_frames // 4)`. Residuals `(dx, dy)` are the detrended oscillation. Required because nutation is oscillation *around* the growth axis, not absolute position — without detrending the net growth drift swamps the oscillation signal.
-
 **Edge cases** (deliberate behavior, tested):
 
-- Short tracks (`n_frames_tracked < 3`) — all derived scalars = NaN, no crash.
-- Monotonic trajectory (no zero-crossings) — `nutation_period_mean = NaN`, `rotation_direction = 0`, `n_nutation_cycles = 0`.
+- Short tracks (`n_frames_tracked < 3`) — velocity / curvature scalars = NaN, no crash.
+- Single-frame track — NaN everywhere except `sample_uid` + `track_id` + `tracking_coverage`.
 - Partial tracking (gaps in frames) — compute on available window; `tracking_coverage < 1.0`.
-- Single-frame track — NaN everywhere except `sample_uid` + `track_id`.
 - Uneven frame spacing — use `timepoint` if column present, else `frame_rate` kwarg, else assume 1 unit per frame and document.
 
-**Why one pipeline, not two:** circumnutation and growth kinematics both operate on the same per-track `(t, x, y)` trajectory. Separating them would mean two pipelines consuming identical inputs and producing overlapping outputs. No modularity benefit.
+### Deferred: circumnutation trait set
+
+Circumnutation-specific traits (period, amplitude, angular velocity, rotation direction, nutation-cycle count, etc.) are intentionally **out of scope for this design** and will be spec'd in a separate follow-up once the maintainer has assembled a literature reference on method selection. Questions to answer with the literature:
+
+- Which detrending method is the field standard (moving average, low-pass Butterworth, polynomial fit, empirical mode decomposition)?
+- Which period-estimation approach: zero-crossing, peak-to-peak, FFT, autocorrelation, wavelet?
+- Is "amplitude" defined as radial distance from detrended mean, half peak-to-peak, or RMS of residuals?
+- How to define rotation direction when trajectory is noisy / partially tracked?
+
+The TrackedTipPipeline's trajectory-row output is the natural input to those analyses. When the circumnutation design lands, it can either be added as additional traits to TrackedTipPipeline (same pipeline, expanded trait set) or as a new trait module consumed by users who call `TrackedTipPipeline.compute_...` themselves. That decision is deferred with the rest of circumnutation.
 
 ### Workstream 3 — `TimeDiffPipeline` (new)
 
@@ -189,12 +185,12 @@ Estimated size: ~150 lines including tests.
 | Issue | Action | Summary |
 |---|---|---|
 | #112 | Close as obsolete | Plate pipeline's frame loop + `TimeDiffPipeline` cover this scope. |
-| #129 | Rewrite | Expand to include circumnutation traits. Single pipeline (tip-kinematics + circumnutation). Root-agnostic. Requires tracked `.slp`. |
+| #129 | Refresh | Keep tip-kinematics scope (trajectory + velocity + curvature). Root-agnostic. Requires tracked `.slp`. Align output shape with the PR #165 contract (schema_version, structured units, `_json_sanitize`). |
 | #159 | Keep (related) | Multi-plant cylinder per-plant diffs blocked on this. |
 | #163 | Broaden | Add `sample_uid` column convention (fallback to `plant_qr_code`); add `timepoint` column convention. |
 | NEW | File | `TimeDiffPipeline` wrapper class. |
-| NEW | File | `sample_uid` + `timepoint` metadata layer + `Series.get_metadata()` generalized accessor. |
-| NEW | File | `sleap_roots/circumnutation.py` trait functions + `sleap_roots/metadata.py` CSV builder helpers. |
+| NEW | File | `sample_uid` + `timepoint` metadata layer + `Series.get_metadata()` generalized accessor + `sleap_roots/metadata.py` CSV builder helpers. |
+| NEW (deferred) | File once literature is assembled | Circumnutation trait set (period, amplitude, angular velocity, rotation direction, etc.) — depends on Workstream 2 shipping first so the trajectory-row output exists. |
 
 ## Identity table (reference)
 
@@ -212,6 +208,7 @@ Decision-cheatsheet for users choosing `identity_cols` and `time_col`:
 
 ## Out of scope (deferred)
 
+- **Circumnutation trait set** (period, amplitude, angular velocity, rotation direction, n_nutation_cycles, detrending method) — deferred to a separate design once the maintainer has assembled a literature reference. Workstream 2's trajectory-row output is the natural input.
 - **Spatial matching of plant IDs across scans** — D3 in the brainstorm. Fragile; file follow-up only if user demand materializes.
 - **Date-string parsing into numeric timepoints** (`"2024-03-15"` → day number) — too domain-specific. User responsibility.
 - **Multi-plant cylinder per-plant diffs** — blocked on #159.
@@ -237,15 +234,17 @@ Same discipline as PR #165 — synthetic `.slp` round-trip for integration tests
 Each workstream gets its own OpenSpec change:
 
 - `change-id: add-sample-uid-timepoint-metadata` (Workstream 1)
-- `change-id: add-tracked-tip-pipeline` (Workstream 2)
+- `change-id: add-tracked-tip-pipeline` (Workstream 2 — kinematics only; no circumnutation)
 - `change-id: add-time-diff-pipeline` (Workstream 3)
+
+When the circumnutation literature is assembled, a fourth change (`add-circumnutation-traits` or similar) picks up that scope on top of Workstream 2's trajectory-row output.
 
 ## Risks and mitigations
 
 | Risk | Mitigation |
 |---|---|
 | `sample_uid` rename confuses users on existing workflows | Backward-compat — kwarg defaults to `series_name`; CSV column stays `plant_qr_code` until #163. |
-| Circumnutation detrending window is hard to tune automatically | User-configurable kwarg; default = `n_frames / 4`; document with a "choose window ≈ expected period" note. |
 | `TimeDiffPipeline` diverges from inner pipeline method signatures | Delegate via `getattr(inner, method)(*args, **kwargs)` and let Python's arg-binding enforce compatibility. Test against each supported inner pipeline. |
 | SLEAP tracking is expensive / not commonly enabled | Document sleap tracking workflow in `TrackedTipPipeline`'s docstring; raise with a link to sleap docs on untracked input. |
 | Users have existing `plant_qr_code`-based workflows that expect per-scan rows to have unique values | No change for them — the kwarg default is `series_name`, which already produces unique per-scan rows. |
+| TrackedTipPipeline output shape might need to change when circumnutation lands | Output spec for Workstream 2 is deliberately minimal and extensible — adding circumnutation scalars as new per-track columns is additive and bumps `schema_version` only if removal/rename is needed. |
