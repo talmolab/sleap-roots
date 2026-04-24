@@ -239,6 +239,55 @@ Each workstream gets its own OpenSpec change:
 
 When the circumnutation literature is assembled, a fourth change (`add-circumnutation-traits` or similar) picks up that scope on top of Workstream 2's trajectory-row output.
 
+## Test data strategy
+
+Per-workstream fixture plan. PR #165 shipped synthetic-only with real fixtures deferred to #162; this design is more aggressive on real fixtures for Workstream 2 because the source data is available.
+
+### Workstream 1 — metadata layer
+
+**Synthetic-only.** All behavior is CSV plumbing + Series kwarg lookup:
+
+- Synthetic CSV strings written to `tmp_path` (same pattern as PR #165's `_plate_csv` helper).
+- Optional: reuse existing `multiple_arabidopsis_11do_csv` (cylinder-multi-plant dataset in Git LFS) for one integration-level test that exercises a real CSV file with real column values.
+- No new SLEAP data needed.
+
+### Workstream 2 — `TrackedTipPipeline`
+
+**Synthetic + real, from day one.**
+
+Synthetic coverage (primary test surface):
+
+- Pure trait functions in `sleap_roots/tip_kinematics.py` against known `(t, x, y)` arrays.
+- Pipeline DAG, CSV/JSON emission, empty-input / single-frame / short-track edge cases via synthetic `.slp` files with `sio.Track` objects attached to `sio.Instance` via `from_numpy(..., track=...)`.
+
+Real-fixture coverage (added before PR merge):
+
+- Source: `Z:\users\eberrigan\circumnutation` — plate timelapse with tracked tips.
+- Copy ONE small subset into `tests/data/circumnutation_plate/` (target: single plant, ≤30 frames, compressed). Commit via Git LFS.
+- **Fixture README required**: `tests/data/circumnutation_plate/README.md` following the standard template from issue #168 (purpose, imaging geometry, acquisition context, contents, known limitations, related issues). The new fixture lands with documentation from day one so Workstream 2's PR does not add to the existing test-data documentation debt.
+- One integration test: `Series.load` on the real `.slp` → `TrackedTipPipeline.compute_...` → assert every trait column is present, `tracking_coverage ∈ [0, 1]`, trajectory row count equals tracked-instance count. No exact trait value assertions (those belong in synthetic tests where the geometry is controlled).
+- Purpose: catch sleap-io track-representation drift, real tracker-output edge cases (births, deaths, gaps, re-IDs), ensure the sleap-io loading path works on real tracked predictions.
+
+**Gate on PR merge**: either the real fixture lands with the PR OR a follow-up issue is filed before the PR is marked ready for review (same discipline as PR #165's #162). Given the source data is available today, the intent is to ship it in the PR.
+
+### Workstream 3 — `TimeDiffPipeline`
+
+**Synthetic-only.**
+
+- Unit tests with stub inner pipelines returning known DataFrames.
+- Integration tests: run real `MultipleDicotPlatePipeline` (already in the repo) on synthetic plate `.slp` with 3+ frames → `TimeDiffPipeline` wrapping it → verify delta rows match expected `Δprimary_length`, etc.
+- No new real data required; the plate pipeline's own test fixtures are sufficient realism.
+
+### Deferred real fixtures (follow-ups)
+
+- **#162** — real plate `.slp` fixture tests for `MultipleDicotPlatePipeline` (PR #165). Blocked on SLEAP predictions for `Z:\users\eberrigan\20260401_Kappes_Medicago_MK22_Plates`. Not in this design's scope.
+- **#168** — backfill test-data README documentation (top-level `tests/data/README.md` + per-directory READMEs for the 9 existing fixture directories). Out of scope for Workstreams 1–3 but tracked so the gap closes. Workstream 2's new fixture ships with its README in-PR (per the "Fixture README required" requirement above).
+- **Future** — once circumnutation workstream lands, add dedicated nutation-specific test fixtures (e.g., a known-period plant trajectory) from the same `circumnutation` source folder.
+
+### Source-data layout
+
+The source folders under `Z:\users\eberrigan\` are the maintainer's working copies, not yet organized for direct test-fixture use. Fixtures committed to `tests/data/` under this design are subsets chosen for size and representativeness. Reorganizing the source-folder layout is out of scope here; follow-up refactor can consolidate once we have multiple pipelines consuming the data.
+
 ## Risks and mitigations
 
 | Risk | Mitigation |
