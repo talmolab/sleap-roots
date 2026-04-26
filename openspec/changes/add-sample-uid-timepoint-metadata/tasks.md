@@ -6,7 +6,7 @@
 
 - Strict TDD: each subsection writes failing tests BEFORE implementation. Test-file-structure changes (e.g. extending `_build_synthetic_slp` with a new kwarg) land atomically with the tests that need them.
 - All commands use `uv run` (`uv run pytest`, `uv run black`, `uv run pydocstyle`).
-- No implementation is merged until every follow-up issue in section 9 is filed and linked in the PR body.
+- No implementation is merged until every follow-up issue in section 12 is filed and linked in the PR body.
 
 ## 1. Write failing tests for `Series.sample_uid` + `__attrs_post_init__` defaulting (TDD red phase 1)
 
@@ -17,14 +17,16 @@ These tests come FIRST — the sample_uid attrs field is a prerequisite for `get
 - [ ] 1.3 Add `test_series_sample_uid_empty_string_falls_through` — `Series.load(..., sample_uid="")` → `sample_uid == series_name` (empty string treated as "not set").
 - [ ] 1.4 Add `test_series_sample_uid_shared_across_series` — two Series with distinct series_name, same sample_uid kwarg.
 - [ ] 1.5 Add `test_series_sample_uid_direct_construction_defaults` — `Series(series_name="test_video")` (bypass `Series.load`) → `series.sample_uid == "test_video"` (populated by `__attrs_post_init__`).
-- [ ] 1.6 Run `uv run pytest tests/test_series.py -k sample_uid -x` — confirm all 5 FAIL with `TypeError` (unknown kwarg) or `AttributeError` (field doesn't exist).
+- [ ] 1.6 Add `test_series_sample_uid_str_coercion` — `Series(series_name="x", sample_uid=1002)` → `series.sample_uid == "1002"` AND `isinstance(series.sample_uid, str) is True`. Rationale: CSV `plant_qr_code` columns may infer as int, but `sample_uid` MUST be str so `df["plant_qr_code"].astype(str) == self.sample_uid` semantics are predictable upstream of any future CSV-dtype follow-up.
+- [ ] 1.7 Run `uv run pytest tests/test_series.py -k sample_uid -x` — confirm all 6 FAIL with `TypeError` (unknown kwarg) or `AttributeError` (field doesn't exist).
 
 ## 2. Implement `Series.sample_uid` attrs field + `Series.load` kwarg + `__attrs_post_init__`
 
-- [ ] 2.1 Add `sample_uid: Optional[str] = None` attrs field to `Series`. Add `__attrs_post_init__(self)` method that sets `self.sample_uid = self.series_name` when `self.sample_uid` is `None` or empty string.
-- [ ] 2.2 Add `sample_uid: Optional[str] = None` kwarg to `Series.load`. In the `return cls(...)` call, pass `sample_uid=sample_uid`. The `__attrs_post_init__` handles defaulting.
-- [ ] 2.3 Run `uv run pytest tests/test_series.py -k sample_uid -v` — all 5 pass.
-- [ ] 2.4 Run `uv run pytest tests/ -x` — full suite green (no regressions introduced by the new field).
+- [ ] 2.1 Inspect `sleap_roots/series.py` for an existing `__attrs_post_init__`. **Critical**: if one exists (likely tied to `expected_count`/`group` initialization), the new logic MUST be appended to that method, NOT replace it. Replacing breaks initialization invariants the existing properties depend on.
+- [ ] 2.2 Add `sample_uid: Optional[str] = None` attrs field to `Series`. Add (or extend) `__attrs_post_init__(self)` so it: (a) sets `self.sample_uid = self.series_name` when `self.sample_uid` is `None` or empty string, then (b) coerces to str via `self.sample_uid = str(self.sample_uid)` (handles int/numpy-int kwarg). Also initialize `self._warned_missing_plant_id_column = False` here for the get_metadata one-shot dedup (Section 4).
+- [ ] 2.3 Add `sample_uid: Optional[str] = None` kwarg to `Series.load`. In the `return cls(...)` call, pass `sample_uid=sample_uid`. The `__attrs_post_init__` handles defaulting + coercion.
+- [ ] 2.4 Run `uv run pytest tests/test_series.py -k sample_uid -v` — all 6 pass.
+- [ ] 2.5 Run `uv run pytest tests/ -x` — full suite green (no regressions introduced by the new field).
 
 ## 3. Write failing tests for `Series.get_metadata` (TDD red phase 2)
 
@@ -36,14 +38,14 @@ These tests come FIRST — the sample_uid attrs field is a prerequisite for `get
 - [ ] 3.6 Add `test_series_get_metadata_plant_id_ignored_when_no_column_emits_warning` — CSV has no `plant_id` column, `plant_id=99` silently ignored AND `caplog` captures a WARNING record from `sleap_roots.series`. Second call on same Series: NO second warning (one-shot dedup).
 - [ ] 3.7 Add `test_series_get_metadata_plant_id_none_equivalent_to_omitted` — explicit `plant_id=None` returns same value as omitted argument.
 - [ ] 3.8 Add `test_series_get_metadata_multiple_matches_first_row` — CSV has 2 rows with same `plant_qr_code` (no `plant_id` column), `get_metadata` returns first row's value (`.iloc[0]` semantics).
-- [ ] 3.9 Run `uv run pytest tests/test_series.py -k get_metadata -x` — all 7 FAIL with `AttributeError: 'Series' object has no attribute 'get_metadata'`.
+- [ ] 3.9 Run `uv run pytest tests/test_series.py -k get_metadata -x` — all 8 FAIL with `AttributeError: 'Series' object has no attribute 'get_metadata'`.
 
 ## 4. Implement `Series.get_metadata` + refactor existing properties
 
 - [ ] 4.1 Add module-level `logger = logging.getLogger(__name__)` to `sleap_roots/series.py` (if not already present).
-- [ ] 4.2 Add `get_metadata(self, column, plant_id=None)` method. Include `_warned_missing_plant_id_column: bool` instance flag (set in `__attrs_post_init__` to `False`) for the one-shot warning dedup.
+- [ ] 4.2 Add `get_metadata(self, column, plant_id=None)` method. The `_warned_missing_plant_id_column` flag is initialized in `__attrs_post_init__` (Section 2.2) — DO NOT declare it as an `attrs.field(...)` (it's runtime-only mutation state, not user-settable construction state) and DO NOT use a plain class attribute in a slotted attrs class (slotted classes forbid undeclared instance attributes; the assignment in `__attrs_post_init__` works because attrs adds the slot for any name set in post-init when `slots=True`-equivalent semantics are in play; verify with `uv run python -c "import attrs; @attrs.define\\nclass C: x: int = 0\\nc = C(); c.y = 1"` — should NOT raise; if your attrs version DOES enforce slots strictly, add `_warned_missing_plant_id_column: bool = attrs.field(default=False, init=False, repr=False)` to the class definition instead).
 - [ ] 4.3 Refactor `expected_count`, `group`, `qc_fail` as thin wrappers around `get_metadata`. **Preserve the existing `print(...)` calls** in the wrappers (not inside `get_metadata`) so `test_expected_count_error`'s stdout assertion stays green. Alternative: remove the print and update `test_expected_count_error` — choose the preserve path for minimum disruption.
-- [ ] 4.4 Run `uv run pytest tests/test_series.py -k get_metadata -v` — all 7 pass.
+- [ ] 4.4 Run `uv run pytest tests/test_series.py -k get_metadata -v` — all 8 pass.
 - [ ] 4.5 Run `uv run pytest tests/test_series.py -x` — existing tests still pass (specifically `test_expected_count`, `test_qc_cylinder`, `test_expected_count_error` which rely on stdout/return values).
 - [ ] 4.6 Run `uv run pytest tests/ -x` — full suite green.
 
@@ -63,7 +65,7 @@ These tests come FIRST — the sample_uid attrs field is a prerequisite for `get
 
 ## 7. Write failing tests for `sleap_roots/metadata.py` (TDD red phase 4)
 
-- [ ] 7.1 Create `tests/test_metadata.py` with tests 7.2-7.12.
+- [ ] 7.1 Create `tests/test_metadata.py` with tests 7.2-7.13.
 - [ ] 7.2 Add `test_build_metadata_csv_canonical_column_order` — verify canonical order.
 - [ ] 7.3 Add `test_build_metadata_csv_omits_unused_columns` — canonical columns absent in rows are omitted.
 - [ ] 7.4 Add `test_build_metadata_csv_raises_on_missing_plant_qr_code` — `ValueError` with "plant_qr_code" in message.
@@ -74,14 +76,15 @@ These tests come FIRST — the sample_uid attrs field is a prerequisite for `get
 - [ ] 7.9 Add `test_infer_timepoints_from_filenames_named_groups` — correct dict output.
 - [ ] 7.10 Add `test_infer_timepoints_from_filenames_missing_named_groups` — `ValueError` with `series_name` / `timepoint` in message.
 - [ ] 7.11 Add `test_infer_timepoints_from_filenames_skips_non_matches_with_warning` — garbage stems skipped AND `caplog` (logger `sleap_roots.metadata`, WARNING level) contains a record mentioning the skipped path.
-- [ ] 7.12 Add `test_infer_timepoints_from_filenames_casts_to_float` — integer timepoint → float output.
-- [ ] 7.13 Run `uv run pytest tests/test_metadata.py -x` — all FAIL with `ImportError`.
+- [ ] 7.12 Add `test_infer_timepoints_from_filenames_skips_non_numeric_with_warning` — pattern matches but `timepoint` group is `"abc"` (or empty) → path skipped, `caplog` records WARNING from `sleap_roots.metadata` mentioning the path AND the float-cast failure reason ("could not convert" or similar). Verifies float-cast failure path is logged separately from pattern mismatch.
+- [ ] 7.13 Add `test_infer_timepoints_from_filenames_casts_to_float` — integer timepoint → float output.
+- [ ] 7.14 Run `uv run pytest tests/test_metadata.py -x` — all FAIL with `ImportError`.
 
 ## 8. Implement `sleap_roots/metadata.py`
 
-- [ ] 8.1 Create `sleap_roots/metadata.py` with module-level `logger = logging.getLogger(__name__)`, `build_metadata_csv`, and `infer_timepoints_from_filenames`. `infer_timepoints_from_filenames` MUST call `logger.warning(...)` for each skipped path (pattern mismatch OR float-cast failure).
+- [ ] 8.1 Create `sleap_roots/metadata.py` with module-level `logger = logging.getLogger(__name__)`, `build_metadata_csv`, and `infer_timepoints_from_filenames`. `infer_timepoints_from_filenames` MUST call `logger.warning(...)` for each skipped path (pattern mismatch OR float-cast failure — separate log messages with distinct reasons).
 - [ ] 8.2 Add re-exports to `sleap_roots/__init__.py`.
-- [ ] 8.3 Run `uv run pytest tests/test_metadata.py -v` — all 11 pass.
+- [ ] 8.3 Run `uv run pytest tests/test_metadata.py -v` — all 12 pass.
 - [ ] 8.4 Run `uv run pytest tests/ -x` — full suite green.
 
 ## 9. Extend the `_build_synthetic_slp` test helper to accept `sample_uid` + `csv_text` with timepoint
@@ -101,21 +104,26 @@ This is a prerequisite for Section 10's plate-pipeline tests. Extending the help
 - [ ] 10.4 Add `test_multiple_dicot_plate_pipeline_timepoint_nan_without_csv` — no CSV → top-level NaN + every plant NaN + `sample_uid` defaults to series_name.
 - [ ] 10.5 Add `test_multiple_dicot_plate_pipeline_schema_version_bumped_to_2` — `result["schema_version"] == 2`.
 - [ ] 10.6 Add `test_multiple_dicot_plate_pipeline_units_has_time_family` — `result["units"]["time"] == "unspecified"` (default; follow-up work will allow configuration).
-- [ ] 10.7 **Update** existing test `test_multiple_dicot_plate_pipeline_csv_output` — change `list(df.columns)[0:6]` assertion to `list(df.columns)[0:8]` with the new 8-element list. Change `list(df.columns)[6:]` to `list(df.columns)[8:]`. Change `set(df.columns[6:])` to `set(df.columns[8:])`.
-- [ ] 10.8 **Update** existing test `test_multiple_dicot_plate_pipeline_json_output` — change the top-level key-set assertion from `{"schema_version", "units", "series", "group", "qc_fail", "expected_count", "plants"}` to `{"schema_version", "units", "series", "sample_uid", "timepoint", "group", "qc_fail", "expected_count", "plants"}`. Change `result["schema_version"] == 1` to `== 2`. Add `"time": "unspecified"` to the units dict assertion.
-- [ ] 10.9 **Update** existing test `test_compute_batch_plate_traits` — per-series dicts now have 9 top-level keys; update the key-set assertion accordingly. Update `schema_version` assertion to 2.
-- [ ] 10.10 **Update** existing test `test_multiple_dicot_plate_pipeline_json_rfc8259_valid_with_nested_nan` if it asserts exact top-level keys — verify and update if needed. Also add an assertion that a NaN `timepoint` round-trips through the JSON as `null` (not `NaN`).
-- [ ] 10.11 Run `uv run pytest tests/test_multiple_dicot_plate_pipeline.py -k "sample_uid or timepoint or csv_column_positions or schema_version or units_has_time or csv_output or json_output or compute_batch or rfc8259" -x` — 6 new tests FAIL (`KeyError`, `AssertionError`). 4 updated tests FAIL (assertion mismatch).
+- [ ] 10.7 Add `test_multiple_dicot_plate_pipeline_unspecified_time_emits_warning_when_timepoint_non_nan` — Series with non-NaN `timepoint` (CSV provides `timepoint=3`) → exactly ONE WARNING record from logger `sleap_roots.trait_pipelines` mentioning `"unspecified"` and `"timepoint"` and the series_name. Second call: same one-shot semantics (verify warning count via `caplog`).
+- [ ] 10.8 Add `test_multiple_dicot_plate_pipeline_unspecified_time_no_warning_when_timepoint_nan` — Series without CSV → `timepoint` is NaN → NO warning emitted (NaN is not informative; no point reminding user about unit).
+- [ ] 10.9 **Update** existing test `test_multiple_dicot_plate_pipeline_csv_output` — change `list(df.columns)[0:6]` assertion to `list(df.columns)[0:8]` with the new 8-element list. Change `list(df.columns)[6:]` to `list(df.columns)[8:]`. Change `set(df.columns[6:])` to `set(df.columns[8:])`.
+- [ ] 10.10 **Update** existing test `test_multiple_dicot_plate_pipeline_csv_missing_expected_count` — add assertions that `df.loc[0, "sample_uid"] == df.loc[0, "series"]` (sample_uid defaults to series_name when no kwarg) AND `pd.isna(df.loc[0, "timepoint"])` (no CSV → NaN timepoint). Also update column-count assertion if the test counts metadata columns.
+- [ ] 10.11 **Update** existing test `test_multiple_dicot_plate_pipeline_json_output` — change the top-level key-set assertion from `{"schema_version", "units", "series", "group", "qc_fail", "expected_count", "plants"}` to `{"schema_version", "units", "series", "sample_uid", "timepoint", "group", "qc_fail", "expected_count", "plants"}` (8 keys → 9 keys, not counting `schema_version`/`units`; total 9 top-level keys). Change `result["schema_version"] == 1` to `== 2`. Add `"time": "unspecified"` to the units dict assertion.
+- [ ] 10.12 **Update** existing test `test_compute_batch_plate_traits` — per-series dicts now have 9 top-level keys; update the key-set assertion accordingly. Update `schema_version` assertion to 2. Add assertions that each per-series dict has `units["time"] == "unspecified"`.
+- [ ] 10.13 **Update** existing test `test_multiple_dicot_plate_pipeline_zero_frames` (around line 546 of `tests/test_multiple_dicot_plate_pipeline.py`) — currently asserts `result["schema_version"] == 1`; change to `== 2`. Also add assertions for the new top-level keys (`sample_uid` defaults to series_name, `timepoint` is NaN since no CSV with frames). Without this update, the empty-Series path silently ships with the wrong schema_version assertion.
+- [ ] 10.14 **Update** existing test `test_multiple_dicot_plate_pipeline_json_rfc8259_valid_with_nested_nan` if it asserts exact top-level keys — verify and update if needed. Add an assertion that a NaN `timepoint` round-trips through the JSON as `null` (not `NaN`) AND that `loaded["timepoint"] is None` when the source Series has no CSV.
+- [ ] 10.15 Run `uv run pytest tests/test_multiple_dicot_plate_pipeline.py -k "sample_uid or timepoint or csv_column_positions or schema_version or units_has_time or unspecified_time or csv_output or csv_missing_expected_count or json_output or compute_batch or rfc8259 or zero_frames" -x` — 8 new tests FAIL (`KeyError`, `AssertionError`). 6 updated tests FAIL (assertion mismatch).
 
 ## 11. Implement plate pipeline emission
 
 - [ ] 11.1 Add `"time": "unspecified"` to `_PLATE_UNITS` in `sleap_roots/trait_pipelines.py`.
-- [ ] 11.2 Update `compute_plate_traits` result-dict initialization: change `"schema_version": 1` → `"schema_version": 2`, add `"sample_uid": str(series.sample_uid)` and `"timepoint": series.timepoint` keys.
-- [ ] 11.3 Thread `sample_uid` and `timepoint` into `_build_plant_row` — either as explicit arguments OR compute inside (use `series.sample_uid` / `series.timepoint` since the `series` object is already a parameter). Return them as keys in the plant-row dict.
-- [ ] 11.4 **CRITICAL**: update `_build_plate_dataframe`'s row-dict construction (around line 3213-3220 in `trait_pipelines.py`) to explicitly include `"sample_uid": plant["sample_uid"]` and `"timepoint": plant["timepoint"]`. The `meta_cols` list alone does not make the columns appear in the DataFrame — the row dict must contain them.
+- [ ] 11.2 Update `compute_plate_traits` result-dict initialization: change `"schema_version": 1` → `"schema_version": 2`, and resolve `sample_uid_resolved = str(series.sample_uid)` and `timepoint_resolved = series.timepoint` ONCE near the top of the method (single property access). Add `"sample_uid": sample_uid_resolved` and `"timepoint": timepoint_resolved` keys to the top-level result dict.
+- [ ] 11.3 **CRITICAL — performance contract**: thread `sample_uid_resolved` and `timepoint_resolved` into `_build_plant_row` as **explicit arguments** (NOT computed inside via `series.sample_uid` / `series.timepoint`). At plate-timelapse scale (10 series × 100 frames × 6 plants = 6000 rows), per-plant property accesses each trigger a CSV re-read absent caching — so 6000 redundant reads. Compute-once-pass-down is the contract spec'd in Requirement "compute_plate_traits SHALL emit a per-series dict ...". Update `_build_plant_row` signature to accept `sample_uid: str` and `timepoint: float`; populate `row_dict["sample_uid"] = sample_uid` and `row_dict["timepoint"] = timepoint`.
+- [ ] 11.4 **CRITICAL — DataFrame columns**: update `_build_plate_dataframe`'s row-dict construction (around line 3213-3220 in `trait_pipelines.py`) to explicitly include `"sample_uid": plant["sample_uid"]` and `"timepoint": plant["timepoint"]`. The `meta_cols` list alone does not make the columns appear in the DataFrame — the row dict must contain them.
 - [ ] 11.5 Update `meta_cols` list in `_build_plate_dataframe` from 6 to 8 entries: `["series", "sample_uid", "timepoint", "frame", "plant_id", "primary_sleap_idx", "expected_count", "detected_count"]`.
-- [ ] 11.6 Run `uv run pytest tests/test_multiple_dicot_plate_pipeline.py -x` — all 20+ tests pass (existing 20 + 6 new + 4 updated).
-- [ ] 11.7 Run `uv run pytest tests/ -x` — full suite green.
+- [ ] 11.6 Add the one-shot `units["time"] == "unspecified"` warning in `compute_plate_traits`: when the resolved `timepoint_resolved` is non-NaN AND the units dict has `"time": "unspecified"`, emit `logger.warning(...)` ONCE per call (use a local boolean to dedupe within the method scope; the spec scenario asserts exactly one warning per call). Reference Issue #169 / follow-up §12.5 in the warning message.
+- [ ] 11.7 Run `uv run pytest tests/test_multiple_dicot_plate_pipeline.py -x` — all 20+ tests pass (existing 20 + 8 new + 6 updated).
+- [ ] 11.8 Run `uv run pytest tests/ -x` — full suite green.
 
 ## 12. File follow-up issues BEFORE PR merges
 
@@ -123,7 +131,7 @@ This is a prerequisite for Section 10's plate-pipeline tests. Extending the help
 - [ ] 12.2 File issue: "Coerce `plant_qr_code` CSV column to string dtype on read". Documents pre-existing silent no-match behavior on pure-numeric QR codes.
 - [ ] 12.3 File issue: "Add `strict=True` mode to `Series.get_metadata` that raises on missing rows". Separates "row missing" from "value NaN".
 - [ ] 12.4 File issue: "Add lazy `_metadata_df` cache to Series to avoid per-access CSV reads".
-- [ ] 12.5 File issue: "Populate `_PLATE_UNITS['time']` from a pipeline kwarg or CSV column". Removes the `"unspecified"` default.
+- [ ] 12.5 File issue: "Populate `_PLATE_UNITS['time']` from a pipeline kwarg or CSV column". Removes the `"unspecified"` default and the one-shot warning emitted by §11.6.
 - [ ] 12.6 Post a comment on #169 linking this PR and the 5 filed follow-ups.
 - [ ] 12.7 Post a comment on #170 explicitly noting that only plate-intra-series and tracked-tip cases are unblocked by this PR; cylinder-inter-series is blocked on #12.1's follow-up.
 - [ ] 12.8 Post a comment on #163 clarifying the implementation order — this PR (Workstream 1) lands first with `plant_qr_code` as the CSV lookup key; #163 then adds the `sample_uid`-column fallback.
@@ -137,4 +145,4 @@ This is a prerequisite for Section 10's plate-pipeline tests. Extending the help
 - [ ] 13.3 Run `uv run pydocstyle --convention=google sleap_roots/` — clean.
 - [ ] 13.4 Run `uv run pytest tests/ -x` — full suite passes.
 - [ ] 13.5 Invoke `/review-pr` on the branch before opening the PR.
-- [ ] 13.6 Open PR; body references #169, links the 5 follow-ups from 12.1-12.5, includes `## TDD evidence` from tasks 1.6 / 3.9 / 5.5 / 7.13 / 10.11.
+- [ ] 13.6 Open PR; body references #169, links the 5 follow-ups from 12.1-12.5, includes `## TDD evidence` from tasks 1.7 / 3.9 / 5.5 / 7.14 / 10.15.

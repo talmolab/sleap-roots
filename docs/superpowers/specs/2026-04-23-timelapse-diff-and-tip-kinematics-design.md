@@ -39,9 +39,10 @@ Small extension of the existing metadata pattern (`Series.expected_count`, `.gro
 - `build_metadata_csv(rows: List[Dict], path: Union[str, Path]) -> Path` — writes a CSV from row dicts, validating that every row has `plant_qr_code`. Canonical column ordering: `plant_qr_code, genotype, number_of_plants_cylinder, qc_cylinder, qc_code, timepoint, <extras...>`.
 - `infer_timepoints_from_filenames(slp_paths: List[Path], pattern: str) -> Dict[str, float]` — regex-parse `(series_name, timepoint)` from filename stems. Convenience for common conventions; user can skip and build CSVs any other way.
 
-**Pipeline output changes** (plate + cylinder + future pipelines):
+**Pipeline output changes** (plate first; cylinder + others as a follow-up issue):
 
-- Emit `sample_uid` and `timepoint` on every output row (CSV) and in the top-level dict (JSON). NaN/None when not set. This is what makes `TimeDiffPipeline`'s `identity_cols` / `time_col` work without extra plumbing.
+- Emit `sample_uid` and `timepoint` on every output row (CSV columns 1 and 2, right after `series`) and in the top-level dict (JSON). NaN/None when not set. This is what makes `TimeDiffPipeline`'s `identity_cols` / `time_col` work without extra plumbing.
+- Plate pipeline `schema_version` bumps from `1` → `2` because the column shift at positions 1 and 2 is non-additive. `_PLATE_UNITS` gains a `"time"` key, set to `"unspecified"` until a future follow-up adds a `time_unit` pipeline kwarg or `timepoint_unit` CSV column. While `units["time"] == "unspecified"` and a non-NaN `timepoint` is emitted, the plate pipeline logs a one-shot WARNING per call to surface the missing-unit hazard at runtime.
 
 **Why this ordering matters:** `sample_uid` is the rename for a role that was previously implicit and entangled with `plant_qr_code`. Naming the role separately makes the other two workstreams cleaner — the diff pipeline doesn't need to care what row-granularity the user is diffing (plant, cylinder aggregate, tracked tip).
 
@@ -70,7 +71,7 @@ Root-agnostic pipeline consuming a **tracked** `.slp` file. Emits per-track tip 
    ```
    One row per `track_id`. Summary scalars over the whole trajectory.
 
-Both tables emit in one call. CSV/JSON contract inherits from the plate pipeline: `schema_version=1`, structured `units` dict, NaN→null JSON via `_json_sanitize`.
+Both tables emit in one call. CSV/JSON contract inherits from the plate pipeline: `schema_version` (`2` after Workstream 1 ships — bumped from `1` because Workstream 1 inserts `sample_uid` + `timepoint` columns at positions 1 and 2, shifting every other column; non-additive change), structured `units` dict (now including `units["time"]` — initially `"unspecified"` until a `time_unit` plumbing path lands), NaN→null JSON via `_json_sanitize`.
 
 **Tip-kinematics trait module** (`sleap_roots/tip_kinematics.py`, new):
 

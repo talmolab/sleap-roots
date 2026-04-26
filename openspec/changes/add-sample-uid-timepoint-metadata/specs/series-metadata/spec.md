@@ -2,9 +2,9 @@
 
 ### Requirement: `Series.sample_uid` SHALL provide a cross-scan stable identity
 
-A new attrs field `sample_uid: Optional[str]` MUST be added to the `Series` class. `Series.load` MUST accept a `sample_uid: Optional[str] = None` kwarg. When the kwarg is `None` (not passed, or explicitly `None`) OR an empty string `""`, `Series.sample_uid` MUST equal `Series.series_name` (defaulting covers both falsy cases so users who pass `""` don't silently get no-match CSV lookups). When the kwarg is a non-empty string, `Series.sample_uid` MUST equal that string.
+A new attrs field `sample_uid: Optional[str]` MUST be added to the `Series` class. `Series.load` MUST accept a `sample_uid: Optional[str] = None` kwarg. When the kwarg is `None` (not passed, or explicitly `None`) OR an empty string `""`, `Series.sample_uid` MUST equal `Series.series_name` (defaulting covers both falsy cases so users who pass `""` don't silently get no-match CSV lookups). When the kwarg is a non-empty string, `Series.sample_uid` MUST equal that string. When the kwarg is non-string (e.g. `int`, `numpy.int64`), `__attrs_post_init__` MUST coerce via `str(value)` so downstream `df["plant_qr_code"] == self.sample_uid` semantics are predictable.
 
-The defaulting MUST also apply when a `Series` is constructed directly via `Series(...)` (bypassing `Series.load`): the class's `__attrs_post_init__` MUST set `self.sample_uid = self.series_name` when `self.sample_uid` is `None` or empty. Without this, direct construction leaves `sample_uid` as `None`, breaking every downstream CSV lookup (all existing test fixtures construct Series directly).
+The defaulting + str-coercion MUST also apply when a `Series` is constructed directly via `Series(...)` (bypassing `Series.load`): the class's `__attrs_post_init__` MUST set `self.sample_uid = self.series_name` when `self.sample_uid` is `None` or empty, then coerce via `str(...)`. Without this, direct construction leaves `sample_uid` as `None`, breaking every downstream CSV lookup (all existing test fixtures construct Series directly).
 
 #### Scenario: `sample_uid` defaults to `series_name` when the kwarg is omitted
 
@@ -29,6 +29,13 @@ The defaulting MUST also apply when a `Series` is constructed directly via `Seri
 - **Given** a direct `Series(series_name="test_video")` call (bypassing `Series.load`, no `sample_uid` kwarg)
 - **When** `series.sample_uid` is read
 - **Then** the value equals `"test_video"` (populated by `__attrs_post_init__`, not by `Series.load`)
+
+#### Scenario: Non-string `sample_uid` kwarg is coerced to str via `__attrs_post_init__`
+
+- **Given** a direct `Series(series_name="x", sample_uid=1002)` call (int kwarg, simulating a CSV with pure-numeric `plant_qr_code` and a Python int passed by the caller)
+- **When** `series.sample_uid` is read
+- **Then** the value equals `"1002"` (str)
+- **And** `isinstance(series.sample_uid, str) is True` (coerced; not the original int)
 
 #### Scenario: Two Series can share a `sample_uid` while having distinct `series_name` values
 
@@ -219,7 +226,16 @@ Both functions MUST be re-exported from `sleap_roots.__init__` at the top level.
 - **And** `caplog` capturing log records at WARNING level for logger `sleap_roots.metadata`
 - **When** `infer_timepoints_from_filenames(...)` is called
 - **Then** the return value contains only `{"plant1_0": 0.0}`
-- **And** `caplog.records` contains at least one WARNING record from `sleap_roots.metadata` whose message mentions `"garbage"` and a skip reason (e.g. "pattern did not match")
+- **And** `caplog.records` contains at least one WARNING record from `sleap_roots.metadata` whose message mentions `"garbage"` and a pattern-mismatch skip reason (e.g. "pattern did not match")
+
+#### Scenario: Stems whose `timepoint` group is non-numeric are skipped with a separate warning
+
+- **Given** `slp_paths = [Path("plant1_5.slp"), Path("plant1_abc.slp")]` and pattern `r"(?P<series_name>.+?)_(?P<timepoint>[^.]+)"` (the second path matches the regex but yields `timepoint="abc"` which cannot be cast to float)
+- **And** `caplog` capturing log records at WARNING level for logger `sleap_roots.metadata`
+- **When** `infer_timepoints_from_filenames(...)` is called
+- **Then** the return value contains only `{"plant1_5": 5.0}`
+- **And** `caplog.records` contains at least one WARNING record from `sleap_roots.metadata` whose message mentions `"plant1_abc"` AND a float-cast failure reason (e.g. "could not convert" or "not numeric")
+- **And** the float-cast warning message is distinguishable from the pattern-mismatch warning (different reason text), so the user can tell the failure mode without re-running with debug logging
 
 #### Scenario: `build_metadata_csv` overwrites an existing file
 

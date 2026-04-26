@@ -11,7 +11,7 @@ Without this layer, Workstream 2 (TrackedTipPipeline, issue #129) and Workstream
 ## What Changes
 
 - **NEW** `Series.load(..., sample_uid: Optional[str] = None)` kwarg. Defaults to `series_name` when unset — preserves today's behavior for every existing workflow.
-- **NEW** `Series.sample_uid: str` attribute (attrs field), initialized from the kwarg or `series_name`.
+- **NEW** `Series.sample_uid: str` attribute (attrs field), initialized from the kwarg or `series_name`. `__attrs_post_init__` additionally coerces non-string values via `str(...)` so `df["plant_qr_code"] == self.sample_uid` semantics are predictable when callers pass int kwargs.
 - **NEW** `Series.get_metadata(column: str, plant_id: Optional[int] = None) -> Any` method. Looks up `df[df["plant_qr_code"] == self.sample_uid]`. If `plant_id` is given AND the CSV has a `plant_id` column, composite lookup returns the `(sample_uid, plant_id)` row. If `plant_id` is given but the CSV has no `plant_id` column, the argument is silently ignored and sample-uid-only lookup is used. Returns `np.nan` when the column is missing or no row matches.
 - **NEW** `Series.timepoint: Union[float, int]` property — thin wrapper `return self.get_metadata("timepoint")`.
 - **REFACTORED** `Series.expected_count`, `Series.group`, `Series.qc_fail` become thin wrappers around `get_metadata()`. Observable behavior unchanged.
@@ -23,10 +23,11 @@ Without this layer, Workstream 2 (TrackedTipPipeline, issue #129) and Workstream
   - Top-level dict gains `sample_uid` and `timepoint` keys.
   - Every per-plant row gains `sample_uid` and `timepoint` keys.
   - CSV emits `sample_uid` and `timepoint` columns right after `series` (positions 1 and 2), shifting the remaining metadata columns by 2.
+  - **Performance contract**: `sample_uid` and `timepoint` are resolved ONCE in `compute_plate_traits` (single property access on `series`) and threaded into `_build_plant_row` as explicit arguments. Per-plant rows MUST NOT call `series.sample_uid` / `series.timepoint` (or `series.get_metadata`) inside any per-frame or per-plant loop — at plate-timelapse scale (10 series × 100 frames × 6 plants = 6000 rows), per-row property access would trigger 6000 redundant CSV reads. Compute-once-pass-down is spec'd as a normative requirement.
 
 - **MODIFIED** existing `Series(...)` direct construction now defaults `sample_uid` via `__attrs_post_init__` — necessary because existing test fixtures and production call sites construct `Series(...)` directly (bypassing `Series.load`). Without this, `sample_uid=None` → lookup fails → `expected_count` etc. silently return NaN where they used to return values.
 - **MODIFIED** `MultipleDicotPlatePipeline` capability spec — CSV column order goes from 6 metadata columns to 8, top-level dict gains 2 keys, per-plant rows gain 2 keys. `schema_version` bumps to **2** (positional shift is non-additive). See `specs/multiple-dicot-plate-pipeline/spec.md` in this change for the full MODIFIED requirements.
-- **NEW** `"time"` entry in `_PLATE_UNITS` so the plate JSON carries the unit for `timepoint` (default `"unspecified"`; user can override via pipeline kwarg or CSV column — see follow-up issue below). Without this, two collaborators recording `timepoint=3` in days vs seconds silently produce incompatible data.
+- **NEW** `"time"` entry in `_PLATE_UNITS` so the plate JSON carries the unit for `timepoint` (default `"unspecified"`; user can override via pipeline kwarg or CSV column — see follow-up issue below). Without this, two collaborators recording `timepoint=3` in days vs seconds silently produce incompatible data. While `units["time"] == "unspecified"` and a non-NaN `timepoint` is emitted, `compute_plate_traits` emits a one-shot WARNING per call to surface the missing-unit hazard at runtime — silent "unspecified" is the failure mode the warning is designed to prevent.
 
 **Partially breaking for CSV positional readers.** The plate CSV column order shifts by 2 positions (new columns at 1 and 2, old columns slide right). `schema_version` bumps to 2. Consumers who read CSV by column NAME continue to work unchanged. Consumers who read CSV by column POSITION will need to update — PR #165 is days old, no known downstream scripts exist. CSV column rename (`plant_qr_code` → `sample_uid`, etc.) is explicitly deferred to #163.
 
