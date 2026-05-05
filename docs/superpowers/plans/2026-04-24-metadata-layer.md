@@ -1418,12 +1418,18 @@ result: Dict[str, Any] = {
 Modify to:
 
 ```python
+# Resolve sample_uid + timepoint ONCE per series call (perf contract — see
+# spec: "must NOT call series.sample_uid / series.timepoint inside any
+# per-plant or per-frame loop").
+sample_uid_resolved = str(series.sample_uid)
+timepoint_resolved = series.timepoint
+
 result: Dict[str, Any] = {
-    "schema_version": 1,
-    "units": dict(_PLATE_UNITS),
+    "schema_version": 2,  # bumped from 1: sample_uid + timepoint shift CSV cols
+    "units": dict(_PLATE_UNITS),  # _PLATE_UNITS now includes "time": "unspecified"
     "series": str(series.series_name),
-    "sample_uid": str(series.sample_uid),
-    "timepoint": series.timepoint,
+    "sample_uid": sample_uid_resolved,
+    "timepoint": timepoint_resolved,
     "group": series.group,
     "qc_fail": series.qc_fail,
     "expected_count": series.expected_count,
@@ -1431,9 +1437,9 @@ result: Dict[str, Any] = {
 }
 ```
 
-- [ ] **Step 3: Thread `sample_uid` and `timepoint` into `_build_plant_row`**
+- [ ] **Step 3: Thread `sample_uid` and `timepoint` into `_build_plant_row` as explicit args**
 
-Locate `_build_plant_row` in the same file (~line 2960). Add two parameters:
+Per the perf contract, `_build_plant_row` MUST receive resolved values from the caller — it MUST NOT re-access `series.sample_uid` / `series.timepoint` (each access does a fresh `pd.read_csv`). Locate `_build_plant_row` (~line 2960) and add two parameters:
 
 ```python
     def _build_plant_row(
@@ -1447,19 +1453,31 @@ Locate `_build_plant_row` in the same file (~line 2960). Add two parameters:
         expected_count: Any,
         detected_count: int,
         dicot_pipeline: "DicotPipeline",
+        sample_uid: str = "",
+        timepoint: float = float("nan"),
     ) -> Dict[str, Any]:
 ```
 
-The `series` parameter is already there. Inside the method, when building the output dict, add:
+Inside the method, populate the output dict from the parameters:
 
 ```python
         return {
             "frame": frame_idx,
-            "sample_uid": str(series.sample_uid),
-            "timepoint": series.timepoint,
+            "sample_uid": sample_uid,
+            "timepoint": timepoint,
             "plant_id": plant_id,
             ...
         }
+```
+
+In the caller (`compute_plate_traits`), pass the resolved values:
+
+```python
+plant_row = self._build_plant_row(
+    ...,
+    sample_uid=sample_uid_resolved,
+    timepoint=timepoint_resolved,
+)
 ```
 
 Inserting `sample_uid` and `timepoint` early in the dict (after `frame`) for readability — dict ordering doesn't affect the output CSV, which is controlled by `_build_plate_dataframe`'s `meta_cols` list.

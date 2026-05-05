@@ -1026,6 +1026,41 @@ def test_multiple_dicot_plate_pipeline_unspecified_time_emits_warning_when_timep
     assert "timepoint" in warnings[0].message.lower()
 
 
+def test_multiple_dicot_plate_pipeline_unspecified_time_warns_per_call(
+    tmp_path, caplog
+):
+    """Two consecutive `compute_plate_traits` calls each emit one warning.
+
+    Pins the per-call (not per-process) dedup contract: each call independently
+    decides whether to warn based on `timepoint` + `units["time"]`. There is no
+    cross-call suppression. Batch processing (`compute_batch_plate_traits` over
+    100 series with non-NaN timepoint) will surface 100 warnings — intentional.
+    """
+    primaries = [np.stack([_default_primary(100.0)])]
+    laterals = [np.stack([_default_lateral(100.0)])]
+    csv = _plate_csv_with_timepoint("plate_abc", expected_count=1, timepoint=3)
+    series = _build_synthetic_slp(
+        tmp_path,
+        "plate_abc",
+        primaries,
+        laterals,
+        csv_content=csv,
+        sample_uid="plate_abc",
+    )
+    pipeline = MultipleDicotPlatePipeline()
+    with caplog.at_level(logging.WARNING, logger="sleap_roots.trait_pipelines"):
+        pipeline.compute_plate_traits(series)
+        pipeline.compute_plate_traits(series)
+    warnings = [
+        r
+        for r in caplog.records
+        if r.name == "sleap_roots.trait_pipelines"
+        and r.levelno >= logging.WARNING
+        and "unspecified" in r.message.lower()
+    ]
+    assert len(warnings) == 2  # one per call, NOT one per process
+
+
 def test_multiple_dicot_plate_pipeline_unspecified_time_no_warning_when_timepoint_nan(
     tmp_path, caplog
 ):

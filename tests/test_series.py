@@ -184,6 +184,51 @@ def test_qc_cylinder(series_instance, csv_path):
     assert series_instance.qc_fail == 0
 
 
+def test_group(series_instance, csv_path):
+    """`Series.group` returns the genotype value via the get_metadata wrapper."""
+    series_instance.csv_path = csv_path
+    # The csv_path fixture has a mixed-dtype genotype column ("1100", "Kitaake-X"),
+    # so pandas infers object dtype and the value comes back as a string.
+    assert str(series_instance.group) == "1100"
+
+
+def test_wrappers_use_sample_uid_not_series_name(tmp_path):
+    """Regression: expected_count/group/qc_fail key on sample_uid, not series_name.
+
+    Pre-refactor the wrappers used `df["plant_qr_code"] == self.series_name`. Post-
+    refactor they call `get_metadata` which keys on `self.sample_uid`. With sample_uid
+    defaulting to series_name the byte-for-byte default behavior is preserved. This
+    test pins the new (sample_uid-keyed) lookup explicitly.
+    """
+    csv = tmp_path / "m.csv"
+    csv.write_text(
+        "plant_qr_code,number_of_plants_cylinder,genotype,qc_cylinder\n"
+        "X,7,GENO_X,0\n"
+    )
+    series = Series.load(
+        series_name="X_day0",
+        sample_uid="X",
+        csv_path=str(csv),
+    )
+    assert series.expected_count == 7
+    assert series.group == "GENO_X"
+    assert series.qc_fail == 0
+
+
+def test_series_get_metadata_csv_path_set_but_file_missing(tmp_path):
+    """csv_path set but file missing → `get_metadata` returns NaN (no raise)."""
+    series = Series(series_name="x", csv_path=str(tmp_path / "nonexistent.csv"))
+    assert np.isnan(series.get_metadata("genotype"))
+
+
+def test_series_timepoint_nan_cell_in_existing_row(tmp_path):
+    """Empty-string timepoint in a matching row → NaN (collapses with no-row case)."""
+    csv = tmp_path / "m.csv"
+    csv.write_text("plant_qr_code,timepoint\nplant1,\n")
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert np.isnan(series.timepoint)
+
+
 def test_len_video():
     series = Series(series_name="test_video", video=["frame1", "frame2"])
     assert len(series) == 2

@@ -3116,22 +3116,22 @@ class MultipleDicotPlatePipeline(Pipeline):
             "plants": [],
         }
 
-        # One-shot warning when units["time"] is "unspecified" AND timepoint is
+        # Per-call warning when units["time"] is "unspecified" AND timepoint is
         # numeric — surfaces the missing-unit hazard at runtime so two
         # collaborators recording timepoint=3 in days vs seconds don't silently
-        # produce incompatible data. Removed once the time_unit follow-up lands.
-        if (
-            result["units"].get("time") == "unspecified"
-            and not (
-                isinstance(timepoint_resolved, float) and math.isnan(timepoint_resolved)
-            )
-            and not pd.isna(timepoint_resolved)
+        # produce incompatible data. Each compute_plate_traits call emits at
+        # most one such warning; there is no cross-call dedup (intentional —
+        # batch processing should still surface each series's hazard).
+        # Removed once the time_unit follow-up (#177) lands.
+        if result["units"].get("time") == "unspecified" and not pd.isna(
+            timepoint_resolved
         ):
             logger.warning(
                 "MultipleDicotPlatePipeline: %s timepoint=%r emitted with "
                 "units['time']='unspecified'; downstream consumers cannot "
-                "interpret this value as a physical duration. Set time_unit "
-                "once the follow-up lands (see issue #169 follow-ups).",
+                "interpret this value as a physical duration (e.g. days, "
+                "hours, minutes, frames are all valid but mutually "
+                "incompatible). Set time_unit once #177 lands.",
                 series.series_name,
                 timepoint_resolved,
             )

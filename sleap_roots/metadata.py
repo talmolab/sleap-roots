@@ -58,6 +58,11 @@ def build_metadata_csv(rows: List[Dict[str, Any]], path: Union[str, Path]) -> Pa
         ValueError: If any row lacks a `plant_qr_code` key.
     """
     path = Path(path)
+    if not rows:
+        raise ValueError(
+            "build_metadata_csv: rows must be non-empty (no rows would write "
+            "an unreadable header-less CSV)."
+        )
     for i, row in enumerate(rows):
         if "plant_qr_code" not in row:
             raise ValueError(
@@ -81,7 +86,7 @@ def build_metadata_csv(rows: List[Dict[str, Any]], path: Union[str, Path]) -> Pa
 def infer_timepoints_from_filenames(
     slp_paths: List[Path], pattern: str
 ) -> Dict[str, float]:
-    """Parse `(series_name, timepoint)` from filename stems via named groups.
+    r"""Parse `(series_name, timepoint)` from filename stems via named groups.
 
     The pattern MUST contain named groups `series_name` AND `timepoint`. The
     returned dict keys on the full matched portion of the stem (regex group 0),
@@ -92,6 +97,16 @@ def infer_timepoints_from_filenames(
     be cast to `float`, are skipped silently from the return dict but logged at
     WARNING level (logger `sleap_roots.metadata`) with a reason string that
     distinguishes pattern-mismatch from float-cast failure.
+
+    **Anchoring is the user's responsibility.** This function uses `re.search`,
+    not `re.fullmatch`. Patterns like `r"(?P<series_name>.+?)_(?P<timepoint>\d+)"`
+    are unanchored — for a stem `plant_2024_5` the regex engine matches the
+    first digit run and produces `timepoint=2024.0` (almost certainly not what
+    the user intended). For a stem `plant1_5_extra` the trailing `_extra` is
+    silently dropped from the dict key (`m.group(0) == "plant1_5"`); two stems
+    sharing the same matched prefix collide and silently overwrite each other.
+    Anchor with `^...$` and validate with a small unit test if your filename
+    convention has multiple digit runs or ambiguous prefixes.
 
     Args:
         slp_paths: Iterable of `.slp` paths (or any paths whose stems carry the

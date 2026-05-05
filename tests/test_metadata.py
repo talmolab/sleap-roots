@@ -20,6 +20,44 @@ def test_build_metadata_csv_canonical_column_order(tmp_path):
     assert df["plant_qr_code"].tolist() == ["a", "b"]
 
 
+def test_build_metadata_csv_full_canonical_column_order(tmp_path):
+    """All 6 canonical columns present → strict canonical ordering."""
+    from sleap_roots.metadata import build_metadata_csv
+
+    rows = [
+        {
+            "plant_qr_code": "a",
+            "genotype": "X",
+            "number_of_plants_cylinder": 5,
+            "qc_cylinder": 0,
+            "qc_code": "ok",
+            "timepoint": 3,
+        }
+    ]
+    out = build_metadata_csv(rows, tmp_path / "out.csv")
+    df = pd.read_csv(out)
+    assert list(df.columns) == [
+        "plant_qr_code",
+        "genotype",
+        "number_of_plants_cylinder",
+        "qc_cylinder",
+        "qc_code",
+        "timepoint",
+    ]
+
+
+def test_build_metadata_csv_raises_on_empty_rows(tmp_path):
+    """Empty rows list → ValueError (instead of silently writing unreadable CSV)."""
+    from sleap_roots.metadata import build_metadata_csv
+
+    with pytest.raises(ValueError) as excinfo:
+        build_metadata_csv([], tmp_path / "out.csv")
+    assert (
+        "non-empty" in str(excinfo.value).lower()
+        or "empty" in str(excinfo.value).lower()
+    )
+
+
 def test_build_metadata_csv_omits_unused_columns(tmp_path):
     from sleap_roots.metadata import build_metadata_csv
 
@@ -98,6 +136,14 @@ def test_infer_timepoints_from_filenames_named_groups():
     pattern = r"(?P<series_name>.+?)_(?P<timepoint>\d+)"
     result = infer_timepoints_from_filenames(paths, pattern)
     assert result == {"plant1_0": 0.0, "plant1_5": 5.0, "plant1_10": 10.0}
+
+
+def test_infer_timepoints_from_filenames_empty_input():
+    """Empty path list → empty dict, no raise."""
+    from sleap_roots.metadata import infer_timepoints_from_filenames
+
+    pattern = r"(?P<series_name>.+?)_(?P<timepoint>\d+)"
+    assert infer_timepoints_from_filenames([], pattern) == {}
 
 
 def test_infer_timepoints_from_filenames_missing_named_groups():
