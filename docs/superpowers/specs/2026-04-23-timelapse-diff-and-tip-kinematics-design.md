@@ -1,8 +1,7 @@
 # Design: Timelapse diffs, tracked-tip kinematics, and metadata generalization
 
 **Date**: 2026-04-23
-**Related issues**: #112 (close as obsolete), #129 (refresh), #163 (broaden), #159 (related)
-**New issues to file**: TimeDiffPipeline, sample_uid/timepoint metadata layer
+**Related issues**: #112 (close as obsolete), #129 (refresh), #163 (broaden), #159 (related), #169 (Workstream 1 metadata layer — implemented in PR #171), #170 (Workstream 3 TimeDiffPipeline)
 **Depends on**: PR #165 (MultipleDicotPlatePipeline) — merged 2026-04-21
 **Status**: Brainstorm complete, spec drafted. Circumnutation trait set deferred to a follow-up design once the maintainer has assembled a literature reference for method selection.
 
@@ -134,8 +133,9 @@ diff_cyl = TimeDiffPipeline(
     time_col="timepoint",
     mode="consecutive",
 )
-df = diff_cyl.compute_batch_plate_traits(all_series)
-# df contains raw rows + delta rows; distinguished by row_type column
+result = diff_cyl.compute_batch_multiple_dicots_traits(all_series)
+# result["plants"] — unchanged from inner pipeline (per-series aggregate rows)
+# result["deltas"] — new parallel delta table
 ```
 
 **Algorithm:**
@@ -163,7 +163,7 @@ df = diff_cyl.compute_batch_plate_traits(all_series)
 Any pipeline that emits per-row-over-time output. Specifically:
 
 - `MultipleDicotPlatePipeline` — emits per-plant-per-frame rows; `frame` is the time axis.
-- `DicotPipeline` — per-plant per frame (if the user loops it over a timelapse `.slp`).
+- `DicotPipeline` — emits per-plant-per-frame rows for a multi-frame `Series`; a single `compute_plant_traits(series)` call already iterates over `range(len(series))` and returns one row per frame, with `frame` as the time axis (no external loop required).
 - `MultipleDicotPipeline` — per-series aggregate row; `timepoint` from CSV is the time axis; per-plant diffs NOT supported until #159 lands.
 - `TrackedTipPipeline` (Workstream 2) — per-track summary rows; `track_id` is the identity, `timepoint` (inter-series) or `frame` (intra-series) is the time axis.
 
