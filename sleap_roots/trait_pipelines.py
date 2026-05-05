@@ -2738,6 +2738,7 @@ _PLATE_UNITS = {
     "counts": "unitless",
     "ratios": "dimensionless",
     "indices": "unitless",
+    "time": "unspecified",
 }
 
 
@@ -2981,6 +2982,8 @@ class MultipleDicotPlatePipeline(Pipeline):
         expected_count: Any,
         detected_count: int,
         dicot_pipeline: "DicotPipeline",
+        sample_uid: str = "",
+        timepoint: float = float("nan"),
     ) -> Dict[str, Any]:
         """Compute the per-plant output row via a nested DicotPipeline.
 
@@ -3047,6 +3050,8 @@ class MultipleDicotPlatePipeline(Pipeline):
 
         return {
             "frame": frame_idx,
+            "sample_uid": sample_uid,
+            "timepoint": timepoint,
             "plant_id": plant_id,
             "primary_sleap_idx": primary_sleap_idx,
             "lateral_sleap_idxs": lateral_sleap_idxs_out,
@@ -3091,15 +3096,45 @@ class MultipleDicotPlatePipeline(Pipeline):
             `qc_fail`, `expected_count`, and `plants` (list of per-plant-per-frame
             dicts).
         """
+        # Resolve sample_uid + timepoint ONCE per series call (perf contract).
+        # Per-plant rows must NOT re-read from `series` inside the frame loop;
+        # at plate-timelapse scale (10 series × 100 frames × 6 plants) this
+        # would trigger 6000 redundant CSV reads.
+        sample_uid_resolved = str(series.sample_uid)
+        timepoint_resolved = series.timepoint
+
         result: Dict[str, Any] = {
-            "schema_version": 1,
+            "schema_version": 2,
             "units": dict(_PLATE_UNITS),
             "series": str(series.series_name),
+            "sample_uid": sample_uid_resolved,
+            "timepoint": timepoint_resolved,
             "group": series.group,
             "qc_fail": series.qc_fail,
             "expected_count": series.expected_count,
             "plants": [],
         }
+
+        # One-shot warning when units["time"] is "unspecified" AND timepoint is
+        # numeric — surfaces the missing-unit hazard at runtime so two
+        # collaborators recording timepoint=3 in days vs seconds don't silently
+        # produce incompatible data. Removed once the time_unit follow-up lands.
+        if (
+            result["units"].get("time") == "unspecified"
+            and not (
+                isinstance(timepoint_resolved, float)
+                and math.isnan(timepoint_resolved)
+            )
+            and not pd.isna(timepoint_resolved)
+        ):
+            logger.warning(
+                "MultipleDicotPlatePipeline: %s timepoint=%r emitted with "
+                "units['time']='unspecified'; downstream consumers cannot "
+                "interpret this value as a physical duration. Set time_unit "
+                "once the follow-up lands (see issue #169 follow-ups).",
+                series.series_name,
+                timepoint_resolved,
+            )
 
         if len(series) == 0:
             return result
@@ -3165,6 +3200,8 @@ class MultipleDicotPlatePipeline(Pipeline):
                     expected_count=expected_count_raw,
                     detected_count=detected_count,
                     dicot_pipeline=dicot_pipeline,
+                    sample_uid=sample_uid_resolved,
+                    timepoint=timepoint_resolved,
                 )
                 result["plants"].append(plant_row)
 
@@ -3212,6 +3249,8 @@ class MultipleDicotPlatePipeline(Pipeline):
         for plant in result["plants"]:
             row = {
                 "series": result["series"],
+                "sample_uid": plant["sample_uid"],
+                "timepoint": plant["timepoint"],
                 "frame": plant["frame"],
                 "plant_id": plant["plant_id"],
                 "primary_sleap_idx": plant["primary_sleap_idx"],
@@ -3238,6 +3277,8 @@ class MultipleDicotPlatePipeline(Pipeline):
         # Force column order: metadata first, then DicotPipeline.csv_traits in order.
         meta_cols = [
             "series",
+            "sample_uid",
+            "timepoint",
             "frame",
             "plant_id",
             "primary_sleap_idx",

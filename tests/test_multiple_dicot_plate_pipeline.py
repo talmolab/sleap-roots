@@ -69,6 +69,7 @@ def _build_synthetic_slp(
     primary_pts_per_frame,
     lateral_pts_per_frame,
     csv_content: str = None,
+    sample_uid: str = None,
 ) -> Series:
     """Build a synthetic plate Series by round-tripping through `.slp` files.
 
@@ -146,6 +147,7 @@ def _build_synthetic_slp(
         primary_path=primary_path.as_posix(),
         lateral_path=lateral_path.as_posix(),
         csv_path=csv_path.as_posix() if csv_path else None,
+        sample_uid=sample_uid,
     )
 
 
@@ -360,6 +362,19 @@ def _plate_csv(series_name, expected_count=None, group=None, qc_cylinder=0):
     return "\n".join(rows) + "\n"
 
 
+def _plate_csv_with_timepoint(
+    series_name, expected_count=None, group=None, timepoint=None, qc_cylinder=0
+):
+    """Build a plate metadata CSV that ALSO carries a `timepoint` column."""
+    rows = ["plant_qr_code,genotype,number_of_plants_cylinder,qc_cylinder,timepoint"]
+    rows.append(
+        f"{series_name},{group or ''},"
+        f"{expected_count if expected_count is not None else ''},{qc_cylinder},"
+        f"{timepoint if timepoint is not None else ''}"
+    )
+    return "\n".join(rows) + "\n"
+
+
 def test_multiple_dicot_plate_pipeline_expected_count_none(tmp_path, caplog):
     """Req 3 scenario: missing expected_count tolerated, both flags False, no log."""
     primaries = [
@@ -543,8 +558,10 @@ def test_multiple_dicot_plate_pipeline_zero_frames(tmp_path):
     result = MultipleDicotPlatePipeline().compute_plate_traits(series)
     assert result["plants"] == []
     # Top-level metadata still populated.
-    assert result["schema_version"] == 1
+    assert result["schema_version"] == 2
     assert result["series"] == "zero_frames"
+    assert result["sample_uid"] == "zero_frames"  # defaults to series_name
+    assert pd.isna(result["timepoint"])  # no CSV → NaN
 
 
 def test_multiple_dicot_plate_pipeline_zero_laterals(tmp_path):
@@ -643,16 +660,18 @@ def test_multiple_dicot_plate_pipeline_csv_output(tmp_path):
     )
     csv_path = tmp_path / "test_csv.plate_traits.csv"
     df = pd.read_csv(csv_path.as_posix())
-    meta_cols = list(df.columns)[:6]
+    meta_cols = list(df.columns)[:8]
     assert meta_cols == [
         "series",
+        "sample_uid",
+        "timepoint",
         "frame",
         "plant_id",
         "primary_sleap_idx",
         "expected_count",
         "detected_count",
     ]
-    trait_cols = list(df.columns)[6:]
+    trait_cols = list(df.columns)[8:]
     assert trait_cols == DicotPipeline().csv_traits, (
         f"plate trait columns don't match DicotPipeline.csv_traits:\n"
         f"  plate: {trait_cols}\n"
@@ -681,6 +700,9 @@ def test_multiple_dicot_plate_pipeline_csv_missing_expected_count(tmp_path):
     assert df.loc[0, "detected_count"] == 1
     assert "count_validated" not in df.columns
     assert "count_mismatch" not in df.columns
+    # sample_uid defaults to series_name when no kwarg + timepoint NaN without CSV
+    assert df.loc[0, "sample_uid"] == df.loc[0, "series"]
+    assert pd.isna(df.loc[0, "timepoint"])
 
 
 def test_multiple_dicot_plate_pipeline_json_output(tmp_path):
@@ -714,12 +736,14 @@ def test_multiple_dicot_plate_pipeline_json_output(tmp_path):
         "schema_version",
         "units",
         "series",
+        "sample_uid",
+        "timepoint",
         "group",
         "qc_fail",
         "expected_count",
         "plants",
     }
-    assert loaded["schema_version"] == 1
+    assert loaded["schema_version"] == 2
     assert loaded["units"] == {
         "lengths": "pixels",
         "areas": "pixels^2",
@@ -728,6 +752,7 @@ def test_multiple_dicot_plate_pipeline_json_output(tmp_path):
         "counts": "unitless",
         "ratios": "dimensionless",
         "indices": "unitless",
+        "time": "unspecified",
     }
 
     for plant in loaded["plants"]:
@@ -780,10 +805,13 @@ def test_multiple_dicot_plate_pipeline_json_rfc8259_valid_with_nested_nan(tmp_pa
 
     loaded = json.loads(text)
     assert loaded["expected_count"] is None
+    # No CSV → top-level timepoint is NaN → JSON null.
+    assert loaded["timepoint"] is None
     # Zero-laterals plant: lateral_sleap_idxs and lateral_points must be [].
     plant = loaded["plants"][0]
     assert plant["lateral_sleap_idxs"] == []
     assert plant["lateral_points"] == []
+    assert plant["timepoint"] is None  # per-plant NaN → null
     # A trait that is deterministically NaN on zero-lateral plants:
     # get_root_angle on empty-node-ind input returns scalar NaN.
     assert plant["traits"]["lateral_angles_distal"] is None
@@ -858,8 +886,161 @@ def test_compute_batch_plate_traits(tmp_path):
             "schema_version",
             "units",
             "series",
+            "sample_uid",
+            "timepoint",
             "group",
             "qc_fail",
             "expected_count",
             "plants",
         }
+        assert per_series["schema_version"] == 2
+        assert per_series["units"]["time"] == "unspecified"
+
+
+# ---------------------------------------------------------------------------
+# Section 10: sample_uid + timepoint emission tests (TDD red phase 5)
+# ---------------------------------------------------------------------------
+
+
+def test_multiple_dicot_plate_pipeline_emits_sample_uid_and_timepoint_top_level(tmp_path):
+    primaries = [np.stack([_default_primary(100.0)])]
+    laterals = [np.stack([_default_lateral(100.0)])]
+    csv = _plate_csv_with_timepoint("plate_abc", expected_count=1, timepoint=3)
+    series = _build_synthetic_slp(
+        tmp_path,
+        "plate_abc",
+        primaries,
+        laterals,
+        csv_content=csv,
+        sample_uid="plate_abc",
+    )
+    result = MultipleDicotPlatePipeline().compute_plate_traits(series)
+    assert result["sample_uid"] == "plate_abc"
+    assert result["timepoint"] == 3.0
+
+
+def test_multiple_dicot_plate_pipeline_emits_sample_uid_and_timepoint_per_plant(tmp_path):
+    primaries = [
+        np.stack([_default_primary(100.0), _default_primary(200.0)])
+    ]
+    laterals = [
+        np.stack([_default_lateral(100.0), _default_lateral(200.0)])
+    ]
+    csv = _plate_csv_with_timepoint("plate_abc", expected_count=2, timepoint=5)
+    series = _build_synthetic_slp(
+        tmp_path,
+        "plate_abc",
+        primaries,
+        laterals,
+        csv_content=csv,
+        sample_uid="plate_abc",
+    )
+    result = MultipleDicotPlatePipeline().compute_plate_traits(series)
+    for plant in result["plants"]:
+        assert plant["sample_uid"] == "plate_abc"
+        assert plant["timepoint"] == 5.0
+
+
+def test_multiple_dicot_plate_pipeline_csv_column_positions(tmp_path):
+    primaries = [np.stack([_default_primary(100.0)])]
+    laterals = [np.stack([_default_lateral(100.0)])]
+    series = _build_synthetic_slp(
+        tmp_path, "test_cols", primaries, laterals, csv_content=None
+    )
+    MultipleDicotPlatePipeline().compute_plate_traits(
+        series, write_csv=True, output_dir=tmp_path.as_posix()
+    )
+    df = pd.read_csv((tmp_path / "test_cols.plate_traits.csv").as_posix())
+    assert list(df.columns)[:8] == [
+        "series",
+        "sample_uid",
+        "timepoint",
+        "frame",
+        "plant_id",
+        "primary_sleap_idx",
+        "expected_count",
+        "detected_count",
+    ]
+
+
+def test_multiple_dicot_plate_pipeline_timepoint_nan_without_csv(tmp_path):
+    primaries = [np.stack([_default_primary(100.0)])]
+    laterals = [np.stack([_default_lateral(100.0)])]
+    series = _build_synthetic_slp(
+        tmp_path, "test_no_csv", primaries, laterals, csv_content=None
+    )
+    result = MultipleDicotPlatePipeline().compute_plate_traits(series)
+    assert pd.isna(result["timepoint"])
+    assert result["sample_uid"] == "test_no_csv"  # defaulted to series_name
+    for plant in result["plants"]:
+        assert pd.isna(plant["timepoint"])
+        assert plant["sample_uid"] == "test_no_csv"
+
+
+def test_multiple_dicot_plate_pipeline_schema_version_bumped_to_2(tmp_path):
+    primaries = [np.stack([_default_primary(100.0)])]
+    laterals = [np.stack([_default_lateral(100.0)])]
+    series = _build_synthetic_slp(
+        tmp_path, "test_schema", primaries, laterals, csv_content=None
+    )
+    result = MultipleDicotPlatePipeline().compute_plate_traits(series)
+    assert result["schema_version"] == 2
+
+
+def test_multiple_dicot_plate_pipeline_units_has_time_family(tmp_path):
+    primaries = [np.stack([_default_primary(100.0)])]
+    laterals = [np.stack([_default_lateral(100.0)])]
+    series = _build_synthetic_slp(
+        tmp_path, "test_units", primaries, laterals, csv_content=None
+    )
+    result = MultipleDicotPlatePipeline().compute_plate_traits(series)
+    assert result["units"]["time"] == "unspecified"
+
+
+def test_multiple_dicot_plate_pipeline_unspecified_time_emits_warning_when_timepoint_non_nan(
+    tmp_path, caplog
+):
+    primaries = [np.stack([_default_primary(100.0)])]
+    laterals = [np.stack([_default_lateral(100.0)])]
+    csv = _plate_csv_with_timepoint("plate_abc", expected_count=1, timepoint=3)
+    series = _build_synthetic_slp(
+        tmp_path,
+        "plate_abc",
+        primaries,
+        laterals,
+        csv_content=csv,
+        sample_uid="plate_abc",
+    )
+    pipeline = MultipleDicotPlatePipeline()
+    with caplog.at_level(logging.WARNING, logger="sleap_roots.trait_pipelines"):
+        pipeline.compute_plate_traits(series)
+    warnings = [
+        r
+        for r in caplog.records
+        if r.name == "sleap_roots.trait_pipelines"
+        and r.levelno >= logging.WARNING
+        and "unspecified" in r.message.lower()
+    ]
+    assert len(warnings) == 1
+    assert "plate_abc" in warnings[0].message
+    assert "timepoint" in warnings[0].message.lower()
+
+
+def test_multiple_dicot_plate_pipeline_unspecified_time_no_warning_when_timepoint_nan(
+    tmp_path, caplog
+):
+    primaries = [np.stack([_default_primary(100.0)])]
+    laterals = [np.stack([_default_lateral(100.0)])]
+    series = _build_synthetic_slp(
+        tmp_path, "no_csv_series", primaries, laterals, csv_content=None
+    )
+    with caplog.at_level(logging.WARNING, logger="sleap_roots.trait_pipelines"):
+        MultipleDicotPlatePipeline().compute_plate_traits(series)
+    warnings = [
+        r
+        for r in caplog.records
+        if r.name == "sleap_roots.trait_pipelines"
+        and r.levelno >= logging.WARNING
+        and "unspecified" in r.message.lower()
+    ]
+    assert len(warnings) == 0
