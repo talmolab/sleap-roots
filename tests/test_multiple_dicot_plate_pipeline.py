@@ -902,7 +902,9 @@ def test_compute_batch_plate_traits(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_multiple_dicot_plate_pipeline_emits_sample_uid_and_timepoint_top_level(tmp_path):
+def test_multiple_dicot_plate_pipeline_emits_sample_uid_and_timepoint_top_level(
+    tmp_path,
+):
     primaries = [np.stack([_default_primary(100.0)])]
     laterals = [np.stack([_default_lateral(100.0)])]
     csv = _plate_csv_with_timepoint("plate_abc", expected_count=1, timepoint=3)
@@ -919,13 +921,11 @@ def test_multiple_dicot_plate_pipeline_emits_sample_uid_and_timepoint_top_level(
     assert result["timepoint"] == 3.0
 
 
-def test_multiple_dicot_plate_pipeline_emits_sample_uid_and_timepoint_per_plant(tmp_path):
-    primaries = [
-        np.stack([_default_primary(100.0), _default_primary(200.0)])
-    ]
-    laterals = [
-        np.stack([_default_lateral(100.0), _default_lateral(200.0)])
-    ]
+def test_multiple_dicot_plate_pipeline_emits_sample_uid_and_timepoint_per_plant(
+    tmp_path,
+):
+    primaries = [np.stack([_default_primary(100.0), _default_primary(200.0)])]
+    laterals = [np.stack([_default_lateral(100.0), _default_lateral(200.0)])]
     csv = _plate_csv_with_timepoint("plate_abc", expected_count=2, timepoint=5)
     series = _build_synthetic_slp(
         tmp_path,

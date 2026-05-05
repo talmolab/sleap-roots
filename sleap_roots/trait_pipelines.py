@@ -3122,8 +3122,7 @@ class MultipleDicotPlatePipeline(Pipeline):
         if (
             result["units"].get("time") == "unspecified"
             and not (
-                isinstance(timepoint_resolved, float)
-                and math.isnan(timepoint_resolved)
+                isinstance(timepoint_resolved, float) and math.isnan(timepoint_resolved)
             )
             and not pd.isna(timepoint_resolved)
         ):

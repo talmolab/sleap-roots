@@ -481,17 +481,13 @@ def test_series_get_metadata_no_csv():
 
 
 def test_series_get_metadata_missing_column(tmp_path):
-    csv = _write_csv(
-        tmp_path / "m.csv", "plant_qr_code,genotype\nplant1,MK22\n"
-    )
+    csv = _write_csv(tmp_path / "m.csv", "plant_qr_code,genotype\nplant1,MK22\n")
     series = Series(series_name="plant1", csv_path=str(csv))
     assert np.isnan(series.get_metadata("timepoint"))
 
 
 def test_series_get_metadata_no_matching_row(tmp_path):
-    csv = _write_csv(
-        tmp_path / "m.csv", "plant_qr_code,genotype\na,MK22\nb,MK23\n"
-    )
+    csv = _write_csv(tmp_path / "m.csv", "plant_qr_code,genotype\na,MK22\nb,MK23\n")
     series = Series(series_name="c", csv_path=str(csv))
     assert pd.isna(series.get_metadata("genotype"))
 
@@ -572,9 +568,7 @@ def test_series_get_metadata_multiple_matches_first_row(tmp_path):
 
 
 def test_series_timepoint_from_csv_numeric(tmp_path):
-    csv = _write_csv(
-        tmp_path / "m.csv", "plant_qr_code,timepoint\nplant1,2\n"
-    )
+    csv = _write_csv(tmp_path / "m.csv", "plant_qr_code,timepoint\nplant1,2\n")
     series = Series(series_name="plant1", csv_path=str(csv))
     assert series.timepoint == 2.0
     assert isinstance(series.timepoint, float)
@@ -586,9 +580,7 @@ def test_series_timepoint_no_csv():
 
 
 def test_series_timepoint_string_float_parses(tmp_path):
-    csv = _write_csv(
-        tmp_path / "m.csv", "plant_qr_code,timepoint\nplant1,3.5\n"
-    )
+    csv = _write_csv(tmp_path / "m.csv", "plant_qr_code,timepoint\nplant1,3.5\n")
     series = Series(series_name="plant1", csv_path=str(csv))
     assert series.timepoint == 3.5
 
@@ -596,7 +588,7 @@ def test_series_timepoint_string_float_parses(tmp_path):
 def test_series_timepoint_raises_on_non_numeric(tmp_path):
     csv = _write_csv(
         tmp_path / "m.csv",
-        'plant_qr_code,timepoint\nplant1,2024-03-15\n',
+        "plant_qr_code,timepoint\nplant1,2024-03-15\n",
     )
     series = Series(series_name="plant1", csv_path=str(csv))
     with pytest.raises(ValueError) as excinfo:

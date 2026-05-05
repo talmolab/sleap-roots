@@ -125,8 +125,7 @@ def test_infer_timepoints_from_filenames_skips_non_matches_with_warning(caplog):
     ]
     assert any("garbage" in r.message for r in warnings)
     assert any(
-        "pattern" in r.message.lower() or "match" in r.message.lower()
-        for r in warnings
+        "pattern" in r.message.lower() or "match" in r.message.lower() for r in warnings
     )
 
 
@@ -146,8 +145,7 @@ def test_infer_timepoints_from_filenames_skips_non_numeric_with_warning(caplog):
     assert any("plant1_abc" in r.message for r in warnings)
     # The float-cast warning has a different reason text than pattern-mismatch.
     assert any(
-        re.search(r"convert|numeric|float", r.message, re.IGNORECASE)
-        for r in warnings
+        re.search(r"convert|numeric|float", r.message, re.IGNORECASE) for r in warnings
     )
 
 

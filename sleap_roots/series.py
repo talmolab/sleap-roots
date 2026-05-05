@@ -187,9 +187,7 @@ class Series:
             sample_uid=sample_uid,
         )
 
-    def get_metadata(
-        self, column: str, plant_id: Optional[int] = None
-    ) -> Any:
+    def get_metadata(self, column: str, plant_id: Optional[int] = None) -> Any:
         """Fetch a CSV column value keyed on `sample_uid` (and optional `plant_id`).
 
         Looks up `df[df["plant_qr_code"] == self.sample_uid]`. If `plant_id` is given

@@ -35,9 +35,7 @@ _CANONICAL_COLUMNS = (
 )
 
 
-def build_metadata_csv(
-    rows: List[Dict[str, Any]], path: Union[str, Path]
-) -> Path:
+def build_metadata_csv(rows: List[Dict[str, Any]], path: Union[str, Path]) -> Path:
     """Write a metadata CSV from row dicts.
 
     Validates that every row carries `plant_qr_code` (the lookup key used by
