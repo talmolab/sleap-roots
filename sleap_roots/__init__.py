@@ -5,6 +5,7 @@ import sleap_roots.bases
 import sleap_roots.tips
 import sleap_roots.convhull
 import sleap_roots.ellipse
+import sleap_roots.metadata
 import sleap_roots.networklength
 import sleap_roots.lengths
 import sleap_roots.points
@@ -22,6 +23,10 @@ from sleap_roots.trait_pipelines import (
     MultiplePrimaryRootPipeline,
     PrimaryRootPipeline,
     LateralRootPipeline,
+)
+from sleap_roots.metadata import (
+    build_metadata_csv,
+    infer_timepoints_from_filenames,
 )
 from sleap_roots.series import (
     Series,
