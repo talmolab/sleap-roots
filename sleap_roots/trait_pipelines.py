@@ -3096,6 +3096,16 @@ class MultipleDicotPlatePipeline(Pipeline):
             `sample_uid`, `timepoint`, `group`, `qc_fail`, `expected_count`,
             and `plants` (list of per-plant-per-frame dicts). Each plant row
             additionally carries `sample_uid` and `timepoint`.
+
+            **Note on `schema_version`:** `schema_version` is JSON-only
+            (and present in the in-memory dict). It is NOT written to the
+            per-plant CSV — CSV consumers must read by column NAME (not
+            position) to remain compatible across schema versions. Positional
+            CSV readers cannot programmatically detect the version change
+            from `schema_version=1` (PR #165) to `schema_version=2` (this
+            change adds `sample_uid`/`timepoint` at columns 1 and 2); they
+            will silently misread. Migrate positional readers to name-based
+            indexing (`df["primary_length"]` instead of `df.iloc[:, 6]`).
         """
         # Resolve sample_uid + timepoint ONCE per series call (perf contract).
         # Per-plant rows must NOT re-read from `series` inside the frame loop;

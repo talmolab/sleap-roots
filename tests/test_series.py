@@ -221,6 +221,34 @@ def test_series_get_metadata_csv_path_set_but_file_missing(tmp_path):
     assert np.isnan(series.get_metadata("genotype"))
 
 
+def test_series_get_metadata_csv_missing_plant_qr_code_column(tmp_path, caplog):
+    """CSV without `plant_qr_code` lookup-key column → NaN + WARNING (no KeyError).
+
+    Regression for the fail-soft contract: if a user supplies a misconfigured CSV
+    (no `plant_qr_code` column at all), the method must NOT raise `KeyError`.
+    Instead it logs a WARNING and returns NaN, so wrapper properties (timepoint,
+    expected_count, etc.) keep working on malformed metadata files.
+    """
+    csv = _write_csv(
+        tmp_path / "no_lookup_key.csv",
+        "id,genotype,timepoint\nplant1,MK22,3\n",  # `id` not `plant_qr_code`
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    with caplog.at_level("WARNING", logger="sleap_roots.series"):
+        result = series.get_metadata("genotype")
+    assert pd.isna(result)
+    warnings = [
+        r
+        for r in caplog.records
+        if r.name == "sleap_roots.series" and r.levelname == "WARNING"
+    ]
+    assert len(warnings) >= 1
+    assert "plant_qr_code" in warnings[0].message
+    # Wrapper properties must also stay fail-soft.
+    assert pd.isna(series.timepoint)
+    assert pd.isna(series.expected_count)
+
+
 def test_series_timepoint_nan_cell_in_existing_row(tmp_path):
     """Empty-string timepoint in a matching row → NaN (collapses with no-row case)."""
     csv = tmp_path / "m.csv"

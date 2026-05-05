@@ -33,7 +33,14 @@ class Series:
         lateral_labels: Optional `sio.Labels` corresponding to the lateral root predictions.
         crown_labels: Optional `sio.Labels` corresponding to the crown predictions.
         video: Optional `sio.Video` corresponding to the image series.
-        csv_path: Optional path to the CSV file containing the expected plant count.
+        csv_path: Optional path to a metadata CSV. The CSV is keyed on a
+            `plant_qr_code` column (matched against `sample_uid`). Any column
+            in the CSV is readable via `Series.get_metadata(column)`. The
+            `expected_count`, `group`, `qc_fail`, and `timepoint` properties
+            are thin wrappers that read specific well-known columns; users
+            can add arbitrary additional columns and read them via
+            `get_metadata`. See `sleap_roots.metadata.build_metadata_csv` for
+            a helper that emits a CSV with the canonical column ordering.
         sample_uid: Optional cross-scan stable identity for this series. Defaults to
             `series_name` when unset or empty. Coerced to `str` so CSV `plant_qr_code`
             lookups have predictable equality semantics.
@@ -99,7 +106,10 @@ class Series:
             primary_path: Optional path to the primary root '.slp' predictions file.
             lateral_path: Optional path to the lateral root '.slp' predictions file.
             crown_path: Optional path to the crown '.slp' predictions file.
-            csv_path: Optional path to the CSV file containing the expected plant count.
+            csv_path: Optional path to a metadata CSV (keyed on `plant_qr_code`,
+                matched against `sample_uid`). Read via `get_metadata(column)`
+                or the wrapper properties (`expected_count`, `group`, `qc_fail`,
+                `timepoint`).
             sample_uid: Optional cross-scan stable identity. Defaults to `series_name`
                 when unset or empty. Used as the CSV `plant_qr_code` lookup key by
                 `get_metadata` and the `expected_count`/`group`/`qc_fail` properties.
@@ -203,12 +213,27 @@ class Series:
 
         Returns:
             The value in the first matching row's `column` field. Returns `np.nan`
-            when the CSV is missing, the column is missing, or no row matches.
+            when the CSV is missing, the requested `column` is missing, the
+            `plant_qr_code` lookup-key column is missing (with WARNING logged),
+            or no row matches.
         """
         if not self.csv_path or not Path(self.csv_path).exists():
             return np.nan
         df = pd.read_csv(self.csv_path)
         if column not in df.columns:
+            return np.nan
+        if "plant_qr_code" not in df.columns:
+            # Lookup key absent — preserve fail-soft contract instead of
+            # raising KeyError. Surface the misconfiguration via WARNING so
+            # users notice they wrote a CSV without the required column.
+            logger.warning(
+                "Series '%s': metadata CSV %s has no 'plant_qr_code' column; "
+                "cannot perform sample_uid lookup. Returning NaN. The CSV "
+                "MUST contain a 'plant_qr_code' column to be useful (see "
+                "build_metadata_csv).",
+                self.series_name,
+                self.csv_path,
+            )
             return np.nan
         sample_match = df[df["plant_qr_code"] == self.sample_uid]
         if plant_id is not None and "plant_id" in df.columns:
