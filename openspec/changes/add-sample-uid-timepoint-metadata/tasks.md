@@ -127,16 +127,16 @@ This is a prerequisite for Section 10's plate-pipeline tests. Extending the help
 
 ## 12. File follow-up issues BEFORE PR merges
 
-- [ ] 12.1 File issue: "Emit `sample_uid` + `timepoint` in remaining pipelines (follow-up of #169)". Covers `DicotPipeline`, `MultipleDicotPipeline`, `MultiplePrimaryRootPipeline`, `PrimaryRootPipeline`, `LateralRootPipeline`, `YoungerMonocotPipeline`, `OlderMonocotPipeline`. Blocks #170's cylinder-inter-series case.
-- [ ] 12.2 File issue: "Coerce `plant_qr_code` CSV column to string dtype on read". Documents pre-existing silent no-match behavior on pure-numeric QR codes.
-- [ ] 12.3 File issue: "Add `strict=True` mode to `Series.get_metadata` that raises on missing rows". Separates "row missing" from "value NaN".
-- [ ] 12.4 File issue: "Add lazy `_metadata_df` cache to Series to avoid per-access CSV reads".
-- [ ] 12.5 File issue: "Populate `_PLATE_UNITS['time']` from a pipeline kwarg or CSV column". Removes the `"unspecified"` default and the one-shot warning emitted by §11.6.
-- [ ] 12.6 Post a comment on #169 linking this PR and the 5 filed follow-ups.
-- [ ] 12.7 Post a comment on #170 explicitly noting that only plate-intra-series and tracked-tip cases are unblocked by this PR; cylinder-inter-series is blocked on #12.1's follow-up.
-- [ ] 12.8 Post a comment on #163 clarifying the implementation order — this PR (Workstream 1) lands first with `plant_qr_code` as the CSV lookup key; #163 then adds the `sample_uid`-column fallback.
-- [ ] 12.9 Verification gate: `gh issue list --state open --search "#169 in:body" --limit 20 --json number,title` — confirm all 5 follow-ups (12.1-12.5) present.
-- [ ] 12.10 Copy the 5 issue numbers into PR body under `## Follow-up issues filed during this PR`.
+- [x] 12.1 File issue: "Emit `sample_uid` + `timepoint` in remaining pipelines (follow-up of #169)". Filed as #173.
+- [x] 12.2 File issue: "Coerce `plant_qr_code` CSV column to string dtype on read". Filed as #174.
+- [x] 12.3 File issue: "Add `strict=True` mode to `Series.get_metadata` that raises on missing rows". Filed as #175.
+- [x] 12.4 File issue: "Add lazy `_metadata_df` cache to Series to avoid per-access CSV reads". Filed as #176.
+- [x] 12.5 File issue: "Populate `_PLATE_UNITS['time']` from a pipeline kwarg or CSV column". Filed as #177.
+- [x] 12.6 Post a comment on #169 linking this PR and the 5 filed follow-ups (#173, #174, #175, #176, #177).
+- [x] 12.7 Post a comment on #170 explicitly noting that only plate-intra-series and tracked-tip cases are unblocked by this PR; cylinder-inter-series is blocked on #173.
+- [x] 12.8 Post a comment on #163 clarifying the implementation order — this PR (Workstream 1) lands first with `plant_qr_code` as the CSV lookup key; #163 then adds the `sample_uid`-column fallback.
+- [x] 12.9 Verification gate confirmed: `gh issue list --search "#169" --limit 20` shows all 5 follow-ups (#173, #174, #175, #176, #177) present and open.
+- [ ] 12.10 Copy the 5 issue numbers into PR body under `## Follow-up issues filed during this PR` (deferred until PR is opened).
 
 ## 13. Pre-merge validation
 
