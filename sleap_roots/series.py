@@ -1,6 +1,7 @@
 """Series-level data loader."""
 
 import attrs
+import logging
 import numpy as np
 import sleap_io as sio
 import matplotlib
@@ -10,6 +11,9 @@ import pandas as pd
 
 from typing import Any, Dict, Optional, Tuple, List, Union
 from pathlib import Path
+
+
+logger = logging.getLogger(__name__)
 
 
 @attrs.define
@@ -30,9 +34,14 @@ class Series:
         crown_labels: Optional `sio.Labels` corresponding to the crown predictions.
         video: Optional `sio.Video` corresponding to the image series.
         csv_path: Optional path to the CSV file containing the expected plant count.
+        sample_uid: Optional cross-scan stable identity for this series. Defaults to
+            `series_name` when unset or empty. Coerced to `str` so CSV `plant_qr_code`
+            lookups have predictable equality semantics.
 
     Methods:
         load: Load a set of predictions for this series.
+        get_metadata: Generic CSV-column accessor keyed on `sample_uid` (and optional
+            `plant_id`).
         __len__: Length of the series (number of images).
         __getitem__: Return labeled frames for predictions.
         __iter__: Iterator for looping through predictions.
@@ -46,6 +55,7 @@ class Series:
         expected_count: Fetch the expected plant count for this series from the CSV.
         group: Group name for the series from the CSV.
         qc_fail: Flag to indicate if the series failed QC from the CSV.
+        timepoint: Numeric time-axis value for this series, coerced to float.
     """
 
     series_name: str
@@ -58,6 +68,16 @@ class Series:
     crown_labels: Optional[sio.Labels] = None
     video: Optional[sio.Video] = None
     csv_path: Optional[str] = None
+    sample_uid: Optional[str] = None
+    _warned_missing_plant_id_column: bool = attrs.field(
+        default=False, init=False, repr=False
+    )
+
+    def __attrs_post_init__(self) -> None:
+        """Default `sample_uid` to `series_name` and coerce to `str`."""
+        if self.sample_uid is None or self.sample_uid == "":
+            self.sample_uid = self.series_name
+        self.sample_uid = str(self.sample_uid)
 
     @classmethod
     def load(
@@ -68,6 +88,7 @@ class Series:
         lateral_path: Optional[str] = None,
         crown_path: Optional[str] = None,
         csv_path: Optional[str] = None,
+        sample_uid: Optional[str] = None,
     ) -> "Series":
         """Load a set of predictions for this series.
 
@@ -79,6 +100,9 @@ class Series:
             lateral_path: Optional path to the lateral root '.slp' predictions file.
             crown_path: Optional path to the crown '.slp' predictions file.
             csv_path: Optional path to the CSV file containing the expected plant count.
+            sample_uid: Optional cross-scan stable identity. Defaults to `series_name`
+                when unset or empty. Used as the CSV `plant_qr_code` lookup key by
+                `get_metadata` and the `expected_count`/`group`/`qc_fail` properties.
 
         Returns:
             An instance of Series loaded with the specified predictions.
@@ -160,6 +184,7 @@ class Series:
             crown_labels=crown_labels,
             video=video,
             csv_path=csv_path,
+            sample_uid=sample_uid,
         )
 
     @property

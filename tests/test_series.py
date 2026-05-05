@@ -428,3 +428,39 @@ def test_series_plot(
         for frame_idx in range(len(series)):
             fig = series.plot(frame_idx)
             assert isinstance(fig, matplotlib.figure.Figure)
+
+
+# Section 1: sample_uid tests (TDD red phase 1)
+
+
+def test_series_sample_uid_defaults_to_series_name():
+    series = Series.load(series_name="plant1")
+    assert series.sample_uid == "plant1"
+
+
+def test_series_sample_uid_explicit_kwarg():
+    series = Series.load(series_name="plant1_day0", sample_uid="plant1")
+    assert series.sample_uid == "plant1"
+
+
+def test_series_sample_uid_empty_string_falls_through():
+    series = Series.load(series_name="plant1_day0", sample_uid="")
+    assert series.sample_uid == "plant1_day0"
+
+
+def test_series_sample_uid_shared_across_series():
+    a = Series.load(series_name="plant1_day0", sample_uid="plant1")
+    b = Series.load(series_name="plant1_day1", sample_uid="plant1")
+    assert a.series_name != b.series_name
+    assert a.sample_uid == b.sample_uid == "plant1"
+
+
+def test_series_sample_uid_direct_construction_defaults():
+    series = Series(series_name="test_video")
+    assert series.sample_uid == "test_video"
+
+
+def test_series_sample_uid_str_coercion():
+    series = Series(series_name="x", sample_uid=1002)
+    assert series.sample_uid == "1002"
+    assert isinstance(series.sample_uid, str)
