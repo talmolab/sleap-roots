@@ -265,6 +265,27 @@ class Series:
             return np.nan
         return value
 
+    @property
+    def timepoint(self) -> float:
+        """Numeric time-axis value for this series, coerced to float.
+
+        Returns `np.nan` when the CSV is absent, the `timepoint` column is missing,
+        or no row matches `sample_uid`. Raises `ValueError` when a matching row
+        contains a non-numeric string value (e.g. a date) — failing loudly at the
+        metadata layer beats silently producing wrong results in downstream
+        timepoint arithmetic.
+        """
+        value = self.get_metadata("timepoint")
+        if pd.isna(value):
+            return np.nan
+        try:
+            return float(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Series '{self.series_name}': could not coerce 'timepoint' "
+                f"value {value!r} to float ({exc})."
+            ) from exc
+
     def __len__(self) -> int:
         """Length of the series (number of images)."""
         if self.video is not None:

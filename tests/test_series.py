@@ -566,3 +566,42 @@ def test_series_get_metadata_multiple_matches_first_row(tmp_path):
     )
     series = Series(series_name="plant1", csv_path=str(csv))
     assert series.get_metadata("genotype") == "A"
+
+
+# Section 5: timepoint tests (TDD red phase 3)
+
+
+def test_series_timepoint_from_csv_numeric(tmp_path):
+    csv = _write_csv(
+        tmp_path / "m.csv", "plant_qr_code,timepoint\nplant1,2\n"
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert series.timepoint == 2.0
+    assert isinstance(series.timepoint, float)
+
+
+def test_series_timepoint_no_csv():
+    series = Series(series_name="plant1")
+    assert np.isnan(series.timepoint)
+
+
+def test_series_timepoint_string_float_parses(tmp_path):
+    csv = _write_csv(
+        tmp_path / "m.csv", "plant_qr_code,timepoint\nplant1,3.5\n"
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert series.timepoint == 3.5
+
+
+def test_series_timepoint_raises_on_non_numeric(tmp_path):
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        'plant_qr_code,timepoint\nplant1,2024-03-15\n',
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    with pytest.raises(ValueError) as excinfo:
+        series.timepoint
+    msg = str(excinfo.value)
+    assert "plant1" in msg
+    assert "timepoint" in msg
+    assert "2024-03-15" in msg
