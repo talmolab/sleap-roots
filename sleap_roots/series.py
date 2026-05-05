@@ -187,22 +187,59 @@ class Series:
             sample_uid=sample_uid,
         )
 
+    def get_metadata(
+        self, column: str, plant_id: Optional[int] = None
+    ) -> Any:
+        """Fetch a CSV column value keyed on `sample_uid` (and optional `plant_id`).
+
+        Looks up `df[df["plant_qr_code"] == self.sample_uid]`. If `plant_id` is given
+        AND the CSV has a `plant_id` column, the lookup is the composite
+        (sample_uid, plant_id) match. If `plant_id` is given but the CSV has no
+        `plant_id` column, the argument is silently ignored, the sample-uid-only
+        lookup is used, and a one-shot WARNING is emitted (per Series instance).
+
+        Args:
+            column: The CSV column name to fetch.
+            plant_id: Optional per-plant disambiguator. Used only when the CSV has a
+                `plant_id` column.
+
+        Returns:
+            The value in the first matching row's `column` field. Returns `np.nan`
+            when the CSV is missing, the column is missing, or no row matches.
+        """
+        if not self.csv_path or not Path(self.csv_path).exists():
+            return np.nan
+        df = pd.read_csv(self.csv_path)
+        if column not in df.columns:
+            return np.nan
+        sample_match = df[df["plant_qr_code"] == self.sample_uid]
+        if plant_id is not None and "plant_id" in df.columns:
+            sample_match = sample_match[sample_match["plant_id"] == plant_id]
+        elif plant_id is not None and not self._warned_missing_plant_id_column:
+            logger.warning(
+                "Series '%s': plant_id=%r ignored because CSV %s has no "
+                "'plant_id' column; falling back to sample_uid-only lookup. "
+                "Add a 'plant_id' column to disambiguate per-plant rows.",
+                self.series_name,
+                plant_id,
+                self.csv_path,
+            )
+            self._warned_missing_plant_id_column = True
+        if len(sample_match) == 0:
+            return np.nan
+        return sample_match[column].iloc[0]
+
     @property
     def expected_count(self) -> Union[float, int]:
         """Fetch the expected plant count for this series from the CSV."""
         if not self.csv_path or not Path(self.csv_path).exists():
             print("CSV path is not set or the file does not exist.")
             return np.nan
-        df = pd.read_csv(self.csv_path)
-        try:
-            # Match the series_name (or plant_qr_code in the CSV) to fetch the expected
-            # count
-            return df[df["plant_qr_code"] == self.series_name][
-                "number_of_plants_cylinder"
-            ].iloc[0]
-        except IndexError:
+        value = self.get_metadata("number_of_plants_cylinder")
+        if pd.isna(value):
             print(f"No expected count found for series {self.series_name} in CSV.")
             return np.nan
+        return value
 
     @property
     def group(self) -> str:
@@ -210,13 +247,11 @@ class Series:
         if not self.csv_path or not Path(self.csv_path).exists():
             print("CSV path is not set or the file does not exist.")
             return np.nan
-        df = pd.read_csv(self.csv_path)
-        try:
-            # Match the series_name (or plant_qr_code in the CSV) to fetch the group
-            return df[df["plant_qr_code"] == self.series_name]["genotype"].iloc[0]
-        except IndexError:
+        value = self.get_metadata("genotype")
+        if pd.isna(value):
             print(f"No group found for series {self.series_name} in CSV.")
             return np.nan
+        return value
 
     @property
     def qc_fail(self) -> Union[int, float]:
@@ -224,13 +259,11 @@ class Series:
         if not self.csv_path or not Path(self.csv_path).exists():
             print("CSV path is not set or the file does not exist.")
             return np.nan
-        df = pd.read_csv(self.csv_path)
-        try:
-            # Match the series_name (or plant_qr_code in the CSV) to fetch the QC flag
-            return df[df["plant_qr_code"] == self.series_name]["qc_cylinder"].iloc[0]
-        except IndexError:
+        value = self.get_metadata("qc_cylinder")
+        if pd.isna(value):
             print(f"No QC flag found for series {self.series_name} in CSV.")
             return np.nan
+        return value
 
     def __len__(self) -> int:
         """Length of the series (number of images)."""

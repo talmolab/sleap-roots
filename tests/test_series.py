@@ -1,5 +1,6 @@
 import sleap_io as sio
 import numpy as np
+import pandas as pd
 import pytest
 from sleap_roots.series import (
     Series,
@@ -464,3 +465,104 @@ def test_series_sample_uid_str_coercion():
     series = Series(series_name="x", sample_uid=1002)
     assert series.sample_uid == "1002"
     assert isinstance(series.sample_uid, str)
+
+
+# Section 3: get_metadata tests (TDD red phase 2)
+
+
+def _write_csv(path, text):
+    path.write_text(text)
+    return path
+
+
+def test_series_get_metadata_no_csv():
+    series = Series(series_name="plant1")
+    assert np.isnan(series.get_metadata("number_of_plants_cylinder"))
+
+
+def test_series_get_metadata_missing_column(tmp_path):
+    csv = _write_csv(
+        tmp_path / "m.csv", "plant_qr_code,genotype\nplant1,MK22\n"
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert np.isnan(series.get_metadata("timepoint"))
+
+
+def test_series_get_metadata_no_matching_row(tmp_path):
+    csv = _write_csv(
+        tmp_path / "m.csv", "plant_qr_code,genotype\na,MK22\nb,MK23\n"
+    )
+    series = Series(series_name="c", csv_path=str(csv))
+    assert pd.isna(series.get_metadata("genotype"))
+
+
+def test_series_get_metadata_matches_row(tmp_path):
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        "plant_qr_code,genotype,timepoint\nplant1,MK22,3\n",
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert series.get_metadata("genotype") == "MK22"
+    assert series.get_metadata("timepoint") == 3
+
+
+def test_series_get_metadata_plant_id_composite_lookup(tmp_path):
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        "plant_qr_code,plant_id,genotype\nplant1,0,A\nplant1,1,B\n",
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert series.get_metadata("genotype", plant_id=0) == "A"
+    assert series.get_metadata("genotype", plant_id=1) == "B"
+
+
+def test_series_get_metadata_plant_id_ignored_when_no_column_emits_warning(
+    tmp_path, caplog
+):
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        "plant_qr_code,genotype,timepoint\nplant1,MK22,3\n",
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    with caplog.at_level("WARNING", logger="sleap_roots.series"):
+        result = series.get_metadata("genotype", plant_id=99)
+    assert result == "MK22"
+    warnings = [
+        r
+        for r in caplog.records
+        if r.name == "sleap_roots.series" and r.levelname == "WARNING"
+    ]
+    assert len(warnings) == 1
+    assert "plant_id" in warnings[0].message
+    assert str(csv) in warnings[0].message or "m.csv" in warnings[0].message
+
+    # Second call: no additional warning (one-shot dedup)
+    caplog.clear()
+    with caplog.at_level("WARNING", logger="sleap_roots.series"):
+        series.get_metadata("timepoint", plant_id=99)
+    second = [
+        r
+        for r in caplog.records
+        if r.name == "sleap_roots.series" and r.levelname == "WARNING"
+    ]
+    assert len(second) == 0
+
+
+def test_series_get_metadata_plant_id_none_equivalent_to_omitted(tmp_path):
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        "plant_qr_code,genotype\nplant1,MK22\n",
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert series.get_metadata("genotype", plant_id=None) == series.get_metadata(
+        "genotype"
+    )
+
+
+def test_series_get_metadata_multiple_matches_first_row(tmp_path):
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        "plant_qr_code,genotype\nplant1,A\nplant1,B\n",
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert series.get_metadata("genotype") == "A"
