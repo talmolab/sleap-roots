@@ -3092,9 +3092,10 @@ class MultipleDicotPlatePipeline(Pipeline):
             json_suffix: Filename suffix for JSON output.
 
         Returns:
-            Dict with keys `schema_version`, `units`, `series`, `group`,
-            `qc_fail`, `expected_count`, and `plants` (list of per-plant-per-frame
-            dicts).
+            Dict with keys `schema_version` (currently `2`), `units`, `series`,
+            `sample_uid`, `timepoint`, `group`, `qc_fail`, `expected_count`,
+            and `plants` (list of per-plant-per-frame dicts). Each plant row
+            additionally carries `sample_uid` and `timepoint`.
         """
         # Resolve sample_uid + timepoint ONCE per series call (perf contract).
         # Per-plant rows must NOT re-read from `series` inside the frame loop;
