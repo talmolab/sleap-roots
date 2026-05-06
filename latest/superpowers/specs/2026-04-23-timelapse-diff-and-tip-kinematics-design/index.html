@@ -12,7 +12,7 @@
         <meta name="author" content="Talmo Lab">
       
       
-        <link rel="canonical" href="https://roots.sleap.ai/latest/reference/SUMMARY/">
+        <link rel="canonical" href="https://roots.sleap.ai/latest/superpowers/specs/2026-04-23-timelapse-diff-and-tip-kinematics-design/">
       
       
       
@@ -20,19 +20,19 @@
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.6">
     
     
       
-        <title>SUMMARY - sleap-roots</title>
+        <title>Design: Timelapse diffs, tracked-tip kinematics, and metadata generalization - sleap-roots</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,11 +51,11 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -79,6 +79,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#design-timelapse-diffs-tracked-tip-kinematics-and-metadata-generalization" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -95,7 +100,7 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="sleap-roots" class="md-header__button md-logo" aria-label="sleap-roots" data-md-component="logo">
+    <a href="../../.." title="sleap-roots" class="md-header__button md-logo" aria-label="sleap-roots" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -115,7 +120,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              SUMMARY
+              Design: Timelapse diffs, tracked-tip kinematics, and metadata generalization
             
           </span>
         </div>
@@ -227,7 +232,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../.." class="md-tabs__link">
+      <a href="../../.." class="md-tabs__link">
         
   
   
@@ -248,7 +253,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../getting-started/installation/" class="md-tabs__link">
+        <a href="../../../getting-started/installation/" class="md-tabs__link">
           
   
   
@@ -270,7 +275,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../tutorials/" class="md-tabs__link">
+        <a href="../../../tutorials/" class="md-tabs__link">
           
   
   
@@ -292,7 +297,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../guides/" class="md-tabs__link">
+        <a href="../../../guides/" class="md-tabs__link">
           
   
   
@@ -314,7 +319,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../dev/contributing/" class="md-tabs__link">
+        <a href="../../../dev/contributing/" class="md-tabs__link">
           
   
   
@@ -336,7 +341,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../api/" class="md-tabs__link">
+        <a href="../../../api/" class="md-tabs__link">
           
   
   
@@ -358,7 +363,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../cookbook/" class="md-tabs__link">
+        <a href="../../../cookbook/" class="md-tabs__link">
           
   
   
@@ -378,7 +383,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../changelog/" class="md-tabs__link">
+      <a href="../../../changelog/" class="md-tabs__link">
         
   
   
@@ -421,7 +426,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="sleap-roots" class="md-nav__button md-logo" aria-label="sleap-roots" data-md-component="logo">
+    <a href="../../.." title="sleap-roots" class="md-nav__button md-logo" aria-label="sleap-roots" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -451,7 +456,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../.." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -540,7 +545,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/installation/" class="md-nav__link">
+      <a href="../../../getting-started/installation/" class="md-nav__link">
         
   
   
@@ -568,7 +573,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/quickstart/" class="md-nav__link">
+      <a href="../../../getting-started/quickstart/" class="md-nav__link">
         
   
   
@@ -596,7 +601,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../getting-started/what-is-sleap/" class="md-nav__link">
+      <a href="../../../getting-started/what-is-sleap/" class="md-nav__link">
         
   
   
@@ -670,7 +675,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../tutorials/" class="md-nav__link ">
+            <a href="../../../tutorials/" class="md-nav__link ">
               
   
   
@@ -714,7 +719,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/dicot-pipeline/" class="md-nav__link">
+      <a href="../../../tutorials/dicot-pipeline/" class="md-nav__link">
         
   
   
@@ -742,7 +747,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/younger-monocot-pipeline/" class="md-nav__link">
+      <a href="../../../tutorials/younger-monocot-pipeline/" class="md-nav__link">
         
   
   
@@ -770,7 +775,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/older-monocot-pipeline/" class="md-nav__link">
+      <a href="../../../tutorials/older-monocot-pipeline/" class="md-nav__link">
         
   
   
@@ -798,7 +803,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/multiple-dicot-pipeline/" class="md-nav__link">
+      <a href="../../../tutorials/multiple-dicot-pipeline/" class="md-nav__link">
         
   
   
@@ -826,7 +831,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/multiple-primary-root-pipeline/" class="md-nav__link">
+      <a href="../../../tutorials/multiple-primary-root-pipeline/" class="md-nav__link">
         
   
   
@@ -854,7 +859,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/primary-root-pipeline/" class="md-nav__link">
+      <a href="../../../tutorials/primary-root-pipeline/" class="md-nav__link">
         
   
   
@@ -882,7 +887,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../tutorials/lateral-root-pipeline/" class="md-nav__link">
+      <a href="../../../tutorials/lateral-root-pipeline/" class="md-nav__link">
         
   
   
@@ -954,7 +959,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../guides/" class="md-nav__link ">
+            <a href="../../../guides/" class="md-nav__link ">
               
   
   
@@ -1068,7 +1073,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/pipelines/dicot/" class="md-nav__link">
+      <a href="../../../guides/pipelines/dicot/" class="md-nav__link">
         
   
   
@@ -1096,7 +1101,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/pipelines/younger-monocot/" class="md-nav__link">
+      <a href="../../../guides/pipelines/younger-monocot/" class="md-nav__link">
         
   
   
@@ -1124,7 +1129,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/pipelines/older-monocot/" class="md-nav__link">
+      <a href="../../../guides/pipelines/older-monocot/" class="md-nav__link">
         
   
   
@@ -1152,7 +1157,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/pipelines/multiple-primary/" class="md-nav__link">
+      <a href="../../../guides/pipelines/multiple-primary/" class="md-nav__link">
         
   
   
@@ -1180,7 +1185,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/pipelines/multiple-dicot/" class="md-nav__link">
+      <a href="../../../guides/pipelines/multiple-dicot/" class="md-nav__link">
         
   
   
@@ -1208,7 +1213,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/pipelines/primary-root/" class="md-nav__link">
+      <a href="../../../guides/pipelines/primary-root/" class="md-nav__link">
         
   
   
@@ -1236,7 +1241,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/pipelines/lateral-root/" class="md-nav__link">
+      <a href="../../../guides/pipelines/lateral-root/" class="md-nav__link">
         
   
   
@@ -1334,7 +1339,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/data-formats/sleap-files/" class="md-nav__link">
+      <a href="../../../guides/data-formats/sleap-files/" class="md-nav__link">
         
   
   
@@ -1362,7 +1367,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/data-formats/hdf5/" class="md-nav__link">
+      <a href="../../../guides/data-formats/hdf5/" class="md-nav__link">
         
   
   
@@ -1390,7 +1395,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/data-formats/csv-traits/" class="md-nav__link">
+      <a href="../../../guides/data-formats/csv-traits/" class="md-nav__link">
         
   
   
@@ -1426,7 +1431,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/trait-reference/" class="md-nav__link">
+      <a href="../../../guides/trait-reference/" class="md-nav__link">
         
   
   
@@ -1454,7 +1459,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/batch-processing/" class="md-nav__link">
+      <a href="../../../guides/batch-processing/" class="md-nav__link">
         
   
   
@@ -1482,7 +1487,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/custom-pipelines/" class="md-nav__link">
+      <a href="../../../guides/custom-pipelines/" class="md-nav__link">
         
   
   
@@ -1510,7 +1515,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/troubleshooting/" class="md-nav__link">
+      <a href="../../../guides/troubleshooting/" class="md-nav__link">
         
   
   
@@ -1617,7 +1622,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../dev/contributing/" class="md-nav__link">
+      <a href="../../../dev/contributing/" class="md-nav__link">
         
   
   
@@ -1645,7 +1650,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../dev/setup/" class="md-nav__link">
+      <a href="../../../dev/setup/" class="md-nav__link">
         
   
   
@@ -1673,7 +1678,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../dev/architecture/" class="md-nav__link">
+      <a href="../../../dev/architecture/" class="md-nav__link">
         
   
   
@@ -1701,7 +1706,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../dev/creating-pipelines/" class="md-nav__link">
+      <a href="../../../dev/creating-pipelines/" class="md-nav__link">
         
   
   
@@ -1729,7 +1734,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../dev/adding-traits/" class="md-nav__link">
+      <a href="../../../dev/adding-traits/" class="md-nav__link">
         
   
   
@@ -1757,7 +1762,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../dev/testing/" class="md-nav__link">
+      <a href="../../../dev/testing/" class="md-nav__link">
         
   
   
@@ -1785,7 +1790,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../dev/code-style/" class="md-nav__link">
+      <a href="../../../dev/code-style/" class="md-nav__link">
         
   
   
@@ -1813,7 +1818,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../dev/release-process/" class="md-nav__link">
+      <a href="../../../dev/release-process/" class="md-nav__link">
         
   
   
@@ -1881,7 +1886,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../api/" class="md-nav__link ">
+            <a href="../../../api/" class="md-nav__link ">
               
   
   
@@ -1985,7 +1990,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/core/series/" class="md-nav__link">
+      <a href="../../../api/core/series/" class="md-nav__link">
         
   
   
@@ -2013,7 +2018,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/core/pipelines/" class="md-nav__link">
+      <a href="../../../api/core/pipelines/" class="md-nav__link">
         
   
   
@@ -2123,7 +2128,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/traits/lengths/" class="md-nav__link">
+      <a href="../../../api/traits/lengths/" class="md-nav__link">
         
   
   
@@ -2151,7 +2156,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/traits/angles/" class="md-nav__link">
+      <a href="../../../api/traits/angles/" class="md-nav__link">
         
   
   
@@ -2179,7 +2184,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/traits/tips/" class="md-nav__link">
+      <a href="../../../api/traits/tips/" class="md-nav__link">
         
   
   
@@ -2207,7 +2212,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/traits/bases/" class="md-nav__link">
+      <a href="../../../api/traits/bases/" class="md-nav__link">
         
   
   
@@ -2235,7 +2240,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/traits/convhull/" class="md-nav__link">
+      <a href="../../../api/traits/convhull/" class="md-nav__link">
         
   
   
@@ -2263,7 +2268,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/traits/ellipse/" class="md-nav__link">
+      <a href="../../../api/traits/ellipse/" class="md-nav__link">
         
   
   
@@ -2291,7 +2296,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/traits/networklength/" class="md-nav__link">
+      <a href="../../../api/traits/networklength/" class="md-nav__link">
         
   
   
@@ -2319,7 +2324,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/traits/scanline/" class="md-nav__link">
+      <a href="../../../api/traits/scanline/" class="md-nav__link">
         
   
   
@@ -2347,7 +2352,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/traits/points/" class="md-nav__link">
+      <a href="../../../api/traits/points/" class="md-nav__link">
         
   
   
@@ -2441,7 +2446,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/utilities/summary/" class="md-nav__link">
+      <a href="../../../api/utilities/summary/" class="md-nav__link">
         
   
   
@@ -2535,7 +2540,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/examples/common-workflows/" class="md-nav__link">
+      <a href="../../../api/examples/common-workflows/" class="md-nav__link">
         
   
   
@@ -2611,7 +2616,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../cookbook/" class="md-nav__link ">
+            <a href="../../../cookbook/" class="md-nav__link ">
               
   
   
@@ -2655,7 +2660,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../cookbook/filtering-data/" class="md-nav__link">
+      <a href="../../../cookbook/filtering-data/" class="md-nav__link">
         
   
   
@@ -2683,7 +2688,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../cookbook/custom-traits/" class="md-nav__link">
+      <a href="../../../cookbook/custom-traits/" class="md-nav__link">
         
   
   
@@ -2711,7 +2716,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../cookbook/batch-optimization/" class="md-nav__link">
+      <a href="../../../cookbook/batch-optimization/" class="md-nav__link">
         
   
   
@@ -2739,7 +2744,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../cookbook/exporting-results/" class="md-nav__link">
+      <a href="../../../cookbook/exporting-results/" class="md-nav__link">
         
   
   
@@ -2774,7 +2779,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../changelog/" class="md-nav__link">
+      <a href="../../../changelog/" class="md-nav__link">
         
   
   
@@ -2818,35 +2823,401 @@
                   
 
 
+  
+  
 
-  <h1>SUMMARY</h1>
 
+<h1 id="design-timelapse-diffs-tracked-tip-kinematics-and-metadata-generalization">Design: Timelapse diffs, tracked-tip kinematics, and metadata generalization<a class="headerlink" href="#design-timelapse-diffs-tracked-tip-kinematics-and-metadata-generalization" title="Permanent link">&para;</a></h1>
+<p><strong>Date</strong>: 2026-04-23
+<strong>Related issues</strong>: #112 (close as obsolete), #129 (refresh), #163 (broaden), #159 (related), #169 (Workstream 1 metadata layer — implemented in PR #171), #170 (Workstream 3 TimeDiffPipeline)
+<strong>Depends on</strong>: PR #165 (MultipleDicotPlatePipeline) — merged 2026-04-21
+<strong>Status</strong>: Brainstorm complete, spec drafted. Circumnutation trait set deferred to a follow-up design once the maintainer has assembled a literature reference for method selection.</p>
+<h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
+<p>Three coordinated workstreams that replace the obsolete <code>PrimaryRootTimelapsePipeline</code> idea (#112) and refresh the existing <code>TrackedTipPipeline</code> scope (#129) with:</p>
+<ol>
+<li>A generalized metadata layer on <code>Series</code> that reads arbitrary CSV columns — enables <code>sample_uid</code> (cross-scan stable identity) and <code>timepoint</code> (time-axis value) as first-class concepts.</li>
+<li>A refreshed <code>TrackedTipPipeline</code> that consumes tracked <code>.slp</code> predictions and emits per-track tip-kinematics (trajectory + growth-kinematic scalars). Circumnutation traits are deferred to a follow-up PR that will be designed against published literature.</li>
+<li>A new <code>TimeDiffPipeline</code> wrapper class that takes any inner pipeline and emits the inner output plus a parallel between-timepoint delta table. Works uniformly for plate intra-series timelapses (frame-based time axis), plate inter-series scans (CSV-timepoint-based), and cylinder inter-series scans (per-series aggregate diffs).</li>
+</ol>
+<p>Consolidates the "timelapse" concern into existing per-frame pipelines + one post-processing wrapper. Closes #112 as "obsolete — superseded by the plate pipeline's frame loop + <code>TimeDiffPipeline</code>".</p>
+<h2 id="scope-decomposition-three-workstreams-one-design">Scope decomposition — three workstreams, one design<a class="headerlink" href="#scope-decomposition-three-workstreams-one-design" title="Permanent link">&para;</a></h2>
+<h3 id="workstream-1-metadata-layer-series-generalization">Workstream 1 — Metadata layer (<code>Series</code> generalization)<a class="headerlink" href="#workstream-1-metadata-layer-series-generalization" title="Permanent link">&para;</a></h3>
+<p>Small extension of the existing metadata pattern (<code>Series.expected_count</code>, <code>.group</code>, <code>.qc_fail</code>). Unblocks the other two workstreams and most of follow-up #163.</p>
+<p><strong>New on <code>Series.load</code>:</strong></p>
 <ul>
-<li><a href="../sleap_roots/">sleap_roots</a><ul>
-<li><a href="../sleap_roots/angle/">angle</a></li>
-<li><a href="../sleap_roots/bases/">bases</a></li>
-<li><a href="../sleap_roots/cli/">cli</a></li>
-<li><a href="../sleap_roots/convhull/">convhull</a></li>
-<li><a href="../sleap_roots/ellipse/">ellipse</a></li>
-<li><a href="../sleap_roots/lengths/">lengths</a></li>
-<li><a href="../sleap_roots/metadata/">metadata</a></li>
-<li><a href="../sleap_roots/networklength/">networklength</a></li>
-<li><a href="../sleap_roots/points/">points</a></li>
-<li><a href="../sleap_roots/scanline/">scanline</a></li>
-<li><a href="../sleap_roots/series/">series</a></li>
-<li><a href="../sleap_roots/summary/">summary</a></li>
-<li><a href="../sleap_roots/tips/">tips</a></li>
-<li><a href="../sleap_roots/trait_pipelines/">trait_pipelines</a></li>
-<li><a href="../sleap_roots/viewer/">viewer</a><ul>
-<li><a href="../sleap_roots/viewer/cli/">cli</a></li>
-<li><a href="../sleap_roots/viewer/generator/">generator</a></li>
-<li><a href="../sleap_roots/viewer/renderer/">renderer</a></li>
-<li><a href="../sleap_roots/viewer/serializer/">serializer</a></li>
+<li><code>sample_uid: Optional[str]</code> kwarg — cross-scan stable identity. Defaults to <code>series_name</code> when unset (preserves today's behavior).</li>
+<li><code>plant_qr_code</code> column remains the CSV lookup key for the existing <code>expected_count</code> / <code>group</code> / <code>qc_fail</code> properties. (<code>sample_uid</code> as a CSV column name is deferred to #163, where it will have <code>plant_qr_code</code> fallback.)</li>
 </ul>
+<p><strong>New <code>Series</code> properties:</strong></p>
+<ul>
+<li><code>Series.sample_uid: str</code> — returns the kwarg value.</li>
+<li><code>Series.timepoint: Union[float, int]</code> — thin wrapper around <code>get_metadata("timepoint")</code>.</li>
+<li><code>Series.get_metadata(column: str, plant_id: Optional[int] = None) -&gt; Any</code> — generic CSV-column accessor. Looks up <code>df[df["plant_qr_code"] == self.sample_uid]</code>. If <code>plant_id</code> is given AND the CSV has a <code>plant_id</code> column, composite lookup returns the (sample_uid, plant_id) row. If <code>plant_id</code> is given but the CSV has no <code>plant_id</code> column, the <code>plant_id</code> argument is silently ignored and the sample_uid-only lookup is used (this keeps single-row-per-sample CSVs working unchanged). Returns <code>np.nan</code> if the requested column is missing from the CSV, or if no row matches.</li>
+<li><code>Series.expected_count</code> / <code>.group</code> / <code>.qc_fail</code> — kept as thin wrappers around <code>get_metadata(...)</code> for backward compatibility.</li>
+</ul>
+<p><strong>CSV builder helpers</strong> (new module <code>sleap_roots/metadata.py</code>):</p>
+<ul>
+<li><code>build_metadata_csv(rows: List[Dict], path: Union[str, Path]) -&gt; Path</code> — writes a CSV from row dicts, validating that every row has <code>plant_qr_code</code>. Canonical column ordering: <code>plant_qr_code, genotype, number_of_plants_cylinder, qc_cylinder, qc_code, timepoint, &lt;extras...&gt;</code>.</li>
+<li><code>infer_timepoints_from_filenames(slp_paths: List[Path], pattern: str) -&gt; Dict[str, float]</code> — regex-parse <code>(series_name, timepoint)</code> from filename stems. Convenience for common conventions; user can skip and build CSVs any other way.</li>
+</ul>
+<p><strong>Pipeline output changes</strong> (plate first; cylinder + others as a follow-up issue):</p>
+<ul>
+<li>Emit <code>sample_uid</code> and <code>timepoint</code> on every output row (CSV columns 1 and 2, right after <code>series</code>) and in the top-level dict (JSON). NaN/None when not set. This is what makes <code>TimeDiffPipeline</code>'s <code>identity_cols</code> / <code>time_col</code> work without extra plumbing.</li>
+<li>Plate pipeline <code>schema_version</code> bumps from <code>1</code> → <code>2</code> because the column shift at positions 1 and 2 is non-additive. <code>_PLATE_UNITS</code> gains a <code>"time"</code> key, set to <code>"unspecified"</code> until a future follow-up adds a <code>time_unit</code> pipeline kwarg or <code>timepoint_unit</code> CSV column. While <code>units["time"] == "unspecified"</code> and a non-NaN <code>timepoint</code> is emitted, the plate pipeline logs a one-shot WARNING per call to surface the missing-unit hazard at runtime.</li>
+</ul>
+<p><strong>Why this ordering matters:</strong> <code>sample_uid</code> is the rename for a role that was previously implicit and entangled with <code>plant_qr_code</code>. Naming the role separately makes the other two workstreams cleaner — the diff pipeline doesn't need to care what row-granularity the user is diffing (plant, cylinder aggregate, tracked tip).</p>
+<h3 id="workstream-2-trackedtippipeline-refresh-of-129">Workstream 2 — <code>TrackedTipPipeline</code> (refresh of #129)<a class="headerlink" href="#workstream-2-trackedtippipeline-refresh-of-129" title="Permanent link">&para;</a></h3>
+<p>Root-agnostic pipeline consuming a <strong>tracked</strong> <code>.slp</code> file. Emits per-track tip trajectories + per-track growth-kinematic scalars. Scope matches the original #129 (kinematics only). Circumnutation-specific traits (period, amplitude, angular velocity, rotation direction, etc.) are deferred to a separate follow-up that will be designed against published literature — see "Deferred: circumnutation trait set" below.</p>
+<p><strong>Inputs:</strong></p>
+<ul>
+<li><code>Series</code> with ONE of <code>primary_path</code> / <code>lateral_path</code> / <code>crown_path</code> populated. Pipeline is root-agnostic — works on whichever root type the SLEAP model tracked.</li>
+<li>Predictions in the <code>.slp</code> MUST carry SLEAP track identities (<code>instance.track is not None</code>). Pipeline raises <code>ValueError("TrackedTipPipeline requires tracked .slp predictions; see sleap.ai/tracking")</code> if any instance lacks a track.</li>
+</ul>
+<p><strong>Output (two tables, emitted together):</strong></p>
+<ol>
+<li>
+<p><strong>Trajectory rows</strong> (per-track-per-frame, raw positions):
+   <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>series, sample_uid, track_id, frame, timepoint, tip_x, tip_y
+</span></code></pre></div>
+   One row per <code>(track_id, frame)</code>. Self-contained tip-position timeline suitable as input to downstream circumnutation analysis once that workstream lands.</p>
 </li>
-</ul>
+<li>
+<p><strong>Track summary rows</strong> (per-track, growth-kinematic scalars):
+   <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>series, sample_uid, track_id, n_frames_tracked, n_frames_total, tracking_coverage,
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>tip_trajectory_length, tip_displacement_net, tip_velocity_mean, tip_velocity_max,
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>tip_curvature_mean, tip_curvature_max
+</span></code></pre></div>
+   One row per <code>track_id</code>. Summary scalars over the whole trajectory.</p>
 </li>
+</ol>
+<p>Both tables emit in one call. CSV/JSON contract inherits from the plate pipeline: <code>schema_version</code> (<code>2</code> after Workstream 1 ships — bumped from <code>1</code> because Workstream 1 inserts <code>sample_uid</code> + <code>timepoint</code> columns at positions 1 and 2, shifting every other column; non-additive change), structured <code>units</code> dict (now including <code>units["time"]</code> — initially <code>"unspecified"</code> until a <code>time_unit</code> plumbing path lands), NaN→null JSON via <code>_json_sanitize</code>.</p>
+<p><strong>Tip-kinematics trait module</strong> (<code>sleap_roots/tip_kinematics.py</code>, new):</p>
+<p>Pure functions operating on <code>(t, x, y)</code> arrays, parallel to <code>sleap_roots/angle.py</code> and <code>sleap_roots/lengths.py</code>. The pipeline calls these in its TraitDef DAG.</p>
+<p>Trait definitions (all per-track):</p>
+<table>
+<thead>
+<tr>
+<th>Trait</th>
+<th>Definition</th>
+<th>Units family</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tip_trajectory_length</code></td>
+<td>Cumulative arclength of raw <code>(x, y)</code></td>
+<td>lengths</td>
+</tr>
+<tr>
+<td><code>tip_displacement_net</code></td>
+<td>Euclidean distance first → last point</td>
+<td>lengths</td>
+</tr>
+<tr>
+<td><code>tip_velocity_mean</code></td>
+<td>Mean <code>dt</code>-normalized step length</td>
+<td>lengths / time</td>
+</tr>
+<tr>
+<td><code>tip_velocity_max</code></td>
+<td>Max step length / <code>dt</code></td>
+<td>lengths / time</td>
+</tr>
+<tr>
+<td><code>tip_curvature_mean</code></td>
+<td>Mean <code>abs(dθ/ds)</code> along trajectory</td>
+<td>inverse_lengths</td>
+</tr>
+<tr>
+<td><code>tip_curvature_max</code></td>
+<td>Max <code>abs(dθ/ds)</code></td>
+<td>inverse_lengths</td>
+</tr>
+<tr>
+<td><code>tracking_coverage</code></td>
+<td><code>n_frames_tracked / n_frames_total</code></td>
+<td>ratios (dimensionless)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Edge cases</strong> (deliberate behavior, tested):</p>
+<ul>
+<li>Short tracks (<code>n_frames_tracked &lt; 3</code>) — velocity / curvature scalars = NaN, no crash.</li>
+<li>Single-frame track — NaN everywhere except <code>sample_uid</code> + <code>track_id</code> + <code>tracking_coverage</code>.</li>
+<li>Partial tracking (gaps in frames) — compute on available window; <code>tracking_coverage &lt; 1.0</code>.</li>
+<li>Uneven frame spacing — use <code>timepoint</code> if column present, else <code>frame_rate</code> kwarg, else assume 1 unit per frame and document.</li>
 </ul>
+<h3 id="deferred-circumnutation-trait-set">Deferred: circumnutation trait set<a class="headerlink" href="#deferred-circumnutation-trait-set" title="Permanent link">&para;</a></h3>
+<p>Circumnutation-specific traits (period, amplitude, angular velocity, rotation direction, nutation-cycle count, etc.) are intentionally <strong>out of scope for this design</strong> and will be spec'd in a separate follow-up once the maintainer has assembled a literature reference on method selection. Questions to answer with the literature:</p>
+<ul>
+<li>Which detrending method is the field standard (moving average, low-pass Butterworth, polynomial fit, empirical mode decomposition)?</li>
+<li>Which period-estimation approach: zero-crossing, peak-to-peak, FFT, autocorrelation, wavelet?</li>
+<li>Is "amplitude" defined as radial distance from detrended mean, half peak-to-peak, or RMS of residuals?</li>
+<li>How to define rotation direction when trajectory is noisy / partially tracked?</li>
+</ul>
+<p>The TrackedTipPipeline's trajectory-row output is the natural input to those analyses. When the circumnutation design lands, it can either be added as additional traits to TrackedTipPipeline (same pipeline, expanded trait set) or as a new trait module consumed by users who call <code>TrackedTipPipeline.compute_...</code> themselves. That decision is deferred with the rest of circumnutation.</p>
+<h3 id="workstream-3-timediffpipeline-new">Workstream 3 — <code>TimeDiffPipeline</code> (new)<a class="headerlink" href="#workstream-3-timediffpipeline-new" title="Permanent link">&para;</a></h3>
+<p>Wrapper <code>Pipeline</code> class (D2 style from the brainstorm) that takes an inner pipeline and appends a between-timepoint delta table.</p>
+<p><strong>API:</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sleap_roots.diff_pipelines</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeDiffPipeline</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Plate intra-series (one .slp, many frames)</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">diff</span> <span class="o">=</span> <span class="n">TimeDiffPipeline</span><span class="p">(</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">inner</span><span class="o">=</span><span class="n">MultipleDicotPlatePipeline</span><span class="p">(),</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">identity_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;series&quot;</span><span class="p">,</span> <span class="s2">&quot;plant_id&quot;</span><span class="p">],</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">time_col</span><span class="o">=</span><span class="s2">&quot;frame&quot;</span><span class="p">,</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;consecutive&quot;</span><span class="p">,</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="p">)</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">result</span> <span class="o">=</span> <span class="n">diff</span><span class="o">.</span><span class="n">compute_plate_traits</span><span class="p">(</span><span class="n">series</span><span class="p">)</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="c1"># result[&quot;plants&quot;] — unchanged from inner pipeline</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="c1"># result[&quot;deltas&quot;] — new parallel delta table</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="c1"># Cylinder inter-series (N series across timepoints)</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="n">diff_cyl</span> <span class="o">=</span> <span class="n">TimeDiffPipeline</span><span class="p">(</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    <span class="n">inner</span><span class="o">=</span><span class="n">MultipleDicotPipeline</span><span class="p">(),</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    <span class="n">identity_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;sample_uid&quot;</span><span class="p">],</span>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    <span class="n">time_col</span><span class="o">=</span><span class="s2">&quot;timepoint&quot;</span><span class="p">,</span>
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;consecutive&quot;</span><span class="p">,</span>
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="p">)</span>
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="n">result</span> <span class="o">=</span> <span class="n">diff_cyl</span><span class="o">.</span><span class="n">compute_batch_multiple_dicots_traits</span><span class="p">(</span><span class="n">all_series</span><span class="p">)</span>
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="c1"># result[&quot;plants&quot;] — unchanged from inner pipeline (per-series aggregate rows)</span>
+</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="c1"># result[&quot;deltas&quot;] — new parallel delta table</span>
+</span></code></pre></div>
+<p><strong>Algorithm:</strong></p>
+<ol>
+<li>Call <code>inner.&lt;method&gt;(...)</code> on the input.</li>
+<li>Flatten the inner result to a DataFrame (the way the inner pipeline does for CSV output).</li>
+<li>Verify <code>identity_cols</code> and <code>time_col</code> all exist as columns. Raise <code>ValueError</code> with the list of available columns if any are missing.</li>
+<li><code>df.groupby(identity_cols)</code> then within each group sort by <code>time_col</code> and compute pairwise deltas for every numeric column.</li>
+<li>Return both the inner DataFrame and the deltas DataFrame.</li>
+</ol>
+<p><strong>Modes:</strong></p>
+<ul>
+<li><code>"consecutive"</code> — <code>Δ_{i, i+1}</code> for each ordered pair in the group.</li>
+<li><code>"vs_baseline"</code> — <code>Δ_{0, i}</code> for every <code>i &gt; 0</code> in the group (baseline = earliest <code>time_col</code> value).</li>
+</ul>
+<p><strong>Output structure:</strong></p>
+<ul>
+<li>Per-series dict gains a <code>deltas</code> key alongside existing <code>plants</code> (or equivalent inner result).</li>
+<li>Non-numeric columns are skipped from delta computation but <code>identity_cols</code> + <code>time_col_from</code> + <code>time_col_to</code> + <code>dt</code> are repeated so the delta table is self-contained.</li>
+<li>CSV output: default is two files (<code>*.plate_traits.csv</code> + <code>*.plate_traits.deltas.csv</code>). Constructor kwarg <code>combined_csv: bool = False</code> emits a single file with a <code>row_type in {"raw", "delta"}</code> discriminator column.</li>
+<li>JSON output: single dict with both tables under distinct keys.</li>
+</ul>
+<p><strong>Supported inner pipelines:</strong></p>
+<p>Any pipeline that emits per-row-over-time output. Specifically:</p>
+<ul>
+<li><code>MultipleDicotPlatePipeline</code> — emits per-plant-per-frame rows; <code>frame</code> is the time axis.</li>
+<li><code>DicotPipeline</code> — emits per-plant-per-frame rows for a multi-frame <code>Series</code>; a single <code>compute_plant_traits(series)</code> call already iterates over <code>range(len(series))</code> and returns one row per frame, with <code>frame</code> as the time axis (no external loop required).</li>
+<li><code>MultipleDicotPipeline</code> — per-series aggregate row; <code>timepoint</code> from CSV is the time axis; per-plant diffs NOT supported until #159 lands.</li>
+<li><code>TrackedTipPipeline</code> (Workstream 2) — per-track summary rows; <code>track_id</code> is the identity, <code>timepoint</code> (inter-series) or <code>frame</code> (intra-series) is the time axis.</li>
+</ul>
+<p><strong>Why D2 (wrapper pipeline) and not D1 (utility module):</strong></p>
+<p>D2's cost is small: the wrapper delegates method dispatch to the inner pipeline, intercepts the result, and appends delta computation. Inner pipelines require no modification. The user writes one pipeline instantiation and gets raw + deltas in one call — the UX requested during brainstorming.</p>
+<p>D1 (pure utility module) would have required the user to chain two calls (<code>inner.compute()</code> then <code>diffs.compute()</code>) and manually flatten the inner output to a DataFrame before passing it in. D2 hides that plumbing and centralizes it in one class.</p>
+<p>Estimated size: ~150 lines including tests.</p>
+<h2 id="decision-kill-112">Decision: kill #112<a class="headerlink" href="#decision-kill-112" title="Permanent link">&para;</a></h2>
+<p><code>PrimaryRootTimelapsePipeline</code> as originally scoped is redundant. The plate pipeline's frame loop already handles multi-frame per-plant trait output; <code>TimeDiffPipeline</code> handles the between-timepoint delta computation. A new pipeline class adds no capability.</p>
+<p><strong>Issue #112 action:</strong> close with a comment pointing to this design doc, the plate pipeline (PR #165), and the new <code>TimeDiffPipeline</code> issue.</p>
+<h2 id="issue-updates-summary">Issue updates summary<a class="headerlink" href="#issue-updates-summary" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Action</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>#112</td>
+<td>Close as obsolete</td>
+<td>Plate pipeline's frame loop + <code>TimeDiffPipeline</code> cover this scope.</td>
+</tr>
+<tr>
+<td>#129</td>
+<td>Refresh</td>
+<td>Keep tip-kinematics scope (trajectory + velocity + curvature). Root-agnostic. Requires tracked <code>.slp</code>. Align output shape with the PR #165 contract (schema_version, structured units, <code>_json_sanitize</code>).</td>
+</tr>
+<tr>
+<td>#159</td>
+<td>Keep (related)</td>
+<td>Multi-plant cylinder per-plant diffs blocked on this.</td>
+</tr>
+<tr>
+<td>#163</td>
+<td>Broaden</td>
+<td>Add <code>sample_uid</code> column convention (fallback to <code>plant_qr_code</code>); add <code>timepoint</code> column convention.</td>
+</tr>
+<tr>
+<td>NEW</td>
+<td>File</td>
+<td><code>TimeDiffPipeline</code> wrapper class.</td>
+</tr>
+<tr>
+<td>NEW</td>
+<td>File</td>
+<td><code>sample_uid</code> + <code>timepoint</code> metadata layer + <code>Series.get_metadata()</code> generalized accessor + <code>sleap_roots/metadata.py</code> CSV builder helpers.</td>
+</tr>
+<tr>
+<td>NEW (deferred)</td>
+<td>File once literature is assembled</td>
+<td>Circumnutation trait set (period, amplitude, angular velocity, rotation direction, etc.) — depends on Workstream 2 shipping first so the trajectory-row output exists.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="identity-table-reference">Identity table (reference)<a class="headerlink" href="#identity-table-reference" title="Permanent link">&para;</a></h2>
+<p>Decision-cheatsheet for users choosing <code>identity_cols</code> and <code>time_col</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Shape</th>
+<th>Identity</th>
+<th>Time col</th>
+<th>Inner pipeline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plate intra-series timelapse, untracked</td>
+<td><code>(series, plant_id)</code></td>
+<td><code>frame</code></td>
+<td><code>MultipleDicotPlatePipeline</code></td>
+</tr>
+<tr>
+<td>Plate intra-series timelapse, SLEAP-tracked</td>
+<td><code>(series, track_id)</code></td>
+<td><code>frame</code></td>
+<td><code>MultipleDicotPlatePipeline</code> (after track_id emission lands)</td>
+</tr>
+<tr>
+<td>Plate inter-series (per-plant stable)</td>
+<td><code>(sample_uid, plant_id)</code></td>
+<td><code>timepoint</code></td>
+<td><code>MultipleDicotPlatePipeline</code> or run-per-series then batch</td>
+</tr>
+<tr>
+<td>Cylinder inter-series, multi-plant aggregate</td>
+<td><code>(sample_uid,)</code></td>
+<td><code>timepoint</code></td>
+<td><code>MultipleDicotPipeline</code></td>
+</tr>
+<tr>
+<td>Cylinder inter-series, single-plant</td>
+<td><code>(sample_uid,)</code></td>
+<td><code>timepoint</code></td>
+<td><code>DicotPipeline</code> or <code>MultipleDicotPipeline</code></td>
+</tr>
+<tr>
+<td>TrackedTipPipeline output (intra-series)</td>
+<td><code>(series, track_id)</code></td>
+<td><code>frame</code></td>
+<td><code>TrackedTipPipeline</code></td>
+</tr>
+<tr>
+<td>TrackedTipPipeline output (inter-series)</td>
+<td><code>(sample_uid, track_id)</code></td>
+<td><code>timepoint</code></td>
+<td><code>TrackedTipPipeline</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="out-of-scope-deferred">Out of scope (deferred)<a class="headerlink" href="#out-of-scope-deferred" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Circumnutation trait set</strong> (period, amplitude, angular velocity, rotation direction, n_nutation_cycles, detrending method) — deferred to a separate design once the maintainer has assembled a literature reference. Workstream 2's trajectory-row output is the natural input.</li>
+<li><strong>Spatial matching of plant IDs across scans</strong> — D3 in the brainstorm. Fragile; file follow-up only if user demand materializes.</li>
+<li><strong>Date-string parsing into numeric timepoints</strong> (<code>"2024-03-15"</code> → day number) — too domain-specific. User responsibility.</li>
+<li><strong>Multi-plant cylinder per-plant diffs</strong> — blocked on #159.</li>
+<li><strong>Image-pixel data in plate JSON for the viewer</strong> — tracked in #161 / #128. Viewer must resolve frame-image paths externally.</li>
+<li><strong>Inner pipelines that don't emit per-row-over-time output</strong> — <code>TimeDiffPipeline</code> rejects with a helpful message.</li>
+<li><strong>Streaming write for large batch JSON</strong> — tracked in #167.</li>
+<li><strong>Shared helper to deduplicate <code>_assign_laterals_to_primaries_by_distance</code> vs <code>associate_lateral_to_primary</code></strong> — tracked in design D7 + possibly #166.</li>
+</ul>
+<h2 id="dependencies-between-workstreams">Dependencies between workstreams<a class="headerlink" href="#dependencies-between-workstreams" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Workstream 1 (metadata layer)
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    ├──&gt; Workstream 2 (TrackedTipPipeline — needs `timepoint` / `sample_uid`)
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    └──&gt; Workstream 3 (TimeDiffPipeline — needs pipelines to emit `timepoint` / `sample_uid`)
+</span></code></pre></div>
+<p>Workstream 1 is prerequisite for the other two but can land in its own small PR. Workstream 2 and Workstream 3 are independent of each other and can land in parallel once Workstream 1 ships.</p>
+<h2 id="test-plan">Test plan<a class="headerlink" href="#test-plan" title="Permanent link">&para;</a></h2>
+<p>Same discipline as PR #165 — synthetic <code>.slp</code> round-trip for integration tests; pure-function unit tests for trait modules; openspec proposal per workstream with full scenario coverage.</p>
+<p>Each workstream gets its own OpenSpec change:</p>
+<ul>
+<li><code>change-id: add-sample-uid-timepoint-metadata</code> (Workstream 1)</li>
+<li><code>change-id: add-tracked-tip-pipeline</code> (Workstream 2 — kinematics only; no circumnutation)</li>
+<li><code>change-id: add-time-diff-pipeline</code> (Workstream 3)</li>
+</ul>
+<p>When the circumnutation literature is assembled, a fourth change (<code>add-circumnutation-traits</code> or similar) picks up that scope on top of Workstream 2's trajectory-row output.</p>
+<h2 id="test-data-strategy">Test data strategy<a class="headerlink" href="#test-data-strategy" title="Permanent link">&para;</a></h2>
+<p>Per-workstream fixture plan. PR #165 shipped synthetic-only with real fixtures deferred to #162; this design is more aggressive on real fixtures for Workstream 2 because the source data is available.</p>
+<h3 id="workstream-1-metadata-layer">Workstream 1 — metadata layer<a class="headerlink" href="#workstream-1-metadata-layer" title="Permanent link">&para;</a></h3>
+<p><strong>Synthetic-only.</strong> All behavior is CSV plumbing + Series kwarg lookup:</p>
+<ul>
+<li>Synthetic CSV strings written to <code>tmp_path</code> (same pattern as PR #165's <code>_plate_csv</code> helper).</li>
+<li>Optional: reuse existing <code>multiple_arabidopsis_11do_csv</code> (cylinder-multi-plant dataset in Git LFS) for one integration-level test that exercises a real CSV file with real column values.</li>
+<li>No new SLEAP data needed.</li>
+</ul>
+<h3 id="workstream-2-trackedtippipeline">Workstream 2 — <code>TrackedTipPipeline</code><a class="headerlink" href="#workstream-2-trackedtippipeline" title="Permanent link">&para;</a></h3>
+<p><strong>Synthetic + real, from day one.</strong></p>
+<p>Synthetic coverage (primary test surface):</p>
+<ul>
+<li>Pure trait functions in <code>sleap_roots/tip_kinematics.py</code> against known <code>(t, x, y)</code> arrays.</li>
+<li>Pipeline DAG, CSV/JSON emission, empty-input / single-frame / short-track edge cases via synthetic <code>.slp</code> files with <code>sio.Track</code> objects attached to <code>sio.Instance</code> via <code>from_numpy(..., track=...)</code>.</li>
+</ul>
+<p>Real-fixture coverage (added before PR merge):</p>
+<ul>
+<li>Source: <code>Z:\users\eberrigan\circumnutation</code> — plate timelapse with tracked tips.</li>
+<li>Copy ONE small subset into <code>tests/data/circumnutation_plate/</code> (target: single plant, ≤30 frames, compressed). Commit via Git LFS.</li>
+<li><strong>Fixture README required</strong>: <code>tests/data/circumnutation_plate/README.md</code> following the standard template from issue #168 (purpose, imaging geometry, acquisition context, contents, known limitations, related issues). The new fixture lands with documentation from day one so Workstream 2's PR does not add to the existing test-data documentation debt.</li>
+<li>One integration test: <code>Series.load</code> on the real <code>.slp</code> → <code>TrackedTipPipeline.compute_...</code> → assert every trait column is present, <code>tracking_coverage ∈ [0, 1]</code>, trajectory row count equals tracked-instance count. No exact trait value assertions (those belong in synthetic tests where the geometry is controlled).</li>
+<li>Purpose: catch sleap-io track-representation drift, real tracker-output edge cases (births, deaths, gaps, re-IDs), ensure the sleap-io loading path works on real tracked predictions.</li>
+</ul>
+<p><strong>Gate on PR merge</strong>: either the real fixture lands with the PR OR a follow-up issue is filed before the PR is marked ready for review (same discipline as PR #165's #162). Given the source data is available today, the intent is to ship it in the PR.</p>
+<h3 id="workstream-3-timediffpipeline">Workstream 3 — <code>TimeDiffPipeline</code><a class="headerlink" href="#workstream-3-timediffpipeline" title="Permanent link">&para;</a></h3>
+<p><strong>Synthetic-only.</strong></p>
+<ul>
+<li>Unit tests with stub inner pipelines returning known DataFrames.</li>
+<li>Integration tests: run real <code>MultipleDicotPlatePipeline</code> (already in the repo) on synthetic plate <code>.slp</code> with 3+ frames → <code>TimeDiffPipeline</code> wrapping it → verify delta rows match expected <code>Δprimary_length</code>, etc.</li>
+<li>No new real data required; the plate pipeline's own test fixtures are sufficient realism.</li>
+</ul>
+<h3 id="deferred-real-fixtures-follow-ups">Deferred real fixtures (follow-ups)<a class="headerlink" href="#deferred-real-fixtures-follow-ups" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>#162</strong> — real plate <code>.slp</code> fixture tests for <code>MultipleDicotPlatePipeline</code> (PR #165). Blocked on SLEAP predictions for <code>Z:\users\eberrigan\20260401_Kappes_Medicago_MK22_Plates</code>. Not in this design's scope.</li>
+<li><strong>#168</strong> — backfill test-data README documentation (top-level <code>tests/data/README.md</code> + per-directory READMEs for the 9 existing fixture directories). Out of scope for Workstreams 1–3 but tracked so the gap closes. Workstream 2's new fixture ships with its README in-PR (per the "Fixture README required" requirement above).</li>
+<li><strong>Future</strong> — once circumnutation workstream lands, add dedicated nutation-specific test fixtures (e.g., a known-period plant trajectory) from the same <code>circumnutation</code> source folder.</li>
+</ul>
+<h3 id="source-data-layout">Source-data layout<a class="headerlink" href="#source-data-layout" title="Permanent link">&para;</a></h3>
+<p>The source folders under <code>Z:\users\eberrigan\</code> are the maintainer's working copies, not yet organized for direct test-fixture use. Fixtures committed to <code>tests/data/</code> under this design are subsets chosen for size and representativeness. Reorganizing the source-folder layout is out of scope here; follow-up refactor can consolidate once we have multiple pipelines consuming the data.</p>
+<h2 id="risks-and-mitigations">Risks and mitigations<a class="headerlink" href="#risks-and-mitigations" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sample_uid</code> rename confuses users on existing workflows</td>
+<td>Backward-compat — kwarg defaults to <code>series_name</code>; CSV column stays <code>plant_qr_code</code> until #163.</td>
+</tr>
+<tr>
+<td><code>TimeDiffPipeline</code> diverges from inner pipeline method signatures</td>
+<td>Delegate via <code>getattr(inner, method)(*args, **kwargs)</code> and let Python's arg-binding enforce compatibility. Test against each supported inner pipeline.</td>
+</tr>
+<tr>
+<td>SLEAP tracking is expensive / not commonly enabled</td>
+<td>Document sleap tracking workflow in <code>TrackedTipPipeline</code>'s docstring; raise with a link to sleap docs on untracked input.</td>
+</tr>
+<tr>
+<td>Users have existing <code>plant_qr_code</code>-based workflows that expect per-scan rows to have unique values</td>
+<td>No change for them — the kwarg default is <code>series_name</code>, which already produces unique per-scan rows.</td>
+</tr>
+<tr>
+<td>TrackedTipPipeline output shape might need to change when circumnutation lands</td>
+<td>Output spec for Workstream 2 is deliberately minimal and extensible — adding circumnutation scalars as new per-track columns is additive and bumps <code>schema_version</code> only if removal/rename is needed.</td>
+</tr>
+</tbody>
+</table>
 
 
 
@@ -2929,12 +3300,12 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.follow", "toc.integrate", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.follow", "toc.integrate", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
-        <script src="../../javascripts/mathjax.js"></script>
+        <script src="../../../javascripts/mathjax.js"></script>
       
         <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
       
