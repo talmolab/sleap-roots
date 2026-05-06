@@ -101,17 +101,39 @@ Returns a long-format `pd.DataFrame` with columns `track_id, frame, tip_x, tip_y
 - **Iterates per-instance, NOT per-frame-stack** — tracker output does NOT preserve positional ordering across frames. Verified on the fixture: frame 0 instances are ordered `[track_0, 1, 2, 3, 4, 5]` but frame 1 is `[track_0, 3, 4, 2, 1, 5]`. Implementation reads `inst.track.name` per instance and `inst.numpy()[-1]` for the tip coordinate.
 - Untracked instances (`inst.track is None` or `inst.track.name` falsy) trip `ValueError` with the sleap.ai/tracking pointer.
 
-**Tip-kinematics trait functions** (`sleap_roots/tip_kinematics.py`, NEW MODULE):
+**Tip-kinematics trait functions** (`sleap_roots/tip_kinematics.py`, NEW MODULE — thin wrappers around existing trait functions):
 
-Pure functions on `(N, 2)` xy arrays. The pipeline calls these in its `TraitDef` DAG.
+Pure functions on `(N, 2)` xy arrays. The pipeline calls these in its `TraitDef` DAG. **DRY-driven: the actual numpy computation lives in `sleap_roots/lengths.py` and `sleap_roots/bases.py` already.** This new module exists to (a) document tip-trajectory-specific edge cases and (b) provide a stable import path for future tip-trajectory-aware pipelines.
 
-| Function | Definition | Single-frame behavior | Units family |
+| Function | Computation source | Single-frame behavior | Units family |
 |---|---|---|---|
-| `tip_trajectory_length(xy)` | Cumulative arclength: `sum(np.linalg.norm(np.diff(xy, axis=0), axis=1))` | `0.0` (no segments) | lengths |
-| `tip_displacement_net(xy)` | First → last Euclidean: `np.linalg.norm(xy[-1] - xy[0])` | `0.0` (xy[0] == xy[-1]) | lengths |
-| `tracking_coverage(n_tracked, n_total)` | `n_tracked / n_total` | well-defined for `n_tracked >= 1` | ratios |
+| `tip_trajectory_length(xy)` | Delegates to [`lengths.get_root_lengths`](sleap_roots/lengths.py#L56) (cumulative arclength via `np.diff` + `np.linalg.norm` + `np.nansum`). Wrapper special-cases single-frame to return `0.0` instead of NaN (existing function's vacuous-truth NaN behavior on empty segments). | `0.0` (no segments) | lengths |
+| `tip_displacement_net(xy)` | Delegates to [`bases.get_base_tip_dist`](sleap_roots/bases.py#L34) (Euclidean via `np.linalg.norm`). Pass `xy[0]` as base, `xy[-1]` as tip. | `0.0` (xy[0] == xy[-1] — natural, no special-case) | lengths |
+| `tracking_coverage(n_tracked, n_total)` | Trivial division — no existing utility. ~3 lines. | well-defined for `n_tracked >= 1` | ratios |
 
-Single-frame tracks emit `length=0.0, displacement=0.0` — mathematically correct (no segments → no length); no NaN special-casing. Downstream filtering on `n_frames_tracked == 1` is the user's option.
+Single-frame tracks emit `length=0.0, displacement=0.0` — mathematically correct (no segments → no length); no NaN special-casing in the pipeline output. Downstream filtering on `n_frames_tracked == 1` is the user's option.
+
+**Implementation sketch** (~30 lines total — nearly all delegation):
+
+```python
+from sleap_roots.lengths import get_root_lengths
+from sleap_roots.bases import get_base_tip_dist
+
+def tip_trajectory_length(xy: np.ndarray) -> float:
+    if xy.shape[0] == 0: return np.nan
+    if xy.shape[0] == 1: return 0.0
+    return float(get_root_lengths(xy))
+
+def tip_displacement_net(xy: np.ndarray) -> float:
+    if xy.shape[0] == 0: return np.nan
+    return float(get_base_tip_dist(xy[0], xy[-1]))
+
+def tracking_coverage(n_frames_tracked: int, n_frames_total: int) -> float:
+    if n_frames_total == 0: return np.nan
+    return n_frames_tracked / n_frames_total
+```
+
+Existing functions in `lengths.py` / `bases.py` have full test coverage and known NaN semantics. The wrappers' tests just cover the tip-trajectory-specific edge cases (single-frame zeros, empty input).
 
 **DAG-A — TraitDef topology:**
 
