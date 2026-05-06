@@ -1,6 +1,8 @@
 """Series-level data loader."""
 
 import attrs
+import logging
+import math
 import numpy as np
 import sleap_io as sio
 import matplotlib
@@ -10,6 +12,9 @@ import pandas as pd
 
 from typing import Any, Dict, Optional, Tuple, List, Union
 from pathlib import Path
+
+
+logger = logging.getLogger(__name__)
 
 
 @attrs.define
@@ -29,10 +34,22 @@ class Series:
         lateral_labels: Optional `sio.Labels` corresponding to the lateral root predictions.
         crown_labels: Optional `sio.Labels` corresponding to the crown predictions.
         video: Optional `sio.Video` corresponding to the image series.
-        csv_path: Optional path to the CSV file containing the expected plant count.
+        csv_path: Optional path to a metadata CSV. The CSV is keyed on a
+            `plant_qr_code` column (matched against `sample_uid`). Any column
+            in the CSV is readable via `Series.get_metadata(column)`. The
+            `expected_count`, `group`, `qc_fail`, and `timepoint` properties
+            are thin wrappers that read specific well-known columns; users
+            can add arbitrary additional columns and read them via
+            `get_metadata`. See `sleap_roots.metadata.build_metadata_csv` for
+            a helper that emits a CSV with the canonical column ordering.
+        sample_uid: Optional cross-scan stable identity for this series. Defaults to
+            `series_name` when unset or empty. Coerced to `str` so CSV `plant_qr_code`
+            lookups have predictable equality semantics.
 
     Methods:
         load: Load a set of predictions for this series.
+        get_metadata: Generic CSV-column accessor keyed on `sample_uid` (and optional
+            `plant_id`).
         __len__: Length of the series (number of images).
         __getitem__: Return labeled frames for predictions.
         __iter__: Iterator for looping through predictions.
@@ -46,6 +63,7 @@ class Series:
         expected_count: Fetch the expected plant count for this series from the CSV.
         group: Group name for the series from the CSV.
         qc_fail: Flag to indicate if the series failed QC from the CSV.
+        timepoint: Numeric time-axis value for this series, coerced to float.
     """
 
     series_name: str
@@ -58,6 +76,16 @@ class Series:
     crown_labels: Optional[sio.Labels] = None
     video: Optional[sio.Video] = None
     csv_path: Optional[str] = None
+    sample_uid: Optional[str] = None
+    _warned_missing_plant_id_column: bool = attrs.field(
+        default=False, init=False, repr=False
+    )
+
+    def __attrs_post_init__(self) -> None:
+        """Default `sample_uid` to `series_name` and coerce to `str`."""
+        if self.sample_uid is None or self.sample_uid == "":
+            self.sample_uid = self.series_name
+        self.sample_uid = str(self.sample_uid)
 
     @classmethod
     def load(
@@ -68,6 +96,7 @@ class Series:
         lateral_path: Optional[str] = None,
         crown_path: Optional[str] = None,
         csv_path: Optional[str] = None,
+        sample_uid: Optional[str] = None,
     ) -> "Series":
         """Load a set of predictions for this series.
 
@@ -78,7 +107,13 @@ class Series:
             primary_path: Optional path to the primary root '.slp' predictions file.
             lateral_path: Optional path to the lateral root '.slp' predictions file.
             crown_path: Optional path to the crown '.slp' predictions file.
-            csv_path: Optional path to the CSV file containing the expected plant count.
+            csv_path: Optional path to a metadata CSV (keyed on `plant_qr_code`,
+                matched against `sample_uid`). Read via `get_metadata(column)`
+                or the wrapper properties (`expected_count`, `group`, `qc_fail`,
+                `timepoint`).
+            sample_uid: Optional cross-scan stable identity. Defaults to `series_name`
+                when unset or empty. Used as the CSV `plant_qr_code` lookup key by
+                `get_metadata` and the `expected_count`/`group`/`qc_fail` properties.
 
         Returns:
             An instance of Series loaded with the specified predictions.
@@ -160,7 +195,74 @@ class Series:
             crown_labels=crown_labels,
             video=video,
             csv_path=csv_path,
+            sample_uid=sample_uid,
         )
+
+    def get_metadata(self, column: str, plant_id: Optional[int] = None) -> Any:
+        """Fetch a CSV column value keyed on `sample_uid` (and optional `plant_id`).
+
+        Looks up `df[df["plant_qr_code"] == self.sample_uid]`. If `plant_id` is given
+        AND the CSV has a `plant_id` column, the lookup is the composite
+        (sample_uid, plant_id) match. If `plant_id` is given but the CSV has no
+        `plant_id` column, the argument is silently ignored, the sample-uid-only
+        lookup is used, and a one-shot WARNING is emitted (per Series instance).
+
+        Args:
+            column: The CSV column name to fetch.
+            plant_id: Optional per-plant disambiguator. Used only when the CSV has a
+                `plant_id` column.
+
+        Returns:
+            The value in the first matching row's `column` field. Returns `np.nan`
+            when the CSV is missing, the requested `column` is missing, the
+            `plant_qr_code` lookup-key column is missing (with WARNING logged),
+            or no row matches.
+        """
+        # Reject bool-typed plant_id — Python booleans are ints (False == 0,
+        # True == 1) and pandas equality matches them against integer plant_id
+        # columns. A caller passing plant_id=False (e.g. from a CLI arg parser
+        # or a `flag or False` ternary) would silently fetch the row for
+        # plant_id=0. Fail loudly instead of producing wrong rows.
+        if isinstance(plant_id, bool):
+            raise TypeError(
+                f"Series.get_metadata: plant_id must be int or None, not "
+                f"bool ({plant_id!r}). Booleans match int 0/1 in pandas "
+                f"equality and would silently fetch the wrong row."
+            )
+        if not self.csv_path or not Path(self.csv_path).exists():
+            return np.nan
+        df = pd.read_csv(self.csv_path)
+        if column not in df.columns:
+            return np.nan
+        if "plant_qr_code" not in df.columns:
+            # Lookup key absent — preserve fail-soft contract instead of
+            # raising KeyError. Surface the misconfiguration via WARNING so
+            # users notice they wrote a CSV without the required column.
+            logger.warning(
+                "Series '%s': metadata CSV %s has no 'plant_qr_code' column; "
+                "cannot perform sample_uid lookup. Returning NaN. The CSV "
+                "MUST contain a 'plant_qr_code' column to be useful (see "
+                "build_metadata_csv).",
+                self.series_name,
+                self.csv_path,
+            )
+            return np.nan
+        sample_match = df[df["plant_qr_code"] == self.sample_uid]
+        if plant_id is not None and "plant_id" in df.columns:
+            sample_match = sample_match[sample_match["plant_id"] == plant_id]
+        elif plant_id is not None and not self._warned_missing_plant_id_column:
+            logger.warning(
+                "Series '%s': plant_id=%r ignored because CSV %s has no "
+                "'plant_id' column; falling back to sample_uid-only lookup. "
+                "Add a 'plant_id' column to disambiguate per-plant rows.",
+                self.series_name,
+                plant_id,
+                self.csv_path,
+            )
+            self._warned_missing_plant_id_column = True
+        if len(sample_match) == 0:
+            return np.nan
+        return sample_match[column].iloc[0]
 
     @property
     def expected_count(self) -> Union[float, int]:
@@ -168,16 +270,11 @@ class Series:
         if not self.csv_path or not Path(self.csv_path).exists():
             print("CSV path is not set or the file does not exist.")
             return np.nan
-        df = pd.read_csv(self.csv_path)
-        try:
-            # Match the series_name (or plant_qr_code in the CSV) to fetch the expected
-            # count
-            return df[df["plant_qr_code"] == self.series_name][
-                "number_of_plants_cylinder"
-            ].iloc[0]
-        except IndexError:
+        value = self.get_metadata("number_of_plants_cylinder")
+        if pd.isna(value):
             print(f"No expected count found for series {self.series_name} in CSV.")
             return np.nan
+        return value
 
     @property
     def group(self) -> str:
@@ -185,13 +282,11 @@ class Series:
         if not self.csv_path or not Path(self.csv_path).exists():
             print("CSV path is not set or the file does not exist.")
             return np.nan
-        df = pd.read_csv(self.csv_path)
-        try:
-            # Match the series_name (or plant_qr_code in the CSV) to fetch the group
-            return df[df["plant_qr_code"] == self.series_name]["genotype"].iloc[0]
-        except IndexError:
+        value = self.get_metadata("genotype")
+        if pd.isna(value):
             print(f"No group found for series {self.series_name} in CSV.")
             return np.nan
+        return value
 
     @property
     def qc_fail(self) -> Union[int, float]:
@@ -199,13 +294,39 @@ class Series:
         if not self.csv_path or not Path(self.csv_path).exists():
             print("CSV path is not set or the file does not exist.")
             return np.nan
-        df = pd.read_csv(self.csv_path)
-        try:
-            # Match the series_name (or plant_qr_code in the CSV) to fetch the QC flag
-            return df[df["plant_qr_code"] == self.series_name]["qc_cylinder"].iloc[0]
-        except IndexError:
+        value = self.get_metadata("qc_cylinder")
+        if pd.isna(value):
             print(f"No QC flag found for series {self.series_name} in CSV.")
             return np.nan
+        return value
+
+    @property
+    def timepoint(self) -> float:
+        """Numeric time-axis value for this series, coerced to float.
+
+        Returns `np.nan` when the CSV is absent, the `timepoint` column is missing,
+        or no row matches `sample_uid`. Raises `ValueError` when a matching row
+        contains a non-numeric string value (e.g. a date) OR a non-finite value
+        (`inf`, `-inf`) — failing loudly at the metadata layer beats silently
+        producing nonsensical results in downstream timepoint arithmetic.
+        """
+        value = self.get_metadata("timepoint")
+        if pd.isna(value):
+            return np.nan
+        try:
+            result = float(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Series '{self.series_name}': could not coerce 'timepoint' "
+                f"value {value!r} to float ({exc})."
+            ) from exc
+        if not math.isfinite(result):
+            raise ValueError(
+                f"Series '{self.series_name}': non-finite 'timepoint' value "
+                f"{value!r}. Timepoints must be finite floats; downstream "
+                f"arithmetic on inf would silently produce nonsensical deltas."
+            )
+        return result
 
     def __len__(self) -> int:
         """Length of the series (number of images)."""

@@ -2738,6 +2738,7 @@ _PLATE_UNITS = {
     "counts": "unitless",
     "ratios": "dimensionless",
     "indices": "unitless",
+    "time": "unspecified",
 }
 
 
@@ -2981,6 +2982,8 @@ class MultipleDicotPlatePipeline(Pipeline):
         expected_count: Any,
         detected_count: int,
         dicot_pipeline: "DicotPipeline",
+        sample_uid: str = "",
+        timepoint: float = float("nan"),
     ) -> Dict[str, Any]:
         """Compute the per-plant output row via a nested DicotPipeline.
 
@@ -3047,6 +3050,8 @@ class MultipleDicotPlatePipeline(Pipeline):
 
         return {
             "frame": frame_idx,
+            "sample_uid": sample_uid,
+            "timepoint": timepoint,
             "plant_id": plant_id,
             "primary_sleap_idx": primary_sleap_idx,
             "lateral_sleap_idxs": lateral_sleap_idxs_out,
@@ -3087,19 +3092,78 @@ class MultipleDicotPlatePipeline(Pipeline):
             json_suffix: Filename suffix for JSON output.
 
         Returns:
-            Dict with keys `schema_version`, `units`, `series`, `group`,
-            `qc_fail`, `expected_count`, and `plants` (list of per-plant-per-frame
-            dicts).
+            Dict with keys `schema_version` (currently `2`), `units`, `series`,
+            `sample_uid`, `timepoint`, `group`, `qc_fail`, `expected_count`,
+            and `plants` (list of per-plant-per-frame dicts). Each plant row
+            additionally carries `sample_uid` and `timepoint`.
+
+            **Note on `schema_version`:** `schema_version` is JSON-only
+            (and present in the in-memory dict). It is NOT written to the
+            per-plant CSV — CSV consumers must read by column NAME (not
+            position) to remain compatible across schema versions. Positional
+            CSV readers cannot programmatically detect the version change
+            from `schema_version=1` (PR #165) to `schema_version=2` (this
+            change adds `sample_uid`/`timepoint` at columns 1 and 2); they
+            will silently misread. Migrate positional readers to name-based
+            indexing (`df["primary_length"]` instead of `df.iloc[:, 6]`).
+
+        Logging:
+            Emits at most one WARNING per call to logger
+            `sleap_roots.trait_pipelines` when `units["time"] == "unspecified"`
+            AND `series.timepoint` is non-NaN — surfaces the missing-unit
+            hazard so downstream consumers don't silently mix days/seconds.
+            The warning fires regardless of `len(series)` (including empty
+            series with non-NaN CSV-derived timepoint), so a config issue is
+            visible even when no plant rows are produced.
+            Removed once #177 (time_unit population) lands.
         """
+        # Resolve sample_uid + timepoint ONCE per series call (perf contract).
+        # Per-plant rows MUST NOT re-read from `series` inside the frame loop;
+        # at plate-timelapse scale (10 series × 100 frames × 6 plants) this
+        # would trigger 6000 redundant CSV reads.
+        #
+        # Scope note: this contract applies to sample_uid + timepoint ONLY.
+        # The other CSV-backed properties (group, qc_fail, expected_count)
+        # are still read at result-dict construction below — each triggers
+        # one pd.read_csv per series. A full lazy-cache fix is tracked by
+        # #176; this PR partially mitigates by hoisting expected_count_raw
+        # from result["expected_count"] (saves one redundant read per series)
+        # but still pays for `series.group`, `series.qc_fail`, and the
+        # per-frame `expected_count` read in `get_initial_frame_traits`.
+        sample_uid_resolved = str(series.sample_uid)
+        timepoint_resolved = series.timepoint
+
         result: Dict[str, Any] = {
-            "schema_version": 1,
+            "schema_version": 2,
             "units": dict(_PLATE_UNITS),
             "series": str(series.series_name),
+            "sample_uid": sample_uid_resolved,
+            "timepoint": timepoint_resolved,
             "group": series.group,
             "qc_fail": series.qc_fail,
             "expected_count": series.expected_count,
             "plants": [],
         }
+
+        # Per-call warning when units["time"] is "unspecified" AND timepoint is
+        # numeric — surfaces the missing-unit hazard at runtime so two
+        # collaborators recording timepoint=3 in days vs seconds don't silently
+        # produce incompatible data. Each compute_plate_traits call emits at
+        # most one such warning; there is no cross-call dedup (intentional —
+        # batch processing should still surface each series's hazard).
+        # Removed once the time_unit follow-up (#177) lands.
+        if result["units"].get("time") == "unspecified" and not pd.isna(
+            timepoint_resolved
+        ):
+            logger.warning(
+                "MultipleDicotPlatePipeline: %s timepoint=%r emitted with "
+                "units['time']='unspecified'; downstream consumers cannot "
+                "interpret this value as a physical duration (e.g. days, "
+                "hours, minutes, frames are all valid but mutually "
+                "incompatible). Set time_unit once #177 lands.",
+                series.series_name,
+                timepoint_resolved,
+            )
 
         if len(series) == 0:
             return result
@@ -3110,7 +3174,10 @@ class MultipleDicotPlatePipeline(Pipeline):
         # per plant row (Copilot review feedback on PR #165).
         dicot_pipeline = DicotPipeline()
         warned_frames: set = set()
-        expected_count_raw = series.expected_count
+        # Reuse the value already resolved into the result dict above to avoid
+        # a second pd.read_csv on the same file. The full CSV-read-per-property
+        # pattern (group, qc_fail, expected_count) is tracked by #176.
+        expected_count_raw = result["expected_count"]
 
         for frame_idx in range(len(series)):
             initial = self.get_initial_frame_traits(series, frame_idx)
@@ -3165,6 +3232,8 @@ class MultipleDicotPlatePipeline(Pipeline):
                     expected_count=expected_count_raw,
                     detected_count=detected_count,
                     dicot_pipeline=dicot_pipeline,
+                    sample_uid=sample_uid_resolved,
+                    timepoint=timepoint_resolved,
                 )
                 result["plants"].append(plant_row)
 
@@ -3212,6 +3281,8 @@ class MultipleDicotPlatePipeline(Pipeline):
         for plant in result["plants"]:
             row = {
                 "series": result["series"],
+                "sample_uid": plant["sample_uid"],
+                "timepoint": plant["timepoint"],
                 "frame": plant["frame"],
                 "plant_id": plant["plant_id"],
                 "primary_sleap_idx": plant["primary_sleap_idx"],
@@ -3238,6 +3309,8 @@ class MultipleDicotPlatePipeline(Pipeline):
         # Force column order: metadata first, then DicotPipeline.csv_traits in order.
         meta_cols = [
             "series",
+            "sample_uid",
+            "timepoint",
             "frame",
             "plant_id",
             "primary_sleap_idx",

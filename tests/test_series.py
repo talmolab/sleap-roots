@@ -1,5 +1,6 @@
 import sleap_io as sio
 import numpy as np
+import pandas as pd
 import pytest
 from sleap_roots.series import (
     Series,
@@ -181,6 +182,107 @@ def test_expected_count_error(series_instance, tmp_path):
 def test_qc_cylinder(series_instance, csv_path):
     series_instance.csv_path = csv_path
     assert series_instance.qc_fail == 0
+
+
+def test_group(series_instance, csv_path):
+    """`Series.group` returns the genotype value via the get_metadata wrapper."""
+    series_instance.csv_path = csv_path
+    # The csv_path fixture has a mixed-dtype genotype column ("1100", "Kitaake-X"),
+    # so pandas infers object dtype and the value comes back as a string.
+    assert str(series_instance.group) == "1100"
+
+
+def test_wrappers_use_sample_uid_not_series_name(tmp_path):
+    """Regression: expected_count/group/qc_fail key on sample_uid, not series_name.
+
+    Pre-refactor the wrappers used `df["plant_qr_code"] == self.series_name`. Post-
+    refactor they call `get_metadata` which keys on `self.sample_uid`. With sample_uid
+    defaulting to series_name the byte-for-byte default behavior is preserved. This
+    test pins the new (sample_uid-keyed) lookup explicitly.
+    """
+    csv = tmp_path / "m.csv"
+    csv.write_text(
+        "plant_qr_code,number_of_plants_cylinder,genotype,qc_cylinder\n"
+        "X,7,GENO_X,0\n"
+    )
+    series = Series.load(
+        series_name="X_day0",
+        sample_uid="X",
+        csv_path=str(csv),
+    )
+    assert series.expected_count == 7
+    assert series.group == "GENO_X"
+    assert series.qc_fail == 0
+
+
+def test_series_get_metadata_csv_path_set_but_file_missing(tmp_path):
+    """csv_path set but file missing → `get_metadata` returns NaN (no raise)."""
+    series = Series(series_name="x", csv_path=str(tmp_path / "nonexistent.csv"))
+    assert np.isnan(series.get_metadata("genotype"))
+
+
+def test_series_get_metadata_rejects_bool_plant_id(tmp_path):
+    """Booleans collide with int 0/1 in pandas equality — reject them upfront."""
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        "plant_qr_code,plant_id,genotype\nplant1,0,A\nplant1,1,B\n",
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    with pytest.raises(TypeError) as excinfo:
+        series.get_metadata("genotype", plant_id=False)
+    assert "bool" in str(excinfo.value).lower()
+    with pytest.raises(TypeError):
+        series.get_metadata("genotype", plant_id=True)
+
+
+def test_series_timepoint_rejects_infinity(tmp_path):
+    """Non-finite timepoints would silently produce nonsensical deltas — reject them."""
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        "plant_qr_code,timepoint\nplant1,inf\n",
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    with pytest.raises(ValueError) as excinfo:
+        series.timepoint
+    msg = str(excinfo.value).lower()
+    assert "non-finite" in msg or "infinite" in msg or "inf" in msg
+    assert "plant1" in str(excinfo.value)
+
+
+def test_series_get_metadata_csv_missing_plant_qr_code_column(tmp_path, caplog):
+    """CSV without `plant_qr_code` lookup-key column → NaN + WARNING (no KeyError).
+
+    Regression for the fail-soft contract: if a user supplies a misconfigured CSV
+    (no `plant_qr_code` column at all), the method must NOT raise `KeyError`.
+    Instead it logs a WARNING and returns NaN, so wrapper properties (timepoint,
+    expected_count, etc.) keep working on malformed metadata files.
+    """
+    csv = _write_csv(
+        tmp_path / "no_lookup_key.csv",
+        "id,genotype,timepoint\nplant1,MK22,3\n",  # `id` not `plant_qr_code`
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    with caplog.at_level("WARNING", logger="sleap_roots.series"):
+        result = series.get_metadata("genotype")
+    assert pd.isna(result)
+    warnings = [
+        r
+        for r in caplog.records
+        if r.name == "sleap_roots.series" and r.levelname == "WARNING"
+    ]
+    assert len(warnings) >= 1
+    assert "plant_qr_code" in warnings[0].message
+    # Wrapper properties must also stay fail-soft.
+    assert pd.isna(series.timepoint)
+    assert pd.isna(series.expected_count)
+
+
+def test_series_timepoint_nan_cell_in_existing_row(tmp_path):
+    """Empty-string timepoint in a matching row → NaN (collapses with no-row case)."""
+    csv = tmp_path / "m.csv"
+    csv.write_text("plant_qr_code,timepoint\nplant1,\n")
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert np.isnan(series.timepoint)
 
 
 def test_len_video():
@@ -428,3 +530,171 @@ def test_series_plot(
         for frame_idx in range(len(series)):
             fig = series.plot(frame_idx)
             assert isinstance(fig, matplotlib.figure.Figure)
+
+
+# Section 1: sample_uid tests (TDD red phase 1)
+
+
+def test_series_sample_uid_defaults_to_series_name():
+    series = Series.load(series_name="plant1")
+    assert series.sample_uid == "plant1"
+
+
+def test_series_sample_uid_explicit_kwarg():
+    series = Series.load(series_name="plant1_day0", sample_uid="plant1")
+    assert series.sample_uid == "plant1"
+
+
+def test_series_sample_uid_empty_string_falls_through():
+    series = Series.load(series_name="plant1_day0", sample_uid="")
+    assert series.sample_uid == "plant1_day0"
+
+
+def test_series_sample_uid_shared_across_series():
+    a = Series.load(series_name="plant1_day0", sample_uid="plant1")
+    b = Series.load(series_name="plant1_day1", sample_uid="plant1")
+    assert a.series_name != b.series_name
+    assert a.sample_uid == b.sample_uid == "plant1"
+
+
+def test_series_sample_uid_direct_construction_defaults():
+    series = Series(series_name="test_video")
+    assert series.sample_uid == "test_video"
+
+
+def test_series_sample_uid_str_coercion():
+    series = Series(series_name="x", sample_uid=1002)
+    assert series.sample_uid == "1002"
+    assert isinstance(series.sample_uid, str)
+
+
+# Section 3: get_metadata tests (TDD red phase 2)
+
+
+def _write_csv(path, text):
+    path.write_text(text)
+    return path
+
+
+def test_series_get_metadata_no_csv():
+    series = Series(series_name="plant1")
+    assert np.isnan(series.get_metadata("number_of_plants_cylinder"))
+
+
+def test_series_get_metadata_missing_column(tmp_path):
+    csv = _write_csv(tmp_path / "m.csv", "plant_qr_code,genotype\nplant1,MK22\n")
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert np.isnan(series.get_metadata("timepoint"))
+
+
+def test_series_get_metadata_no_matching_row(tmp_path):
+    csv = _write_csv(tmp_path / "m.csv", "plant_qr_code,genotype\na,MK22\nb,MK23\n")
+    series = Series(series_name="c", csv_path=str(csv))
+    assert pd.isna(series.get_metadata("genotype"))
+
+
+def test_series_get_metadata_matches_row(tmp_path):
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        "plant_qr_code,genotype,timepoint\nplant1,MK22,3\n",
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert series.get_metadata("genotype") == "MK22"
+    assert series.get_metadata("timepoint") == 3
+
+
+def test_series_get_metadata_plant_id_composite_lookup(tmp_path):
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        "plant_qr_code,plant_id,genotype\nplant1,0,A\nplant1,1,B\n",
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert series.get_metadata("genotype", plant_id=0) == "A"
+    assert series.get_metadata("genotype", plant_id=1) == "B"
+
+
+def test_series_get_metadata_plant_id_ignored_when_no_column_emits_warning(
+    tmp_path, caplog
+):
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        "plant_qr_code,genotype,timepoint\nplant1,MK22,3\n",
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    with caplog.at_level("WARNING", logger="sleap_roots.series"):
+        result = series.get_metadata("genotype", plant_id=99)
+    assert result == "MK22"
+    warnings = [
+        r
+        for r in caplog.records
+        if r.name == "sleap_roots.series" and r.levelname == "WARNING"
+    ]
+    assert len(warnings) == 1
+    assert "plant_id" in warnings[0].message
+    assert str(csv) in warnings[0].message or "m.csv" in warnings[0].message
+
+    # Second call: no additional warning (one-shot dedup)
+    caplog.clear()
+    with caplog.at_level("WARNING", logger="sleap_roots.series"):
+        series.get_metadata("timepoint", plant_id=99)
+    second = [
+        r
+        for r in caplog.records
+        if r.name == "sleap_roots.series" and r.levelname == "WARNING"
+    ]
+    assert len(second) == 0
+
+
+def test_series_get_metadata_plant_id_none_equivalent_to_omitted(tmp_path):
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        "plant_qr_code,genotype\nplant1,MK22\n",
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert series.get_metadata("genotype", plant_id=None) == series.get_metadata(
+        "genotype"
+    )
+
+
+def test_series_get_metadata_multiple_matches_first_row(tmp_path):
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        "plant_qr_code,genotype\nplant1,A\nplant1,B\n",
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert series.get_metadata("genotype") == "A"
+
+
+# Section 5: timepoint tests (TDD red phase 3)
+
+
+def test_series_timepoint_from_csv_numeric(tmp_path):
+    csv = _write_csv(tmp_path / "m.csv", "plant_qr_code,timepoint\nplant1,2\n")
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert series.timepoint == 2.0
+    assert isinstance(series.timepoint, float)
+
+
+def test_series_timepoint_no_csv():
+    series = Series(series_name="plant1")
+    assert np.isnan(series.timepoint)
+
+
+def test_series_timepoint_string_float_parses(tmp_path):
+    csv = _write_csv(tmp_path / "m.csv", "plant_qr_code,timepoint\nplant1,3.5\n")
+    series = Series(series_name="plant1", csv_path=str(csv))
+    assert series.timepoint == 3.5
+
+
+def test_series_timepoint_raises_on_non_numeric(tmp_path):
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        "plant_qr_code,timepoint\nplant1,2024-03-15\n",
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    with pytest.raises(ValueError) as excinfo:
+        series.timepoint
+    msg = str(excinfo.value)
+    assert "plant1" in msg
+    assert "timepoint" in msg
+    assert "2024-03-15" in msg
