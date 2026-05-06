@@ -53,9 +53,9 @@ Root-agnostic pipeline consuming a **tracked** `.slp` file. Emits per-track tip 
 
 **Module placement:**
 
-- `sleap_roots/tracked_tip_pipeline.py` (NEW FILE) — `TrackedTipPipeline` class. Starts the per-pipeline-module pattern. Existing `trait_pipelines.py` megafile (3763 lines, 8 pipelines) split tracked in #189.
-- `sleap_roots/tip_kinematics.py` (NEW FILE) — pure trait functions parallel to `sleap_roots/lengths.py` and `sleap_roots/angle.py`.
+- `sleap_roots/tracked_tip_pipeline.py` (NEW FILE) — `TrackedTipPipeline` class with its inline `TraitDef` list. Starts the per-pipeline-module pattern. Existing `trait_pipelines.py` megafile (3763 lines, 8 pipelines) split tracked in #189.
 - `sleap_roots/series.py` (EXTEND) — new `Series.get_tracked_tips(root_type=None)` method + module-level validation helpers (`validate_tracked_slp`, `validate_series_for_tracked_tip`).
+- **NO new trait module** — the pipeline reuses `sleap_roots.lengths.get_root_lengths` and `sleap_roots.bases.get_base_tip_dist` directly as TraitDef functions via DAG composition. The DAG provides the per-track input slicing (`track_first_xy`, `track_last_xy`); the existing tested functions provide the computation. See "DAG-A — TraitDef topology" below.
 
 **Inputs:**
 
@@ -99,56 +99,83 @@ Returns a long-format `pd.DataFrame` with columns `track_id, frame, tip_x, tip_y
 
 - Auto-detects `root_type` from whichever of `primary_path` / `lateral_path` / `crown_path` is populated; raises `ValueError` if zero or >1 are populated and `root_type` is `None`.
 - **Iterates per-instance, NOT per-frame-stack** — tracker output does NOT preserve positional ordering across frames. Verified on the fixture: frame 0 instances are ordered `[track_0, 1, 2, 3, 4, 5]` but frame 1 is `[track_0, 3, 4, 2, 1, 5]`. Implementation reads `inst.track.name` per instance and `inst.numpy()[-1]` for the tip coordinate.
+- **Output is sorted by `(track_id, frame)`** — REQUIRED so that `groupby('track_id')` produces frame-sorted `xy` arrays, making `xy[0]` the first-tracked-frame tip and `xy[-1]` the last-tracked-frame tip. Downstream `tip_displacement_net` correctness depends on this. Implementation: `df.sort_values(['track_id', 'frame']).reset_index(drop=True)` before returning.
 - Untracked instances (`inst.track is None` or `inst.track.name` falsy) trip `ValueError` with the sleap.ai/tracking pointer.
 
-**Tip-kinematics trait functions** (`sleap_roots/tip_kinematics.py`, NEW MODULE — thin wrappers around existing trait functions):
+**Trait functions — pure DAG-A composition (no new trait module):**
 
-Pure functions on `(N, 2)` xy arrays. The pipeline calls these in its `TraitDef` DAG. **DRY-driven: the actual numpy computation lives in `sleap_roots/lengths.py` and `sleap_roots/bases.py` already.** This new module exists to (a) document tip-trajectory-specific edge cases and (b) provide a stable import path for future tip-trajectory-aware pipelines.
+The pipeline reuses existing tested trait functions DIRECTLY as TraitDef `fn` values. The DAG provides per-track input slicing (`track_first_xy`, `track_last_xy`) so existing `(2,)`-and-`(2,)` and `(N, 2)` functions plug in unchanged.
 
-| Function | Computation source | Single-frame behavior | Units family |
-|---|---|---|---|
-| `tip_trajectory_length(xy)` | Delegates to [`lengths.get_root_lengths`](sleap_roots/lengths.py#L56) (cumulative arclength via `np.diff` + `np.linalg.norm` + `np.nansum`). Wrapper special-cases single-frame to return `0.0` instead of NaN (existing function's vacuous-truth NaN behavior on empty segments). | `0.0` (no segments) | lengths |
-| `tip_displacement_net(xy)` | Delegates to [`bases.get_base_tip_dist`](sleap_roots/bases.py#L34) (Euclidean via `np.linalg.norm`). Pass `xy[0]` as base, `xy[-1]` as tip. | `0.0` (xy[0] == xy[-1] — natural, no special-case) | lengths |
-| `tracking_coverage(n_tracked, n_total)` | Trivial division — no existing utility. ~3 lines. | well-defined for `n_tracked >= 1` | ratios |
+| Trait | TraitDef `fn` | `input_traits` | Single-frame behavior | Units family |
+|---|---|---|---|---|
+| `tip_trajectory_length` | [`lengths.get_root_lengths`](sleap_roots/lengths.py#L56) (used directly — no wrapper) | `["track_xy"]` | `NaN` (existing function returns NaN on empty-segments via vacuous-truth NaN guard; we accept this as the codebase's NaN-as-undefined convention) | lengths |
+| `tip_displacement_net` | [`bases.get_base_tip_dist`](sleap_roots/bases.py#L34) (used directly — no wrapper) | `["track_first_xy", "track_last_xy"]` | `0.0` natural (xy[0] == xy[-1] for single-frame; no special-case) | lengths |
+| `tracking_coverage` | inline lambda `lambda nt, ntot: nt/ntot if ntot else np.nan` | `["n_frames_tracked", "n_frames_total"]` | well-defined for `n_tracked >= 1` | ratios |
 
-Single-frame tracks emit `length=0.0, displacement=0.0` — mathematically correct (no segments → no length); no NaN special-casing in the pipeline output. Downstream filtering on `n_frames_tracked == 1` is the user's option.
+Single-frame edge case asymmetry is **deliberate and documented**: `tip_displacement_net = 0.0` (geometric — same point twice), `tip_trajectory_length = NaN` (codebase convention — undefined). Users who want either filtered or coerced apply `fillna(0.0)` post-hoc; users who want only "real trajectories" filter on `n_frames_tracked > 1`. Both `tracking_coverage` and `n_frames_tracked` are emitted on every row, so single-frame degeneracy is explicit and filterable.
 
-**Implementation sketch** (~30 lines total — nearly all delegation):
+**DAG-A — TraitDef topology:**
+
+Pipeline uses the existing `TraitDef` graph plumbing (per `DicotPipeline` and friends). The input is the long-format `tracked_tips_df` (sorted by `(track_id, frame)`); the iteration unit is `track_id`, not `frame`. Pipeline iterates `for track_id, group in df.groupby('track_id'):` and runs the full DAG once per track.
+
+Concrete `TrackedTipPipeline.traits` list:
 
 ```python
 from sleap_roots.lengths import get_root_lengths
 from sleap_roots.bases import get_base_tip_dist
 
-def tip_trajectory_length(xy: np.ndarray) -> float:
-    if xy.shape[0] == 0: return np.nan
-    if xy.shape[0] == 1: return 0.0
-    return float(get_root_lengths(xy))
+traits = [
+    # Per-track inputs (computed in compute_tracked_tip_traits prep loop):
+    TraitDef(name="track_xy", ...),               # Nx2 frame-sorted trajectory
+    TraitDef(name="n_frames_tracked", ...),
+    TraitDef(name="n_frames_total", ...),
 
-def tip_displacement_net(xy: np.ndarray) -> float:
-    if xy.shape[0] == 0: return np.nan
-    return float(get_base_tip_dist(xy[0], xy[-1]))
+    # Per-track slicing (one-line lambdas; DAG provides per-track-frame
+    # endpoints so the existing distance function below plugs in unchanged):
+    TraitDef(name="track_first_xy",
+             fn=lambda xy: xy[0],
+             input_traits=["track_xy"], scalar=False),
+    TraitDef(name="track_last_xy",
+             fn=lambda xy: xy[-1],
+             input_traits=["track_xy"], scalar=False),
 
-def tracking_coverage(n_frames_tracked: int, n_frames_total: int) -> float:
-    if n_frames_total == 0: return np.nan
-    return n_frames_tracked / n_frames_total
+    # Trait scalars — existing trait functions used DIRECTLY via DAG composition:
+    TraitDef(name="tip_displacement_net",
+             fn=get_base_tip_dist,                # ← from bases.py, no wrapper
+             input_traits=["track_first_xy", "track_last_xy"],
+             scalar=True, include_in_csv=True),
+
+    TraitDef(name="tip_trajectory_length",
+             fn=get_root_lengths,                 # ← from lengths.py, no wrapper
+             input_traits=["track_xy"],
+             scalar=True, include_in_csv=True),
+
+    TraitDef(name="tracking_coverage",
+             fn=lambda nt, ntot: nt / ntot if ntot else np.nan,
+             input_traits=["n_frames_tracked", "n_frames_total"],
+             scalar=True, include_in_csv=True),
+]
 ```
 
-Existing functions in `lengths.py` / `bases.py` have full test coverage and known NaN semantics. The wrappers' tests just cover the tip-trajectory-specific edge cases (single-frame zeros, empty input).
-
-**DAG-A — TraitDef topology:**
-
-Pipeline uses the existing `TraitDef` graph plumbing (per `DicotPipeline` and friends), but the input is the long-format `tracked_tips_df` and the iteration unit is `track_id`, not `frame`:
+DAG topology:
 
 ```
-tracked_tips_df  (input from series.get_tracked_tips())
+tracked_tips_df (sorted by (track_id, frame))
         │
-        │ groupby(track_id) → track_xy (Nx2)
+        │ groupby(track_id)
         ▼
-        ├─→ tip_trajectory_length(track_xy)
-        ├─→ tip_displacement_net(track_xy)
-        ├─→ tracking_coverage(n_frames_tracked, n_frames_total)
-        ├─→ n_frames_tracked
-        └─→ n_frames_total
+        ├──> track_xy (Nx2 frame-sorted)
+        │       │
+        │       ├──> track_first_xy = xy[0]   ──┐
+        │       ├──> track_last_xy  = xy[-1]  ──┴──> tip_displacement_net
+        │       │                                    (= get_base_tip_dist)
+        │       │
+        │       └──> tip_trajectory_length
+        │            (= get_root_lengths)
+        │
+        ├──> n_frames_tracked  ──┐
+        └──> n_frames_total   ──┴──> tracking_coverage
+                                     (= nt / ntot)
                 │
                 ▼
         per-track summary row
@@ -185,7 +212,7 @@ tracked_tips_df  (input from series.get_tracked_tips())
 **Edge cases** (deliberate behavior, tested):
 
 - **Zero tracked instances anywhere** — pipeline emits empty `tracks` and `trajectories` arrays / empty CSVs, no crash.
-- **Single-frame track** — `length=0.0, displacement=0.0`, `n_frames_tracked=1`, `tracking_coverage > 0`, no NaN.
+- **Single-frame track** — `tip_displacement_net=0.0` (natural, xy[0]==xy[-1]), `tip_trajectory_length=NaN` (codebase convention from `get_root_lengths`'s NaN-on-empty-segments guard — accepted as the trade-off for using the existing function directly via DAG-A; no wrapper), `n_frames_tracked=1`, `tracking_coverage > 0`. Documented asymmetry; users `fillna(0.0)` or filter on `n_frames_tracked > 1`.
 - **Partial tracking (gaps)** — compute on available window; `tracking_coverage < 1.0`.
 - **Track-fragment / re-ID** — trust the tracker. If one physical tip becomes two `track_id`s in the source, two summary rows appear. **Documented assumption: input `.slp` is proofread.**
 - **Multiple root paths populated** — `ValueError` requesting explicit `root_type`.
@@ -365,8 +392,8 @@ Per-workstream fixture plan. PR #165 shipped synthetic-only with real fixtures d
 
 Synthetic coverage (primary test surface):
 
-- Pure trait functions in `sleap_roots/tip_kinematics.py` against known `(N, 2)` arrays — exact-value assertions on multi-segment trajectories, single-frame degenerate case (`length=0.0, displacement=0.0`), known geometric shapes (square, straight line).
-- `Series.get_tracked_tips` accessor on synthetic `.slp` files with `sio.Track` objects attached to `sio.Instance` via `from_numpy(..., track=...)` — exercises root-type auto-detection, multiple-paths-populated `ValueError`, untracked-instance `ValueError`, single-node and multi-node skeleton paths.
+- Existing trait functions (`lengths.get_root_lengths`, `bases.get_base_tip_dist`) already have full unit tests in the repo — no new pure-function tests needed for them. The new tests in this PR cover the **pipeline-level composition**: that the DAG correctly slices `track_first_xy` / `track_last_xy`, passes them to `get_base_tip_dist`, and routes `track_xy` to `get_root_lengths`. Exact-value assertions on multi-segment trajectories (e.g. straight line of known length, right-angle path with known total + known displacement), single-frame degenerate case (`tip_displacement_net=0.0`, `tip_trajectory_length=NaN`), and the inline `tracking_coverage` lambda's NaN-on-zero-total guard.
+- `Series.get_tracked_tips` accessor on synthetic `.slp` files with `sio.Track` objects attached to `sio.Instance` via `from_numpy(..., track=...)` — exercises root-type auto-detection, multiple-paths-populated `ValueError`, untracked-instance `ValueError`, single-node and multi-node skeleton paths, **frame-sorted output ordering** (regression-test the sort that `tip_displacement_net` correctness depends on).
 - Pipeline DAG, CSV/JSON emission, batch concat, `emit_trajectories=False` skip path, empty-input / single-frame / short-track edge cases — all via synthetic `.slp` files.
 
 Real-fixture coverage (committed in the PR):
