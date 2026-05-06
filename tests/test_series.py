@@ -221,6 +221,34 @@ def test_series_get_metadata_csv_path_set_but_file_missing(tmp_path):
     assert np.isnan(series.get_metadata("genotype"))
 
 
+def test_series_get_metadata_rejects_bool_plant_id(tmp_path):
+    """Booleans collide with int 0/1 in pandas equality — reject them upfront."""
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        "plant_qr_code,plant_id,genotype\nplant1,0,A\nplant1,1,B\n",
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    with pytest.raises(TypeError) as excinfo:
+        series.get_metadata("genotype", plant_id=False)
+    assert "bool" in str(excinfo.value).lower()
+    with pytest.raises(TypeError):
+        series.get_metadata("genotype", plant_id=True)
+
+
+def test_series_timepoint_rejects_infinity(tmp_path):
+    """Non-finite timepoints would silently produce nonsensical deltas — reject them."""
+    csv = _write_csv(
+        tmp_path / "m.csv",
+        "plant_qr_code,timepoint\nplant1,inf\n",
+    )
+    series = Series(series_name="plant1", csv_path=str(csv))
+    with pytest.raises(ValueError) as excinfo:
+        series.timepoint
+    msg = str(excinfo.value).lower()
+    assert "non-finite" in msg or "infinite" in msg or "inf" in msg
+    assert "plant1" in str(excinfo.value)
+
+
 def test_series_get_metadata_csv_missing_plant_qr_code_column(tmp_path, caplog):
     """CSV without `plant_qr_code` lookup-key column → NaN + WARNING (no KeyError).
 

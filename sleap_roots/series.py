@@ -2,6 +2,7 @@
 
 import attrs
 import logging
+import math
 import numpy as np
 import sleap_io as sio
 import matplotlib
@@ -217,6 +218,17 @@ class Series:
             `plant_qr_code` lookup-key column is missing (with WARNING logged),
             or no row matches.
         """
+        # Reject bool-typed plant_id — Python booleans are ints (False == 0,
+        # True == 1) and pandas equality matches them against integer plant_id
+        # columns. A caller passing plant_id=False (e.g. from a CLI arg parser
+        # or a `flag or False` ternary) would silently fetch the row for
+        # plant_id=0. Fail loudly instead of producing wrong rows.
+        if isinstance(plant_id, bool):
+            raise TypeError(
+                f"Series.get_metadata: plant_id must be int or None, not "
+                f"bool ({plant_id!r}). Booleans match int 0/1 in pandas "
+                f"equality and would silently fetch the wrong row."
+            )
         if not self.csv_path or not Path(self.csv_path).exists():
             return np.nan
         df = pd.read_csv(self.csv_path)
@@ -294,20 +306,27 @@ class Series:
 
         Returns `np.nan` when the CSV is absent, the `timepoint` column is missing,
         or no row matches `sample_uid`. Raises `ValueError` when a matching row
-        contains a non-numeric string value (e.g. a date) — failing loudly at the
-        metadata layer beats silently producing wrong results in downstream
-        timepoint arithmetic.
+        contains a non-numeric string value (e.g. a date) OR a non-finite value
+        (`inf`, `-inf`) — failing loudly at the metadata layer beats silently
+        producing nonsensical results in downstream timepoint arithmetic.
         """
         value = self.get_metadata("timepoint")
         if pd.isna(value):
             return np.nan
         try:
-            return float(value)
+            result = float(value)
         except (TypeError, ValueError) as exc:
             raise ValueError(
                 f"Series '{self.series_name}': could not coerce 'timepoint' "
                 f"value {value!r} to float ({exc})."
             ) from exc
+        if not math.isfinite(result):
+            raise ValueError(
+                f"Series '{self.series_name}': non-finite 'timepoint' value "
+                f"{value!r}. Timepoints must be finite floats; downstream "
+                f"arithmetic on inf would silently produce nonsensical deltas."
+            )
+        return result
 
     def __len__(self) -> int:
         """Length of the series (number of images)."""

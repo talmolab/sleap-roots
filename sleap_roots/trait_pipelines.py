@@ -3106,11 +3106,30 @@ class MultipleDicotPlatePipeline(Pipeline):
             change adds `sample_uid`/`timepoint` at columns 1 and 2); they
             will silently misread. Migrate positional readers to name-based
             indexing (`df["primary_length"]` instead of `df.iloc[:, 6]`).
+
+        Logging:
+            Emits at most one WARNING per call to logger
+            `sleap_roots.trait_pipelines` when `units["time"] == "unspecified"`
+            AND `series.timepoint` is non-NaN — surfaces the missing-unit
+            hazard so downstream consumers don't silently mix days/seconds.
+            The warning fires regardless of `len(series)` (including empty
+            series with non-NaN CSV-derived timepoint), so a config issue is
+            visible even when no plant rows are produced.
+            Removed once #177 (time_unit population) lands.
         """
         # Resolve sample_uid + timepoint ONCE per series call (perf contract).
-        # Per-plant rows must NOT re-read from `series` inside the frame loop;
+        # Per-plant rows MUST NOT re-read from `series` inside the frame loop;
         # at plate-timelapse scale (10 series × 100 frames × 6 plants) this
         # would trigger 6000 redundant CSV reads.
+        #
+        # Scope note: this contract applies to sample_uid + timepoint ONLY.
+        # The other CSV-backed properties (group, qc_fail, expected_count)
+        # are still read at result-dict construction below — each triggers
+        # one pd.read_csv per series. A full lazy-cache fix is tracked by
+        # #176; this PR partially mitigates by hoisting expected_count_raw
+        # from result["expected_count"] (saves one redundant read per series)
+        # but still pays for `series.group`, `series.qc_fail`, and the
+        # per-frame `expected_count` read in `get_initial_frame_traits`.
         sample_uid_resolved = str(series.sample_uid)
         timepoint_resolved = series.timepoint
 
@@ -3155,7 +3174,10 @@ class MultipleDicotPlatePipeline(Pipeline):
         # per plant row (Copilot review feedback on PR #165).
         dicot_pipeline = DicotPipeline()
         warned_frames: set = set()
-        expected_count_raw = series.expected_count
+        # Reuse the value already resolved into the result dict above to avoid
+        # a second pd.read_csv on the same file. The full CSV-read-per-property
+        # pattern (group, qc_fail, expected_count) is tracked by #176.
+        expected_count_raw = result["expected_count"]
 
         for frame_idx in range(len(series)):
             initial = self.get_initial_frame_traits(series, frame_idx)
