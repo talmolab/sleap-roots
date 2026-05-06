@@ -1,9 +1,9 @@
 # Design: Timelapse diffs, tracked-tip kinematics, and metadata generalization
 
-**Date**: 2026-04-23
-**Related issues**: #112 (close as obsolete), #129 (refresh), #163 (broaden), #159 (related), #169 (Workstream 1 metadata layer — implemented in PR #171), #170 (Workstream 3 TimeDiffPipeline)
-**Depends on**: PR #165 (MultipleDicotPlatePipeline) — merged 2026-04-21
-**Status**: Brainstorm complete, spec drafted. Circumnutation trait set deferred to a follow-up design once the maintainer has assembled a literature reference for method selection.
+**Date**: 2026-04-23 (updated 2026-05-06 — Workstream 2 brainstorm complete)
+**Related issues**: #112 (close as obsolete), #129 (refresh), #163 (broaden), #159 (related), #169 (Workstream 1 metadata layer — implemented in PR #171), #170 (Workstream 3 TimeDiffPipeline), #186 (per-frame metadata accessor — Workstream 2 follow-up), #187 (preprocessing helpers — Workstream 2 follow-up), #188 (generic META→CSV converter — Workstream 2 follow-up), #189 (split `trait_pipelines.py` megafile — triggered by #129)
+**Depends on**: PR #165 (MultipleDicotPlatePipeline) — merged 2026-04-21; PR #171 (Workstream 1 metadata layer) — merged 2026-05-06
+**Status**: Workstream 1 shipped (PR #171). Workstream 2 brainstorm complete (2026-05-06); ready for OpenSpec proposal + TDD implementation. Circumnutation trait set deferred to a follow-up design once the maintainer has assembled a literature reference for method selection.
 
 ## Summary
 
@@ -47,53 +47,129 @@ Small extension of the existing metadata pattern (`Series.expected_count`, `.gro
 
 ### Workstream 2 — `TrackedTipPipeline` (refresh of #129)
 
-Root-agnostic pipeline consuming a **tracked** `.slp` file. Emits per-track tip trajectories + per-track growth-kinematic scalars. Scope matches the original #129 (kinematics only). Circumnutation-specific traits (period, amplitude, angular velocity, rotation direction, etc.) are deferred to a separate follow-up that will be designed against published literature — see "Deferred: circumnutation trait set" below.
+Root-agnostic pipeline consuming a **tracked** `.slp` file. Emits per-track tip trajectories + a **minimum-viable substrate** of per-track geometric scalars. **TrackedTipPipeline's scope is the substrate, period.** Velocity, curvature, smoothness, tortuosity, direction-changes, circumnutation traits — none of these belong in TrackedTipPipeline now or in the future. They live in **separate downstream pipelines** (e.g. `CircumnutationPipeline`, future growth-rate / gravitropism pipelines) that REUSE this pipeline's `Series.get_tracked_tips` accessor and trajectory-row output as their input substrate. Keeping TrackedTipPipeline minimal makes it reusable across many downstream pipelines without coupling to any single analysis's opinions.
+
+**Why minimum-viable substrate, not full kinematics:** every downstream tip-aware pipeline needs (a) the raw `(t, x, y)` per track and (b) track-existence metadata (`tracking_coverage`) for filtering. Beyond those two, this pipeline emits only the unambiguous geometric scalars (`tip_trajectory_length`, `tip_displacement_net`) that have no detrending opinion. Derivative-based scalars (velocity, curvature) force a `frame_rate` decision and a "raw vs detrended" decision — those decisions belong in the downstream pipeline that owns the analysis (e.g. circumnutation analyses redefine velocity post-detrending). The substrate stays opinion-free so it serves every downstream consumer equally well.
+
+**Module placement:**
+
+- `sleap_roots/tracked_tip_pipeline.py` (NEW FILE) — `TrackedTipPipeline` class. Starts the per-pipeline-module pattern. Existing `trait_pipelines.py` megafile (3763 lines, 8 pipelines) split tracked in #189.
+- `sleap_roots/tip_kinematics.py` (NEW FILE) — pure trait functions parallel to `sleap_roots/lengths.py` and `sleap_roots/angle.py`.
+- `sleap_roots/series.py` (EXTEND) — new `Series.get_tracked_tips(root_type=None)` method + module-level validation helpers (`validate_tracked_slp`, `validate_series_for_tracked_tip`).
 
 **Inputs:**
 
-- `Series` with ONE of `primary_path` / `lateral_path` / `crown_path` populated. Pipeline is root-agnostic — works on whichever root type the SLEAP model tracked.
-- Predictions in the `.slp` MUST carry SLEAP track identities (`instance.track is not None`). Pipeline raises `ValueError("TrackedTipPipeline requires tracked .slp predictions; see sleap.ai/tracking")` if any instance lacks a track.
+- `Series` with ONE of `primary_path` / `lateral_path` / `crown_path` populated. Pipeline is root-agnostic — works on whichever root type the SLEAP model tracked. If multiple paths are populated, caller must specify `root_type` explicitly; otherwise `ValueError`.
+- Predictions in the `.slp` MUST carry SLEAP track identities (`instance.track is not None` for every instance). Pipeline raises `ValueError("TrackedTipPipeline requires tracked .slp predictions; see sleap.ai/tracking")` on the first untracked instance.
+- Optional CSV metadata via `Series.load(csv_path=...)` — when present, `sample_uid` and `timepoint` are emitted in output rows. (`sample_uid` defaults to `series.series_name` per Workstream 1; `timepoint` is `np.nan` when no CSV.)
+- **Single-node and multi-node skeletons both supported.** Tip is the LAST node by skeleton convention (`pts[-1]`), already used by `sleap_roots.tips.get_tips`. Verified on a single-node circumnutation skeleton (`['r0']`) — the `[:, -1, :]` slice degenerates to `[:, 0, :]`, which IS the only point. A future user training a multi-node tip skeleton (e.g. `[base, midpoint, tip]`) gets correct extraction for free.
 
 **Output (two tables, emitted together):**
 
 1. **Trajectory rows** (per-track-per-frame, raw positions):
    ```
-   series, sample_uid, track_id, frame, timepoint, tip_x, tip_y
+   series, sample_uid, timepoint, track_id, frame, tip_x, tip_y
    ```
-   One row per `(track_id, frame)`. Self-contained tip-position timeline suitable as input to downstream circumnutation analysis once that workstream lands.
+   One row per `(track_id, frame)`. Self-contained tip-position timeline suitable as input to downstream circumnutation analysis once that workstream lands. `frame` is the integer frame index in the .slp; real-time per-frame is **deferred to #186** (companion CSV via `Series.get_per_frame_metadata`). `timepoint` here is the per-series scalar (constant within a series), enabling uniform `TimeDiffPipeline` (Workstream 3) consumption across both tables.
 
-2. **Track summary rows** (per-track, growth-kinematic scalars):
+2. **Track summary rows** (per-track scalars — substrate only):
    ```
-   series, sample_uid, track_id, n_frames_tracked, n_frames_total, tracking_coverage,
-   tip_trajectory_length, tip_displacement_net, tip_velocity_mean, tip_velocity_max,
-   tip_curvature_mean, tip_curvature_max
+   series, sample_uid, timepoint, track_id, n_frames_tracked, n_frames_total,
+   tracking_coverage, tip_trajectory_length, tip_displacement_net
    ```
-   One row per `track_id`. Summary scalars over the whole trajectory.
+   One row per `track_id`. Substrate scalars only; **no derivative-based metrics in v1**.
 
-Both tables emit in one call. CSV/JSON contract inherits from the plate pipeline: `schema_version` (`2` after Workstream 1 ships — bumped from `1` because Workstream 1 inserts `sample_uid` + `timepoint` columns at positions 1 and 2, shifting every other column; non-additive change), structured `units` dict (now including `units["time"]` — initially `"unspecified"` until a `time_unit` plumbing path lands), NaN→null JSON via `_json_sanitize`.
+Both tables emit in one call. Output written to:
 
-**Tip-kinematics trait module** (`sleap_roots/tip_kinematics.py`, new):
+- **Per-series**: `<series>.tracked_tip_traits.csv` (summary), `<series>.tracked_tip_trajectories.csv` (trajectory), `<series>.tracked_tip_traits.json` (both tables under `{tracks: [...], trajectories: [...]}` plus top-level scalars).
+- **Batch** (`compute_batch_tracked_tip_traits(all_series)`): `tracked_tip_batch_traits.csv` (concatenated summary), `tracked_tip_batch_trajectories.csv` (concatenated trajectory), `tracked_tip_batch_traits.json` (list of per-series dicts). Mirrors PR #165's `compute_batch_plate_traits` pattern (`pd.concat` of per-series DataFrames; per-series result-dict list for JSON).
 
-Pure functions operating on `(t, x, y)` arrays, parallel to `sleap_roots/angle.py` and `sleap_roots/lengths.py`. The pipeline calls these in its TraitDef DAG.
+`emit_trajectories: bool = True` kwarg on both methods — when `False`, skip writing the trajectory CSV and omit the `trajectories` array from JSON. Lets users running large batches skip the bulky table when only summary scalars are needed. At realistic experiment scale this is rarely needed (4 plates × 6 tracks × 311 frames ≈ 7,500 rows, ~750 KB concatenated trajectory CSV — fine), but the kwarg costs nothing.
 
-Trait definitions (all per-track):
+**CSV/JSON contract:**
 
-| Trait | Definition | Units family |
-|---|---|---|
-| `tip_trajectory_length` | Cumulative arclength of raw `(x, y)` | lengths |
-| `tip_displacement_net` | Euclidean distance first → last point | lengths |
-| `tip_velocity_mean` | Mean `dt`-normalized step length | lengths / time |
-| `tip_velocity_max` | Max step length / `dt` | lengths / time |
-| `tip_curvature_mean` | Mean `abs(dθ/ds)` along trajectory | inverse_lengths |
-| `tip_curvature_max` | Max `abs(dθ/ds)` | inverse_lengths |
-| `tracking_coverage` | `n_frames_tracked / n_frames_total` | ratios (dimensionless) |
+- `schema_version: 1` at top-level JSON (fresh pipeline, starts at 1).
+- Structured `units` dict — `lengths: "pixels"`, `ratios: "dimensionless"`, `counts: "dimensionless"`, `time: "unspecified"` (Workstream 1's convention; future `time_unit` plumbing upgrades in place).
+- NaN → JSON `null` via `_json_sanitize` (existing helper from PR #165).
+- Top-level scalars (`series`, `sample_uid`, `timepoint`) in JSON do NOT repeat inside `tracks` / `trajectories` rows; CSV does repeat them on every row (PR #165's CSV/JSON asymmetry preserved).
+
+**`Series.get_tracked_tips(root_type=None)` (NEW ACCESSOR):**
+
+Returns a long-format `pd.DataFrame` with columns `track_id, frame, tip_x, tip_y`. One row per `(track_id, frame)` where the track has an instance.
+
+- Auto-detects `root_type` from whichever of `primary_path` / `lateral_path` / `crown_path` is populated; raises `ValueError` if zero or >1 are populated and `root_type` is `None`.
+- **Iterates per-instance, NOT per-frame-stack** — tracker output does NOT preserve positional ordering across frames. Verified on the fixture: frame 0 instances are ordered `[track_0, 1, 2, 3, 4, 5]` but frame 1 is `[track_0, 3, 4, 2, 1, 5]`. Implementation reads `inst.track.name` per instance and `inst.numpy()[-1]` for the tip coordinate.
+- Untracked instances (`inst.track is None` or `inst.track.name` falsy) trip `ValueError` with the sleap.ai/tracking pointer.
+
+**Tip-kinematics trait functions** (`sleap_roots/tip_kinematics.py`, NEW MODULE):
+
+Pure functions on `(N, 2)` xy arrays. The pipeline calls these in its `TraitDef` DAG.
+
+| Function | Definition | Single-frame behavior | Units family |
+|---|---|---|---|
+| `tip_trajectory_length(xy)` | Cumulative arclength: `sum(np.linalg.norm(np.diff(xy, axis=0), axis=1))` | `0.0` (no segments) | lengths |
+| `tip_displacement_net(xy)` | First → last Euclidean: `np.linalg.norm(xy[-1] - xy[0])` | `0.0` (xy[0] == xy[-1]) | lengths |
+| `tracking_coverage(n_tracked, n_total)` | `n_tracked / n_total` | well-defined for `n_tracked >= 1` | ratios |
+
+Single-frame tracks emit `length=0.0, displacement=0.0` — mathematically correct (no segments → no length); no NaN special-casing. Downstream filtering on `n_frames_tracked == 1` is the user's option.
+
+**DAG-A — TraitDef topology:**
+
+Pipeline uses the existing `TraitDef` graph plumbing (per `DicotPipeline` and friends), but the input is the long-format `tracked_tips_df` and the iteration unit is `track_id`, not `frame`:
+
+```
+tracked_tips_df  (input from series.get_tracked_tips())
+        │
+        │ groupby(track_id) → track_xy (Nx2)
+        ▼
+        ├─→ tip_trajectory_length(track_xy)
+        ├─→ tip_displacement_net(track_xy)
+        ├─→ tracking_coverage(n_frames_tracked, n_frames_total)
+        ├─→ n_frames_tracked
+        └─→ n_frames_total
+                │
+                ▼
+        per-track summary row
+```
+
+**Circumnutation and other downstream pipelines REUSE this substrate; they DO NOT extend `TrackedTipPipeline`.** A future `CircumnutationPipeline` is a separate class that consumes `series.get_tracked_tips(...)` (or this pipeline's trajectory CSV / JSON output) as its input substrate, runs its own `TraitDef` DAG with circumnutation-specific nodes, and emits its own per-track summary table. Conceptually:
+
+```
+                                    ┌──────────────────────────────────┐
+                                    │  Series.get_tracked_tips(...)    │
+                                    │  + TrackedTipPipeline trajectory │
+                                    │     CSV / JSON                   │
+                                    │  (THIS PR — frozen substrate)    │
+                                    └────────────────┬─────────────────┘
+                                                     │ reused as input
+                       ┌─────────────────────────────┼──────────────────────────────┐
+                       ▼                             ▼                              ▼
+              ┌──────────────────┐        ┌────────────────────┐         ┌──────────────────┐
+              │ CircumnutationPipe│        │ (future) GrowthRate│         │ (future) Gravi-  │
+              │ (NEXT PR — own   │        │ Pipeline           │         │ tropismPipeline  │
+              │  TraitDef DAG)    │        │ (own DAG, own CSV) │         │ (own DAG, own CSV)│
+              │  Period/amplitude/│        │ Velocity/accel etc.│         │ Angle vs gravity │
+              │  rotation etc.    │        │                    │         │                  │
+              └──────────────────┘        └────────────────────┘         └──────────────────┘
+```
+
+`TrackedTipPipeline`'s 5 substrate scalars stay frozen forever. New downstream pipelines come into existence as siblings, not as extensions of this one.
+
+**Validation helpers** (in scope for #129):
+
+- `sleap_roots.series.validate_tracked_slp(slp_path) -> None` — opens the .slp, asserts every instance has `inst.track is not None` AND `inst.track.name` is non-empty, raises `ValueError` listing offending frame indices if not. Module-level, paired with existing `find_all_slp_paths`.
+- `sleap_roots.series.validate_series_for_tracked_tip(series, root_type=None) -> None` — composite check: validates the relevant `<root_type>_path`, asserts skeleton has ≥1 node, calls `validate_tracked_slp`. Raises with actionable messages.
 
 **Edge cases** (deliberate behavior, tested):
 
-- Short tracks (`n_frames_tracked < 3`) — velocity / curvature scalars = NaN, no crash.
-- Single-frame track — NaN everywhere except `sample_uid` + `track_id` + `tracking_coverage`.
-- Partial tracking (gaps in frames) — compute on available window; `tracking_coverage < 1.0`.
-- Uneven frame spacing — use `timepoint` if column present, else `frame_rate` kwarg, else assume 1 unit per frame and document.
+- **Zero tracked instances anywhere** — pipeline emits empty `tracks` and `trajectories` arrays / empty CSVs, no crash.
+- **Single-frame track** — `length=0.0, displacement=0.0`, `n_frames_tracked=1`, `tracking_coverage > 0`, no NaN.
+- **Partial tracking (gaps)** — compute on available window; `tracking_coverage < 1.0`.
+- **Track-fragment / re-ID** — trust the tracker. If one physical tip becomes two `track_id`s in the source, two summary rows appear. **Documented assumption: input `.slp` is proofread.**
+- **Multiple root paths populated** — `ValueError` requesting explicit `root_type`.
+- **`track.name` is `None` or empty string** — treated as untracked; trips the "requires tracked .slp" `ValueError`.
+- **Single-node skeleton** (only the tip node) — supported via the `pts[-1]` convention; verified on the circumnutation fixture (`r0`-only skeleton).
+- **Multi-node skeleton** (e.g. `[base, midpoint, tip]`) — supported via the same `pts[-1]` convention.
 
 ### Deferred: circumnutation trait set
 
@@ -104,7 +180,7 @@ Circumnutation-specific traits (period, amplitude, angular velocity, rotation di
 - Is "amplitude" defined as radial distance from detrended mean, half peak-to-peak, or RMS of residuals?
 - How to define rotation direction when trajectory is noisy / partially tracked?
 
-The TrackedTipPipeline's trajectory-row output is the natural input to those analyses. When the circumnutation design lands, it can either be added as additional traits to TrackedTipPipeline (same pipeline, expanded trait set) or as a new trait module consumed by users who call `TrackedTipPipeline.compute_...` themselves. That decision is deferred with the rest of circumnutation.
+The TrackedTipPipeline's trajectory-row output (and `Series.get_tracked_tips` accessor) is the input substrate for those analyses. **The circumnutation trait set lives in a separate `CircumnutationPipeline` class** — it does NOT extend `TrackedTipPipeline`. Keeping `TrackedTipPipeline` minimal and opinion-free is what makes it reusable across multiple downstream pipelines (circumnutation today; growth-rate, gravitropism, and other tip-aware analyses tomorrow).
 
 ### Workstream 3 — `TimeDiffPipeline` (new)
 
@@ -186,11 +262,15 @@ Estimated size: ~150 lines including tests.
 | Issue | Action | Summary |
 |---|---|---|
 | #112 | Close as obsolete | Plate pipeline's frame loop + `TimeDiffPipeline` cover this scope. |
-| #129 | Refresh | Keep tip-kinematics scope (trajectory + velocity + curvature). Root-agnostic. Requires tracked `.slp`. Align output shape with the PR #165 contract (schema_version, structured units, `_json_sanitize`). |
+| #129 | Refresh (now scoped to **substrate**, not full kinematics) | Trajectory rows + 5 substrate scalars (`tip_trajectory_length`, `tip_displacement_net`, `tracking_coverage`, `n_frames_tracked`, `n_frames_total`). Root-agnostic. Requires tracked `.slp`. **Scope frozen** — velocity / curvature / circumnutation traits do NOT belong in this pipeline; they live in separate downstream pipeline classes that REUSE the substrate. Output contract aligns with PR #165 (`schema_version=1`, structured units, `_json_sanitize`). |
 | #159 | Keep (related) | Multi-plant cylinder per-plant diffs blocked on this. |
-| #163 | Broaden | Add `sample_uid` column convention (fallback to `plant_qr_code`); add `timepoint` column convention. |
-| NEW | File | `TimeDiffPipeline` wrapper class. |
-| NEW | File | `sample_uid` + `timepoint` metadata layer + `Series.get_metadata()` generalized accessor + `sleap_roots/metadata.py` CSV builder helpers. |
+| #163 | Broaden | Add `sample_uid` column convention (fallback to `plant_qr_code`); add `timepoint` column convention; rename legacy `plant_qr_code` column. |
+| #169 | Implemented (PR #171) | Workstream 1 metadata layer shipped 2026-05-06. |
+| #170 | Keep (Workstream 3) | `TimeDiffPipeline` wrapper class. |
+| #186 | Filed 2026-05-06 (Workstream 2 follow-up) | Per-frame metadata accessor on `Series` (`get_per_frame_metadata`, companion CSV). Required for any pipeline that needs real-time-per-frame; not blocking #129 (substrate uses integer `frame` only). |
+| #187 | Filed 2026-05-06 (Workstream 2 follow-up) | Preprocessing helpers: image folder → `.h5` + per-frame metadata CSV. Captures the upstream of the data-prep workflow. |
+| #188 | Filed 2026-05-06 (Workstream 2 follow-up) | Generic source-META → sleap-roots-CSV converter (`convert_meta_to_qr_csv`). Captures the experiment-metadata side. |
+| #189 | Filed 2026-05-06 (triggered by #129) | Refactor: split `trait_pipelines.py` (3763 lines, 8 pipelines) into per-pipeline modules. #129 starts the per-pipeline-file pattern by living in `sleap_roots/tracked_tip_pipeline.py`. |
 | NEW (deferred) | File once literature is assembled | Circumnutation trait set (period, amplitude, angular velocity, rotation direction, etc.) — depends on Workstream 2 shipping first so the trajectory-row output exists. |
 
 ## Identity table (reference)
@@ -209,6 +289,11 @@ Decision-cheatsheet for users choosing `identity_cols` and `time_col`:
 
 ## Out of scope (deferred)
 
+- **Velocity / curvature / smoothness / tortuosity / direction-changes traits** — these are NEVER added to `TrackedTipPipeline`. They live in separate downstream pipeline classes (e.g. a future `CircumnutationPipeline`, `GrowthRatePipeline`, etc.) that REUSE this pipeline's `Series.get_tracked_tips` accessor and trajectory output as their input substrate. `TrackedTipPipeline`'s scope is frozen at the substrate so it remains opinion-free and reusable across many downstream pipelines.
+- **Per-frame real-time timestamps** in `TrackedTipPipeline` output — deferred to **#186** (per-frame metadata accessor on `Series`). Substrate uses integer `frame` column only.
+- **Image folder → `.h5` + per-frame metadata CSV preprocessing** — deferred to **#187**. Captures the upstream of the data-prep workflow (raw imaging output → sleap-roots-readable inputs).
+- **Generic source-META → sleap-roots-CSV conversion helpers** — deferred to **#188**. Captures the experiment-metadata side of the data-prep workflow.
+- **Splitting `trait_pipelines.py` into per-pipeline modules** — deferred to **#189**. `TrackedTipPipeline` lands in its own new file (`sleap_roots/tracked_tip_pipeline.py`), starting the pattern.
 - **Circumnutation trait set** (period, amplitude, angular velocity, rotation direction, n_nutation_cycles, detrending method) — deferred to a separate design once the maintainer has assembled a literature reference. Workstream 2's trajectory-row output is the natural input.
 - **Spatial matching of plant IDs across scans** — D3 in the brainstorm. Fragile; file follow-up only if user demand materializes.
 - **Date-string parsing into numeric timepoints** (`"2024-03-15"` → day number) — too domain-specific. User responsibility.
@@ -234,8 +319,8 @@ Same discipline as PR #165 — synthetic `.slp` round-trip for integration tests
 
 Each workstream gets its own OpenSpec change:
 
-- `change-id: add-sample-uid-timepoint-metadata` (Workstream 1)
-- `change-id: add-tracked-tip-pipeline` (Workstream 2 — kinematics only; no circumnutation)
+- `change-id: add-sample-uid-timepoint-metadata` (Workstream 1 — shipped via PR #171, archived 2026-05-06)
+- `change-id: add-tracked-tip-pipeline` (Workstream 2 — substrate scope: trajectory + 5 per-track scalars; no velocity / curvature / circumnutation)
 - `change-id: add-time-diff-pipeline` (Workstream 3)
 
 When the circumnutation literature is assembled, a fourth change (`add-circumnutation-traits` or similar) picks up that scope on top of Workstream 2's trajectory-row output.
@@ -258,18 +343,28 @@ Per-workstream fixture plan. PR #165 shipped synthetic-only with real fixtures d
 
 Synthetic coverage (primary test surface):
 
-- Pure trait functions in `sleap_roots/tip_kinematics.py` against known `(t, x, y)` arrays.
-- Pipeline DAG, CSV/JSON emission, empty-input / single-frame / short-track edge cases via synthetic `.slp` files with `sio.Track` objects attached to `sio.Instance` via `from_numpy(..., track=...)`.
+- Pure trait functions in `sleap_roots/tip_kinematics.py` against known `(N, 2)` arrays — exact-value assertions on multi-segment trajectories, single-frame degenerate case (`length=0.0, displacement=0.0`), known geometric shapes (square, straight line).
+- `Series.get_tracked_tips` accessor on synthetic `.slp` files with `sio.Track` objects attached to `sio.Instance` via `from_numpy(..., track=...)` — exercises root-type auto-detection, multiple-paths-populated `ValueError`, untracked-instance `ValueError`, single-node and multi-node skeleton paths.
+- Pipeline DAG, CSV/JSON emission, batch concat, `emit_trajectories=False` skip path, empty-input / single-frame / short-track edge cases — all via synthetic `.slp` files.
 
-Real-fixture coverage (added before PR merge):
+Real-fixture coverage (committed in the PR):
 
-- Source: `Z:\users\eberrigan\circumnutation` — plate timelapse with tracked tips.
-- Copy ONE small subset into `tests/data/circumnutation_plate/` (target: single plant, ≤30 frames, compressed). Commit via Git LFS.
-- **Fixture README required**: `tests/data/circumnutation_plate/README.md` following the standard template from issue #168 (purpose, imaging geometry, acquisition context, contents, known limitations, related issues). The new fixture lands with documentation from day one so Workstream 2's PR does not add to the existing test-data documentation debt.
-- One integration test: `Series.load` on the real `.slp` → `TrackedTipPipeline.compute_...` → assert every trait column is present, `tracking_coverage ∈ [0, 1]`, trajectory row count equals tracked-instance count. No exact trait value assertions (those belong in synthetic tests where the geometry is controlled).
-- Purpose: catch sleap-io track-representation drift, real tracker-output edge cases (births, deaths, gaps, re-IDs), ensure the sleap-io loading path works on real tracked predictions.
+- **Source**: `Z:\users\eberrigan\circumnutation\20250819_Suyash_Patil_CMTN_Kitx_vs_Hk1-3_07-30-25\run_20250827_091833\plate_001_greyscale.tracked.slp` (verified 2026-05-06) — 311 frames, 6 tracks, single-node skeleton (`['r0']`), HDF5 video backend.
+- **Fixture file**: `tests/data/circumnutation_plate/plate_001_greyscale.tracked.slp` — **184 KB**. Take the WHOLE 311-frame plate as-is (no subsetting needed; size is comfortably under git-LFS thresholds). Commit via Git LFS.
+- **Fixture metadata CSV**: `tests/data/circumnutation_plate/fixture_metadata.csv` — synthesized BY HAND (one-time, NOT a script) from `CMTN_KITXvsHK1-3_META.csv`'s plate-1 row. Schema follows the existing `plant_qr_code`-keyed convention (legacy column name; rename tracked in #163):
+  ```
+  plant_qr_code,genotype,treatment,number_of_plants_cylinder,timepoint
+  plate_001,KitaakeX,MOCK,6,0
+  ```
+  README documents the column-name caveat (`plant_qr_code` value `"plate_001"` is a plate identifier, not a plant identifier; `number_of_plants_cylinder` is a misnomer here — no cylinder).
+- **Per-frame metadata** (`plate_001_metadata.csv` from the source) is **deliberately NOT shipped** — consumed only after #186 lands. README points to #186 as the path forward for real-time-per-frame consumption.
+- **Fixture README required**: `tests/data/circumnutation_plate/README.md` following the standard template from issue #168 (purpose, imaging geometry, acquisition context, contents, known limitations, related issues, conversion provenance). The new fixture lands with documentation from day one so Workstream 2's PR does not add to the existing test-data documentation debt.
+- **Integration tests** (two paths exercise both CSV-plumbing and no-CSV branches):
+  1. `Series.load(primary_path=..., csv_path=fixture_metadata.csv, sample_uid="plate_001")` → `TrackedTipPipeline.compute_tracked_tip_traits(series)` → assert: every output column present, `tracking_coverage ∈ [0, 1]` for every track, summary row count equals 6 (tracks), trajectory row count equals total tracked instances (311 frames × 6 tracks where every frame has 6 tracked instances → 1866 rows). No exact trait-value assertions (those belong in synthetic tests).
+  2. `Series.load(primary_path=...)` (NO `csv_path`) → same pipeline call → assert `sample_uid` defaults to `series_name`, `timepoint` is NaN, all other columns identical to (1).
+- **Purpose**: catch sleap-io track-representation drift, real tracker-output edge cases (track-order non-determinism across frames — verified during brainstorm), ensure single-node skeleton path works on real tracked predictions.
 
-**Gate on PR merge**: either the real fixture lands with the PR OR a follow-up issue is filed before the PR is marked ready for review (same discipline as PR #165's #162). Given the source data is available today, the intent is to ship it in the PR.
+**Gate on PR merge**: real fixture lands WITH the PR (source data is available; size is small). No follow-up deferral.
 
 ### Workstream 3 — `TimeDiffPipeline`
 
@@ -297,4 +392,6 @@ The source folders under `Z:\users\eberrigan\` are the maintainer's working copi
 | `TimeDiffPipeline` diverges from inner pipeline method signatures | Delegate via `getattr(inner, method)(*args, **kwargs)` and let Python's arg-binding enforce compatibility. Test against each supported inner pipeline. |
 | SLEAP tracking is expensive / not commonly enabled | Document sleap tracking workflow in `TrackedTipPipeline`'s docstring; raise with a link to sleap docs on untracked input. |
 | Users have existing `plant_qr_code`-based workflows that expect per-scan rows to have unique values | No change for them — the kwarg default is `series_name`, which already produces unique per-scan rows. |
-| TrackedTipPipeline output shape might need to change when circumnutation lands | Output spec for Workstream 2 is deliberately minimal and extensible — adding circumnutation scalars as new per-track columns is additive and bumps `schema_version` only if removal/rename is needed. |
+| Users expect velocity / curvature / kinematic scalars in `TrackedTipPipeline` from the original #129 scope | Document explicitly in the pipeline docstring + README that `TrackedTipPipeline` is the minimum-viable substrate, scope frozen. Velocity / curvature etc. live in separate downstream pipelines (e.g. future `CircumnutationPipeline`) — never added to `TrackedTipPipeline`. The trajectory-row output + `Series.get_tracked_tips` accessor are the input substrate for those analyses. |
+| Track-order non-determinism across frames could be assumed away accidentally during refactors | `Series.get_tracked_tips` iterates per-instance and reads `inst.track.name` per instance — never relies on positional ordering. Documented in the accessor's docstring with the verified example from the fixture brainstorm (frame 0: `[0,1,2,3,4,5]`; frame 1: `[0,3,4,2,1,5]`). Test asserts that two adjacent frames with shuffled positional order still produce identically-keyed track rows. |
+| Single-node skeleton support breaks if the `[-1]` convention is changed | `[-1]` slice is the established convention in `sleap_roots.tips.get_tips`. Test asserts the accessor works on both single-node (`['r0']`) and multi-node skeletons. |
