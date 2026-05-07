@@ -870,16 +870,28 @@ def test_get_tracked_tips_sorted_by_track_then_frame(tmp_path):
 
 
 def test_get_tracked_tips_auto_detects_root_type_from_populated_path(tmp_path):
-    """§2.4: only primary_path populated → no root_type kwarg needed."""
+    """§2.4: only primary_path populated → no root_type kwarg needed.
+
+    Strengthened per /review-pr feedback: assert specific xy values to
+    verify the impl actually read the primary path. The previous version
+    only checked `len(df) == 2`, which would also pass if the impl
+    accidentally read a different (empty) path.
+    """
     series = _build_tracked_slp(
         tmp_path,
         "s",
         n_frames=2,
-        track_positions={"t": [(0.0, 0.0), (1.0, 1.0)]},
+        track_positions={"t": [(7.5, 8.5), (9.5, 10.5)]},
         root_type="primary",
     )
     df = series.get_tracked_tips()  # no root_type kwarg
     assert len(df) == 2
+    # Verify the values came from the primary path, not silently from
+    # somewhere else.
+    assert df.iloc[0]["tip_x"] == 7.5
+    assert df.iloc[0]["tip_y"] == 8.5
+    assert df.iloc[1]["tip_x"] == 9.5
+    assert df.iloc[1]["tip_y"] == 10.5
 
 
 def test_get_tracked_tips_raises_when_multiple_paths_populated_no_root_type(tmp_path):

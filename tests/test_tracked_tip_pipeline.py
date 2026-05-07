@@ -731,6 +731,105 @@ def test_compute_batch_tracked_tip_traits_emit_trajectories_false(tmp_path):
     assert not (out_dir / "tracked_tip_batch_trajectories.csv").exists()
 
 
+def test_compute_batch_tracked_tip_traits_returns_tuple_shape(tmp_path):
+    """compute_batch_* returns (summary_df, Optional[trajectory_df], List[Dict]).
+
+    Per /review-pr feedback: existing tests only inspected on-disk files
+    from the batch method. The return tuple shape (especially the
+    `None` case for `emit_trajectories=False`) was uncovered.
+    """
+    serieses = [
+        _build_tracked_slp(
+            tmp_path / f"d{i}",
+            f"s{i}",
+            n_frames=2,
+            track_positions={"t": [(0.0, 0.0), (1.0, 1.0)]},
+        )
+        for i in range(3)
+    ]
+    # With emit_trajectories=True (default).
+    summary_df, trajectory_df, results = (
+        TrackedTipPipeline().compute_batch_tracked_tip_traits(serieses)
+    )
+    assert isinstance(summary_df, pd.DataFrame)
+    assert len(summary_df) == 3  # 1 track per series x 3 series
+    assert isinstance(trajectory_df, pd.DataFrame)
+    assert len(trajectory_df) == 6  # 2 frames x 1 track x 3 series
+    assert isinstance(results, list)
+    assert len(results) == 3
+    for r in results:
+        assert "tracks" in r and "trajectories" in r
+
+    # With emit_trajectories=False — trajectory_df MUST be None (not an
+    # empty DataFrame).
+    (
+        summary_df,
+        trajectory_df,
+        results,
+    ) = TrackedTipPipeline().compute_batch_tracked_tip_traits(
+        serieses, emit_trajectories=False
+    )
+    assert isinstance(summary_df, pd.DataFrame)
+    assert len(summary_df) == 3
+    assert trajectory_df is None
+    assert isinstance(results, list)
+    assert len(results) == 3
+
+
+def test_compute_tracked_tip_traits_writes_csv_with_zero_tracks(tmp_path):
+    """Zero-track .slp + write_csv=True → header-only summary CSV, no crash.
+
+    Per /review-pr feedback: the zero-track in-memory case was tested
+    (`test_compute_tracked_tip_traits_zero_tracks`) but the CSV-emission
+    side wasn't. Verify the summary CSV is written, parses, and has
+    the expected column header but zero data rows.
+    """
+    Path(tmp_path).mkdir(parents=True, exist_ok=True)
+    image_h, image_w = 200, 200
+    img_array = np.zeros((image_h, image_w), dtype=np.uint8)
+    tif_path = tmp_path / "s.tif"
+    from PIL import Image
+
+    Image.fromarray(img_array).save(tif_path.as_posix(), dpi=(72, 72))
+    video = sio.Video.from_filename(tif_path.as_posix())
+    skeleton = sio.Skeleton(nodes=[sio.Node("r0")])
+    labeled_frames = [
+        sio.LabeledFrame(video=video, frame_idx=i, instances=[]) for i in range(3)
+    ]
+    labels = sio.Labels(
+        labeled_frames=labeled_frames,
+        skeletons=[skeleton],
+        videos=[video],
+        tracks=[],
+    )
+    slp_path = tmp_path / "s.primary.tracked.slp"
+    sio.save_slp(labels, slp_path.as_posix())
+    series = Series.load(series_name="s", primary_path=slp_path.as_posix())
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    TrackedTipPipeline().compute_tracked_tip_traits(
+        series, write_csv=True, output_dir=out_dir.as_posix()
+    )
+
+    summary_path = out_dir / "s.tracked_tip_traits.csv"
+    assert summary_path.exists()
+    df = pd.read_csv(summary_path)
+    assert len(df) == 0  # zero data rows
+    # Column header still present and correctly ordered.
+    assert list(df.columns) == [
+        "series",
+        "sample_uid",
+        "timepoint",
+        "track_id",
+        "n_frames_tracked",
+        "n_frames_total",
+        "tracking_coverage",
+        "tip_trajectory_length",
+        "tip_displacement_net",
+    ]
+
+
 def test_compute_batch_tracked_tip_traits_empty_input(tmp_path):
     """§10.5: empty list → empty outputs, no crash."""
     out_dir = tmp_path / "batch_out"
