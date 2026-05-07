@@ -1104,6 +1104,38 @@ def test_validate_series_for_tracked_tip_raises_on_zero_paths_no_root_type():
     assert "root_type" in str(excinfo.value)
 
 
+def test_get_tracked_tips_raises_on_invalid_root_type(tmp_path):
+    """Invalid root_type string (e.g. 'foo') → user-facing ValueError, not KeyError."""
+    series = _build_tracked_slp(
+        tmp_path,
+        "s",
+        n_frames=2,
+        track_positions={"t": [(0.0, 0.0), (1.0, 1.0)]},
+    )
+    with pytest.raises(ValueError) as excinfo:
+        series.get_tracked_tips(root_type="foo")
+    msg = str(excinfo.value)
+    assert "foo" in msg
+    assert "primary" in msg  # error lists valid options
+
+
+def test_validate_series_for_tracked_tip_raises_on_invalid_root_type(tmp_path):
+    """Invalid root_type string (e.g. 'foo') → user-facing ValueError, not KeyError."""
+    from sleap_roots.series import validate_series_for_tracked_tip
+
+    series = _build_tracked_slp(
+        tmp_path,
+        "s",
+        n_frames=2,
+        track_positions={"t": [(0.0, 0.0), (1.0, 1.0)]},
+    )
+    with pytest.raises(ValueError) as excinfo:
+        validate_series_for_tracked_tip(series, root_type="foo")
+    msg = str(excinfo.value)
+    assert "foo" in msg
+    assert "primary" in msg
+
+
 def test_validate_series_for_tracked_tip_raises_on_multiple_paths_no_root_type(
     tmp_path,
 ):

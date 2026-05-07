@@ -556,28 +556,14 @@ class Series:
                 `inst.track is None` or empty `inst.track.name` — the
                 pipeline requires SLEAP-tracked predictions.
         """
-        # Resolve root_type — auto-detect when None.
+        # Resolve root_type via the shared helper (validates explicit
+        # values + auto-detects when None).
         path_attrs = {
             "primary": self.primary_path,
             "lateral": self.lateral_path,
             "crown": self.crown_path,
         }
-        if root_type is None:
-            populated = [k for k, v in path_attrs.items() if v is not None]
-            if len(populated) == 0:
-                raise ValueError(
-                    "Cannot auto-detect root_type: none of primary_path, "
-                    "lateral_path, or crown_path is populated. Pass an "
-                    "explicit root_type kwarg or set one of those paths on "
-                    "Series.load."
-                )
-            if len(populated) > 1:
-                raise ValueError(
-                    f"Cannot auto-detect root_type: multiple paths populated "
-                    f"({populated}). Pass an explicit root_type kwarg "
-                    f"(one of {list(path_attrs.keys())})."
-                )
-            root_type = populated[0]
+        root_type = _resolve_root_type(path_attrs, root_type)
         # Get the labels object for the resolved root type.
         labels_attr = f"{root_type}_labels"
         labels = getattr(self, labels_attr, None)
@@ -953,6 +939,58 @@ def plot_instances(
     return h_lines
 
 
+_VALID_ROOT_TYPES = ("primary", "lateral", "crown")
+
+
+def _resolve_root_type(
+    path_attrs: Dict[str, Optional[str]],
+    root_type: Optional[str],
+) -> str:
+    """Resolve `root_type` from a populated-path mapping.
+
+    Shared helper used by `Series.get_tracked_tips` and
+    `validate_series_for_tracked_tip` to keep root-type validation +
+    auto-detection consistent across both call sites.
+
+    Args:
+        path_attrs: Dict mapping root-type strings (`'primary'` / `'lateral'`
+            / `'crown'`) to either a path or `None`.
+        root_type: Either `None` (auto-detect from `path_attrs`) or one of
+            the valid root-type strings.
+
+    Returns:
+        The resolved root-type string (one of `'primary'`, `'lateral'`,
+        `'crown'`).
+
+    Raises:
+        ValueError: When `root_type` is not `None` but is not in
+            `{'primary', 'lateral', 'crown'}`; when `root_type` is `None`
+            and zero or more than one path is populated.
+    """
+    if root_type is not None:
+        if root_type not in _VALID_ROOT_TYPES:
+            raise ValueError(
+                f"Invalid root_type={root_type!r}; must be one of "
+                f"{list(_VALID_ROOT_TYPES)}."
+            )
+        return root_type
+
+    populated = [k for k, v in path_attrs.items() if v is not None]
+    if len(populated) == 0:
+        raise ValueError(
+            "Cannot auto-detect root_type: none of primary_path, "
+            "lateral_path, or crown_path is populated. Pass an explicit "
+            f"root_type kwarg (one of {list(_VALID_ROOT_TYPES)})."
+        )
+    if len(populated) > 1:
+        raise ValueError(
+            f"Cannot auto-detect root_type: multiple paths populated "
+            f"({populated}). Pass an explicit root_type kwarg "
+            f"(one of {list(_VALID_ROOT_TYPES)})."
+        )
+    return populated[0]
+
+
 def validate_tracked_slp(slp_path: Union[str, Path]) -> None:
     """Validate that every instance in a .slp file has a non-empty track.
 
@@ -1018,21 +1056,7 @@ def validate_series_for_tracked_tip(
         "lateral": series.lateral_path,
         "crown": series.crown_path,
     }
-    if root_type is None:
-        populated = [k for k, v in path_attrs.items() if v is not None]
-        if len(populated) == 0:
-            raise ValueError(
-                "Cannot auto-detect root_type: none of primary_path, "
-                "lateral_path, or crown_path is populated on the series. "
-                "Pass an explicit root_type kwarg."
-            )
-        if len(populated) > 1:
-            raise ValueError(
-                f"Cannot auto-detect root_type: multiple paths populated "
-                f"({populated}). Pass an explicit root_type kwarg "
-                f"(one of {list(path_attrs.keys())})."
-            )
-        root_type = populated[0]
+    root_type = _resolve_root_type(path_attrs, root_type)
 
     resolved_path = path_attrs[root_type]
     if resolved_path is None:
