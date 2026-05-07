@@ -543,11 +543,13 @@ class Series:
             with a clean range index. One row per `(track_id, frame)` where
             the track has an instance.
 
-            The tip coordinate is the LAST node of the skeleton
-            (`inst.numpy()[-1]`), matching the convention used by
-            `sleap_roots.tips.get_tips`. This works for both single-node
-            skeletons (e.g. `["r0"]`) and multi-node skeletons (e.g.
-            `["base", "mid", "tip"]`).
+            Coordinates `tip_x`, `tip_y` are in image pixels (origin
+            top-left, y increases downward), matching the SLEAP
+            convention. The tip coordinate is the LAST node of the
+            skeleton (`inst.numpy()[-1]`), matching the convention used
+            by `sleap_roots.tips.get_tips`. This works for both
+            single-node skeletons (e.g. `["r0"]`) and multi-node
+            skeletons (e.g. `["base", "mid", "tip"]`).
 
         Raises:
             ValueError: When `root_type` is `None` and zero or more than

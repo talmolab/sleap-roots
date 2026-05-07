@@ -240,6 +240,32 @@ class TrackedTipPipeline(Pipeline):
             `series` (str), `sample_uid` (str), `timepoint` (float or
             NaN), `tracks` (list of per-track dicts), `trajectories`
             (list of per-frame dicts; empty when `emit_trajectories=False`).
+
+        Notes:
+            Tip coordinates `tip_x`, `tip_y` are in **image pixels**
+            (origin top-left, y increases downward), matching the SLEAP
+            convention. All length scalars (`tip_trajectory_length`,
+            `tip_displacement_net`) are pixel distances.
+
+            Single-frame edge case: when a track is tracked in exactly
+            one frame, the per-track summary row has
+            `tip_displacement_net == 0.0` (xy[0] == xy[-1] is a natural
+            geometric result) but `tip_trajectory_length` is `NaN` (the
+            existing `lengths.get_root_lengths` function's NaN-on-empty-
+            segments convention applies — single-frame trajectories have
+            zero segments). This asymmetry is intentional; users who want
+            either behavior coerced apply `fillna(0.0)` post-hoc, or
+            filter on `n_frames_tracked > 1` to exclude single-frame
+            tracks entirely.
+
+            `tracking_coverage` is computed as `n_frames_tracked /
+            n_frames_total`, where `n_frames_tracked` is the number of
+            UNIQUE frame indices in which the track has an instance
+            (duplicates from buggy tracker output are deduplicated).
+            Interpreting `tracking_coverage` as a temporal-coverage
+            fraction (e.g. "the plant was visible 60 % of the imaging
+            window") implicitly assumes uniform inter-frame spacing, a
+            property of the source data not enforced by this code.
         """
         # Validate input early — raises ValueError on untracked instances or
         # zero/multiple paths populated without root_type.
