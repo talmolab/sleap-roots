@@ -9,6 +9,7 @@ Reuses the synthetic-tracked-`.slp` builder ``_build_tracked_slp`` from
 """
 
 import json
+import pickle
 from pathlib import Path
 
 import numpy as np
@@ -276,6 +277,36 @@ def test_compute_tracked_tip_traits_zero_tracks(tmp_path):
     result = TrackedTipPipeline().compute_tracked_tip_traits(series)
     assert result["tracks"] == []
     assert result["trajectories"] == []
+
+
+def test_pipeline_traits_list_pickles_cleanly():
+    """TraitDef `fn` values SHALL be picklable (no inline lambdas).
+
+    Surfaced by /review-pr on PR #190: the original implementation used
+    inline lambdas (`fn=lambda xy: xy[0]`) for per-track slicing, which
+    are not picklable. Picklability is a precondition for any future
+    `multiprocessing`-based parallelization of the trait DAG.
+
+    This test asserts:
+      1. `pickle.dumps(pipeline.traits)` succeeds.
+      2. The round-tripped traits list has the same length and same
+         per-trait names as the original.
+      3. Every individual `trait_def.fn` is picklable on its own.
+    """
+    pipeline = TrackedTipPipeline()
+    blob = pickle.dumps(pipeline.traits)
+    assert isinstance(blob, bytes)
+    assert len(blob) > 0
+
+    restored = pickle.loads(blob)
+    assert len(restored) == len(pipeline.traits)
+    assert [t.name for t in restored] == [t.name for t in pipeline.traits]
+
+    for trait_def in pipeline.traits:
+        fn_blob = pickle.dumps(trait_def.fn)
+        assert isinstance(
+            fn_blob, bytes
+        ), f"TraitDef '{trait_def.name}' fn={trait_def.fn!r} did not pickle."
 
 
 def test_tracking_coverage_bounded_when_track_has_duplicate_frame(tmp_path):

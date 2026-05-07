@@ -228,6 +228,21 @@ Fixed via strict TDD with separate test + impl commits to leave a visible audit 
 - [x] 16b.3 Run full test suite — no regressions.
 - [x] 16b.4 Run `openspec validate add-tracked-tip-pipeline --strict` — confirm the new requirement parses cleanly.
 
+## 16c. Post-review fix: TraitDef `fn` values SHALL be picklable (TDD red → green)
+
+Surfaced by the multi-agent review (`/review-pr` on PR #190): the original implementation used inline lambdas (`fn=lambda xy: xy[0]`, `fn=lambda xy: xy[-1]`) for the per-track slicing TraitDef nodes. Lambdas are not picklable by default, which would silently block any future `multiprocessing`-based parallelization of the trait DAG.
+
+Fixed via strict TDD with separate test + impl commits.
+
+- [x] 16c.1 RED: write a failing test in `tests/test_tracked_tip_pipeline.py` that:
+  - Constructs a `TrackedTipPipeline()` instance.
+  - Calls `pickle.dumps(pipeline.traits)` — confirms it raises `pickle.PicklingError` (or `AttributeError` on older Python versions) before the fix.
+  - After the fix, asserts the call succeeds and round-trips via `pickle.loads(...)` to a list of equal length with the same trait names.
+  - Also iterates per-trait and asserts `pickle.dumps(trait_def.fn)` succeeds for each.
+- [x] 16c.2 GREEN: in `sleap_roots/tracked_tip_pipeline.py`, replace the two inline lambdas with module-level functions `_get_first_xy(xy)` and `_get_last_xy(xy)`. Both are picklable by reference. Run the test — confirm it passes.
+- [x] 16c.3 Run full test suite — no regressions.
+- [x] 16c.4 Run `openspec validate add-tracked-tip-pipeline --strict` — confirm the new requirement parses cleanly.
+
 ## 17. Post-merge: archive the OpenSpec change
 
 - [ ] 17.1 After merge, run `openspec archive add-tracked-tip-pipeline` — moves the change folder under `openspec/changes/archive/YYYY-MM-DD-add-tracked-tip-pipeline/` and creates the `openspec/specs/tracked-tip-pipeline/spec.md`.

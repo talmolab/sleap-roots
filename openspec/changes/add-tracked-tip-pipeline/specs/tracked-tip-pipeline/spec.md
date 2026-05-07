@@ -249,6 +249,25 @@ In JSON output, the `NaN` value MUST be serialized as `null` via `_json_sanitize
 - **When** the JSON file is parsed
 - **Then** the corresponding `tracks[i]["tip_trajectory_length"]` is JSON `null`
 
+### Requirement: `TrackedTipPipeline` TraitDef `fn` values SHALL be picklable
+
+Every `TraitDef` returned by `TrackedTipPipeline.define_traits()` MUST have a `fn` value that is picklable via the standard library `pickle` module. Inline lambdas (which are not picklable by default) MUST NOT be used — TraitDef functions MUST be either references to module-level functions or references to imported callables (e.g. `bases.get_base_tip_dist`).
+
+Rationale: this is a precondition for any future `multiprocessing`-based parallelization of the trait DAG. The DAG is currently executed serially; a future change that distributes trait computation across processes (or uses `joblib.Parallel` with the loky backend) requires every trait function to round-trip through pickle. Inline lambdas in TraitDef definitions silently block that future refactor.
+
+#### Scenario: TrackedTipPipeline traits list pickles cleanly
+
+- **Given** a `TrackedTipPipeline()` instance
+- **When** `pickle.dumps(pipeline.traits)` is called
+- **Then** the call succeeds and returns a non-empty `bytes` object
+- **And** `pickle.loads(...)` round-trips the trait list back to an equal-shape list of `TraitDef` objects with the same names and (callable) `fn` references
+
+#### Scenario: Each TraitDef.fn value individually pickles cleanly
+
+- **Given** a `TrackedTipPipeline()` instance
+- **When** for each `trait_def` in `pipeline.traits`, `pickle.dumps(trait_def.fn)` is called
+- **Then** every call succeeds and returns a non-empty `bytes` object
+
 ### Requirement: `tracking_coverage` SHALL be bounded to `[0.0, 1.0]` regardless of duplicate `(track_id, frame)` rows
 
 `tracking_coverage` MUST be a float in `[0.0, 1.0]` for every track in the result. To enforce this bound, `n_frames_tracked` MUST equal the number of UNIQUE frame indices in which the track has an instance — NOT the raw count of instances. Pathological tracker output (e.g. merged tracks producing two instances with the same `track_id` in the same frame) MUST NOT inflate `tracking_coverage` above `1.0`.
