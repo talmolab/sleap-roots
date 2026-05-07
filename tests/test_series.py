@@ -698,3 +698,437 @@ def test_series_timepoint_raises_on_non_numeric(tmp_path):
     assert "plant1" in msg
     assert "timepoint" in msg
     assert "2024-03-15" in msg
+
+
+# ---------------------------------------------------------------------------
+# Synthetic tracked-`.slp` builder + tests for Series.get_tracked_tips
+# (Section 2 of openspec/changes/add-tracked-tip-pipeline/tasks.md)
+# ---------------------------------------------------------------------------
+
+
+def _build_tracked_slp(
+    tmp_path,
+    series_name: str,
+    n_frames: int,
+    track_positions,
+    *,
+    root_type: str = "primary",
+    skeleton_node_names=("r0",),
+    instance_order_per_frame=None,
+    untracked_at=None,
+    empty_track_name_at=None,
+    other_root_paths=None,
+    csv_content: str = None,
+    sample_uid: str = None,
+):
+    """Build a synthetic tracked .slp and return a `Series`.
+
+    Args:
+        tmp_path: pytest tmp_path fixture.
+        series_name: Series identifier.
+        n_frames: Number of frames in the .slp.
+        track_positions: dict mapping track_name (str) → list of (x, y) tuples
+            of length n_frames. A `None` entry in the list means the track has
+            no instance in that frame (gap).
+        root_type: "primary", "lateral", or "crown" — determines which `*_path`
+            kwarg is set on Series.load.
+        skeleton_node_names: Tuple of node names. The LAST node is treated as
+            the tip by skeleton convention. Default `("r0",)` is the
+            single-node circumnutation skeleton.
+        instance_order_per_frame: Optional list of length `n_frames`, each
+            element a list of track names specifying instance positional order
+            within that frame. Defaults to the dict iteration order. Use this
+            to test the brainstorm-verified track-order non-determinism.
+        untracked_at: Optional list of (frame_idx, track_name) tuples. For each,
+            the corresponding instance is created with track=None instead of a
+            real Track.
+        empty_track_name_at: Optional list of (frame_idx, track_name) tuples.
+            Each gets a Track with name="" (empty string) — should trip the
+            same untracked-instance error path.
+        other_root_paths: Optional dict mapping root-type strings ("primary"/
+            "lateral"/"crown") to None or another tracked .slp path, for
+            testing multi-path-populated cases. None means leave kwarg unset
+            on Series.load.
+        csv_content: Optional CSV text to write to a sidecar.
+        sample_uid: Optional sample_uid kwarg for Series.load.
+
+    Returns:
+        A `Series` loaded via `Series.load`.
+    """
+    Path(tmp_path).mkdir(parents=True, exist_ok=True)
+    image_h, image_w = 200, 200
+    img_array = np.zeros((image_h, image_w), dtype=np.uint8)
+    tif_path = tmp_path / f"{series_name}.tif"
+    from PIL import Image
+
+    Image.fromarray(img_array).save(tif_path.as_posix(), dpi=(72, 72))
+    video = sio.Video.from_filename(tif_path.as_posix())
+
+    skeleton = sio.Skeleton(nodes=[sio.Node(n) for n in skeleton_node_names])
+    n_nodes = len(skeleton_node_names)
+    untracked_set = set(untracked_at or [])
+    empty_name_set = set(empty_track_name_at or [])
+    tracks_by_name = {name: sio.Track(name=name) for name in track_positions.keys()}
+
+    labeled_frames = []
+    for frame_idx in range(n_frames):
+        if instance_order_per_frame is not None:
+            order = instance_order_per_frame[frame_idx]
+        else:
+            order = list(track_positions.keys())
+
+        instances = []
+        for track_name in order:
+            xy = track_positions[track_name][frame_idx]
+            if xy is None:
+                continue  # track has a gap in this frame
+            # Build the (n_nodes, 2) point array — replicate the (x, y) at
+            # every node for multi-node skeletons (the [-1] tip convention
+            # picks up the last node identically regardless).
+            pts = np.tile(np.asarray(xy, dtype=float), (n_nodes, 1))
+
+            if (frame_idx, track_name) in untracked_set:
+                track_arg = None
+            elif (frame_idx, track_name) in empty_name_set:
+                track_arg = sio.Track(name="")
+            else:
+                track_arg = tracks_by_name[track_name]
+
+            inst = sio.Instance.from_numpy(pts, skeleton=skeleton, track=track_arg)
+            instances.append(inst)
+
+        labeled_frames.append(
+            sio.LabeledFrame(video=video, frame_idx=frame_idx, instances=instances)
+        )
+
+    labels = sio.Labels(
+        labeled_frames=labeled_frames,
+        skeletons=[skeleton],
+        videos=[video],
+        tracks=list(tracks_by_name.values()),
+    )
+
+    slp_path = tmp_path / f"{series_name}.{root_type}.tracked.slp"
+    sio.save_slp(labels, slp_path.as_posix())
+
+    csv_path = None
+    if csv_content is not None:
+        csv_path = tmp_path / f"{series_name}.csv"
+        csv_path.write_text(csv_content)
+
+    load_kwargs = {
+        "series_name": series_name,
+        f"{root_type}_path": slp_path.as_posix(),
+        "csv_path": csv_path.as_posix() if csv_path else None,
+        "sample_uid": sample_uid,
+    }
+    if other_root_paths:
+        for k, v in other_root_paths.items():
+            load_kwargs[f"{k}_path"] = v
+    return Series.load(**load_kwargs)
+
+
+def test_get_tracked_tips_returns_long_dataframe(tmp_path):
+    """§2.2: synthetic 3-frame, 2-track .slp → DataFrame with expected cols + 6 rows."""
+    series = _build_tracked_slp(
+        tmp_path,
+        "s",
+        n_frames=3,
+        track_positions={
+            "track_a": [(10.0, 20.0), (11.0, 21.0), (12.0, 22.0)],
+            "track_b": [(30.0, 40.0), (31.0, 41.0), (32.0, 42.0)],
+        },
+    )
+    df = series.get_tracked_tips()
+    assert list(df.columns) == ["track_id", "frame", "tip_x", "tip_y"]
+    assert len(df) == 6
+
+
+def test_get_tracked_tips_sorted_by_track_then_frame(tmp_path):
+    """§2.3: instance positional order randomized per frame → output is frame-sorted within each track."""
+    series = _build_tracked_slp(
+        tmp_path,
+        "s",
+        n_frames=3,
+        track_positions={
+            "track_a": [(0.0, 0.0), (1.0, 0.0), (2.0, 0.0)],
+            "track_b": [(10.0, 10.0), (11.0, 10.0), (12.0, 10.0)],
+        },
+        instance_order_per_frame=[
+            ["track_a", "track_b"],
+            ["track_b", "track_a"],
+            ["track_b", "track_a"],
+        ],
+    )
+    df = series.get_tracked_tips()
+    # Within each track group, frame is monotonically increasing.
+    for track_id, group in df.groupby("track_id"):
+        assert list(group["frame"]) == sorted(group["frame"])
+    # Output equals its (track_id, frame)-sorted version.
+    expected = df.sort_values(["track_id", "frame"]).reset_index(drop=True)
+    pd.testing.assert_frame_equal(df, expected)
+
+
+def test_get_tracked_tips_auto_detects_root_type_from_populated_path(tmp_path):
+    """§2.4: only primary_path populated → no root_type kwarg needed."""
+    series = _build_tracked_slp(
+        tmp_path,
+        "s",
+        n_frames=2,
+        track_positions={"t": [(0.0, 0.0), (1.0, 1.0)]},
+        root_type="primary",
+    )
+    df = series.get_tracked_tips()  # no root_type kwarg
+    assert len(df) == 2
+
+
+def test_get_tracked_tips_raises_when_multiple_paths_populated_no_root_type(tmp_path):
+    """§2.5: primary + lateral populated, no root_type → ValueError mentioning root_type."""
+    # Build two separate tracked .slp files and load them as a single Series.
+    s_primary = _build_tracked_slp(
+        tmp_path / "p",
+        "s",
+        n_frames=1,
+        track_positions={"t": [(0.0, 0.0)]},
+        root_type="primary",
+    )
+    s_lateral = _build_tracked_slp(
+        tmp_path / "l",
+        "s",
+        n_frames=1,
+        track_positions={"t": [(0.0, 0.0)]},
+        root_type="lateral",
+    )
+    series = Series.load(
+        series_name="s",
+        primary_path=s_primary.primary_path,
+        lateral_path=s_lateral.lateral_path,
+    )
+    with pytest.raises(ValueError) as excinfo:
+        series.get_tracked_tips()
+    assert "root_type" in str(excinfo.value)
+
+
+def test_get_tracked_tips_raises_when_zero_paths_populated():
+    """§2.6: no paths populated → ValueError mentioning root_type."""
+    series = Series(series_name="s")
+    with pytest.raises(ValueError) as excinfo:
+        series.get_tracked_tips()
+    assert "root_type" in str(excinfo.value)
+
+
+def test_get_tracked_tips_raises_on_untracked_instance(tmp_path):
+    """§2.7: instance with track=None → ValueError mentioning frame index + sleap.ai/tracking URL."""
+    series = _build_tracked_slp(
+        tmp_path,
+        "s",
+        n_frames=3,
+        track_positions={
+            "track_a": [(0.0, 0.0), (1.0, 0.0), (2.0, 0.0)],
+            "track_b": [(10.0, 10.0), (11.0, 10.0), (12.0, 10.0)],
+        },
+        untracked_at=[(1, "track_b")],  # frame 1, track_b is untracked
+    )
+    with pytest.raises(ValueError) as excinfo:
+        series.get_tracked_tips()
+    msg = str(excinfo.value)
+    assert "1" in msg
+    assert "sleap.ai" in msg
+
+
+def test_get_tracked_tips_raises_on_empty_track_name(tmp_path):
+    """§2.8: instance with empty Track.name → same ValueError as track=None."""
+    series = _build_tracked_slp(
+        tmp_path,
+        "s",
+        n_frames=2,
+        track_positions={"t": [(0.0, 0.0), (1.0, 1.0)]},
+        empty_track_name_at=[(0, "t")],  # frame 0, track t has empty name
+    )
+    with pytest.raises(ValueError) as excinfo:
+        series.get_tracked_tips()
+    assert "0" in str(excinfo.value)
+
+
+def test_get_tracked_tips_single_node_skeleton(tmp_path):
+    """§2.9: single-node skeleton ['r0'] — tip_x/tip_y are the node coordinates."""
+    series = _build_tracked_slp(
+        tmp_path,
+        "s",
+        n_frames=2,
+        track_positions={"t": [(5.5, 7.5), (10.5, 20.5)]},
+        skeleton_node_names=("r0",),  # 1-node skeleton
+    )
+    df = series.get_tracked_tips()
+    assert df.iloc[0]["tip_x"] == 5.5
+    assert df.iloc[0]["tip_y"] == 7.5
+    assert df.iloc[1]["tip_x"] == 10.5
+    assert df.iloc[1]["tip_y"] == 20.5
+
+
+def test_get_tracked_tips_multi_node_skeleton(tmp_path):
+    """§2.10: multi-node skeleton ['base','mid','tip'] — tip_x/tip_y are LAST node coords."""
+    image_h, image_w = 200, 200
+    img_array = np.zeros((image_h, image_w), dtype=np.uint8)
+    tif_path = tmp_path / "s.tif"
+    from PIL import Image
+
+    Image.fromarray(img_array).save(tif_path.as_posix(), dpi=(72, 72))
+    video = sio.Video.from_filename(tif_path.as_posix())
+    skeleton = sio.Skeleton(nodes=[sio.Node("base"), sio.Node("mid"), sio.Node("tip")])
+    track = sio.Track(name="t")
+
+    # Build one frame with one track. Skeleton: base=(1,1), mid=(2,2), tip=(99,99).
+    pts = np.array([[1.0, 1.0], [2.0, 2.0], [99.0, 99.0]])
+    inst = sio.Instance.from_numpy(pts, skeleton=skeleton, track=track)
+    lf = sio.LabeledFrame(video=video, frame_idx=0, instances=[inst])
+    labels = sio.Labels(
+        labeled_frames=[lf], skeletons=[skeleton], videos=[video], tracks=[track]
+    )
+    slp_path = tmp_path / "s.primary.tracked.slp"
+    sio.save_slp(labels, slp_path.as_posix())
+
+    series = Series.load(series_name="s", primary_path=slp_path.as_posix())
+    df = series.get_tracked_tips()
+    # The LAST node (tip=99,99), NOT base or mid.
+    assert df.iloc[0]["tip_x"] == 99.0
+    assert df.iloc[0]["tip_y"] == 99.0
+
+
+# ---------------------------------------------------------------------------
+# Tests for validate_tracked_slp + validate_series_for_tracked_tip
+# (Section 4 of openspec/changes/add-tracked-tip-pipeline/tasks.md)
+# ---------------------------------------------------------------------------
+
+
+def test_validate_tracked_slp_passes_on_fully_tracked(tmp_path):
+    """§4.1: every instance tracked → returns None, no raise."""
+    from sleap_roots.series import validate_tracked_slp
+
+    series = _build_tracked_slp(
+        tmp_path,
+        "s",
+        n_frames=3,
+        track_positions={"t": [(0.0, 0.0), (1.0, 1.0), (2.0, 2.0)]},
+    )
+    assert validate_tracked_slp(series.primary_path) is None
+
+
+def test_validate_tracked_slp_raises_on_untracked_instance(tmp_path):
+    """§4.2: one untracked instance → ValueError mentioning frame index + sleap.ai/tracking URL."""
+    from sleap_roots.series import validate_tracked_slp
+
+    series = _build_tracked_slp(
+        tmp_path,
+        "s",
+        n_frames=3,
+        track_positions={
+            "ta": [(0.0, 0.0), (1.0, 0.0), (2.0, 0.0)],
+            "tb": [(10.0, 10.0), (11.0, 10.0), (12.0, 10.0)],
+        },
+        untracked_at=[(2, "tb")],
+    )
+    with pytest.raises(ValueError) as excinfo:
+        validate_tracked_slp(series.primary_path)
+    msg = str(excinfo.value)
+    assert "2" in msg
+    assert "sleap.ai" in msg
+
+
+def test_validate_tracked_slp_lists_all_offending_frames(tmp_path):
+    """§4.3: 3 untracked instances on 3 frames → error message lists all 3."""
+    from sleap_roots.series import validate_tracked_slp
+
+    series = _build_tracked_slp(
+        tmp_path,
+        "s",
+        n_frames=20,
+        track_positions={"t": [(float(i), float(i)) for i in range(20)]},
+        untracked_at=[(2, "t"), (7, "t"), (15, "t")],
+    )
+    with pytest.raises(ValueError) as excinfo:
+        validate_tracked_slp(series.primary_path)
+    msg = str(excinfo.value)
+    assert "2" in msg
+    assert "7" in msg
+    assert "15" in msg
+
+
+def test_validate_series_for_tracked_tip_resolves_root_type(tmp_path):
+    """§4.4: only primary_path populated → no root_type kwarg needed."""
+    from sleap_roots.series import validate_series_for_tracked_tip
+
+    series = _build_tracked_slp(
+        tmp_path,
+        "s",
+        n_frames=2,
+        track_positions={"t": [(0.0, 0.0), (1.0, 1.0)]},
+    )
+    assert validate_series_for_tracked_tip(series) is None
+
+
+def test_validate_series_for_tracked_tip_explicit_root_type(tmp_path):
+    """§4.5: primary + lateral both valid; explicit root_type validates the chosen path."""
+    from sleap_roots.series import validate_series_for_tracked_tip
+
+    s_primary = _build_tracked_slp(
+        tmp_path / "p",
+        "s",
+        n_frames=1,
+        track_positions={"t": [(0.0, 0.0)]},
+        root_type="primary",
+    )
+    s_lateral = _build_tracked_slp(
+        tmp_path / "l",
+        "s",
+        n_frames=1,
+        track_positions={"t": [(0.0, 0.0)]},
+        root_type="lateral",
+    )
+    series = Series.load(
+        series_name="s",
+        primary_path=s_primary.primary_path,
+        lateral_path=s_lateral.lateral_path,
+    )
+    assert validate_series_for_tracked_tip(series, root_type="primary") is None
+    assert validate_series_for_tracked_tip(series, root_type="lateral") is None
+
+
+def test_validate_series_for_tracked_tip_raises_on_zero_paths_no_root_type():
+    """§4.6 part 1: zero paths populated → ValueError mentioning root_type."""
+    from sleap_roots.series import validate_series_for_tracked_tip
+
+    series = Series(series_name="s")
+    with pytest.raises(ValueError) as excinfo:
+        validate_series_for_tracked_tip(series)
+    assert "root_type" in str(excinfo.value)
+
+
+def test_validate_series_for_tracked_tip_raises_on_multiple_paths_no_root_type(
+    tmp_path,
+):
+    """§4.6 part 2: multiple paths populated, no root_type → ValueError mentioning root_type."""
+    from sleap_roots.series import validate_series_for_tracked_tip
+
+    s_primary = _build_tracked_slp(
+        tmp_path / "p",
+        "s",
+        n_frames=1,
+        track_positions={"t": [(0.0, 0.0)]},
+        root_type="primary",
+    )
+    s_lateral = _build_tracked_slp(
+        tmp_path / "l",
+        "s",
+        n_frames=1,
+        track_positions={"t": [(0.0, 0.0)]},
+        root_type="lateral",
+    )
+    series = Series.load(
+        series_name="s",
+        primary_path=s_primary.primary_path,
+        lateral_path=s_lateral.lateral_path,
+    )
+    with pytest.raises(ValueError) as excinfo:
+        validate_series_for_tracked_tip(series)
+    assert "root_type" in str(excinfo.value)
