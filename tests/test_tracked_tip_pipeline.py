@@ -279,6 +279,32 @@ def test_compute_tracked_tip_traits_zero_tracks(tmp_path):
     assert result["trajectories"] == []
 
 
+def test_column_constants_are_immutable_tuples():
+    """`_SUMMARY_COLUMNS` and `_TRAJECTORY_COLUMNS` SHALL be tuples, not lists.
+
+    Internal hardening surfaced by /review-pr on PR #190. Pandas does not
+    copy the iterable passed to the `columns=` argument — if a downstream
+    caller (or test) mutates the underlying list, every subsequent pipeline
+    call would silently produce a different column ordering. Tuples
+    eliminate the mutation surface entirely. Matches the existing
+    convention `_VALID_ROOT_TYPES = ("primary", "lateral", "crown")` in
+    sleap_roots/series.py.
+    """
+    from sleap_roots.tracked_tip_pipeline import (
+        _SUMMARY_COLUMNS,
+        _TRAJECTORY_COLUMNS,
+    )
+
+    assert isinstance(_SUMMARY_COLUMNS, tuple), (
+        f"_SUMMARY_COLUMNS must be a tuple for immutability, "
+        f"got {type(_SUMMARY_COLUMNS).__name__}"
+    )
+    assert isinstance(_TRAJECTORY_COLUMNS, tuple), (
+        f"_TRAJECTORY_COLUMNS must be a tuple for immutability, "
+        f"got {type(_TRAJECTORY_COLUMNS).__name__}"
+    )
+
+
 def test_pipeline_traits_list_pickles_cleanly():
     """TraitDef `fn` values SHALL be picklable (no inline lambdas).
 
