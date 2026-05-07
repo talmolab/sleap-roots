@@ -55,9 +55,13 @@ Match `tracked_tip_pipeline.py` convention: tuple/dict module-level constants (e
 
 Each constant is overridable via the pipeline class init or per-call kwarg, but defaults flow from one place.
 
-### CC-3. Calibration metadata pattern reuses TrackedTipPipeline's.
+### CC-3. Pure-pixel pipeline convention; downstream `convert_to_mm()` utility.
 
-`TrackedTipPipeline` already serializes `px_per_mm` somewhere — sidecar JSON, CSV header comment, attrs, or per-row column. **PR #1 has an explicit investigation task: read `tracked_tip_pipeline.py` + the integration test fixtures + the existing trait CSV outputs to determine the exact pattern, then replicate it.** The acceptance criterion is: a downstream user can load `TrackedTipPipeline` output and `CircumnutationPipeline` output with the same loader.
+The pipeline NEVER takes `px_per_mm` as a parameter and NEVER emits `[mm]` columns. Every length-bearing trait is in pixels (`px`, `px²`, `px/frame`, `px/hr`, `px·hr⁻¹`); time in `hr` or `s`; angles in `rad`; rates in `hr⁻¹`; ratios as dimensionless. This matches `TrackedTipPipeline`'s convention exactly — `_TRACKED_TIP_UNITS` declares `lengths: "pixels"`. Calibration is always a downstream concern.
+
+Users who want mm output compose `sleap_roots.circumnutation.units.convert_to_mm(traits_df, units, px_per_mm)` on the trait DataFrame. This pure function lives in PR #1 (foundation), is fully tested in isolation, and never affects the pipeline output. The `R` parameter for Tier 4 (Bastien-Meroz) becomes `R_px` — the user provides their root cross-section radius in pixels using whatever calibration they trust; the formula `δ̇₀ = ω·R·Δφ / (2·ΔL)` cancels dimensions because `R/ΔL` is a length ratio, so `R_px / ΔL_px` is dimensionless and `δ̇₀` is `hr⁻¹` regardless of calibration.
+
+This decouples the DPI ambiguity (PR #19) from the pipeline entirely. The pipeline can ship and run on plate 001 today without resolving DPI; the resolved value flows into `convert_to_mm()` calls downstream.
 
 ### CC-4. Row identity in trait CSV.
 
