@@ -32,7 +32,12 @@ _TRACKED_TIP_UNITS: Dict[str, str] = {
 
 _SCHEMA_VERSION = 1
 
-_SUMMARY_COLUMNS: List[str] = [
+# Column orderings are tuples (not lists) so they cannot be mutated by
+# downstream callers. Pandas does not copy the iterable passed to the
+# `columns=` argument; mutation would silently leak across pipeline calls.
+# Matches the convention `_VALID_ROOT_TYPES = ("primary", "lateral", "crown")`
+# in sleap_roots/series.py.
+_SUMMARY_COLUMNS: Tuple[str, ...] = (
     "series",
     "sample_uid",
     "timepoint",
@@ -42,8 +47,8 @@ _SUMMARY_COLUMNS: List[str] = [
     "tracking_coverage",
     "tip_trajectory_length",
     "tip_displacement_net",
-]
-_TRAJECTORY_COLUMNS: List[str] = [
+)
+_TRAJECTORY_COLUMNS: Tuple[str, ...] = (
     "series",
     "sample_uid",
     "timepoint",
@@ -51,7 +56,7 @@ _TRAJECTORY_COLUMNS: List[str] = [
     "frame",
     "tip_x",
     "tip_y",
-]
+)
 
 
 def _get_first_xy(xy: np.ndarray) -> np.ndarray:
