@@ -54,6 +54,38 @@ _TRAJECTORY_COLUMNS: List[str] = [
 ]
 
 
+def _get_first_xy(xy: np.ndarray) -> np.ndarray:
+    """Return the first row of an `(N, 2)` xy array.
+
+    Used as a TraitDef function in `TrackedTipPipeline.define_traits`.
+    Defined at module level (not as an inline lambda) so that the pipeline's
+    trait list is picklable, which is a precondition for any future
+    `multiprocessing`-based parallelization of the trait DAG.
+
+    Args:
+        xy: An `(N, 2)` array of frame-sorted `(tip_x, tip_y)` rows.
+
+    Returns:
+        The first row, shape `(2,)`.
+    """
+    return xy[0]
+
+
+def _get_last_xy(xy: np.ndarray) -> np.ndarray:
+    """Return the last row of an `(N, 2)` xy array.
+
+    Module-level (not lambda) for picklability. See `_get_first_xy` for
+    rationale.
+
+    Args:
+        xy: An `(N, 2)` array of frame-sorted `(tip_x, tip_y)` rows.
+
+    Returns:
+        The last row, shape `(2,)`.
+    """
+    return xy[-1]
+
+
 def _tracking_coverage_fn(n_tracked: int, n_total: int) -> float:
     """Compute the fraction of frames in which a track has an instance.
 
@@ -117,7 +149,7 @@ class TrackedTipPipeline(Pipeline):
             # existing distance function below.
             TraitDef(
                 name="track_first_xy",
-                fn=lambda xy: xy[0],
+                fn=_get_first_xy,
                 input_traits=["track_xy"],
                 scalar=False,
                 include_in_csv=False,
@@ -125,7 +157,7 @@ class TrackedTipPipeline(Pipeline):
             ),
             TraitDef(
                 name="track_last_xy",
-                fn=lambda xy: xy[-1],
+                fn=_get_last_xy,
                 input_traits=["track_xy"],
                 scalar=False,
                 include_in_csv=False,
