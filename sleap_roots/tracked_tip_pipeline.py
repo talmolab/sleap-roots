@@ -226,9 +226,16 @@ class TrackedTipPipeline(Pipeline):
         # Per-track DAG iteration. Empty df → no iterations, empty arrays.
         for track_id, group in df.groupby("track_id"):
             track_xy = group[["tip_x", "tip_y"]].to_numpy(dtype=float)
+            # n_frames_tracked is the count of UNIQUE frames in which the
+            # track has an instance — NOT len(group). Pathological tracker
+            # output (over-eager merging) can produce duplicate
+            # (track_id, frame) rows; counting instances would push
+            # tracking_coverage above 1.0 and break the [0, 1] contract.
+            # The trajectory CSV preserves duplicates for debugging; only
+            # the per-track summary deduplicates.
             initial_traits = {
                 "track_xy": track_xy,
-                "n_frames_tracked": len(group),
+                "n_frames_tracked": int(group["frame"].nunique()),
                 "n_frames_total": n_frames_total,
             }
             computed = self.compute_frame_traits(initial_traits)
