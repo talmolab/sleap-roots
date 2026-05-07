@@ -2828,10 +2828,10 @@
 
 
 <h1 id="design-timelapse-diffs-tracked-tip-kinematics-and-metadata-generalization">Design: Timelapse diffs, tracked-tip kinematics, and metadata generalization<a class="headerlink" href="#design-timelapse-diffs-tracked-tip-kinematics-and-metadata-generalization" title="Permanent link">&para;</a></h1>
-<p><strong>Date</strong>: 2026-04-23
-<strong>Related issues</strong>: #112 (close as obsolete), #129 (refresh), #163 (broaden), #159 (related), #169 (Workstream 1 metadata layer — implemented in PR #171), #170 (Workstream 3 TimeDiffPipeline)
-<strong>Depends on</strong>: PR #165 (MultipleDicotPlatePipeline) — merged 2026-04-21
-<strong>Status</strong>: Brainstorm complete, spec drafted. Circumnutation trait set deferred to a follow-up design once the maintainer has assembled a literature reference for method selection.</p>
+<p><strong>Date</strong>: 2026-04-23 (updated 2026-05-06 — Workstream 2 brainstorm complete)
+<strong>Related issues</strong>: #112 (close as obsolete), #129 (refresh), #163 (broaden), #159 (related), #169 (Workstream 1 metadata layer — implemented in PR #171), #170 (Workstream 3 TimeDiffPipeline), #186 (per-frame metadata accessor — Workstream 2 follow-up), #187 (preprocessing helpers — Workstream 2 follow-up), #188 (generic META→CSV converter — Workstream 2 follow-up), #189 (split <code>trait_pipelines.py</code> megafile — triggered by #129)
+<strong>Depends on</strong>: PR #165 (MultipleDicotPlatePipeline) — merged 2026-04-21; PR #171 (Workstream 1 metadata layer) — merged 2026-05-06
+<strong>Status</strong>: Workstream 1 shipped (PR #171). Workstream 2 brainstorm complete (2026-05-06); ready for OpenSpec proposal + TDD implementation. Circumnutation trait set deferred to a follow-up design once the maintainer has assembled a literature reference for method selection.</p>
 <h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
 <p>Three coordinated workstreams that replace the obsolete <code>PrimaryRootTimelapsePipeline</code> idea (#112) and refresh the existing <code>TrackedTipPipeline</code> scope (#129) with:</p>
 <ol>
@@ -2867,85 +2867,188 @@
 </ul>
 <p><strong>Why this ordering matters:</strong> <code>sample_uid</code> is the rename for a role that was previously implicit and entangled with <code>plant_qr_code</code>. Naming the role separately makes the other two workstreams cleaner — the diff pipeline doesn't need to care what row-granularity the user is diffing (plant, cylinder aggregate, tracked tip).</p>
 <h3 id="workstream-2-trackedtippipeline-refresh-of-129">Workstream 2 — <code>TrackedTipPipeline</code> (refresh of #129)<a class="headerlink" href="#workstream-2-trackedtippipeline-refresh-of-129" title="Permanent link">&para;</a></h3>
-<p>Root-agnostic pipeline consuming a <strong>tracked</strong> <code>.slp</code> file. Emits per-track tip trajectories + per-track growth-kinematic scalars. Scope matches the original #129 (kinematics only). Circumnutation-specific traits (period, amplitude, angular velocity, rotation direction, etc.) are deferred to a separate follow-up that will be designed against published literature — see "Deferred: circumnutation trait set" below.</p>
+<p>Root-agnostic pipeline consuming a <strong>tracked</strong> <code>.slp</code> file. Emits per-track tip trajectories + a <strong>minimum-viable substrate</strong> of per-track geometric scalars. <strong>TrackedTipPipeline's scope is the substrate, period.</strong> Velocity, curvature, smoothness, tortuosity, direction-changes, circumnutation traits — none of these belong in TrackedTipPipeline now or in the future. They live in <strong>separate downstream pipelines</strong> (e.g. <code>CircumnutationPipeline</code>, future growth-rate / gravitropism pipelines) that REUSE this pipeline's <code>Series.get_tracked_tips</code> accessor and trajectory-row output as their input substrate. Keeping TrackedTipPipeline minimal makes it reusable across many downstream pipelines without coupling to any single analysis's opinions.</p>
+<p><strong>Why minimum-viable substrate, not full kinematics:</strong> every downstream tip-aware pipeline needs (a) the raw <code>(t, x, y)</code> per track and (b) track-existence metadata (<code>tracking_coverage</code>) for filtering. Beyond those two, this pipeline emits only the unambiguous geometric scalars (<code>tip_trajectory_length</code>, <code>tip_displacement_net</code>) that have no detrending opinion. Derivative-based scalars (velocity, curvature) force a <code>frame_rate</code> decision and a "raw vs detrended" decision — those decisions belong in the downstream pipeline that owns the analysis (e.g. circumnutation analyses redefine velocity post-detrending). The substrate stays opinion-free so it serves every downstream consumer equally well.</p>
+<p><strong>Module placement:</strong></p>
+<ul>
+<li><code>sleap_roots/tracked_tip_pipeline.py</code> (NEW FILE) — <code>TrackedTipPipeline</code> class with its inline <code>TraitDef</code> list. Starts the per-pipeline-module pattern. Existing <code>trait_pipelines.py</code> megafile (3763 lines, 8 pipelines) split tracked in #189.</li>
+<li><code>sleap_roots/series.py</code> (EXTEND) — new <code>Series.get_tracked_tips(root_type=None)</code> method + module-level validation helpers (<code>validate_tracked_slp</code>, <code>validate_series_for_tracked_tip</code>).</li>
+<li><strong>NO new trait module</strong> — the pipeline reuses <code>sleap_roots.lengths.get_root_lengths</code> and <code>sleap_roots.bases.get_base_tip_dist</code> directly as TraitDef functions via DAG composition. The DAG provides the per-track input slicing (<code>track_first_xy</code>, <code>track_last_xy</code>); the existing tested functions provide the computation. See "DAG-A — TraitDef topology" below.</li>
+</ul>
 <p><strong>Inputs:</strong></p>
 <ul>
-<li><code>Series</code> with ONE of <code>primary_path</code> / <code>lateral_path</code> / <code>crown_path</code> populated. Pipeline is root-agnostic — works on whichever root type the SLEAP model tracked.</li>
-<li>Predictions in the <code>.slp</code> MUST carry SLEAP track identities (<code>instance.track is not None</code>). Pipeline raises <code>ValueError("TrackedTipPipeline requires tracked .slp predictions; see sleap.ai/tracking")</code> if any instance lacks a track.</li>
+<li><code>Series</code> with ONE of <code>primary_path</code> / <code>lateral_path</code> / <code>crown_path</code> populated. Pipeline is root-agnostic — works on whichever root type the SLEAP model tracked. If multiple paths are populated, caller must specify <code>root_type</code> explicitly; otherwise <code>ValueError</code>.</li>
+<li>Predictions in the <code>.slp</code> MUST carry SLEAP track identities (<code>instance.track is not None</code> for every instance). Pipeline raises <code>ValueError("TrackedTipPipeline requires tracked .slp predictions; see sleap.ai/tracking")</code> on the first untracked instance.</li>
+<li>Optional CSV metadata via <code>Series.load(csv_path=...)</code> — when present, <code>sample_uid</code> and <code>timepoint</code> are emitted in output rows. (<code>sample_uid</code> defaults to <code>series.series_name</code> per Workstream 1; <code>timepoint</code> is <code>np.nan</code> when no CSV.)</li>
+<li><strong>Single-node and multi-node skeletons both supported.</strong> Tip is the LAST node by skeleton convention (<code>pts[-1]</code>), already used by <code>sleap_roots.tips.get_tips</code>. Verified on a single-node circumnutation skeleton (<code>['r0']</code>) — the <code>[:, -1, :]</code> slice degenerates to <code>[:, 0, :]</code>, which IS the only point. A future user training a multi-node tip skeleton (e.g. <code>[base, midpoint, tip]</code>) gets correct extraction for free.</li>
 </ul>
 <p><strong>Output (two tables, emitted together):</strong></p>
 <ol>
 <li>
 <p><strong>Trajectory rows</strong> (per-track-per-frame, raw positions):
-   <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>series, sample_uid, track_id, frame, timepoint, tip_x, tip_y
+   <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>series, sample_uid, timepoint, track_id, frame, tip_x, tip_y
 </span></code></pre></div>
-   One row per <code>(track_id, frame)</code>. Self-contained tip-position timeline suitable as input to downstream circumnutation analysis once that workstream lands.</p>
+   One row per <code>(track_id, frame)</code>. Self-contained tip-position timeline suitable as input to downstream circumnutation analysis once that workstream lands. <code>frame</code> is the integer frame index in the .slp; real-time per-frame is <strong>deferred to #186</strong> (companion CSV via <code>Series.get_per_frame_metadata</code>). <code>timepoint</code> here is the per-series scalar (constant within a series), enabling uniform <code>TimeDiffPipeline</code> (Workstream 3) consumption across both tables.</p>
 </li>
 <li>
-<p><strong>Track summary rows</strong> (per-track, growth-kinematic scalars):
-   <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>series, sample_uid, track_id, n_frames_tracked, n_frames_total, tracking_coverage,
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>tip_trajectory_length, tip_displacement_net, tip_velocity_mean, tip_velocity_max,
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>tip_curvature_mean, tip_curvature_max
+<p><strong>Track summary rows</strong> (per-track scalars — substrate only):
+   <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>series, sample_uid, timepoint, track_id, n_frames_tracked, n_frames_total,
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>tracking_coverage, tip_trajectory_length, tip_displacement_net
 </span></code></pre></div>
-   One row per <code>track_id</code>. Summary scalars over the whole trajectory.</p>
+   One row per <code>track_id</code>. Substrate scalars only; <strong>no derivative-based metrics in v1</strong>.</p>
 </li>
 </ol>
-<p>Both tables emit in one call. CSV/JSON contract inherits from the plate pipeline: <code>schema_version</code> (<code>2</code> after Workstream 1 ships — bumped from <code>1</code> because Workstream 1 inserts <code>sample_uid</code> + <code>timepoint</code> columns at positions 1 and 2, shifting every other column; non-additive change), structured <code>units</code> dict (now including <code>units["time"]</code> — initially <code>"unspecified"</code> until a <code>time_unit</code> plumbing path lands), NaN→null JSON via <code>_json_sanitize</code>.</p>
-<p><strong>Tip-kinematics trait module</strong> (<code>sleap_roots/tip_kinematics.py</code>, new):</p>
-<p>Pure functions operating on <code>(t, x, y)</code> arrays, parallel to <code>sleap_roots/angle.py</code> and <code>sleap_roots/lengths.py</code>. The pipeline calls these in its TraitDef DAG.</p>
-<p>Trait definitions (all per-track):</p>
+<p>Both tables emit in one call. Output written to:</p>
+<ul>
+<li><strong>Per-series</strong>: <code>&lt;series&gt;.tracked_tip_traits.csv</code> (summary), <code>&lt;series&gt;.tracked_tip_trajectories.csv</code> (trajectory), <code>&lt;series&gt;.tracked_tip_traits.json</code> (both tables under <code>{tracks: [...], trajectories: [...]}</code> plus top-level scalars).</li>
+<li><strong>Batch</strong> (<code>compute_batch_tracked_tip_traits(all_series)</code>): <code>tracked_tip_batch_traits.csv</code> (concatenated summary), <code>tracked_tip_batch_trajectories.csv</code> (concatenated trajectory), <code>tracked_tip_batch_traits.json</code> (list of per-series dicts). Mirrors PR #165's <code>compute_batch_plate_traits</code> pattern (<code>pd.concat</code> of per-series DataFrames; per-series result-dict list for JSON).</li>
+</ul>
+<p><code>emit_trajectories: bool = True</code> kwarg on both methods — when <code>False</code>, skip writing the trajectory CSV and omit the <code>trajectories</code> array from JSON. Lets users running large batches skip the bulky table when only summary scalars are needed. At realistic experiment scale this is rarely needed (4 plates × 6 tracks × 311 frames ≈ 7,500 rows, ~750 KB concatenated trajectory CSV — fine), but the kwarg costs nothing.</p>
+<p><strong>CSV/JSON contract:</strong></p>
+<ul>
+<li><code>schema_version: 1</code> at top-level JSON (fresh pipeline, starts at 1).</li>
+<li>Structured <code>units</code> dict — <code>lengths: "pixels"</code>, <code>ratios: "dimensionless"</code>, <code>counts: "dimensionless"</code>, <code>time: "unspecified"</code> (Workstream 1's convention; future <code>time_unit</code> plumbing upgrades in place).</li>
+<li>NaN → JSON <code>null</code> via <code>_json_sanitize</code> (existing helper from PR #165).</li>
+<li>Top-level scalars (<code>series</code>, <code>sample_uid</code>, <code>timepoint</code>) in JSON do NOT repeat inside <code>tracks</code> / <code>trajectories</code> rows; CSV does repeat them on every row (PR #165's CSV/JSON asymmetry preserved).</li>
+</ul>
+<p><strong><code>Series.get_tracked_tips(root_type=None)</code> (NEW ACCESSOR):</strong></p>
+<p>Returns a long-format <code>pd.DataFrame</code> with columns <code>track_id, frame, tip_x, tip_y</code>. One row per <code>(track_id, frame)</code> where the track has an instance.</p>
+<ul>
+<li>Auto-detects <code>root_type</code> from whichever of <code>primary_path</code> / <code>lateral_path</code> / <code>crown_path</code> is populated; raises <code>ValueError</code> if zero or &gt;1 are populated and <code>root_type</code> is <code>None</code>.</li>
+<li><strong>Iterates per-instance, NOT per-frame-stack</strong> — tracker output does NOT preserve positional ordering across frames. Verified on the fixture: frame 0 instances are ordered <code>[track_0, 1, 2, 3, 4, 5]</code> but frame 1 is <code>[track_0, 3, 4, 2, 1, 5]</code>. Implementation reads <code>inst.track.name</code> per instance and <code>inst.numpy()[-1]</code> for the tip coordinate.</li>
+<li><strong>Output is sorted by <code>(track_id, frame)</code></strong> — REQUIRED so that <code>groupby('track_id')</code> produces frame-sorted <code>xy</code> arrays, making <code>xy[0]</code> the first-tracked-frame tip and <code>xy[-1]</code> the last-tracked-frame tip. Downstream <code>tip_displacement_net</code> correctness depends on this. Implementation: <code>df.sort_values(['track_id', 'frame']).reset_index(drop=True)</code> before returning.</li>
+<li>Untracked instances (<code>inst.track is None</code> or <code>inst.track.name</code> falsy) trip <code>ValueError</code> with the sleap.ai/tracking pointer.</li>
+</ul>
+<p><strong>Trait functions — pure DAG-A composition (no new trait module):</strong></p>
+<p>The pipeline reuses existing tested trait functions DIRECTLY as TraitDef <code>fn</code> values. The DAG provides per-track input slicing (<code>track_first_xy</code>, <code>track_last_xy</code>) so existing <code>(2,)</code>-and-<code>(2,)</code> and <code>(N, 2)</code> functions plug in unchanged.</p>
 <table>
 <thead>
 <tr>
 <th>Trait</th>
-<th>Definition</th>
+<th>TraitDef <code>fn</code></th>
+<th><code>input_traits</code></th>
+<th>Single-frame behavior</th>
 <th>Units family</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>tip_trajectory_length</code></td>
-<td>Cumulative arclength of raw <code>(x, y)</code></td>
+<td><a href="sleap_roots/lengths.py#L56"><code>lengths.get_root_lengths</code></a> (used directly — no wrapper)</td>
+<td><code>["track_xy"]</code></td>
+<td><code>NaN</code> (existing function returns NaN on empty-segments via vacuous-truth NaN guard; we accept this as the codebase's NaN-as-undefined convention)</td>
 <td>lengths</td>
 </tr>
 <tr>
 <td><code>tip_displacement_net</code></td>
-<td>Euclidean distance first → last point</td>
+<td><a href="sleap_roots/bases.py#L34"><code>bases.get_base_tip_dist</code></a> (used directly — no wrapper)</td>
+<td><code>["track_first_xy", "track_last_xy"]</code></td>
+<td><code>0.0</code> natural (xy[0] == xy[-1] for single-frame; no special-case)</td>
 <td>lengths</td>
 </tr>
 <tr>
-<td><code>tip_velocity_mean</code></td>
-<td>Mean <code>dt</code>-normalized step length</td>
-<td>lengths / time</td>
-</tr>
-<tr>
-<td><code>tip_velocity_max</code></td>
-<td>Max step length / <code>dt</code></td>
-<td>lengths / time</td>
-</tr>
-<tr>
-<td><code>tip_curvature_mean</code></td>
-<td>Mean <code>abs(dθ/ds)</code> along trajectory</td>
-<td>inverse_lengths</td>
-</tr>
-<tr>
-<td><code>tip_curvature_max</code></td>
-<td>Max <code>abs(dθ/ds)</code></td>
-<td>inverse_lengths</td>
-</tr>
-<tr>
 <td><code>tracking_coverage</code></td>
-<td><code>n_frames_tracked / n_frames_total</code></td>
-<td>ratios (dimensionless)</td>
+<td>inline lambda <code>lambda nt, ntot: nt/ntot if ntot else np.nan</code></td>
+<td><code>["n_frames_tracked", "n_frames_total"]</code></td>
+<td>well-defined for <code>n_tracked &gt;= 1</code></td>
+<td>ratios</td>
 </tr>
 </tbody>
 </table>
+<p>Single-frame edge case asymmetry is <strong>deliberate and documented</strong>: <code>tip_displacement_net = 0.0</code> (geometric — same point twice), <code>tip_trajectory_length = NaN</code> (codebase convention — undefined). Users who want either filtered or coerced apply <code>fillna(0.0)</code> post-hoc; users who want only "real trajectories" filter on <code>n_frames_tracked &gt; 1</code>. Both <code>tracking_coverage</code> and <code>n_frames_tracked</code> are emitted on every row, so single-frame degeneracy is explicit and filterable.</p>
+<p><strong>DAG-A — TraitDef topology:</strong></p>
+<p>Pipeline uses the existing <code>TraitDef</code> graph plumbing (per <code>DicotPipeline</code> and friends). The input is the long-format <code>tracked_tips_df</code> (sorted by <code>(track_id, frame)</code>); the iteration unit is <code>track_id</code>, not <code>frame</code>. Pipeline iterates <code>for track_id, group in df.groupby('track_id'):</code> and runs the full DAG once per track.</p>
+<p>Concrete <code>TrackedTipPipeline.traits</code> list:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sleap_roots.lengths</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_root_lengths</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sleap_roots.bases</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_base_tip_dist</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">traits</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="c1"># Per-track inputs (computed in compute_tracked_tip_traits prep loop):</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">TraitDef</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;track_xy&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">),</span>               <span class="c1"># Nx2 frame-sorted trajectory</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">TraitDef</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;n_frames_tracked&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">),</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">TraitDef</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;n_frames_total&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">),</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="c1"># Per-track slicing (one-line lambdas; DAG provides per-track-frame</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="c1"># endpoints so the existing distance function below plugs in unchanged):</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="n">TraitDef</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;track_first_xy&quot;</span><span class="p">,</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>             <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">xy</span><span class="p">:</span> <span class="n">xy</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>             <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;track_xy&quot;</span><span class="p">],</span> <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    <span class="n">TraitDef</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;track_last_xy&quot;</span><span class="p">,</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>             <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">xy</span><span class="p">:</span> <span class="n">xy</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>             <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;track_xy&quot;</span><span class="p">],</span> <span class="n">scalar</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    <span class="c1"># Trait scalars — existing trait functions used DIRECTLY via DAG composition:</span>
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>    <span class="n">TraitDef</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;tip_displacement_net&quot;</span><span class="p">,</span>
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>             <span class="n">fn</span><span class="o">=</span><span class="n">get_base_tip_dist</span><span class="p">,</span>                <span class="c1"># ← from bases.py, no wrapper</span>
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>             <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;track_first_xy&quot;</span><span class="p">,</span> <span class="s2">&quot;track_last_xy&quot;</span><span class="p">],</span>
+</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>             <span class="n">scalar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+</span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>
+</span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>    <span class="n">TraitDef</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;tip_trajectory_length&quot;</span><span class="p">,</span>
+</span><span id="__span-2-26"><a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>             <span class="n">fn</span><span class="o">=</span><span class="n">get_root_lengths</span><span class="p">,</span>                 <span class="c1"># ← from lengths.py, no wrapper</span>
+</span><span id="__span-2-27"><a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>             <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;track_xy&quot;</span><span class="p">],</span>
+</span><span id="__span-2-28"><a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>             <span class="n">scalar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+</span><span id="__span-2-29"><a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>
+</span><span id="__span-2-30"><a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>    <span class="n">TraitDef</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;tracking_coverage&quot;</span><span class="p">,</span>
+</span><span id="__span-2-31"><a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>             <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">nt</span><span class="p">,</span> <span class="n">ntot</span><span class="p">:</span> <span class="n">nt</span> <span class="o">/</span> <span class="n">ntot</span> <span class="k">if</span> <span class="n">ntot</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span id="__span-2-32"><a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a>             <span class="n">input_traits</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;n_frames_tracked&quot;</span><span class="p">,</span> <span class="s2">&quot;n_frames_total&quot;</span><span class="p">],</span>
+</span><span id="__span-2-33"><a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a>             <span class="n">scalar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">include_in_csv</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+</span><span id="__span-2-34"><a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a><span class="p">]</span>
+</span></code></pre></div>
+<p>DAG topology:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>tracked_tips_df (sorted by (track_id, frame))
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>        │
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>        │ groupby(track_id)
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>        ▼
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        ├──&gt; track_xy (Nx2 frame-sorted)
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        │       │
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        │       ├──&gt; track_first_xy = xy[0]   ──┐
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        │       ├──&gt; track_last_xy  = xy[-1]  ──┴──&gt; tip_displacement_net
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        │       │                                    (= get_base_tip_dist)
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        │       │
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        │       └──&gt; tip_trajectory_length
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        │            (= get_root_lengths)
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>        │
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>        ├──&gt; n_frames_tracked  ──┐
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>        └──&gt; n_frames_total   ──┴──&gt; tracking_coverage
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>                                     (= nt / ntot)
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>                │
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>                ▼
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>        per-track summary row
+</span></code></pre></div>
+<p><strong>Circumnutation and other downstream pipelines REUSE this substrate; they DO NOT extend <code>TrackedTipPipeline</code>.</strong> A future <code>CircumnutationPipeline</code> is a separate class that consumes <code>series.get_tracked_tips(...)</code> (or this pipeline's trajectory CSV / JSON output) as its input substrate, runs its own <code>TraitDef</code> DAG with circumnutation-specific nodes, and emits its own per-track summary table. Conceptually:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>                                    ┌──────────────────────────────────┐
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>                                    │  Series.get_tracked_tips(...)    │
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>                                    │  + TrackedTipPipeline trajectory │
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>                                    │     CSV / JSON                   │
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>                                    │  (THIS PR — frozen substrate)    │
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>                                    └────────────────┬─────────────────┘
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>                                                     │ reused as input
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>                       ┌─────────────────────────────┼──────────────────────────────┐
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>                       ▼                             ▼                              ▼
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>              ┌──────────────────┐        ┌────────────────────┐         ┌──────────────────┐
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>              │ CircumnutationPipe│        │ (future) GrowthRate│         │ (future) Gravi-  │
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>              │ (NEXT PR — own   │        │ Pipeline           │         │ tropismPipeline  │
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>              │  TraitDef DAG)    │        │ (own DAG, own CSV) │         │ (own DAG, own CSV)│
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>              │  Period/amplitude/│        │ Velocity/accel etc.│         │ Angle vs gravity │
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>              │  rotation etc.    │        │                    │         │                  │
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>              └──────────────────┘        └────────────────────┘         └──────────────────┘
+</span></code></pre></div>
+<p><code>TrackedTipPipeline</code>'s 5 substrate scalars stay frozen forever. New downstream pipelines come into existence as siblings, not as extensions of this one.</p>
+<p><strong>Validation helpers</strong> (in scope for #129):</p>
+<ul>
+<li><code>sleap_roots.series.validate_tracked_slp(slp_path) -&gt; None</code> — opens the .slp, asserts every instance has <code>inst.track is not None</code> AND <code>inst.track.name</code> is non-empty, raises <code>ValueError</code> listing offending frame indices if not. Module-level, paired with existing <code>find_all_slp_paths</code>.</li>
+<li><code>sleap_roots.series.validate_series_for_tracked_tip(series, root_type=None) -&gt; None</code> — composite check: validates the relevant <code>&lt;root_type&gt;_path</code>, asserts skeleton has ≥1 node, calls <code>validate_tracked_slp</code>. Raises with actionable messages.</li>
+</ul>
 <p><strong>Edge cases</strong> (deliberate behavior, tested):</p>
 <ul>
-<li>Short tracks (<code>n_frames_tracked &lt; 3</code>) — velocity / curvature scalars = NaN, no crash.</li>
-<li>Single-frame track — NaN everywhere except <code>sample_uid</code> + <code>track_id</code> + <code>tracking_coverage</code>.</li>
-<li>Partial tracking (gaps in frames) — compute on available window; <code>tracking_coverage &lt; 1.0</code>.</li>
-<li>Uneven frame spacing — use <code>timepoint</code> if column present, else <code>frame_rate</code> kwarg, else assume 1 unit per frame and document.</li>
+<li><strong>Zero tracked instances anywhere</strong> — pipeline emits empty <code>tracks</code> and <code>trajectories</code> arrays / empty CSVs, no crash.</li>
+<li><strong>Single-frame track</strong> — <code>tip_displacement_net=0.0</code> (natural, xy[0]==xy[-1]), <code>tip_trajectory_length=NaN</code> (codebase convention from <code>get_root_lengths</code>'s NaN-on-empty-segments guard — accepted as the trade-off for using the existing function directly via DAG-A; no wrapper), <code>n_frames_tracked=1</code>, <code>tracking_coverage &gt; 0</code>. Documented asymmetry; users <code>fillna(0.0)</code> or filter on <code>n_frames_tracked &gt; 1</code>.</li>
+<li><strong>Partial tracking (gaps)</strong> — compute on available window; <code>tracking_coverage &lt; 1.0</code>.</li>
+<li><strong>Track-fragment / re-ID</strong> — trust the tracker. If one physical tip becomes two <code>track_id</code>s in the source, two summary rows appear. <strong>Documented assumption: input <code>.slp</code> is proofread.</strong></li>
+<li><strong>Multiple root paths populated</strong> — <code>ValueError</code> requesting explicit <code>root_type</code>.</li>
+<li><strong><code>track.name</code> is <code>None</code> or empty string</strong> — treated as untracked; trips the "requires tracked .slp" <code>ValueError</code>.</li>
+<li><strong>Single-node skeleton</strong> (only the tip node) — supported via the <code>pts[-1]</code> convention; verified on the circumnutation fixture (<code>r0</code>-only skeleton).</li>
+<li><strong>Multi-node skeleton</strong> (e.g. <code>[base, midpoint, tip]</code>) — supported via the same <code>pts[-1]</code> convention.</li>
 </ul>
 <h3 id="deferred-circumnutation-trait-set">Deferred: circumnutation trait set<a class="headerlink" href="#deferred-circumnutation-trait-set" title="Permanent link">&para;</a></h3>
 <p>Circumnutation-specific traits (period, amplitude, angular velocity, rotation direction, nutation-cycle count, etc.) are intentionally <strong>out of scope for this design</strong> and will be spec'd in a separate follow-up once the maintainer has assembled a literature reference on method selection. Questions to answer with the literature:</p>
@@ -2955,33 +3058,33 @@
 <li>Is "amplitude" defined as radial distance from detrended mean, half peak-to-peak, or RMS of residuals?</li>
 <li>How to define rotation direction when trajectory is noisy / partially tracked?</li>
 </ul>
-<p>The TrackedTipPipeline's trajectory-row output is the natural input to those analyses. When the circumnutation design lands, it can either be added as additional traits to TrackedTipPipeline (same pipeline, expanded trait set) or as a new trait module consumed by users who call <code>TrackedTipPipeline.compute_...</code> themselves. That decision is deferred with the rest of circumnutation.</p>
+<p>The TrackedTipPipeline's trajectory-row output (and <code>Series.get_tracked_tips</code> accessor) is the input substrate for those analyses. <strong>The circumnutation trait set lives in a separate <code>CircumnutationPipeline</code> class</strong> — it does NOT extend <code>TrackedTipPipeline</code>. Keeping <code>TrackedTipPipeline</code> minimal and opinion-free is what makes it reusable across multiple downstream pipelines (circumnutation today; growth-rate, gravitropism, and other tip-aware analyses tomorrow).</p>
 <h3 id="workstream-3-timediffpipeline-new">Workstream 3 — <code>TimeDiffPipeline</code> (new)<a class="headerlink" href="#workstream-3-timediffpipeline-new" title="Permanent link">&para;</a></h3>
 <p>Wrapper <code>Pipeline</code> class (D2 style from the brainstorm) that takes an inner pipeline and appends a between-timepoint delta table.</p>
 <p><strong>API:</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sleap_roots.diff_pipelines</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeDiffPipeline</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Plate intra-series (one .slp, many frames)</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">diff</span> <span class="o">=</span> <span class="n">TimeDiffPipeline</span><span class="p">(</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">inner</span><span class="o">=</span><span class="n">MultipleDicotPlatePipeline</span><span class="p">(),</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">identity_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;series&quot;</span><span class="p">,</span> <span class="s2">&quot;plant_id&quot;</span><span class="p">],</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">time_col</span><span class="o">=</span><span class="s2">&quot;frame&quot;</span><span class="p">,</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;consecutive&quot;</span><span class="p">,</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="p">)</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">result</span> <span class="o">=</span> <span class="n">diff</span><span class="o">.</span><span class="n">compute_plate_traits</span><span class="p">(</span><span class="n">series</span><span class="p">)</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="c1"># result[&quot;plants&quot;] — unchanged from inner pipeline</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="c1"># result[&quot;deltas&quot;] — new parallel delta table</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="c1"># Cylinder inter-series (N series across timepoints)</span>
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="n">diff_cyl</span> <span class="o">=</span> <span class="n">TimeDiffPipeline</span><span class="p">(</span>
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    <span class="n">inner</span><span class="o">=</span><span class="n">MultipleDicotPipeline</span><span class="p">(),</span>
-</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    <span class="n">identity_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;sample_uid&quot;</span><span class="p">],</span>
-</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    <span class="n">time_col</span><span class="o">=</span><span class="s2">&quot;timepoint&quot;</span><span class="p">,</span>
-</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;consecutive&quot;</span><span class="p">,</span>
-</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="p">)</span>
-</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="n">result</span> <span class="o">=</span> <span class="n">diff_cyl</span><span class="o">.</span><span class="n">compute_batch_multiple_dicots_traits</span><span class="p">(</span><span class="n">all_series</span><span class="p">)</span>
-</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="c1"># result[&quot;plants&quot;] — unchanged from inner pipeline (per-series aggregate rows)</span>
-</span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="c1"># result[&quot;deltas&quot;] — new parallel delta table</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sleap_roots.diff_pipelines</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeDiffPipeline</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="c1"># Plate intra-series (one .slp, many frames)</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">diff</span> <span class="o">=</span> <span class="n">TimeDiffPipeline</span><span class="p">(</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">inner</span><span class="o">=</span><span class="n">MultipleDicotPlatePipeline</span><span class="p">(),</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">identity_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;series&quot;</span><span class="p">,</span> <span class="s2">&quot;plant_id&quot;</span><span class="p">],</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">time_col</span><span class="o">=</span><span class="s2">&quot;frame&quot;</span><span class="p">,</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;consecutive&quot;</span><span class="p">,</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">)</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="n">result</span> <span class="o">=</span> <span class="n">diff</span><span class="o">.</span><span class="n">compute_plate_traits</span><span class="p">(</span><span class="n">series</span><span class="p">)</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="c1"># result[&quot;plants&quot;] — unchanged from inner pipeline</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="c1"># result[&quot;deltas&quot;] — new parallel delta table</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="c1"># Cylinder inter-series (N series across timepoints)</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="n">diff_cyl</span> <span class="o">=</span> <span class="n">TimeDiffPipeline</span><span class="p">(</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>    <span class="n">inner</span><span class="o">=</span><span class="n">MultipleDicotPipeline</span><span class="p">(),</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>    <span class="n">identity_cols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;sample_uid&quot;</span><span class="p">],</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>    <span class="n">time_col</span><span class="o">=</span><span class="s2">&quot;timepoint&quot;</span><span class="p">,</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;consecutive&quot;</span><span class="p">,</span>
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="p">)</span>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="n">result</span> <span class="o">=</span> <span class="n">diff_cyl</span><span class="o">.</span><span class="n">compute_batch_multiple_dicots_traits</span><span class="p">(</span><span class="n">all_series</span><span class="p">)</span>
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="c1"># result[&quot;plants&quot;] — unchanged from inner pipeline (per-series aggregate rows)</span>
+</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="c1"># result[&quot;deltas&quot;] — new parallel delta table</span>
 </span></code></pre></div>
 <p><strong>Algorithm:</strong></p>
 <ol>
@@ -3035,8 +3138,8 @@
 </tr>
 <tr>
 <td>#129</td>
-<td>Refresh</td>
-<td>Keep tip-kinematics scope (trajectory + velocity + curvature). Root-agnostic. Requires tracked <code>.slp</code>. Align output shape with the PR #165 contract (schema_version, structured units, <code>_json_sanitize</code>).</td>
+<td>Refresh (now scoped to <strong>substrate</strong>, not full kinematics)</td>
+<td>Trajectory rows + 5 substrate scalars (<code>tip_trajectory_length</code>, <code>tip_displacement_net</code>, <code>tracking_coverage</code>, <code>n_frames_tracked</code>, <code>n_frames_total</code>). Root-agnostic. Requires tracked <code>.slp</code>. <strong>Scope frozen</strong> — velocity / curvature / circumnutation traits do NOT belong in this pipeline; they live in separate downstream pipeline classes that REUSE the substrate. Output contract aligns with PR #165 (<code>schema_version=1</code>, structured units, <code>_json_sanitize</code>).</td>
 </tr>
 <tr>
 <td>#159</td>
@@ -3046,17 +3149,37 @@
 <tr>
 <td>#163</td>
 <td>Broaden</td>
-<td>Add <code>sample_uid</code> column convention (fallback to <code>plant_qr_code</code>); add <code>timepoint</code> column convention.</td>
+<td>Add <code>sample_uid</code> column convention (fallback to <code>plant_qr_code</code>); add <code>timepoint</code> column convention; rename legacy <code>plant_qr_code</code> column.</td>
 </tr>
 <tr>
-<td>NEW</td>
-<td>File</td>
+<td>#169</td>
+<td>Implemented (PR #171)</td>
+<td>Workstream 1 metadata layer shipped 2026-05-06.</td>
+</tr>
+<tr>
+<td>#170</td>
+<td>Keep (Workstream 3)</td>
 <td><code>TimeDiffPipeline</code> wrapper class.</td>
 </tr>
 <tr>
-<td>NEW</td>
-<td>File</td>
-<td><code>sample_uid</code> + <code>timepoint</code> metadata layer + <code>Series.get_metadata()</code> generalized accessor + <code>sleap_roots/metadata.py</code> CSV builder helpers.</td>
+<td>#186</td>
+<td>Filed 2026-05-06 (Workstream 2 follow-up)</td>
+<td>Per-frame metadata accessor on <code>Series</code> (<code>get_per_frame_metadata</code>, companion CSV). Required for any pipeline that needs real-time-per-frame; not blocking #129 (substrate uses integer <code>frame</code> only).</td>
+</tr>
+<tr>
+<td>#187</td>
+<td>Filed 2026-05-06 (Workstream 2 follow-up)</td>
+<td>Preprocessing helpers: image folder → <code>.h5</code> + per-frame metadata CSV. Captures the upstream of the data-prep workflow.</td>
+</tr>
+<tr>
+<td>#188</td>
+<td>Filed 2026-05-06 (Workstream 2 follow-up)</td>
+<td>Generic source-META → sleap-roots-CSV converter (<code>convert_meta_to_qr_csv</code>). Captures the experiment-metadata side.</td>
+</tr>
+<tr>
+<td>#189</td>
+<td>Filed 2026-05-06 (triggered by #129)</td>
+<td>Refactor: split <code>trait_pipelines.py</code> (3763 lines, 8 pipelines) into per-pipeline modules. #129 starts the per-pipeline-file pattern by living in <code>sleap_roots/tracked_tip_pipeline.py</code>.</td>
 </tr>
 <tr>
 <td>NEW (deferred)</td>
@@ -3123,6 +3246,11 @@
 </table>
 <h2 id="out-of-scope-deferred">Out of scope (deferred)<a class="headerlink" href="#out-of-scope-deferred" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>Velocity / curvature / smoothness / tortuosity / direction-changes traits</strong> — these are NEVER added to <code>TrackedTipPipeline</code>. They live in separate downstream pipeline classes (e.g. a future <code>CircumnutationPipeline</code>, <code>GrowthRatePipeline</code>, etc.) that REUSE this pipeline's <code>Series.get_tracked_tips</code> accessor and trajectory output as their input substrate. <code>TrackedTipPipeline</code>'s scope is frozen at the substrate so it remains opinion-free and reusable across many downstream pipelines.</li>
+<li><strong>Per-frame real-time timestamps</strong> in <code>TrackedTipPipeline</code> output — deferred to <strong>#186</strong> (per-frame metadata accessor on <code>Series</code>). Substrate uses integer <code>frame</code> column only.</li>
+<li><strong>Image folder → <code>.h5</code> + per-frame metadata CSV preprocessing</strong> — deferred to <strong>#187</strong>. Captures the upstream of the data-prep workflow (raw imaging output → sleap-roots-readable inputs).</li>
+<li><strong>Generic source-META → sleap-roots-CSV conversion helpers</strong> — deferred to <strong>#188</strong>. Captures the experiment-metadata side of the data-prep workflow.</li>
+<li><strong>Splitting <code>trait_pipelines.py</code> into per-pipeline modules</strong> — deferred to <strong>#189</strong>. <code>TrackedTipPipeline</code> lands in its own new file (<code>sleap_roots/tracked_tip_pipeline.py</code>), starting the pattern.</li>
 <li><strong>Circumnutation trait set</strong> (period, amplitude, angular velocity, rotation direction, n_nutation_cycles, detrending method) — deferred to a separate design once the maintainer has assembled a literature reference. Workstream 2's trajectory-row output is the natural input.</li>
 <li><strong>Spatial matching of plant IDs across scans</strong> — D3 in the brainstorm. Fragile; file follow-up only if user demand materializes.</li>
 <li><strong>Date-string parsing into numeric timepoints</strong> (<code>"2024-03-15"</code> → day number) — too domain-specific. User responsibility.</li>
@@ -3133,17 +3261,17 @@
 <li><strong>Shared helper to deduplicate <code>_assign_laterals_to_primaries_by_distance</code> vs <code>associate_lateral_to_primary</code></strong> — tracked in design D7 + possibly #166.</li>
 </ul>
 <h2 id="dependencies-between-workstreams">Dependencies between workstreams<a class="headerlink" href="#dependencies-between-workstreams" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Workstream 1 (metadata layer)
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    ├──&gt; Workstream 2 (TrackedTipPipeline — needs `timepoint` / `sample_uid`)
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    └──&gt; Workstream 3 (TimeDiffPipeline — needs pipelines to emit `timepoint` / `sample_uid`)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Workstream 1 (metadata layer)
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    ├──&gt; Workstream 2 (TrackedTipPipeline — needs `timepoint` / `sample_uid`)
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    └──&gt; Workstream 3 (TimeDiffPipeline — needs pipelines to emit `timepoint` / `sample_uid`)
 </span></code></pre></div>
 <p>Workstream 1 is prerequisite for the other two but can land in its own small PR. Workstream 2 and Workstream 3 are independent of each other and can land in parallel once Workstream 1 ships.</p>
 <h2 id="test-plan">Test plan<a class="headerlink" href="#test-plan" title="Permanent link">&para;</a></h2>
 <p>Same discipline as PR #165 — synthetic <code>.slp</code> round-trip for integration tests; pure-function unit tests for trait modules; openspec proposal per workstream with full scenario coverage.</p>
 <p>Each workstream gets its own OpenSpec change:</p>
 <ul>
-<li><code>change-id: add-sample-uid-timepoint-metadata</code> (Workstream 1)</li>
-<li><code>change-id: add-tracked-tip-pipeline</code> (Workstream 2 — kinematics only; no circumnutation)</li>
+<li><code>change-id: add-sample-uid-timepoint-metadata</code> (Workstream 1 — shipped via PR #171, archived 2026-05-06)</li>
+<li><code>change-id: add-tracked-tip-pipeline</code> (Workstream 2 — substrate scope: trajectory + 5 per-track scalars; no velocity / curvature / circumnutation)</li>
 <li><code>change-id: add-time-diff-pipeline</code> (Workstream 3)</li>
 </ul>
 <p>When the circumnutation literature is assembled, a fourth change (<code>add-circumnutation-traits</code> or similar) picks up that scope on top of Workstream 2's trajectory-row output.</p>
@@ -3160,18 +3288,27 @@
 <p><strong>Synthetic + real, from day one.</strong></p>
 <p>Synthetic coverage (primary test surface):</p>
 <ul>
-<li>Pure trait functions in <code>sleap_roots/tip_kinematics.py</code> against known <code>(t, x, y)</code> arrays.</li>
-<li>Pipeline DAG, CSV/JSON emission, empty-input / single-frame / short-track edge cases via synthetic <code>.slp</code> files with <code>sio.Track</code> objects attached to <code>sio.Instance</code> via <code>from_numpy(..., track=...)</code>.</li>
+<li>Existing trait functions (<code>lengths.get_root_lengths</code>, <code>bases.get_base_tip_dist</code>) already have full unit tests in the repo — no new pure-function tests needed for them. The new tests in this PR cover the <strong>pipeline-level composition</strong>: that the DAG correctly slices <code>track_first_xy</code> / <code>track_last_xy</code>, passes them to <code>get_base_tip_dist</code>, and routes <code>track_xy</code> to <code>get_root_lengths</code>. Exact-value assertions on multi-segment trajectories (e.g. straight line of known length, right-angle path with known total + known displacement), single-frame degenerate case (<code>tip_displacement_net=0.0</code>, <code>tip_trajectory_length=NaN</code>), and the inline <code>tracking_coverage</code> lambda's NaN-on-zero-total guard.</li>
+<li><code>Series.get_tracked_tips</code> accessor on synthetic <code>.slp</code> files with <code>sio.Track</code> objects attached to <code>sio.Instance</code> via <code>from_numpy(..., track=...)</code> — exercises root-type auto-detection, multiple-paths-populated <code>ValueError</code>, untracked-instance <code>ValueError</code>, single-node and multi-node skeleton paths, <strong>frame-sorted output ordering</strong> (regression-test the sort that <code>tip_displacement_net</code> correctness depends on).</li>
+<li>Pipeline DAG, CSV/JSON emission, batch concat, <code>emit_trajectories=False</code> skip path, empty-input / single-frame / short-track edge cases — all via synthetic <code>.slp</code> files.</li>
 </ul>
-<p>Real-fixture coverage (added before PR merge):</p>
+<p>Real-fixture coverage (committed in the PR):</p>
 <ul>
-<li>Source: <code>Z:\users\eberrigan\circumnutation</code> — plate timelapse with tracked tips.</li>
-<li>Copy ONE small subset into <code>tests/data/circumnutation_plate/</code> (target: single plant, ≤30 frames, compressed). Commit via Git LFS.</li>
-<li><strong>Fixture README required</strong>: <code>tests/data/circumnutation_plate/README.md</code> following the standard template from issue #168 (purpose, imaging geometry, acquisition context, contents, known limitations, related issues). The new fixture lands with documentation from day one so Workstream 2's PR does not add to the existing test-data documentation debt.</li>
-<li>One integration test: <code>Series.load</code> on the real <code>.slp</code> → <code>TrackedTipPipeline.compute_...</code> → assert every trait column is present, <code>tracking_coverage ∈ [0, 1]</code>, trajectory row count equals tracked-instance count. No exact trait value assertions (those belong in synthetic tests where the geometry is controlled).</li>
-<li>Purpose: catch sleap-io track-representation drift, real tracker-output edge cases (births, deaths, gaps, re-IDs), ensure the sleap-io loading path works on real tracked predictions.</li>
+<li><strong>Source</strong>: <code>Z:\users\eberrigan\circumnutation\20250819_Suyash_Patil_CMTN_Kitx_vs_Hk1-3_07-30-25\run_20250827_091833\plate_001_greyscale.tracked.slp</code> (verified 2026-05-06) — 311 frames, 6 tracks, single-node skeleton (<code>['r0']</code>), HDF5 video backend.</li>
+<li><strong>Fixture file</strong>: <code>tests/data/circumnutation_plate/plate_001_greyscale.tracked.slp</code> — <strong>184 KB</strong>. Take the WHOLE 311-frame plate as-is (no subsetting needed; size is comfortably under git-LFS thresholds). Commit via Git LFS.</li>
+<li><strong>Fixture metadata CSV</strong>: <code>tests/data/circumnutation_plate/fixture_metadata.csv</code> — synthesized BY HAND (one-time, NOT a script) from <code>CMTN_KITXvsHK1-3_META.csv</code>'s plate-1 row. Schema follows the existing <code>plant_qr_code</code>-keyed convention (legacy column name; rename tracked in #163):
+  <div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>plant_qr_code,genotype,treatment,number_of_plants_cylinder,timepoint
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>plate_001,KitaakeX,MOCK,6,0
+</span></code></pre></div>
+  README documents the column-name caveat (<code>plant_qr_code</code> value <code>"plate_001"</code> is a plate identifier, not a plant identifier; <code>number_of_plants_cylinder</code> is a misnomer here — no cylinder).</li>
+<li><strong>Per-frame metadata</strong> (<code>plate_001_metadata.csv</code> from the source) is <strong>deliberately NOT shipped</strong> — consumed only after #186 lands. README points to #186 as the path forward for real-time-per-frame consumption.</li>
+<li><strong>Fixture README required</strong>: <code>tests/data/circumnutation_plate/README.md</code> following the standard template from issue #168 (purpose, imaging geometry, acquisition context, contents, known limitations, related issues, conversion provenance). The new fixture lands with documentation from day one so Workstream 2's PR does not add to the existing test-data documentation debt.</li>
+<li><strong>Integration tests</strong> (two paths exercise both CSV-plumbing and no-CSV branches):</li>
+<li><code>Series.load(primary_path=..., csv_path=fixture_metadata.csv, sample_uid="plate_001")</code> → <code>TrackedTipPipeline.compute_tracked_tip_traits(series)</code> → assert: every output column present, <code>tracking_coverage ∈ [0, 1]</code> for every track, summary row count equals 6 (tracks), trajectory row count equals total tracked instances (311 frames × 6 tracks where every frame has 6 tracked instances → 1866 rows). No exact trait-value assertions (those belong in synthetic tests).</li>
+<li><code>Series.load(primary_path=...)</code> (NO <code>csv_path</code>) → same pipeline call → assert <code>sample_uid</code> defaults to <code>series_name</code>, <code>timepoint</code> is NaN, all other columns identical to (1).</li>
+<li><strong>Purpose</strong>: catch sleap-io track-representation drift, real tracker-output edge cases (track-order non-determinism across frames — verified during brainstorm), ensure single-node skeleton path works on real tracked predictions.</li>
 </ul>
-<p><strong>Gate on PR merge</strong>: either the real fixture lands with the PR OR a follow-up issue is filed before the PR is marked ready for review (same discipline as PR #165's #162). Given the source data is available today, the intent is to ship it in the PR.</p>
+<p><strong>Gate on PR merge</strong>: real fixture lands WITH the PR (source data is available; size is small). No follow-up deferral.</p>
 <h3 id="workstream-3-timediffpipeline">Workstream 3 — <code>TimeDiffPipeline</code><a class="headerlink" href="#workstream-3-timediffpipeline" title="Permanent link">&para;</a></h3>
 <p><strong>Synthetic-only.</strong></p>
 <ul>
@@ -3213,8 +3350,16 @@
 <td>No change for them — the kwarg default is <code>series_name</code>, which already produces unique per-scan rows.</td>
 </tr>
 <tr>
-<td>TrackedTipPipeline output shape might need to change when circumnutation lands</td>
-<td>Output spec for Workstream 2 is deliberately minimal and extensible — adding circumnutation scalars as new per-track columns is additive and bumps <code>schema_version</code> only if removal/rename is needed.</td>
+<td>Users expect velocity / curvature / kinematic scalars in <code>TrackedTipPipeline</code> from the original #129 scope</td>
+<td>Document explicitly in the pipeline docstring + README that <code>TrackedTipPipeline</code> is the minimum-viable substrate, scope frozen. Velocity / curvature etc. live in separate downstream pipelines (e.g. future <code>CircumnutationPipeline</code>) — never added to <code>TrackedTipPipeline</code>. The trajectory-row output + <code>Series.get_tracked_tips</code> accessor are the input substrate for those analyses.</td>
+</tr>
+<tr>
+<td>Track-order non-determinism across frames could be assumed away accidentally during refactors</td>
+<td><code>Series.get_tracked_tips</code> iterates per-instance and reads <code>inst.track.name</code> per instance — never relies on positional ordering. Documented in the accessor's docstring with the verified example from the fixture brainstorm (frame 0: <code>[0,1,2,3,4,5]</code>; frame 1: <code>[0,3,4,2,1,5]</code>). Test asserts that two adjacent frames with shuffled positional order still produce identically-keyed track rows.</td>
+</tr>
+<tr>
+<td>Single-node skeleton support breaks if the <code>[-1]</code> convention is changed</td>
+<td><code>[-1]</code> slice is the established convention in <code>sleap_roots.tips.get_tips</code>. Test asserts the accessor works on both single-node (<code>['r0']</code>) and multi-node skeletons.</td>
 </tr>
 </tbody>
 </table>
