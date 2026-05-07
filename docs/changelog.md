@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `TrackedTipPipeline` — root-agnostic pipeline that consumes SLEAP-tracked `.slp` predictions and emits per-track tip-trajectory data plus a minimum-viable substrate of per-track geometric scalars (`tip_trajectory_length`, `tip_displacement_net`, `tracking_coverage`, `n_frames_tracked`, `n_frames_total`). Substrate-only by design; velocity / curvature / circumnutation traits live in separate downstream pipelines that reuse this substrate. (#129, Workstream 2 of the 2026-04-23 timelapse design)
+- `Series.get_tracked_tips(root_type=None)` — long-format DataFrame of per-track tip rows (`track_id, frame, tip_x, tip_y`), sorted by `(track_id, frame)`. Supports single-node and multi-node skeletons via the `[-1]` skeleton convention.
+- `validate_tracked_slp(slp_path)` and `validate_series_for_tracked_tip(series, root_type=None)` module-level helpers in `sleap_roots.series` for input precondition checks.
+- New `notebooks/TrackedTipPipeline_Mermaid_Graph.md` — DAG visualization for the new pipeline.
+- New test fixture `tests/data/circumnutation_plate/` — real tracked .slp from the circumnutation source data (184 KB, 311 frames, 6 tracks, single-node skeleton) plus synthesized plate-level metadata CSV and per-#168-template README.
 - Comprehensive MkDocs documentation site with Material theme
 - Auto-generated API reference from docstrings
 - User guides for all pipeline types (7 pipelines)
@@ -17,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cookbook with code recipes (filtering, custom traits, batch optimization, exporting)
 - Troubleshooting guide with common issues and solutions
 - uv package manager support with PEP 735 dependency groups
+
+### Internal
+- Started per-pipeline-module pattern: `TrackedTipPipeline` lives in `sleap_roots/tracked_tip_pipeline.py` instead of being appended to the existing 3763-line `trait_pipelines.py` megafile. Splitting the existing 8 pipelines is tracked in #189.
 
 ### Changed
 - Updated installation documentation with uv best practices

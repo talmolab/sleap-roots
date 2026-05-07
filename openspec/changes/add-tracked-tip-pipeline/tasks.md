@@ -198,12 +198,9 @@ These tests use the real `tests/data/circumnutation_plate/` fixture. No new impl
 
 ## 14. Documentation
 
-- [ ] 14.1 Add a tutorial section to `docs/` (existing `docs/tutorials/` directory) showing end-to-end usage:
-  - Load a tracked .slp via `Series.load`.
-  - Call `TrackedTipPipeline().compute_tracked_tip_traits(series, write_csv=True, write_json=True)`.
-  - Inspect the output CSVs and JSON.
-  - Note: this is the substrate; downstream pipelines (circumnutation, etc.) consume this output.
-- [ ] 14.2 Add CHANGELOG entry under `Added`: pipeline, accessor, validators. Under `Fixed`: nothing (additive change). Under `Internal`: started per-pipeline-module pattern (#189 tracks the rest).
+- [ ] 14.1 Add a tutorial section to `docs/` (existing `docs/tutorials/` directory) showing end-to-end usage. _Deferred to a follow-up PR — existing tutorials are full Jupyter notebooks (notebooks/*.ipynb) which is heavier than this substrate-focused PR warrants. Docstrings + the mermaid graph below provide canonical reference._
+- [x] 14.2 Add CHANGELOG entry under `Added`: pipeline, accessor, validators. Under `Internal`: started per-pipeline-module pattern (#189 tracks the rest). _CHANGELOG is at `docs/changelog.md` (lowercase)._
+- [x] 14.3 Generate `notebooks/TrackedTipPipeline_Mermaid_Graph.md` — DAG visualization mirroring the existing `DicotPipeline_Mermaid_Graph.md` and friends. Built directly from `TrackedTipPipeline().traits` via the same idiom in `notebooks/Pipeline_mermaid_diagrams.ipynb`. 8 distinct trait nodes.
 
 ## 15. OpenSpec validation + final checks
 
