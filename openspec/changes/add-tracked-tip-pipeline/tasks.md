@@ -210,8 +210,8 @@ These tests use the real `tests/data/circumnutation_plate/` fixture. No new impl
 
 ## 16. PR + review
 
-- [ ] 16.1 Open PR against `main`. Title: `feat: TrackedTipPipeline for tracked-tip kinematic substrate (Workstream 2 of #129) (#129)`.
-- [ ] 16.2 PR body links: #129 (closes), #170 (unblocks plate-intra-series and tracked-tip cases), #186 (deferred), #187 (deferred), #188 (deferred), #189 (per-pipeline-module pattern starts here).
+- [x] 16.1 Open PR against `main`. PR #190: https://github.com/talmolab/sleap-roots/pull/190 — title: `feat: TrackedTipPipeline for tracked-tip kinematic substrate (#129)`.
+- [x] 16.2 PR body links: #129 (closes), #186 / #187 / #188 / #189 (deferred follow-ups).
 - [ ] 16.3 Run `/review-pr` (Phase 3.5 self-review) before requesting human review.
 - [ ] 16.4 Run `/pre-merge` after review approvals.
 - [ ] 16.5 Verify CI green on Linux + Windows + macOS, Python 3.11.
