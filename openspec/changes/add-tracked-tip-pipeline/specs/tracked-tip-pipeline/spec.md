@@ -249,6 +249,29 @@ In JSON output, the `NaN` value MUST be serialized as `null` via `_json_sanitize
 - **When** the JSON file is parsed
 - **Then** the corresponding `tracks[i]["tip_trajectory_length"]` is JSON `null`
 
+### Requirement: `tracking_coverage` SHALL be bounded to `[0.0, 1.0]` regardless of duplicate `(track_id, frame)` rows
+
+`tracking_coverage` MUST be a float in `[0.0, 1.0]` for every track in the result. To enforce this bound, `n_frames_tracked` MUST equal the number of UNIQUE frame indices in which the track has an instance — NOT the raw count of instances. Pathological tracker output (e.g. merged tracks producing two instances with the same `track_id` in the same frame) MUST NOT inflate `tracking_coverage` above `1.0`.
+
+Implementation: in `compute_tracked_tip_traits`'s per-track groupby, `n_frames_tracked = int(group["frame"].nunique())` (NOT `len(group)`). This deduplicates duplicate `(track_id, frame)` rows from the trajectory DataFrame before computing the coverage ratio.
+
+Note: this requirement specifies the OUTPUT contract on `n_frames_tracked` and `tracking_coverage`. The trajectory CSV still records every row from `Series.get_tracked_tips` (one per tracked instance), so duplicate `(track_id, frame)` instances remain visible in the per-frame trajectory table for downstream debugging. Only the per-track summary row's `n_frames_tracked` and the derived `tracking_coverage` are deduplicated.
+
+#### Scenario: Duplicate `(track_id, frame)` does not inflate tracking_coverage above 1.0
+
+- **Given** a synthetic .slp with 1 frame containing 2 instances of the same `track_id="t"` (a buggy-tracker pathology — over-eager merger producing two coincident detections under one track id)
+- **When** `compute_tracked_tip_traits(series)` is called
+- **Then** the per-track summary row for `track_id="t"` has `tracking_coverage == 1.0` (`1 unique frame / 1 total frame`), NOT `2.0`
+- **And** `n_frames_tracked == 1` (the unique-frame count)
+- **And** `n_frames_total == 1`
+
+#### Scenario: Duplicate instances appear in trajectory rows but not inflate summary
+
+- **Given** the same .slp
+- **When** the result is inspected
+- **Then** `len(result["trajectories"])` reflects every tracked-instance row (including the duplicate — so `2` for a frame with two same-track instances)
+- **And** `n_frames_tracked` in the summary row is the deduplicated count (`1`, not `2`)
+
 ### Requirement: Zero-track and zero-frame edge cases SHALL not crash
 
 When the input `Series` has no tracked instances anywhere (e.g. all instances were untracked and validation was skipped, or the .slp is empty), `compute_tracked_tip_traits` MUST return a result dict with `result["tracks"] == []` and `result["trajectories"] == []`. No exception is raised, no division-by-zero on `tracking_coverage` (the lambda's `if ntot else np.nan` guard handles `n_frames_total == 0`).

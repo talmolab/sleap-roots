@@ -278,6 +278,61 @@ def test_compute_tracked_tip_traits_zero_tracks(tmp_path):
     assert result["trajectories"] == []
 
 
+def test_tracking_coverage_bounded_when_track_has_duplicate_frame(tmp_path):
+    """Duplicate (track_id, frame) MUST NOT inflate tracking_coverage above 1.0.
+
+    Surfaced by /review-pr on PR #190: pathological tracker output (e.g.
+    over-eager track merging) can produce two instances with the same
+    `inst.track.name` in the same frame. The previous implementation used
+    `n_frames_tracked = len(group)` which counted instances, not unique
+    frames — so a 1-frame .slp with 2 same-track instances yielded
+    `tracking_coverage = 2.0`, violating the spec contract that
+    `tracking_coverage ∈ [0.0, 1.0]`.
+
+    Fix: `n_frames_tracked = int(group["frame"].nunique())`.
+    """
+    Path(tmp_path).mkdir(parents=True, exist_ok=True)
+    image_h, image_w = 200, 200
+    img_array = np.zeros((image_h, image_w), dtype=np.uint8)
+    tif_path = tmp_path / "s.tif"
+    from PIL import Image
+
+    Image.fromarray(img_array).save(tif_path.as_posix(), dpi=(72, 72))
+    video = sio.Video.from_filename(tif_path.as_posix())
+    skeleton = sio.Skeleton(nodes=[sio.Node("r0")])
+    track = sio.Track(name="t")
+    # ONE frame, TWO instances both with the SAME track — pathological.
+    pts_a = np.array([[10.0, 20.0]])
+    pts_b = np.array([[15.0, 25.0]])
+    inst_a = sio.Instance.from_numpy(pts_a, skeleton=skeleton, track=track)
+    inst_b = sio.Instance.from_numpy(pts_b, skeleton=skeleton, track=track)
+    lf = sio.LabeledFrame(video=video, frame_idx=0, instances=[inst_a, inst_b])
+    labels = sio.Labels(
+        labeled_frames=[lf], skeletons=[skeleton], videos=[video], tracks=[track]
+    )
+    slp_path = tmp_path / "s.primary.tracked.slp"
+    sio.save_slp(labels, slp_path.as_posix())
+
+    series = Series.load(series_name="s", primary_path=slp_path.as_posix())
+    result = TrackedTipPipeline().compute_tracked_tip_traits(series)
+
+    assert len(result["tracks"]) == 1
+    row = result["tracks"][0]
+    assert row["track_id"] == "t"
+    assert (
+        row["n_frames_tracked"] == 1
+    ), f"n_frames_tracked must be unique-frame count, got {row['n_frames_tracked']}"
+    assert row["n_frames_total"] == 1
+    assert (
+        row["tracking_coverage"] == 1.0
+    ), f"tracking_coverage must be bounded to [0,1], got {row['tracking_coverage']}"
+
+    # Trajectory rows still record every tracked instance — duplicates
+    # remain visible in the per-frame table for downstream debugging.
+    # Only the per-track summary deduplicates.
+    assert len(result["trajectories"]) == 2
+
+
 def test_compute_tracked_tip_traits_emits_sample_uid_and_timepoint_from_csv(tmp_path):
     """§6.15: with CSV → sample_uid and timepoint resolved from CSV."""
     series = _build_tracked_slp(

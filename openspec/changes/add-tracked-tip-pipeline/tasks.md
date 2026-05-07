@@ -217,6 +217,17 @@ These tests use the real `tests/data/circumnutation_plate/` fixture. No new impl
 - [ ] 16.5 Verify CI green on Linux + Windows + macOS, Python 3.11.
 - [ ] 16.6 Address any review feedback. New comments → new failing test → green test → push.
 
+## 16b. Post-review fix: bound `tracking_coverage` to `[0.0, 1.0]` (TDD red → green)
+
+Surfaced by the multi-agent review (`/review-pr` on PR #190): `tracking_coverage` could exceed `1.0` when the source `.slp` has duplicate `(track_id, frame)` rows (pathological tracker output — merged tracks). The integration test asserts `0 ≤ coverage ≤ 1` and the spec promises it; the contract was silently violated under that adversarial input.
+
+Fixed via strict TDD with separate test + impl commits to leave a visible audit trail.
+
+- [x] 16b.1 RED: write a failing test in `tests/test_tracked_tip_pipeline.py` that constructs a `.slp` with one frame containing 2 instances of the same `track_id="t"`, calls `compute_tracked_tip_traits`, and asserts `tracking_coverage == 1.0` AND `n_frames_tracked == 1`. Run the test before implementing — confirm it FAILS with `AssertionError: 2.0 != 1.0`.
+- [x] 16b.2 GREEN: in `sleap_roots/tracked_tip_pipeline.py`'s per-track groupby, change `n_frames_tracked = len(group)` to `n_frames_tracked = int(group["frame"].nunique())`. Run the test — confirm it passes.
+- [x] 16b.3 Run full test suite — no regressions.
+- [x] 16b.4 Run `openspec validate add-tracked-tip-pipeline --strict` — confirm the new requirement parses cleanly.
+
 ## 17. Post-merge: archive the OpenSpec change
 
 - [ ] 17.1 After merge, run `openspec archive add-tracked-tip-pipeline` — moves the change folder under `openspec/changes/archive/YYYY-MM-DD-add-tracked-tip-pipeline/` and creates the `openspec/specs/tracked-tip-pipeline/spec.md`.
