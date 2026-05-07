@@ -1,6 +1,6 @@
 # Update Changelog
 
-Maintain CHANGELOG.md following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
+Maintain docs/changelog.md following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
 ## Quick Commands
 
@@ -26,7 +26,7 @@ python -c "import sleap_roots; print(sleap_roots.__version__)"
 
 ## Changelog Format
 
-The CHANGELOG.md follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) principles:
+The docs/changelog.md follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) principles:
 
 - **Guiding Principle**: Changelogs are for humans, not machines
 - **Latest First**: Most recent version at the top
@@ -121,7 +121,7 @@ Group commits by category:
 - **Fixed**: Bug fixes, error handling improvements
 - **Security**: Security patches, data handling fixes
 
-### Step 3: Update CHANGELOG.md
+### Step 3: Update docs/changelog.md
 
 Add changes to the `[Unreleased]` section:
 
@@ -358,9 +358,9 @@ When releasing:
 
 ```bash
 # Update version in sleap_roots/__init__.py
-# Update CHANGELOG.md
+# Update docs/changelog.md
 # Commit changes
-git add sleap_roots/__init__.py CHANGELOG.md
+git add sleap_roots/__init__.py docs/changelog.md
 git commit -m "chore: bump version to 0.2.0"
 
 # Tag release

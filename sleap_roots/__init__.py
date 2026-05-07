@@ -34,7 +34,10 @@ from sleap_roots.series import (
     find_all_slp_paths,
     load_series_from_h5s,
     load_series_from_slps,
+    validate_series_for_tracked_tip,
+    validate_tracked_slp,
 )
+from sleap_roots.tracked_tip_pipeline import TrackedTipPipeline
 
 # Define package version.
 # This is read dynamically by setuptools in pyproject.toml to determine the release version.
