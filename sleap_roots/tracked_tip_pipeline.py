@@ -1,22 +1,4 @@
-"""TrackedTipPipeline: per-track tip-trajectory substrate from tracked .slp predictions.
-
-Issue #129 (Workstream 2 of the 2026-04-23 timelapse design). Consumes
-SLEAP-tracked predictions and emits a minimum-viable substrate of per-track
-geometric scalars plus the raw trajectory rows. **Scope is frozen** —
-velocity / curvature / circumnutation traits NEVER belong here; they live in
-separate downstream pipeline classes that REUSE this pipeline's
-``Series.get_tracked_tips`` accessor and trajectory output as their input
-substrate.
-
-Lives in its own file (NOT appended to the 3763-line ``trait_pipelines.py``
-megafile) — starts the per-pipeline-module pattern; the existing megafile
-split is tracked in #189.
-
-See:
-- ``docs/superpowers/specs/2026-04-23-timelapse-diff-and-tip-kinematics-design.md``
-  § Workstream 2 — design rationale and brainstorm decisions.
-- ``openspec/changes/add-tracked-tip-pipeline/`` — formal contract.
-"""
+"""TrackedTipPipeline for per-track tip-trajectory analysis (issue #129)."""
 
 import json
 import logging
@@ -73,10 +55,16 @@ _TRAJECTORY_COLUMNS: List[str] = [
 
 
 def _tracking_coverage_fn(n_tracked: int, n_total: int) -> float:
-    """Fraction of frames in which a track has an instance.
+    """Compute the fraction of frames in which a track has an instance.
 
-    ``np.nan`` when ``n_total == 0`` (defensive — pipeline iteration handles
-    empty input upstream so this is rarely reached).
+    Args:
+        n_tracked: Number of frames in which the track has an instance.
+        n_total: Total number of frames in the series.
+
+    Returns:
+        `n_tracked / n_total` as a float in `[0, 1]`. Returns `np.nan` when
+        `n_total == 0` (defensive — pipeline iteration handles empty input
+        upstream so this branch is rarely reached).
     """
     if n_total == 0:
         return float("nan")
@@ -87,25 +75,42 @@ def _tracking_coverage_fn(n_tracked: int, n_total: int) -> float:
 class TrackedTipPipeline(Pipeline):
     """Pipeline emitting per-track tip-trajectory substrate from tracked .slp.
 
-    Reuses existing trait functions DIRECTLY via TraitDef DAG composition —
-    no wrapper module. ``tip_displacement_net`` delegates to
-    ``sleap_roots.bases.get_base_tip_dist``; ``tip_trajectory_length``
-    delegates to ``sleap_roots.lengths.get_root_lengths``. The DAG provides
-    per-track input slicing (``track_first_xy = xy[0]``,
-    ``track_last_xy = xy[-1]``) so existing functions plug in unchanged.
+    Reuses existing trait functions directly via TraitDef DAG composition —
+    no wrapper module. `tip_displacement_net` delegates to
+    `sleap_roots.bases.get_base_tip_dist`; `tip_trajectory_length` delegates
+    to `sleap_roots.lengths.get_root_lengths`. The DAG provides per-track
+    input slicing (`track_first_xy = xy[0]`, `track_last_xy = xy[-1]`) so
+    existing functions plug in unchanged.
 
-    Iteration unit is **per-track** (not per-frame as in DicotPipeline et
-    al.). The pipeline calls ``series.get_tracked_tips()`` to obtain a
-    long-format DataFrame sorted by ``(track_id, frame)``, groups by
-    ``track_id``, and runs the DAG once per group with the per-track inputs.
+    Iteration unit is per-track (not per-frame as in `DicotPipeline` et al.).
+    `compute_tracked_tip_traits` calls `series.get_tracked_tips()` to obtain
+    a long-format DataFrame sorted by `(track_id, frame)`, groups by
+    `track_id`, and runs the DAG once per group with the per-track inputs.
+
+    Attributes:
+        traits: List of `TraitDef` objects (inherited from `Pipeline`,
+            populated from `define_traits()`).
+        trait_map: Dictionary mapping trait names to their definitions
+            (inherited from `Pipeline`).
+        trait_computation_order: List of trait names in topological order
+            (inherited from `Pipeline`).
+
+    Methods:
+        define_traits: Return the per-track TraitDef DAG (5 trait nodes —
+            `track_first_xy`, `track_last_xy`, `tip_displacement_net`,
+            `tip_trajectory_length`, `tracking_coverage`).
+        compute_tracked_tip_traits: Compute per-track traits for one Series
+            and optionally write CSV/JSON outputs.
+        compute_batch_tracked_tip_traits: Run `compute_tracked_tip_traits`
+            across multiple Series and concatenate per-series outputs.
     """
 
     def define_traits(self) -> List[TraitDef]:
         """Return the per-track TraitDef DAG.
 
-        Inputs (pre-populated per track when ``compute_frame_traits`` is
-        called): ``track_xy`` (Nx2 frame-sorted), ``n_frames_tracked``,
-        ``n_frames_total``.
+        Inputs (pre-populated per track when `compute_frame_traits` is
+        called): `track_xy` (Nx2 frame-sorted), `n_frames_tracked`,
+        `n_frames_total`.
         """
         return [
             # Per-track slicing — DAG provides endpoint extraction for the
@@ -179,25 +184,25 @@ class TrackedTipPipeline(Pipeline):
         """Compute per-track tip-trajectory traits for one Series.
 
         Args:
-            series: ``Series`` whose tracked .slp will be processed.
+            series: `Series` whose tracked .slp will be processed.
             write_csv: When True, write the summary CSV and (unless
-                ``emit_trajectories=False``) the trajectory CSV to
-                ``output_dir``.
+                `emit_trajectories=False`) the trajectory CSV to
+                `output_dir`.
             write_json: When True, write the per-series JSON file.
             output_dir: Directory to write outputs to. Created if absent.
             emit_trajectories: When False, suppress writing the trajectory
-                CSV and emit ``trajectories=[]`` in the in-memory and JSON
+                CSV and emit `trajectories=[]` in the in-memory and JSON
                 outputs.
             csv_summary_suffix: Filename suffix for the summary CSV.
             csv_trajectory_suffix: Filename suffix for the trajectory CSV.
             json_suffix: Filename suffix for the JSON.
 
         Returns:
-            A dict with keys ``schema_version`` (1), ``pipeline``
-            (``"TrackedTipPipeline"``), ``units`` (structured dict),
-            ``series`` (str), ``sample_uid`` (str), ``timepoint`` (float or
-            NaN), ``tracks`` (list of per-track dicts), ``trajectories``
-            (list of per-frame dicts; empty when ``emit_trajectories=False``).
+            A dict with keys `schema_version` (1), `pipeline`
+            (`"TrackedTipPipeline"`), `units` (structured dict),
+            `series` (str), `sample_uid` (str), `timepoint` (float or
+            NaN), `tracks` (list of per-track dicts), `trajectories`
+            (list of per-frame dicts; empty when `emit_trajectories=False`).
         """
         # Validate input early — raises ValueError on untracked instances or
         # zero/multiple paths populated without root_type.
@@ -289,8 +294,18 @@ class TrackedTipPipeline(Pipeline):
     ) -> Tuple[pd.DataFrame, Optional[pd.DataFrame]]:
         """Build per-series summary + trajectory DataFrames for CSV emission.
 
-        Returns ``(summary_df, trajectory_df)``. ``trajectory_df`` is ``None``
-        when ``emit_trajectories`` is False.
+        Args:
+            result: Per-series result dict from `compute_tracked_tip_traits`.
+                Must contain `series`, `sample_uid`, `timepoint`, `tracks`,
+                and `trajectories` keys.
+            emit_trajectories: When True, build the trajectory DataFrame.
+                When False, return `None` for the trajectory DataFrame.
+
+        Returns:
+            A tuple `(summary_df, trajectory_df)`. `summary_df` carries the
+            per-track scalar columns with `series` / `sample_uid` /
+            `timepoint` repeated on every row. `trajectory_df` carries the
+            per-frame tip rows (or `None` when `emit_trajectories=False`).
         """
         # Repeat top-level scalars on every row of both DataFrames.
         series_name = result["series"]
@@ -335,17 +350,17 @@ class TrackedTipPipeline(Pipeline):
         json_name: str = "tracked_tip_batch_traits.json",
         emit_trajectories: bool = True,
     ) -> Tuple[pd.DataFrame, Optional[pd.DataFrame], List[Dict[str, Any]]]:
-        """Run ``compute_tracked_tip_traits`` across multiple Series; concatenate.
+        """Run `compute_tracked_tip_traits` across multiple Series; concatenate.
 
-        Mirrors the existing ``compute_batch_plate_traits`` pattern in
-        ``trait_pipelines.py``: walks ``all_series``, calls the per-series
+        Mirrors the existing `compute_batch_plate_traits` pattern in
+        `trait_pipelines.py`: walks `all_series`, calls the per-series
         method, concatenates per-series DataFrames into one, collects
         per-series result dicts into a list.
 
         Args:
-            all_series: Sequence of ``Series`` objects to process.
+            all_series: Sequence of `Series` objects to process.
             write_csv: When True, write batch summary CSV and (unless
-                ``emit_trajectories=False``) batch trajectory CSV.
+                `emit_trajectories=False`) batch trajectory CSV.
             write_json: When True, write a single JSON file containing a
                 list of per-series result dicts.
             output_dir: Directory to write outputs to. Created if absent.
@@ -356,9 +371,9 @@ class TrackedTipPipeline(Pipeline):
                 all series.
 
         Returns:
-            ``(batch_summary_df, batch_trajectory_df_or_None, per_series_results)``.
-            ``batch_trajectory_df_or_None`` is ``None`` when
-            ``emit_trajectories`` is False; otherwise a concatenated
+            `(batch_summary_df, batch_trajectory_df_or_None, per_series_results)`.
+            `batch_trajectory_df_or_None` is `None` when
+            `emit_trajectories` is False; otherwise a concatenated
             DataFrame across all series.
         """
         per_series_results: List[Dict[str, Any]] = []

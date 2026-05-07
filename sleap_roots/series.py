@@ -531,29 +531,29 @@ class Series:
         """Return per-frame tracked-tip rows in long format.
 
         Args:
-            root_type: One of ``"primary"``, ``"lateral"``, ``"crown"``. When
-                ``None`` (default), auto-detects from whichever single
-                ``<root_type>_path`` is populated. Raises ``ValueError`` when
-                zero or more than one path is populated and ``root_type`` is
-                ``None``.
+            root_type: One of `"primary"`, `"lateral"`, `"crown"`. When
+                `None` (default), auto-detects from whichever single
+                `<root_type>_path` is populated. Raises `ValueError` when
+                zero or more than one path is populated and `root_type` is
+                `None`.
 
         Returns:
-            A ``pandas.DataFrame`` with columns ``["track_id", "frame",
-            "tip_x", "tip_y"]`` in that order, sorted by ``(track_id, frame)``
-            with a clean range index. One row per ``(track_id, frame)`` where
+            A `pandas.DataFrame` with columns `["track_id", "frame",
+            "tip_x", "tip_y"]` in that order, sorted by `(track_id, frame)`
+            with a clean range index. One row per `(track_id, frame)` where
             the track has an instance.
 
             The tip coordinate is the LAST node of the skeleton
-            (``inst.numpy()[-1]``), matching the convention used by
-            ``sleap_roots.tips.get_tips``. This works for both single-node
-            skeletons (e.g. ``["r0"]``) and multi-node skeletons (e.g.
-            ``["base", "mid", "tip"]``).
+            (`inst.numpy()[-1]`), matching the convention used by
+            `sleap_roots.tips.get_tips`. This works for both single-node
+            skeletons (e.g. `["r0"]`) and multi-node skeletons (e.g.
+            `["base", "mid", "tip"]`).
 
         Raises:
-            ValueError: When ``root_type`` is ``None`` and zero or more than
-                one of ``primary_path`` / ``lateral_path`` / ``crown_path``
+            ValueError: When `root_type` is `None` and zero or more than
+                one of `primary_path` / `lateral_path` / `crown_path`
                 is populated. Also raised when any instance has
-                ``inst.track is None`` or empty ``inst.track.name`` — the
+                `inst.track is None` or empty `inst.track.name` — the
                 pipeline requires SLEAP-tracked predictions.
         """
         # Resolve root_type — auto-detect when None.
@@ -956,17 +956,17 @@ def plot_instances(
 def validate_tracked_slp(slp_path: Union[str, Path]) -> None:
     """Validate that every instance in a .slp file has a non-empty track.
 
-    Used as an input precondition for ``TrackedTipPipeline``.
+    Used as an input precondition for `TrackedTipPipeline`.
 
     Args:
         slp_path: Path to the .slp file to validate.
 
     Returns:
-        ``None`` when every instance has a non-empty ``inst.track.name``.
+        `None` when every instance has a non-empty `inst.track.name`.
 
     Raises:
-        ValueError: When any instance has ``inst.track is None`` or empty
-            ``inst.track.name``. The error message lists ALL offending frame
+        ValueError: When any instance has `inst.track is None` or empty
+            `inst.track.name`. The error message lists ALL offending frame
             indices and points to the SLEAP tracking documentation.
     """
     labels = sio.load_slp(str(slp_path))
@@ -991,27 +991,27 @@ def validate_series_for_tracked_tip(
     series: Series,
     root_type: Optional[str] = None,
 ) -> None:
-    """Validate a ``Series`` is loadable by ``TrackedTipPipeline``.
+    """Validate a `Series` is loadable by `TrackedTipPipeline`.
 
-    Composite check: resolves ``root_type`` (auto-detect when ``None``),
-    asserts the corresponding ``<root_type>_path`` is set and the loaded
-    skeleton has at least one node, then calls ``validate_tracked_slp`` on
+    Composite check: resolves `root_type` (auto-detect when `None`),
+    asserts the corresponding `<root_type>_path` is set and the loaded
+    skeleton has at least one node, then calls `validate_tracked_slp` on
     the resolved path.
 
     Args:
-        series: The ``Series`` to validate.
-        root_type: One of ``"primary"``, ``"lateral"``, ``"crown"``. When
-            ``None``, auto-detects from whichever single ``<root_type>_path``
+        series: The `Series` to validate.
+        root_type: One of `"primary"`, `"lateral"`, `"crown"`. When
+            `None`, auto-detects from whichever single `<root_type>_path`
             is populated.
 
     Returns:
-        ``None`` when the series is valid for tracked-tip processing.
+        `None` when the series is valid for tracked-tip processing.
 
     Raises:
-        ValueError: When ``root_type`` is ``None`` and zero or more than one
-            of ``primary_path`` / ``lateral_path`` / ``crown_path`` is
+        ValueError: When `root_type` is `None` and zero or more than one
+            of `primary_path` / `lateral_path` / `crown_path` is
             populated; when the resolved path's skeleton has zero nodes;
-            or when ``validate_tracked_slp`` raises (propagated).
+            or when `validate_tracked_slp` raises (propagated).
     """
     path_attrs = {
         "primary": series.primary_path,
