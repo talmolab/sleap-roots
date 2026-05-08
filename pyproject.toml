@@ -10,13 +10,10 @@ authors = [
     {name = "Talmo Pereira", email = "talmo@salk.edu"}
 ]
 description="Analysis tools for SLEAP-based plant root phenotyping."
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 keywords = ["sleap", "plants", "roots", "phenotyping"]
 license = {text = "BSD-3-Clause"}
 classifiers = [
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -32,7 +29,9 @@ dependencies = [
     "scikit-image",
     "shapely",
     "click>=8.0",
-    "jinja2>=3.0"
+    "jinja2>=3.0",
+    "scipy",
+    "pywavelets>=1.5"
 ]
 dynamic = ["version", "readme"]
 
@@ -97,6 +96,7 @@ Repository = "https://github.com/talmolab/sleap-roots"
 
 [tool.black]
 line-length = 88
+target-version = ["py310"]
 
 [pydocstyle]
 convention = "google"
