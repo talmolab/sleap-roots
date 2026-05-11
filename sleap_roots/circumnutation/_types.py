@@ -66,8 +66,19 @@ def _validate_trajectory_df(instance, attribute, value: pd.DataFrame) -> None:
 
 
 def _validate_cadence_s(instance, attribute, value: float) -> None:
-    """Validate that ``cadence_s`` is a positive finite float."""
-    if value is None or math.isnan(float(value)) or float(value) <= 0:
+    """Validate that ``cadence_s`` is a positive finite float.
+
+    Mirrors the try/except pattern in :func:`_validate_R_px` so that
+    non-numeric inputs (e.g. strings) surface as ``ValueError`` naming
+    the ``cadence_s`` field, matching the class docstring contract.
+    """
+    if value is None:
+        raise ValueError(f"cadence_s must be a positive finite float, got {value!r}")
+    try:
+        as_float = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"cadence_s must be a positive finite float, got {value!r}")
+    if math.isnan(as_float) or as_float <= 0:
         raise ValueError(f"cadence_s must be a positive finite float, got {value!r}")
 
 

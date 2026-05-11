@@ -151,6 +151,50 @@ def test_constant_has_documented_default(name, expected):
     assert getattr(_constants, name) == expected
 
 
+def test_pipeline_unit_vocabulary_is_px_only():
+    """PIPELINE_UNIT_VOCABULARY contains only px-based + calibration-independent units.
+
+    Regression test for Copilot PR #200 finding: the original
+    `VALID_UNIT_VOCABULARY` contained mm-based units, weakening the
+    pure-pixel sidecar contract. The split establishes one vocabulary
+    for what the pipeline emits (this one — px only) and a separate
+    one for `convert_to_mm` outputs.
+    """
+    from sleap_roots.circumnutation._constants import PIPELINE_UNIT_VOCABULARY
+
+    forbidden_in_pipeline = {"mm", "mm²", "mm/hr", "mm/frame", "mm·hr⁻¹"}
+    assert forbidden_in_pipeline.isdisjoint(PIPELINE_UNIT_VOCABULARY)
+    assert "px" in PIPELINE_UNIT_VOCABULARY
+    assert "px²" in PIPELINE_UNIT_VOCABULARY
+    assert "px/hr" in PIPELINE_UNIT_VOCABULARY
+    # Calibration-independent units must remain valid
+    assert "hr" in PIPELINE_UNIT_VOCABULARY
+    assert "rad" in PIPELINE_UNIT_VOCABULARY
+    assert "bool" in PIPELINE_UNIT_VOCABULARY
+
+
+def test_converted_unit_vocabulary_is_mm_only():
+    """CONVERTED_UNIT_VOCABULARY contains only mm-based units (convert_to_mm output range)."""
+    from sleap_roots.circumnutation._constants import CONVERTED_UNIT_VOCABULARY
+
+    forbidden_in_converted = {"px", "px²", "px/hr", "px/frame", "px·hr⁻¹"}
+    assert forbidden_in_converted.isdisjoint(CONVERTED_UNIT_VOCABULARY)
+    assert "mm" in CONVERTED_UNIT_VOCABULARY
+    assert "mm²" in CONVERTED_UNIT_VOCABULARY
+    assert "mm/hr" in CONVERTED_UNIT_VOCABULARY
+
+
+def test_valid_unit_vocabulary_is_union_of_pipeline_and_converted():
+    """VALID_UNIT_VOCABULARY = PIPELINE_UNIT_VOCABULARY | CONVERTED_UNIT_VOCABULARY."""
+    from sleap_roots.circumnutation._constants import (
+        CONVERTED_UNIT_VOCABULARY,
+        PIPELINE_UNIT_VOCABULARY,
+        VALID_UNIT_VOCABULARY,
+    )
+
+    assert VALID_UNIT_VOCABULARY == PIPELINE_UNIT_VOCABULARY | CONVERTED_UNIT_VOCABULARY
+
+
 def test_schema_and_constants_versions_are_integers_equal_to_one():
     """`_SCHEMA_VERSION` and `_CONSTANTS_VERSION` exist as integers equal to 1."""
     from sleap_roots.circumnutation import _constants
@@ -252,6 +296,24 @@ def test_unconvertible_R_px_raises(valid_trajectory_df):
             trajectory_df=valid_trajectory_df,
             cadence_s=300.0,
             R_px="abc",
+        )
+
+
+def test_unconvertible_cadence_s_raises(valid_trajectory_df):
+    """Non-numeric cadence_s (e.g. a string) raises a ValueError naming cadence_s.
+
+    Regression test for Copilot PR #200 review finding: the original
+    `_validate_cadence_s` raised TypeError from `float(value)` without
+    naming the field, contradicting the docstring contract that "the
+    message names the offending field". The fix mirrors the try/except
+    pattern already used by `_validate_R_px`.
+    """
+    from sleap_roots.circumnutation import CircumnutationInputs
+
+    with pytest.raises(ValueError, match="cadence_s"):
+        CircumnutationInputs(
+            trajectory_df=valid_trajectory_df,
+            cadence_s="abc",
         )
 
 

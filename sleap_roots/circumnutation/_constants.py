@@ -98,22 +98,15 @@ GROWTH_AXIS_RELIABILITY_K: float = 10
 # Unit-string vocabulary for sidecar JSON files
 # ---------------------------------------------------------------------------
 
-VALID_UNIT_VOCABULARY: frozenset = frozenset(
+PIPELINE_UNIT_VOCABULARY: frozenset = frozenset(
     {
-        # Pipeline-output (calibration-independent) units
+        # Pixel-based length / area / velocity units (what the pipeline emits)
         "px",
         "px²",
         "px/frame",
         "px/hr",
         "px·hr⁻¹",
-        # convert_to_mm-output units (downstream converter only — the foundation
-        # never emits these directly)
-        "mm",
-        "mm²",
-        "mm/frame",
-        "mm/hr",
-        "mm·hr⁻¹",
-        # Calibration-independent
+        # Calibration-independent units (time, angle, rate)
         "hr",
         "hr⁻¹",
         "s",
@@ -128,9 +121,40 @@ VALID_UNIT_VOCABULARY: frozenset = frozenset(
 )
 """Closed vocabulary for unit strings used in `traits_per_plant.units.json`.
 
-Pipeline outputs use only the px-based and calibration-independent
-forms; the mm-based forms appear only in DataFrames produced by
-:func:`sleap_roots.circumnutation.units.convert_to_mm`.
+The pipeline emits ONLY these forms (no mm-based units), reflecting
+the pure-pixel pipeline contract. Use this vocabulary to validate
+sidecar JSON files produced by
+:func:`sleap_roots.circumnutation._io.write_per_plant_csv`.
+"""
+
+
+CONVERTED_UNIT_VOCABULARY: frozenset = frozenset(
+    {
+        # Millimeter-based length / area / velocity units (convert_to_mm output range)
+        "mm",
+        "mm²",
+        "mm/frame",
+        "mm/hr",
+        "mm·hr⁻¹",
+    }
+)
+"""Vocabulary of unit strings produced by :func:`sleap_roots.circumnutation.units.convert_to_mm`.
+
+These units appear ONLY in DataFrames returned by ``convert_to_mm``,
+never in pipeline output sidecars. Splitting from
+:data:`PIPELINE_UNIT_VOCABULARY` makes the pure-pixel pipeline
+contract explicit: a sidecar containing any of these values would
+violate the contract.
+"""
+
+
+VALID_UNIT_VOCABULARY: frozenset = PIPELINE_UNIT_VOCABULARY | CONVERTED_UNIT_VOCABULARY
+"""Union of :data:`PIPELINE_UNIT_VOCABULARY` and :data:`CONVERTED_UNIT_VOCABULARY`.
+
+Useful for downstream code that needs to accept either a raw pipeline
+sidecar or a converted DataFrame. Tests that specifically verify the
+pipeline emits no mm units should check against
+:data:`PIPELINE_UNIT_VOCABULARY`, not this union.
 """
 
 

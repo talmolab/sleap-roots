@@ -1,14 +1,7 @@
----
-title: "Preliminary kinematic characterization of root circumnutation in rice CMTN data"
-subtitle: "A feasibility analysis for the sleap-roots circumnutation pipeline"
-date: 2026-05-07
-author: Elizabeth Berrigan
-status: working draft
-tags: [circumnutation, sleap-roots, kinematics, preliminary]
-project: sleap-roots
----
-
 # Preliminary kinematic characterization of root circumnutation in rice CMTN data
+
+*Working draft, 2026-05-07. Author: Elizabeth Berrigan. Tags: circumnutation, sleap-roots, kinematics, preliminary. Feasibility analysis for the sleap-roots circumnutation pipeline.*
+
 
 ## Summary
 

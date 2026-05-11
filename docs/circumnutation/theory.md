@@ -26,9 +26,9 @@
 
 This document fixes the theoretical content the circumnutation pipeline rests on. It states what the literature claims, with paper + section + equation references for each claim, and translates those claims into operational definitions for traits computed from SLEAP-tracked root tip trajectories.
 
-**What the pipeline gets as input:** per-track time series of tip positions, $(t, x, y)$ in pixels at fixed cadence, plus per-plate calibration `px_per_mm`. No midline, no multi-node skeleton, no destructive measurements.
+**What the pipeline gets as input:** per-track time series of tip positions, $(t, x, y)$ in pixels at fixed cadence, plus an optional root cross-section radius `R_px` (pixels, for Tier 4 Bastien-Meroz). No midline, no multi-node skeleton, no destructive measurements. **The pipeline does NOT take `px_per_mm` as a parameter** — see the pure-pixel note in §2.3.
 
-**What the pipeline produces:** per-plant scalar traits in physical units (mm, hours) where comparable to literature, dimensionless where not, written to a CSV. Plus diagnostic plots per plate.
+**What the pipeline produces:** per-plant scalar traits in pixel units for length-bearing quantities and calibration-independent units (hours, radians, dimensionless) elsewhere, written to a CSV plus a UTF-8 units sidecar JSON. Users who want millimeter output compose `sleap_roots.circumnutation.units.convert_to_mm()` downstream on the trait DataFrame; the pipeline itself never sees calibration. Diagnostic plots per plate are emitted alongside the CSV.
 
 **What is explicitly out of scope:** any measurement requiring midline tracking along the organ, destructive sampling (AFM, immunolabelling), or 3D imaging. These are flagged in §9 as future biology validation, not pipeline work.
 
@@ -50,14 +50,16 @@ Image-space coordinates with $x$ horizontal, $y$ vertical (image convention: $y$
 
 Cadence is fixed per dataset (5 min for the reference data). Time is in seconds internally; trait outputs use hours where convention demands (e.g., growth rate in mm/hr).
 
-### 2.3 Calibration
+### 2.3 Calibration (pure-pixel pipeline)
 
-Every trait is flagged either:
+**Architectural decision (2026-05-07; see `docs/circumnutation/roadmap.md` CC-3):** the pipeline is pure-pixel. It never accepts `px_per_mm` and never emits `[mm]` columns. Calibration is always a downstream concern — users who want millimeter output run the trait DataFrame through `sleap_roots.circumnutation.units.convert_to_mm(traits_df, units, px_per_mm)`. The advantage is that the unresolved DPI ambiguity (1200 vs 400; see §1) is fully decoupled from the pipeline's correctness: every pipeline output is bit-exact reproducible regardless of calibration source.
 
-- **`[mm]`** — calibration-required. Trait is meaningful only after applying `px_per_mm`. If calibration is missing, value is NaN with `calibration_missing=True`.
-- **`[—]`** — calibration-independent (dimensionless or time-only).
+Every trait in §7 is flagged either:
 
-The pipeline contract is: input $(t_\text{seconds}, x_\text{px}, y_\text{px}, \text{px\_per\_mm})$. Internal CWT, ridge extraction, derivative computations operate in pixels for numerical convenience; physical-unit conversion happens at trait-emission time only.
+- **`[mm-convertible]`** — emitted in pixel form by the pipeline (column suffix `_px`, `_px_per_hr`, `_px_per_frame`, `_px²`). Convertible to mm via `convert_to_mm()` downstream. Previously written as `[mm]` throughout the trait tables in §7; that flag is retained for cross-reference to literature and downstream documentation, but the column the pipeline writes uses the px form.
+- **`[—]`** — calibration-independent (dimensionless ratios, time-only quantities, booleans, angles).
+
+The pipeline contract is: input $(t_\text{seconds}, x_\text{px}, y_\text{px}, R_\text{px}^\text{opt})$. Internal CWT, ridge extraction, derivative computations, and trait emission all operate in pixels. There is no trait-emission-time physical-unit conversion inside the pipeline — that step is owned by the user, downstream.
 
 ### 2.4 Notation
 
@@ -507,7 +509,8 @@ Each trait has: symbol, units, computation source, calibration flag, and literat
 | `coi_fraction_t1` | — `[—]` | Fraction of CWT scaleogram inside cone of influence (Tier 1). >50% → unreliable. | Standard CWT practice (Torrence & Compo 1998 *Bull. Amer. Meteor. Soc.* 79:61) |
 | `coi_fraction_t3` | — `[—]` | Same for spatial CWT (Tier 3) | Same |
 | `is_nutating` | bool `[—]` | `band_power_ratio > 3 × noise_floor_estimate` | Phase 1 sanity check |
-| `calibration_present` | bool `[—]` | `px_per_mm` provided and finite | Pipeline contract |
+
+*(Note: an earlier draft of this table included `calibration_present` as a QC trait. The pure-pixel pipeline decision in §2.3 removes calibration from the pipeline entirely, so this trait was dropped. If downstream code records calibration provenance, that lives in the run-metadata sidecar's `_constants_snapshot`/`calibration_source` fields the user populates when calling `convert_to_mm()`, not as a pipeline-emitted QC trait.)*
 
 **Optional Phase 1+ trait — `msd_noise_xy`.** A third noise estimator from the MSD-extrapolation method standard in single-particle tracking biology. Compute the mean squared displacement of detrended residuals at small lag $\tau$:
 

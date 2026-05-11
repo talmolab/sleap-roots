@@ -78,7 +78,7 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
 - [x] 4.6 Run `uv run pydocstyle --convention=google sleap_roots/` — passes (full sleap_roots/ scope, not just `sleap_roots/circumnutation`, to catch `__init__.py` drift).
 - [x] 4.7 Run `uv run mkdocs build` — passes; rendered API reference includes the 10 stub modules with their stub-callable docstrings. *Pre-existing warnings about superpowers/specs cross-doc links are unaffected.*
 - [x] 4.8 Run `openspec validate add-circumnutation-foundation --strict` — valid.
-- [ ] 4.9 Open PR linking GitHub epic issue (#197) + foundation issue (#198) + `add-circumnutation-foundation` change-id.
+- [x] 4.9 Open PR linking GitHub epic issue (#197) + foundation issue (#198) + `add-circumnutation-foundation` change-id. *PR #200 opened.*
 
 ## 5. Post-merge
 

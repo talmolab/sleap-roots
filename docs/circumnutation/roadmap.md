@@ -12,7 +12,7 @@ Tracked SLEAP tip trajectories from `TrackedTipPipeline` enter; per-plant scalar
 
 ## Inputs and outputs
 
-- **Input:** per-track tip trajectories `(series, sample_uid, timepoint, track_id, frame, tip_x, tip_y)` plus `px_per_mm` calibration (optional). Today, in this codebase, `track_id` and `plant_id` are 1:1 — a track *is* a plant. The schema reserves both columns so that a future change (e.g., multi-track-per-plant scenarios) is non-breaking.
+- **Input:** per-track tip trajectories `(series, sample_uid, timepoint, track_id, frame, tip_x, tip_y)` plus optional `R_px` (root cross-section radius in pixels, used by Tier 4). **No `px_per_mm`** — the pipeline is pure-pixel per CC-3 below; calibration is handled by the downstream `convert_to_mm()` utility, never inside the pipeline. Today, in this codebase, `track_id` and `plant_id` are 1:1 — a track *is* a plant. The schema reserves both columns so that a future change (e.g., multi-track-per-plant scenarios) is non-breaking.
 - **Output:** `traits_per_plant.csv` (one row per `(series, sample_uid, plate_id, plant_id, track_id)`), `traits_per_plant.units.json`, `trajectory_per_plant/<id>.csv`, `plots/*.png`, `run_metadata.json`.
 
 ## Architecture (link only — not duplicated here)

@@ -24,16 +24,6 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-# Mapping from pixel-unit column-name suffix → (mm-unit column-name suffix,
-# pixel-unit string in vocabulary, mm-unit string in vocabulary)
-_PX_SUFFIX_MAP = (
-    ("_px_per_frame", "_mm_per_frame", "px/frame", "mm/frame"),
-    ("_px_per_hr", "_mm_per_hr", "px/hr", "mm/hr"),
-    # Bare _px must come last so longer suffixes match first
-    ("_px", "_mm", "px", "mm"),
-)
-
-
 def convert_to_mm(
     traits_df: pd.DataFrame,
     units: dict,
