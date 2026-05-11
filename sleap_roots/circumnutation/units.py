@@ -52,13 +52,17 @@ def convert_to_mm(
     Raises:
         ValueError: If ``px_per_mm`` is not a positive finite float.
     """
+    if isinstance(px_per_mm, bool):
+        raise ValueError(
+            f"px_per_mm must be a positive finite float, got {px_per_mm!r}"
+        )
     try:
         scale = float(px_per_mm)
     except (TypeError, ValueError):
         raise ValueError(
             f"px_per_mm must be a positive finite float, got {px_per_mm!r}"
         )
-    if math.isnan(scale) or scale <= 0:
+    if not math.isfinite(scale) or scale <= 0:
         raise ValueError(
             f"px_per_mm must be a positive finite float, got {px_per_mm!r}"
         )
@@ -105,6 +109,23 @@ def convert_to_mm(
             continue
 
         # Non-px columns pass through; nothing to do.
+
+    # Detect rename collisions: a `_px` → `_mm` rename target that already
+    # exists in the input as a different (non-renamed) column would cause
+    # silent data loss when pandas.rename produces duplicate column names.
+    for src_col, dst_col in rename_map.items():
+        if (
+            dst_col in out_df.columns
+            and dst_col != src_col
+            and dst_col not in rename_map
+        ):
+            raise ValueError(
+                f"convert_to_mm column rename collision: source column "
+                f"{src_col!r} would be renamed to {dst_col!r}, but {dst_col!r} "
+                f"already exists in the input DataFrame. Either rename one of "
+                f"the columns upstream or drop the duplicate before calling "
+                f"convert_to_mm."
+            )
 
     # Apply renames in one go
     out_df = out_df.rename(columns=rename_map)

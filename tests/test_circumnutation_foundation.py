@@ -746,6 +746,334 @@ def test_no_root_handlers_added_at_import():
     assert pre_handlers == post_handlers
 
 
+# ---------------------------------------------------------------------------
+# Review-round-2 regression tests (B1-B5, I1, I3, I4, I8, I9, I10, I11)
+# ---------------------------------------------------------------------------
+
+# B1 — inf must be rejected by all three validators
+
+
+@pytest.mark.parametrize("bad", [float("inf"), float("-inf")])
+def test_cadence_s_inf_rejected(valid_trajectory_df, bad):
+    """B1: cadence_s=±inf raises ValueError naming cadence_s (spec says positive *finite*)."""
+    from sleap_roots.circumnutation import CircumnutationInputs
+
+    with pytest.raises(ValueError, match="cadence_s"):
+        CircumnutationInputs(trajectory_df=valid_trajectory_df, cadence_s=bad)
+
+
+@pytest.mark.parametrize("bad", [float("inf"), float("-inf")])
+def test_R_px_inf_rejected(valid_trajectory_df, bad):
+    """B1: R_px=±inf raises ValueError naming R_px."""
+    from sleap_roots.circumnutation import CircumnutationInputs
+
+    with pytest.raises(ValueError, match="R_px"):
+        CircumnutationInputs(
+            trajectory_df=valid_trajectory_df, cadence_s=300.0, R_px=bad
+        )
+
+
+@pytest.mark.parametrize("bad", [float("inf"), float("-inf")])
+def test_convert_to_mm_inf_rejected(bad):
+    """B1: convert_to_mm px_per_mm=±inf raises ValueError naming px_per_mm."""
+    from sleap_roots.circumnutation import convert_to_mm
+
+    df = pd.DataFrame({"length_px": [47.24]})
+    units = {"length_px": "px"}
+    with pytest.raises(ValueError, match="px_per_mm"):
+        convert_to_mm(df, units, px_per_mm=bad)
+
+
+# B2 — every stub whose tier needs cross-cutting overrides must accept constants= kwarg
+
+
+STUBS_WITH_CONSTANTS_KWARG = [
+    ("kinematics", "compute"),
+    ("qc", "compute"),
+    ("temporal_cwt", "compute_scaleogram"),
+    ("psi_g", "compute_psi_g"),
+    ("midline", "reconstruct"),
+    ("spatial_cwt", "compute_scaleogram"),
+    ("pipeline", "compute_traits"),
+]
+
+
+@pytest.mark.parametrize("module_name,callable_name", STUBS_WITH_CONSTANTS_KWARG)
+def test_stub_accepts_constants_kwarg(module_name, callable_name):
+    """B2: stubs whose tier PR will use ConstantsT accept `constants=...` kwarg now.
+
+    Calling with `constants=...` must raise NotImplementedError (not TypeError).
+    """
+    mod = importlib.import_module(f"sleap_roots.circumnutation.{module_name}")
+    fn = getattr(mod, callable_name)
+    with pytest.raises(NotImplementedError):
+        fn(constants=object())  # any sentinel; should not be argument-validated
+
+
+# B3 — conflicting per-frame metadata raises clear error
+
+
+def test_conflicting_genotype_across_frames_raises():
+    """B3: build_per_plant_template raises ValueError when same plant has different genotype across frames."""
+    from sleap_roots.circumnutation import CircumnutationInputs
+    from sleap_roots.circumnutation._io import build_per_plant_template
+
+    rows = []
+    for frame, genotype in enumerate(["WT", "MOCK"]):
+        rows.append(
+            {
+                "series": "S",
+                "sample_uid": "U",
+                "timepoint": "T0",
+                "plate_id": "P",
+                "plant_id": 1,
+                "track_id": 1,
+                "genotype": genotype,
+                "treatment": np.nan,
+                "frame": frame,
+                "tip_x": 1.0,
+                "tip_y": 2.0,
+            }
+        )
+    df = pd.DataFrame(rows)
+    inputs = CircumnutationInputs(trajectory_df=df, cadence_s=300.0)
+    with pytest.raises(ValueError, match=r"genotype|conflict"):
+        build_per_plant_template(inputs)
+
+
+def test_track_id_nan_raises_clear_error(valid_trajectory_df):
+    """B3 (related): NaN in track_id surfaces as a ValueError naming the field, not pandas IntCastingNaNError."""
+    from sleap_roots.circumnutation import CircumnutationInputs
+    from sleap_roots.circumnutation._io import build_per_plant_template
+
+    df = valid_trajectory_df.copy()
+    df["track_id"] = df["track_id"].astype("float64")
+    df.loc[df.index[0], "track_id"] = np.nan
+    inputs = CircumnutationInputs(trajectory_df=df, cadence_s=300.0)
+    with pytest.raises(ValueError, match="track_id"):
+        build_per_plant_template(inputs)
+
+
+# B4 — writer validates units against PIPELINE_UNIT_VOCABULARY
+
+
+def test_write_per_plant_csv_rejects_invalid_unit(tmp_path, valid_trajectory_df):
+    """B4: writer raises ValueError naming the column when a unit string is out-of-vocabulary."""
+    from sleap_roots.circumnutation import CircumnutationInputs
+    from sleap_roots.circumnutation._io import (
+        build_per_plant_template,
+        default_units_for_template,
+        gather_run_metadata,
+        write_per_plant_csv,
+    )
+
+    inputs = CircumnutationInputs(
+        trajectory_df=valid_trajectory_df, cadence_s=300.0, run_id="r1"
+    )
+    df = build_per_plant_template(inputs)
+    units = default_units_for_template(df)
+    # Inject an out-of-vocabulary unit (mm leaks pure-pixel contract).
+    units["track_id"] = "mm"
+    metadata = gather_run_metadata(input_path="x", run_id="r1")
+    out_path = tmp_path / "out.csv"
+    with pytest.raises(ValueError, match=r"track_id|mm"):
+        write_per_plant_csv(out_path, df, units, metadata)
+    # No files should have been written.
+    assert not out_path.exists()
+
+
+def test_write_per_plant_csv_rejects_unknown_unit(tmp_path, valid_trajectory_df):
+    """B4: writer raises on any unit not in PIPELINE_UNIT_VOCABULARY (e.g. typo `kg`)."""
+    from sleap_roots.circumnutation import CircumnutationInputs
+    from sleap_roots.circumnutation._io import (
+        build_per_plant_template,
+        default_units_for_template,
+        gather_run_metadata,
+        write_per_plant_csv,
+    )
+
+    inputs = CircumnutationInputs(
+        trajectory_df=valid_trajectory_df, cadence_s=300.0, run_id="r1"
+    )
+    df = build_per_plant_template(inputs)
+    units = default_units_for_template(df)
+    units["track_id"] = "kg"
+    metadata = gather_run_metadata(input_path="x", run_id="r1")
+    out_path = tmp_path / "out.csv"
+    with pytest.raises(ValueError, match=r"track_id|kg"):
+        write_per_plant_csv(out_path, df, units, metadata)
+
+
+# B5 — synthetic stub must NOT have px_per_mm in signature
+
+
+def test_synthetic_signature_has_no_px_per_mm():
+    """B5: synthetic.generate_trajectory has no `px_per_mm` parameter (pure-pixel contract)."""
+    import inspect
+
+    from sleap_roots.circumnutation import synthetic
+
+    sig = inspect.signature(synthetic.generate_trajectory)
+    assert "px_per_mm" not in sig.parameters, (
+        f"synthetic.generate_trajectory must not include px_per_mm in its signature "
+        f"(pure-pixel contract); got params: {list(sig.parameters)}"
+    )
+
+
+# I1 — schema validates frame/tip_x/tip_y presence
+
+
+@pytest.mark.parametrize("missing_col", ["frame", "tip_x", "tip_y"])
+def test_missing_per_frame_column_raises(valid_trajectory_df, missing_col):
+    """I1: trajectory_df missing frame/tip_x/tip_y raises ValueError naming the column."""
+    from sleap_roots.circumnutation import CircumnutationInputs
+
+    df = valid_trajectory_df.drop(columns=[missing_col])
+    with pytest.raises(ValueError, match=missing_col):
+        CircumnutationInputs(trajectory_df=df, cadence_s=300.0)
+
+
+# I3 — run-metadata includes dependency versions and platform
+
+
+def test_run_metadata_includes_dependency_versions_and_platform():
+    """I3: gather_run_metadata captures numpy, scipy, pandas versions and platform."""
+    from sleap_roots.circumnutation._io import gather_run_metadata
+
+    metadata = gather_run_metadata(input_path="x", run_id="r1")
+    for key in ("numpy_version", "scipy_version", "pandas_version", "platform"):
+        assert key in metadata, f"Missing required key {key}"
+        assert metadata[key], f"{key} must not be empty"
+
+
+# I4 — convert_to_mm detects rename collisions
+
+
+def test_convert_to_mm_rename_collision_raises():
+    """I4: convert_to_mm raises when `_px` → `_mm` rename would collide with an existing `_mm` column."""
+    from sleap_roots.circumnutation import convert_to_mm
+
+    df = pd.DataFrame({"length_px": [47.24], "length_mm": [99.0]})
+    units = {"length_px": "px", "length_mm": "mm"}
+    with pytest.raises(ValueError, match=r"length_px|length_mm|collision|conflict"):
+        convert_to_mm(df, units, px_per_mm=47.24)
+
+
+# I8 — per-plant template asserts object dtype for string row-identity columns
+
+
+def test_per_plant_template_string_columns_have_object_dtype(valid_trajectory_df):
+    """I8: series/sample_uid/timepoint/plate_id/genotype/treatment have object dtype per spec."""
+    from sleap_roots.circumnutation import CircumnutationInputs
+    from sleap_roots.circumnutation._io import build_per_plant_template
+
+    inputs = CircumnutationInputs(trajectory_df=valid_trajectory_df, cadence_s=300.0)
+    df = build_per_plant_template(inputs)
+    for col in (
+        "series",
+        "sample_uid",
+        "timepoint",
+        "plate_id",
+        "genotype",
+        "treatment",
+    ):
+        assert (
+            df[col].dtype == object
+        ), f"{col} dtype should be object, got {df[col].dtype}"
+
+
+# I9 — cadence_s and R_px accept string forms of nan/inf and raise
+
+
+@pytest.mark.parametrize("bad", ["nan", "NaN", "inf", "-inf"])
+def test_cadence_s_string_nan_inf_raises(valid_trajectory_df, bad):
+    """I9: cadence_s='nan' / 'inf' (string) is coerced via float() then rejected by validator."""
+    from sleap_roots.circumnutation import CircumnutationInputs
+
+    with pytest.raises(ValueError, match="cadence_s"):
+        CircumnutationInputs(trajectory_df=valid_trajectory_df, cadence_s=bad)
+
+
+@pytest.mark.parametrize("bad", ["nan", "inf", "-inf"])
+def test_R_px_string_nan_inf_raises(valid_trajectory_df, bad):
+    """I9: R_px='nan' / 'inf' (string) raises ValueError naming R_px."""
+    from sleap_roots.circumnutation import CircumnutationInputs
+
+    with pytest.raises(ValueError, match="R_px"):
+        CircumnutationInputs(
+            trajectory_df=valid_trajectory_df, cadence_s=300.0, R_px=bad
+        )
+
+
+# I10 — _get_git_sha and version helpers return 'unknown' on failure
+
+
+def test_get_git_sha_returns_unknown_when_subprocess_fails(monkeypatch):
+    """I10: _get_git_sha gracefully degrades to 'unknown' when subprocess fails."""
+    from sleap_roots.circumnutation import _io
+
+    def _raise_filenotfound(*args, **kwargs):
+        raise FileNotFoundError("git not on PATH (test mock)")
+
+    monkeypatch.setattr(_io.subprocess, "run", _raise_filenotfound)
+    assert _io._get_git_sha() == "unknown"
+
+
+def test_get_sleap_roots_version_returns_unknown_when_import_fails(monkeypatch):
+    """I10: _get_sleap_roots_version degrades to 'unknown' on any exception."""
+    import builtins
+
+    from sleap_roots.circumnutation import _io
+
+    original_import = builtins.__import__
+
+    def _mock_import(name, *args, **kwargs):
+        if name == "sleap_roots":
+            raise ImportError("mocked")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _mock_import)
+    assert _io._get_sleap_roots_version() == "unknown"
+
+
+def test_get_sleap_io_version_returns_unknown_when_import_fails(monkeypatch):
+    """I10: _get_sleap_io_version degrades to 'unknown' on any exception."""
+    import builtins
+
+    from sleap_roots.circumnutation import _io
+
+    original_import = builtins.__import__
+
+    def _mock_import(name, *args, **kwargs):
+        if name == "sleap_io":
+            raise ImportError("mocked")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _mock_import)
+    assert _io._get_sleap_io_version() == "unknown"
+
+
+# I11 — cadence_s and R_px reject Python booleans (int subclass coercion footgun)
+
+
+def test_cadence_s_bool_rejected(valid_trajectory_df):
+    """I11: cadence_s=True is rejected (bools are int subclass; would otherwise pass as 1.0)."""
+    from sleap_roots.circumnutation import CircumnutationInputs
+
+    with pytest.raises(ValueError, match="cadence_s"):
+        CircumnutationInputs(trajectory_df=valid_trajectory_df, cadence_s=True)
+
+
+def test_R_px_bool_rejected(valid_trajectory_df):
+    """I11: R_px=True is rejected (bool footgun)."""
+    from sleap_roots.circumnutation import CircumnutationInputs
+
+    with pytest.raises(ValueError, match="R_px"):
+        CircumnutationInputs(
+            trajectory_df=valid_trajectory_df, cadence_s=300.0, R_px=True
+        )
+
+
 def test_no_records_emitted_at_import(caplog):
     """No log records emitted from the package during import."""
     for name in list(sys.modules):

@@ -25,7 +25,6 @@ def generate_trajectory(
     duration_hr=None,
     cadence_min=5.0,
     noise_sigma_px=2.0,
-    px_per_mm=None,
     random_state=None,
 ):
     """Generate a synthetic tip trajectory (PR #4 will implement).
@@ -40,9 +39,13 @@ def generate_trajectory(
         duration_hr: Total simulated duration in hours.
         cadence_min: Sampling cadence in minutes (default 5.0).
         noise_sigma_px: Gaussian localization noise σ in pixels (default 2.0).
-        px_per_mm: Calibration factor used to express the synthetic
-            trajectory in pixel units (default 47.24, ≈ 1200 DPI).
         random_state: Optional seed or numpy ``Generator`` for determinism.
+
+    The generator emits pure-pixel trajectories (matching the pipeline's
+    pure-pixel convention). Callers wanting mm-scaled outputs should
+    compose :func:`sleap_roots.circumnutation.units.convert_to_mm`
+    downstream OR pre-convert their mm-scale parameters to pixels
+    before invoking the generator.
 
     Returns (when implemented):
         DataFrame with eight :data:`~sleap_roots.circumnutation.ROW_IDENTITY_COLUMNS`

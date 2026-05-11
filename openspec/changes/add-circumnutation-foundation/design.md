@@ -119,14 +119,22 @@ Every per-plant CSV gets a sibling `run_metadata.json` with:
 - `sleap_roots_git_sha: str` — git SHA of the running sleap-roots
 - `sleap_roots_version: str` — `sleap_roots.__version__`
 - `sleap_io_version: str` — `sio.__version__`
+- `numpy_version: str` — `numpy.__version__`
+- `scipy_version: str` — `scipy.__version__`
+- `pandas_version: str` — `pandas.__version__`
 - `python_version: str` — `sys.version`
+- `platform: str` — `platform.platform()` (host OS + release)
 - `timestamp: str` — ISO 8601 UTC at write time
 - `run_id: Optional[str]` — user-provided
 - `_schema_version: int` — from `_constants.py`
 - `_constants_version: int` — from `_constants.py`
 - `_constants_snapshot: dict[str, Any]` — every name in `_constants.py` and its value at the time of the run
 
-This is the SCIENCE PROVENANCE contract — required at the foundation, not deferred. Without it, every subsequent PR can emit unprovenanced CSVs and the program's reproducibility verdict is compromised.
+This is the SCIENCE PROVENANCE contract — required at the foundation, not deferred. Without it, every subsequent PR can emit unprovenanced CSVs and the program's reproducibility verdict is compromised. The numpy/scipy/pandas/platform fields support numerical-reproducibility audits — IEEE float rounding can differ between numpy versions and across BLAS implementations, and a downstream user investigating a small trait-value drift needs to know the linear-algebra stack and OS that produced the CSV.
+
+### D5b. Synthetic generator stays pure-pixel
+
+`sleap_roots.circumnutation.synthetic.generate_trajectory` (canonical signature `(...)`, fully spelled out in PR #4) SHALL NOT include `px_per_mm` in its parameter list. The synthetic generator emits a pure-pixel tip trajectory; callers who want mm-scaled inputs to the noise model compose `convert_to_mm` upstream of the generator OR pre-multiply their mm-scale parameters by their chosen `px_per_mm` outside the generator. This keeps the entire `sleap_roots.circumnutation` package calibration-free at the entry-point level. Live in `tests/` or in a non-package helper if a calibrated synthetic generator is ever genuinely needed.
 
 ### D6. Logging (CC-9)
 

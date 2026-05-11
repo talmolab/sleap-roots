@@ -17,7 +17,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def compute(trajectory_df=None):
+def compute(trajectory_df=None, constants=None):
     """Compute Tier 0 raw kinematic traits (PR #2 will implement).
 
     Args (when implemented):

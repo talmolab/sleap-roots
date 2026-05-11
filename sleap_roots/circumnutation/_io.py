@@ -19,9 +19,11 @@ This module owns the foundation contracts:
   :mod:`sleap_roots.circumnutation._constants`.
 """
 
+import importlib
 import json
 import logging
 import os
+import platform
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -34,6 +36,7 @@ from sleap_roots.circumnutation import _constants
 from sleap_roots.circumnutation._constants import (
     _CONSTANTS_VERSION,
     _SCHEMA_VERSION,
+    PIPELINE_UNIT_VOCABULARY,
     ConstantsT,
 )
 from sleap_roots.circumnutation._types import (
@@ -53,15 +56,22 @@ PathLike = Union[str, os.PathLike]
 # ---------------------------------------------------------------------------
 
 
+_IDENTITY_5_TUPLE: tuple = ("series", "sample_uid", "plate_id", "plant_id", "track_id")
+"""The 5-tuple that uniquely identifies a physical plant track (used as the duplicate-detection key)."""
+
+_CONFLICT_CHECK_COLUMNS: tuple = ("timepoint", "genotype", "treatment")
+"""Columns expected to be constant per :data:`_IDENTITY_5_TUPLE`; conflicts indicate upstream join error."""
+
+
 def build_per_plant_template(inputs: CircumnutationInputs) -> pd.DataFrame:
     """Derive a per-plant trait DataFrame template from per-frame trajectory data.
 
-    Returns one row per unique track in ``inputs.trajectory_df``. The
-    eight row-identity columns are populated; no trait columns are
-    added (tier modules do that). Rows are sorted via
-    ``pandas.DataFrame.sort_values`` over
-    ``(series, sample_uid, plate_id, plant_id, track_id)`` — string
-    columns sort lexicographically and integer columns sort numerically.
+    Returns one row per unique 5-tuple ``(series, sample_uid, plate_id,
+    plant_id, track_id)`` in ``inputs.trajectory_df``. The eight
+    row-identity columns are populated; no trait columns are added
+    (tier modules do that). Rows are sorted via
+    ``pandas.DataFrame.sort_values`` over the 5-tuple — string columns
+    sort lexicographically and integer columns sort numerically.
 
     Args:
         inputs: Validated :class:`CircumnutationInputs`.
@@ -71,8 +81,41 @@ def build_per_plant_template(inputs: CircumnutationInputs) -> pd.DataFrame:
         columns (in declared order) and one row per unique track.
         ``track_id`` carries integer dtype; ``plant_id`` is column-wise
         equal to ``track_id``.
+
+    Raises:
+        ValueError: If ``track_id`` contains ``NaN`` (cannot be coerced
+            to integer); or if the same 5-tuple plant has conflicting
+            values in ``timepoint`` / ``genotype`` / ``treatment``
+            across frames (sign of upstream join error).
     """
     df = inputs.trajectory_df
+
+    # B3: clear ValueError for NaN track_id rather than pandas' IntCastingNaNError.
+    if df["track_id"].isna().any():
+        bad_rows = df[df["track_id"].isna()].index.tolist()[:5]
+        raise ValueError(
+            f"trajectory_df has NaN in track_id (rows {bad_rows}); "
+            f"track_id must be non-NaN integer-coercible"
+        )
+
+    # B3: detect conflicting per-frame metadata (different values for the
+    # same 5-tuple) BEFORE drop_duplicates collapses them. A future tier
+    # PR merging trait DataFrames onto the template would silently duplicate
+    # rows; raise here instead.
+    for conflict_col in _CONFLICT_CHECK_COLUMNS:
+        grouped = df.groupby(list(_IDENTITY_5_TUPLE), dropna=False)[
+            conflict_col
+        ].nunique(dropna=True)
+        offenders = grouped[grouped > 1]
+        if not offenders.empty:
+            first_offender = offenders.index[0]
+            raise ValueError(
+                f"build_per_plant_template: conflicting {conflict_col!r} values "
+                f"for plant {dict(zip(_IDENTITY_5_TUPLE, first_offender))} — "
+                f"every frame of a single plant must share the same "
+                f"{conflict_col!r}. Fix upstream metadata join before "
+                f"constructing CircumnutationInputs."
+            )
 
     # Drop duplicates on the row-identity columns; keep first occurrence.
     template = df[list(ROW_IDENTITY_COLUMNS)].drop_duplicates().reset_index(drop=True)
@@ -81,9 +124,22 @@ def build_per_plant_template(inputs: CircumnutationInputs) -> pd.DataFrame:
     for col in ("track_id", "plant_id"):
         template[col] = template[col].astype("int64")
 
+    # I8: enforce object dtype for the string identity columns. An all-NaN
+    # genotype/treatment column gets inferred as float64 otherwise, which
+    # violates the spec requirement that these columns hold strings + NaN.
+    for col in (
+        "series",
+        "sample_uid",
+        "timepoint",
+        "plate_id",
+        "genotype",
+        "treatment",
+    ):
+        template[col] = template[col].astype(object)
+
     # Numeric / lexicographic sort across the 5-key tuple.
     template = template.sort_values(
-        by=["series", "sample_uid", "plate_id", "plant_id", "track_id"],
+        by=list(_IDENTITY_5_TUPLE),
         kind="stable",
     ).reset_index(drop=True)
 
@@ -195,6 +251,25 @@ def write_per_plant_csv(
             ``df`` should be present).
         run_metadata: Mapping returned by :func:`gather_run_metadata`.
     """
+    # B4: validate every unit string against PIPELINE_UNIT_VOCABULARY BEFORE
+    # writing anything to disk. The split vocabularies were the structural
+    # defense of the pure-pixel contract; without writer enforcement that
+    # defense is documentation-only. Fail loud and atomic — no CSV / sidecar
+    # files written when validation fails.
+    invalid = [
+        (col, u) for col, u in units.items() if u not in PIPELINE_UNIT_VOCABULARY
+    ]
+    if invalid:
+        offending = ", ".join(f"{col!r}: {u!r}" for col, u in invalid)
+        raise ValueError(
+            f"write_per_plant_csv: units dict contains values outside "
+            f"PIPELINE_UNIT_VOCABULARY (the closed sidecar vocabulary). "
+            f"Offending column/unit pairs: {offending}. The pure-pixel "
+            f"contract requires sidecar values to use only px-based or "
+            f"calibration-independent units; mm-based values must come "
+            f"from convert_to_mm() output, not pipeline emission."
+        )
+
     csv_path = Path(out_path)
     df.to_csv(csv_path.as_posix(), index=False, encoding="utf-8")
 
@@ -263,7 +338,11 @@ def gather_run_metadata(
         "sleap_roots_git_sha": _get_git_sha(),
         "sleap_roots_version": _get_sleap_roots_version(),
         "sleap_io_version": _get_sleap_io_version(),
+        "numpy_version": _get_package_version("numpy"),
+        "scipy_version": _get_package_version("scipy"),
+        "pandas_version": _get_package_version("pandas"),
         "python_version": sys.version,
+        "platform": platform.platform(),
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "run_id": run_id,
         "_schema_version": _SCHEMA_VERSION,
@@ -322,4 +401,13 @@ def _get_sleap_io_version() -> str:
 
         return getattr(sio, "__version__", "unknown")
     except Exception:  # noqa: BLE001
+        return "unknown"
+
+
+def _get_package_version(package_name: str) -> str:
+    """Return ``<package>.__version__`` or ``"unknown"`` if not importable."""
+    try:
+        mod = importlib.import_module(package_name)
+        return getattr(mod, "__version__", "unknown")
+    except Exception:  # noqa: BLE001 — provenance must never crash a run
         return "unknown"

@@ -16,7 +16,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def compute_scaleogram(kappa=None, ds=None, wavelet=None, scale_range=None):
+def compute_scaleogram(
+    kappa=None, ds=None, wavelet=None, scale_range=None, constants=None
+):
     """Compute a spatial CWT scaleogram of ``κ(s)`` (PR #9 will implement).
 
     Args (when implemented):

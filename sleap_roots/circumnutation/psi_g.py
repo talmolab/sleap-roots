@@ -15,7 +15,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def compute_psi_g(x=None, y=None, sg_window=None, sg_degree=None):
+def compute_psi_g(x=None, y=None, sg_window=None, sg_degree=None, constants=None):
     """Compute the unwrapped tip tangent angle ``ψ_g(t)`` (PR #7 will implement).
 
     Args (when implemented):

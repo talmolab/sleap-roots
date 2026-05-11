@@ -17,7 +17,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def compute_scaleogram(x=None, cadence_s=None, wavelet=None, scale_range=None):
+def compute_scaleogram(
+    x=None, cadence_s=None, wavelet=None, scale_range=None, constants=None
+):
     """Compute a temporal CWT scaleogram (PR #5 will implement).
 
     Args (when implemented):

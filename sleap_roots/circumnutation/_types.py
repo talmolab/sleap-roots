@@ -49,19 +49,31 @@ aspirational — no upstream produces them today; they populate as
 # ---------------------------------------------------------------------------
 
 
+REQUIRED_PER_FRAME_COLUMNS: tuple = ("frame", "tip_x", "tip_y")
+"""Per-frame columns required on every trajectory_df in addition to ROW_IDENTITY_COLUMNS."""
+
+
 def _validate_trajectory_df(instance, attribute, value: pd.DataFrame) -> None:
-    """Validate that ``trajectory_df`` is non-empty and carries every row-identity column."""
+    """Validate that ``trajectory_df`` is non-empty and carries every required column."""
     if not isinstance(value, pd.DataFrame):
         raise ValueError(
             f"trajectory_df must be a pandas DataFrame, got {type(value).__name__}"
         )
     if len(value) == 0:
         raise ValueError("trajectory_df is empty (zero rows); cannot analyze")
-    missing = [col for col in ROW_IDENTITY_COLUMNS if col not in value.columns]
-    if missing:
+    missing_identity = [col for col in ROW_IDENTITY_COLUMNS if col not in value.columns]
+    if missing_identity:
         raise ValueError(
             f"trajectory_df is missing required row-identity column(s): "
-            f"{', '.join(missing)}"
+            f"{', '.join(missing_identity)}"
+        )
+    missing_per_frame = [
+        col for col in REQUIRED_PER_FRAME_COLUMNS if col not in value.columns
+    ]
+    if missing_per_frame:
+        raise ValueError(
+            f"trajectory_df is missing required per-frame column(s): "
+            f"{', '.join(missing_per_frame)}"
         )
 
 
@@ -71,10 +83,15 @@ def _coerce_cadence_s(value):
     Used as an ``attrs`` converter so that string-convertible numeric
     inputs (e.g. ``cadence_s="300"``) are stored as ``float`` and so
     that non-numeric inputs raise a ``ValueError`` whose message names
-    ``cadence_s``. The validator runs on the post-coercion value.
+    ``cadence_s``. Booleans are rejected explicitly (Python ``bool``
+    subclasses ``int`` and would otherwise pass as ``1.0``). The
+    validator runs on the post-coercion value and catches NaN / ±inf
+    / non-positive.
     """
     if value is None:
         return value  # validator rejects None with a field-naming message
+    if isinstance(value, bool):
+        raise ValueError(f"cadence_s must be a positive finite float, got {value!r}")
     try:
         return float(value)
     except (TypeError, ValueError):
@@ -82,9 +99,15 @@ def _coerce_cadence_s(value):
 
 
 def _coerce_R_px(value):
-    """Coerce ``R_px`` to ``float`` (or ``None``); raise ``ValueError`` naming the field on failure."""
+    """Coerce ``R_px`` to ``float`` (or ``None``); raise ``ValueError`` naming the field on failure.
+
+    Booleans are rejected explicitly (Python ``bool`` subclasses ``int``
+    and would otherwise pass as ``1.0``).
+    """
     if value is None:
         return None
+    if isinstance(value, bool):
+        raise ValueError(f"R_px must be None or a positive finite float, got {value!r}")
     try:
         return float(value)
     except (TypeError, ValueError):
@@ -92,8 +115,12 @@ def _coerce_R_px(value):
 
 
 def _validate_cadence_s(instance, attribute, value) -> None:
-    """Validate that ``cadence_s`` (post-coercion) is a positive finite float."""
-    if value is None or math.isnan(value) or value <= 0:
+    """Validate that ``cadence_s`` (post-coercion) is a positive finite float.
+
+    ``math.isfinite`` rejects NaN AND ±inf in one check (the prior
+    ``math.isnan(value) or value <= 0`` form silently accepted ``+inf``).
+    """
+    if value is None or not math.isfinite(value) or value <= 0:
         raise ValueError(f"cadence_s must be a positive finite float, got {value!r}")
 
 
@@ -101,7 +128,7 @@ def _validate_R_px(instance, attribute, value: Optional[float]) -> None:
     """Validate that ``R_px`` (post-coercion) is None or a positive finite float."""
     if value is None:
         return
-    if math.isnan(value) or value <= 0:
+    if not math.isfinite(value) or value <= 0:
         raise ValueError(f"R_px must be None or a positive finite float, got {value!r}")
 
 
