@@ -65,32 +65,43 @@ def _validate_trajectory_df(instance, attribute, value: pd.DataFrame) -> None:
         )
 
 
-def _validate_cadence_s(instance, attribute, value: float) -> None:
-    """Validate that ``cadence_s`` is a positive finite float.
+def _coerce_cadence_s(value):
+    """Coerce ``cadence_s`` to ``float``; raise ``ValueError`` naming the field on failure.
 
-    Mirrors the try/except pattern in :func:`_validate_R_px` so that
-    non-numeric inputs (e.g. strings) surface as ``ValueError`` naming
-    the ``cadence_s`` field, matching the class docstring contract.
+    Used as an ``attrs`` converter so that string-convertible numeric
+    inputs (e.g. ``cadence_s="300"``) are stored as ``float`` and so
+    that non-numeric inputs raise a ``ValueError`` whose message names
+    ``cadence_s``. The validator runs on the post-coercion value.
     """
     if value is None:
-        raise ValueError(f"cadence_s must be a positive finite float, got {value!r}")
+        return value  # validator rejects None with a field-naming message
     try:
-        as_float = float(value)
+        return float(value)
     except (TypeError, ValueError):
         raise ValueError(f"cadence_s must be a positive finite float, got {value!r}")
-    if math.isnan(as_float) or as_float <= 0:
+
+
+def _coerce_R_px(value):
+    """Coerce ``R_px`` to ``float`` (or ``None``); raise ``ValueError`` naming the field on failure."""
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"R_px must be None or a positive finite float, got {value!r}")
+
+
+def _validate_cadence_s(instance, attribute, value) -> None:
+    """Validate that ``cadence_s`` (post-coercion) is a positive finite float."""
+    if value is None or math.isnan(value) or value <= 0:
         raise ValueError(f"cadence_s must be a positive finite float, got {value!r}")
 
 
 def _validate_R_px(instance, attribute, value: Optional[float]) -> None:
-    """Validate that ``R_px`` is None or a positive finite float."""
+    """Validate that ``R_px`` (post-coercion) is None or a positive finite float."""
     if value is None:
         return
-    try:
-        as_float = float(value)
-    except (TypeError, ValueError):
-        raise ValueError(f"R_px must be None or a positive finite float, got {value!r}")
-    if math.isnan(as_float) or as_float <= 0:
+    if math.isnan(value) or value <= 0:
         raise ValueError(f"R_px must be None or a positive finite float, got {value!r}")
 
 
@@ -122,6 +133,10 @@ class CircumnutationInputs:
     """
 
     trajectory_df: pd.DataFrame = attrs.field(validator=_validate_trajectory_df)
-    cadence_s: float = attrs.field(validator=_validate_cadence_s)
-    R_px: Optional[float] = attrs.field(default=None, validator=_validate_R_px)
+    cadence_s: float = attrs.field(
+        converter=_coerce_cadence_s, validator=_validate_cadence_s
+    )
+    R_px: Optional[float] = attrs.field(
+        default=None, converter=_coerce_R_px, validator=_validate_R_px
+    )
     run_id: Optional[str] = attrs.field(default=None)

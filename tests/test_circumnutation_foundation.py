@@ -317,6 +317,45 @@ def test_unconvertible_cadence_s_raises(valid_trajectory_df):
         )
 
 
+def test_cadence_s_string_coerced_to_float(valid_trajectory_df):
+    """Numeric-string `cadence_s="300"` is coerced to float, not stored as a string.
+
+    Regression test for Copilot PR #200 second-round finding: validation
+    accepted convertible strings but didn't actually convert, so
+    `inputs.cadence_s` would still be the string and downstream numeric
+    code would fail. Fix uses an attrs `converter=` so the stored value
+    is always a `float`.
+    """
+    from sleap_roots.circumnutation import CircumnutationInputs
+
+    inputs = CircumnutationInputs(
+        trajectory_df=valid_trajectory_df,
+        cadence_s="300",
+    )
+    assert isinstance(inputs.cadence_s, float)
+    assert inputs.cadence_s == 300.0
+
+
+def test_R_px_string_coerced_to_float(valid_trajectory_df):
+    """Numeric-string `R_px="2.4"` is coerced to float; `R_px=None` stays None."""
+    from sleap_roots.circumnutation import CircumnutationInputs
+
+    inputs = CircumnutationInputs(
+        trajectory_df=valid_trajectory_df,
+        cadence_s=300.0,
+        R_px="2.4",
+    )
+    assert isinstance(inputs.R_px, float)
+    assert inputs.R_px == 2.4
+
+    inputs_none = CircumnutationInputs(
+        trajectory_df=valid_trajectory_df,
+        cadence_s=300.0,
+        R_px=None,
+    )
+    assert inputs_none.R_px is None
+
+
 def test_importable_from_top_level():
     """`from sleap_roots import CircumnutationInputs, convert_to_mm` succeeds."""
     from sleap_roots import CircumnutationInputs, convert_to_mm
@@ -574,6 +613,50 @@ def test_units_sidecar_utf8_round_trip(tmp_path):
     parsed = read_units_sidecar(out_path)
     assert parsed == units
     assert "²" in out_path.read_text(encoding="utf-8")
+
+
+def test_sidecar_path_with_dots_in_csv_stem(tmp_path, valid_trajectory_df):
+    """CSV filenames with intermediate dots (`traits.per.plant.csv`) place the units sidecar at the right name.
+
+    Regression test for Copilot PR #200 second-round finding: the
+    original implementation used
+    `csv_path.with_suffix("").with_suffix(".units.json")`, which
+    incorrectly stripped intermediate dotted segments (so
+    `traits.per.plant.csv` produced `traits.per.units.json`). The fix
+    uses `csv_path.parent / f"{csv_path.stem}.units.json"`, which only
+    strips the final `.csv` extension.
+    """
+    from sleap_roots.circumnutation import CircumnutationInputs
+    from sleap_roots.circumnutation._io import (
+        build_per_plant_template,
+        default_units_for_template,
+        gather_run_metadata,
+        read_per_plant_csv,
+        write_per_plant_csv,
+    )
+
+    inputs = CircumnutationInputs(
+        trajectory_df=valid_trajectory_df, cadence_s=300.0, run_id="plate_001"
+    )
+    df = build_per_plant_template(inputs)
+    units = default_units_for_template(df)
+    metadata = gather_run_metadata(input_path="test_input.slp", run_id="plate_001")
+
+    # CSV filename with intermediate dots — this is the failure case.
+    csv_path = tmp_path / "traits.per.plant.csv"
+    write_per_plant_csv(csv_path, df, units, metadata)
+
+    # Sidecar MUST be at traits.per.plant.units.json — not traits.per.units.json.
+    correct_sidecar = tmp_path / "traits.per.plant.units.json"
+    wrong_sidecar = tmp_path / "traits.per.units.json"
+    assert (
+        correct_sidecar.exists()
+    ), f"Expected sidecar at {correct_sidecar}; got files: {list(tmp_path.iterdir())}"
+    assert not wrong_sidecar.exists(), "Old bug: sidecar landed at the wrong path"
+
+    # Reader must use the same convention to find the sibling.
+    df_back, units_back, meta_back = read_per_plant_csv(csv_path)
+    assert units_back == units
 
 
 def test_run_metadata_required_fields(tmp_csv_setup):

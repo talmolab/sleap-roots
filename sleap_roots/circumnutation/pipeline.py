@@ -16,7 +16,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def compute_traits(*args, **kwargs):
+def compute_traits(inputs=None, constants=None):
     """Run the full circumnutation DAG on a :class:`CircumnutationInputs` (PR #14 will implement).
 
     Args (when implemented):

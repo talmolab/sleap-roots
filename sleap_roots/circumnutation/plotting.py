@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def scaleogram(*args, **kwargs):
+def scaleogram(scaleogram_result=None, out_path=None):
     """Render a CWT scaleogram diagnostic plot (PR #16 will implement).
 
     Args (when implemented):

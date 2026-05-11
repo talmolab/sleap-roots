@@ -15,7 +15,19 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def generate_trajectory(*args, **kwargs):
+def generate_trajectory(
+    L_gz=None,
+    Delta_L=None,
+    delta_dot_0=None,
+    epsilon_dot_0=None,
+    omega=None,
+    R=None,
+    duration_hr=None,
+    cadence_min=5.0,
+    noise_sigma_px=2.0,
+    px_per_mm=None,
+    random_state=None,
+):
     """Generate a synthetic tip trajectory (PR #4 will implement).
 
     Args (when implemented):

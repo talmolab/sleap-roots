@@ -1,10 +1,24 @@
 """Circumnutation analysis pipeline for sleap-roots.
 
-This package consumes per-track tip trajectories from
-``TrackedTipPipeline`` (or compatible CSV) and emits per-plant
-circumnutation traits — period, amplitude, handedness, growth-zone
-length, balance number, traveling-wave residual — plus per-plant
-time-series CSVs and diagnostic plots.
+This package consumes per-track tip-trajectory DataFrames matching the
+:data:`ROW_IDENTITY_COLUMNS` schema (8 columns: ``series``,
+``sample_uid``, ``timepoint``, ``plate_id``, ``plant_id``, ``track_id``,
+``genotype``, ``treatment``, plus per-frame ``frame``, ``tip_x``,
+``tip_y``) and emits per-plant circumnutation traits — period,
+amplitude, handedness, growth-zone length, balance number,
+traveling-wave residual — plus per-plant time-series CSVs and
+diagnostic plots.
+
+**Note on input shape.** ``TrackedTipPipeline`` today emits only 7
+columns (``series``, ``sample_uid``, ``timepoint``, ``track_id``,
+``frame``, ``tip_x``, ``tip_y``); callers wanting to feed
+``TrackedTipPipeline`` output directly into ``CircumnutationInputs``
+must first enrich the DataFrame with ``plate_id`` (==``series`` is a
+fine fallback), ``plant_id`` (==``track_id`` today), ``genotype``
+(NaN if unavailable), and ``treatment`` (NaN if unavailable). A
+future tier PR may provide a convenience adapter; the foundation
+requires the full 8-column schema explicitly so the row-identity
+contract is unambiguous.
 
 The pipeline is organized as five computation tiers + a QC tier
 (see ``docs/circumnutation/theory.md`` §6.3 for the full architecture

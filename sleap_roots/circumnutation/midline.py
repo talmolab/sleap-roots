@@ -18,7 +18,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def reconstruct(*args, **kwargs):
+def reconstruct(x=None, y=None, cadence_s=None, sg_window=None):
     """Reconstruct the midline from a tip trail (PR #8 will implement).
 
     Args (when implemented):

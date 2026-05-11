@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def compute(*args, **kwargs):
+def compute(tier3_df=None, R_px=None, omega=None, Delta_phi=None):
     """Compute the Phase-1 partial parametric fit (PR #11 will implement).
 
     Args (when implemented):

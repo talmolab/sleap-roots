@@ -198,7 +198,9 @@ def write_per_plant_csv(
     csv_path = Path(out_path)
     df.to_csv(csv_path.as_posix(), index=False, encoding="utf-8")
 
-    units_path = csv_path.with_suffix("").with_suffix(".units.json")
+    # Only strip the final `.csv` extension — never intermediate dots.
+    # `csv_path.stem` preserves dotted CSV names like `traits.per.plant.csv`.
+    units_path = csv_path.parent / f"{csv_path.stem}.units.json"
     write_units_sidecar(units_path, units)
 
     metadata_path = csv_path.parent / "run_metadata.json"
@@ -221,7 +223,8 @@ def read_per_plant_csv(
     csv_path = Path(in_path)
     df = pd.read_csv(csv_path.as_posix())
 
-    units_path = csv_path.with_suffix("").with_suffix(".units.json")
+    # Mirror the writer: strip only the final `.csv` extension.
+    units_path = csv_path.parent / f"{csv_path.stem}.units.json"
     units = read_units_sidecar(units_path) if units_path.exists() else {}
 
     metadata_path = csv_path.parent / "run_metadata.json"

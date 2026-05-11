@@ -17,7 +17,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def compute(*args, **kwargs):
+def compute(trajectory_df=None, constants=None):
     """Compute the QC tier (PR #3 will implement).
 
     Args (when implemented):
