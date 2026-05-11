@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `sleap_roots.circumnutation` — first OpenSpec change `add-circumnutation-foundation` (PR #1 of the multi-PR program tracked in `docs/circumnutation/roadmap.md`). Foundation contracts only — no spectral analysis, no trait emission, no pipeline class. Adds the package skeleton (5 contract modules + 10 stub modules raising `NotImplementedError` with PR-number references), `CircumnutationInputs` data class, `ROW_IDENTITY_COLUMNS` schema, units sidecar JSON, run-metadata sidecar JSON with full provenance fields (git SHA, schema/constants versions, constants snapshot), module-level constants in `_constants.py`, and the pure-pixel `convert_to_mm()` downstream-conversion utility. Theory and feasibility docs landed at `docs/circumnutation/theory.md`, `preliminary_results_2026-05-07.md`, and `roadmap.md`. (#198, parent epic #197)
 - `TrackedTipPipeline` — root-agnostic pipeline that consumes SLEAP-tracked `.slp` predictions and emits per-track tip-trajectory data plus a minimum-viable substrate of per-track geometric scalars (`tip_trajectory_length`, `tip_displacement_net`, `tracking_coverage`, `n_frames_tracked`, `n_frames_total`). Substrate-only by design; velocity / curvature / circumnutation traits live in separate downstream pipelines that reuse this substrate. (#129, Workstream 2 of the 2026-04-23 timelapse design)
 - `Series.get_tracked_tips(root_type=None)` — long-format DataFrame of per-track tip rows (`track_id, frame, tip_x, tip_y`), sorted by `(track_id, frame)`. Supports single-node and multi-node skeletons via the `[-1]` skeleton convention.
 - `validate_tracked_slp(slp_path)` and `validate_series_for_tracked_tip(series, root_type=None)` module-level helpers in `sleap_roots.series` for input precondition checks.
@@ -27,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Started per-pipeline-module pattern: `TrackedTipPipeline` lives in `sleap_roots/tracked_tip_pipeline.py` instead of being appended to the existing 3763-line `trait_pipelines.py` megafile. Splitting the existing 8 pipelines is tracked in #189.
 
 ### Changed
+- `requires-python` raised from `>=3.7` to `>=3.10`. The previous declaration was stale: the lockfile pulls `numpy>=2.x` which itself requires Python 3.10+, and CI runs only Python 3.11 (`.python-version`). Python 3.7 (EOL June 2023), 3.8 (EOL Oct 2024), and 3.9 (EOL Oct 2025) classifiers removed; the project now declares the floor that matches actual support. `tool.black.target-version = ["py310"]` set explicitly so black uses the 3.10+ parenthesized-context-manager syntax. One pre-existing test (`tests/test_viewer.py`) was reformatted as a consequence — single multi-context-manager `with`-statement converted from the line-continuation form to the parenthesized form.
+- Added `pywavelets>=1.5` and explicit `scipy` to runtime dependencies (used by future `sleap_roots.circumnutation` tier PRs). `scipy` was previously transitive via `scikit-image`; the explicit declaration prevents silent breakage.
 - Updated installation documentation with uv best practices
 - Enhanced developer setup guide with modern workflows
 - Migrated to uv for development dependency management

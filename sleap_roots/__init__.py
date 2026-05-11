@@ -38,6 +38,8 @@ from sleap_roots.series import (
     validate_tracked_slp,
 )
 from sleap_roots.tracked_tip_pipeline import TrackedTipPipeline
+from sleap_roots.circumnutation import CircumnutationInputs
+from sleap_roots.circumnutation.units import convert_to_mm
 
 # Define package version.
 # This is read dynamically by setuptools in pyproject.toml to determine the release version.

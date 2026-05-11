@@ -1624,11 +1624,14 @@ class TestClientRenderMode:
         generator = ViewerGenerator(Path(rice_10do_pipeline_output_folder))
 
         # Mock matplotlib rendering functions to track calls
-        with patch(
-            "sleap_roots.viewer.renderer.render_frame_root_type"
-        ) as mock_root_type, patch(
-            "sleap_roots.viewer.renderer.render_frame_confidence"
-        ) as mock_confidence:
+        with (
+            patch(
+                "sleap_roots.viewer.renderer.render_frame_root_type"
+            ) as mock_root_type,
+            patch(
+                "sleap_roots.viewer.renderer.render_frame_confidence"
+            ) as mock_confidence,
+        ):
             generator.generate(output_path, max_frames=2)
 
             # In client-render mode, matplotlib render functions should NOT be called
@@ -2035,11 +2038,14 @@ class TestPreRenderedMode:
         generator = ViewerGenerator(Path(canola_folder))
 
         # Mock matplotlib rendering functions to track calls
-        with patch(
-            "sleap_roots.viewer.generator.render_frame_root_type"
-        ) as mock_root_type, patch(
-            "sleap_roots.viewer.generator.render_frame_confidence"
-        ) as mock_confidence:
+        with (
+            patch(
+                "sleap_roots.viewer.generator.render_frame_root_type"
+            ) as mock_root_type,
+            patch(
+                "sleap_roots.viewer.generator.render_frame_confidence"
+            ) as mock_confidence,
+        ):
             generator.generate(output_path, max_frames=2, render=True)
 
             # In render mode, matplotlib functions should be called
