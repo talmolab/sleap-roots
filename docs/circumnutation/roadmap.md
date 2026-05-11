@@ -134,7 +134,7 @@ Each row is one PR, one OpenSpec change-id (`add-circumnutation-<topic>` for cod
 
 | # | OpenSpec change-id | Scope | Issue draft | Status |
 |---|---|---|---|---|
-| 1 | `add-circumnutation-foundation` | Deps (`pywavelets`, explicit `scipy`); package skeleton; `CircumnutationInputs` data class; calibration contract (CC-3 investigation); module-constants pattern (CC-2); row-identity schema (CC-4); units sidecar; logging (CC-9); `__init__.py` re-exports. | ⬜ | ⬜ |
+| 1 | `add-circumnutation-foundation` | Deps (`pywavelets`, explicit `scipy`); package skeleton; `CircumnutationInputs` data class; pure-pixel `convert_to_mm` utility (CC-3); module-constants pattern (CC-2); row-identity schema (CC-4); units sidecar + run-metadata sidecar with provenance; logging (CC-9); `__init__.py` re-exports. [#198](https://github.com/talmolab/sleap-roots/issues/198) · [PR #200](https://github.com/talmolab/sleap-roots/pull/200) | ✅ | ✅ |
 | 2 | `add-circumnutation-tier0-kinematics` | Tier 0 traits (theory.md §7.1); growth-axis edge case (CC-5); plate 001 sanity tests. | ⬜ | ⬜ |
 | 3 | `add-circumnutation-qc-tier` | All QC traits (theory.md §7.6) including `msd_noise_xy` (CC-10); `cadence_nyquist_ratio` (theory.md §6.5); `growth_axis_unreliable`; `qc_failure_reason`. | ⬜ | ⬜ |
 | 4 | `add-circumnutation-synthetic-generator` | `synthetic.generate_trajectory` integrating Rivière 2022 Eq. 4 forward; `random_state` propagation (CC-6); sanity tests. | ⬜ | ⬜ |
