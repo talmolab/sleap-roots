@@ -12,7 +12,7 @@
         <meta name="author" content="Talmo Lab">
       
       
-        <link rel="canonical" href="https://roots.sleap.ai/latest/reference/SUMMARY/">
+        <link rel="canonical" href="https://roots.sleap.ai/latest/circumnutation/roadmap/">
       
       
       
@@ -25,7 +25,7 @@
     
     
       
-        <title>SUMMARY - sleap-roots</title>
+        <title>Circumnutation pipeline — implementation roadmap - sleap-roots</title>
       
     
     
@@ -79,6 +79,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#circumnutation-pipeline-implementation-roadmap" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -115,7 +120,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              SUMMARY
+              Circumnutation pipeline — implementation roadmap
             
           </span>
         </div>
@@ -2818,50 +2823,369 @@
                   
 
 
+  
+  
 
-  <h1>SUMMARY</h1>
 
+<h1 id="circumnutation-pipeline-implementation-roadmap">Circumnutation pipeline — implementation roadmap<a class="headerlink" href="#circumnutation-pipeline-implementation-roadmap" title="Permanent link">&para;</a></h1>
+<p>This is the umbrella tracking doc for adding circumnutation analysis to sleap-roots. It is the <em>only</em> place the full multi-PR program lives. It does not duplicate the theoretical content (in <code>theory.md</code>) or the empirical feasibility numbers (in <code>preliminary_results_2026-05-07.md</code>); it points to them.</p>
+<p>Each numbered PR below has its own OpenSpec change-id and its own GitHub issue. <strong>OpenSpec changes are written just-in-time</strong>, when the corresponding PR is opened — not all up front. <strong>GitHub issues are drafted lazily</strong> to <code>c:\vaults\sleap-roots\circumnutation\github_issues\</code> as we approach each PR. The status checkboxes here are the source of truth for what's done, in flight, and queued.</p>
+<hr />
+<h2 id="vision">Vision<a class="headerlink" href="#vision" title="Permanent link">&para;</a></h2>
+<p>Tracked SLEAP tip trajectories from <code>TrackedTipPipeline</code> enter; per-plant scalar circumnutation traits (period, amplitude, handedness, growth-zone length, balance number, traveling-wave residual) and per-plant time-series CSVs and diagnostic plots come out. Trait list, units, and source citations are fixed by <code>theory.md</code> §7. Validation is three-layer: synthetic, Derr-pilot regression, cross-tier consistency.</p>
+<h2 id="inputs-and-outputs">Inputs and outputs<a class="headerlink" href="#inputs-and-outputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="../sleap_roots/">sleap_roots</a><ul>
-<li><a href="../sleap_roots/angle/">angle</a></li>
-<li><a href="../sleap_roots/bases/">bases</a></li>
-<li><a href="../sleap_roots/circumnutation/">circumnutation</a><ul>
-<li><a href="../sleap_roots/circumnutation/kinematics/">kinematics</a></li>
-<li><a href="../sleap_roots/circumnutation/midline/">midline</a></li>
-<li><a href="../sleap_roots/circumnutation/parametric/">parametric</a></li>
-<li><a href="../sleap_roots/circumnutation/pipeline/">pipeline</a></li>
-<li><a href="../sleap_roots/circumnutation/plotting/">plotting</a></li>
-<li><a href="../sleap_roots/circumnutation/psi_g/">psi_g</a></li>
-<li><a href="../sleap_roots/circumnutation/qc/">qc</a></li>
-<li><a href="../sleap_roots/circumnutation/spatial_cwt/">spatial_cwt</a></li>
-<li><a href="../sleap_roots/circumnutation/synthetic/">synthetic</a></li>
-<li><a href="../sleap_roots/circumnutation/temporal_cwt/">temporal_cwt</a></li>
-<li><a href="../sleap_roots/circumnutation/units/">units</a></li>
+<li><strong>Input:</strong> per-track tip trajectories <code>(series, sample_uid, timepoint, track_id, frame, tip_x, tip_y)</code> plus optional <code>R_px</code> (root cross-section radius in pixels, used by Tier 4). <strong>No <code>px_per_mm</code></strong> — the pipeline is pure-pixel per CC-3 below; calibration is handled by the downstream <code>convert_to_mm()</code> utility, never inside the pipeline. Today, in this codebase, <code>track_id</code> and <code>plant_id</code> are 1:1 — a track <em>is</em> a plant. The schema reserves both columns so that a future change (e.g., multi-track-per-plant scenarios) is non-breaking.</li>
+<li><strong>Output:</strong> <code>traits_per_plant.csv</code> (one row per <code>(series, sample_uid, plate_id, plant_id, track_id)</code>), <code>traits_per_plant.units.json</code>, <code>trajectory_per_plant/&lt;id&gt;.csv</code>, <code>plots/*.png</code>, <code>run_metadata.json</code>.</li>
 </ul>
-</li>
-<li><a href="../sleap_roots/cli/">cli</a></li>
-<li><a href="../sleap_roots/convhull/">convhull</a></li>
-<li><a href="../sleap_roots/ellipse/">ellipse</a></li>
-<li><a href="../sleap_roots/lengths/">lengths</a></li>
-<li><a href="../sleap_roots/metadata/">metadata</a></li>
-<li><a href="../sleap_roots/networklength/">networklength</a></li>
-<li><a href="../sleap_roots/points/">points</a></li>
-<li><a href="../sleap_roots/scanline/">scanline</a></li>
-<li><a href="../sleap_roots/series/">series</a></li>
-<li><a href="../sleap_roots/summary/">summary</a></li>
-<li><a href="../sleap_roots/tips/">tips</a></li>
-<li><a href="../sleap_roots/tracked_tip_pipeline/">tracked_tip_pipeline</a></li>
-<li><a href="../sleap_roots/trait_pipelines/">trait_pipelines</a></li>
-<li><a href="../sleap_roots/viewer/">viewer</a><ul>
-<li><a href="../sleap_roots/viewer/cli/">cli</a></li>
-<li><a href="../sleap_roots/viewer/generator/">generator</a></li>
-<li><a href="../sleap_roots/viewer/renderer/">renderer</a></li>
-<li><a href="../sleap_roots/viewer/serializer/">serializer</a></li>
+<h2 id="architecture-link-only-not-duplicated-here">Architecture (link only — not duplicated here)<a class="headerlink" href="#architecture-link-only-not-duplicated-here" title="Permanent link">&para;</a></h2>
+<p>Five computation tiers + QC tier, full description in <code>theory.md</code> §6.3. Trait list with units and source citations in <code>theory.md</code> §7. Empirical feasibility numbers (noise floor, period, amplitude, SNR, DPI ambiguity, Nyquist comfort) in <code>preliminary_results_2026-05-07.md</code>.</p>
+<h2 id="cross-cutting-concerns">Cross-cutting concerns<a class="headerlink" href="#cross-cutting-concerns" title="Permanent link">&para;</a></h2>
+<p>These apply across many PRs and need to be designed into the foundation rather than retro-fitted.</p>
+<h3 id="cc-1-l_gz-mask-is-applied-after-detection-not-before">CC-1. L_gz mask is applied AFTER detection, not before.<a class="headerlink" href="#cc-1-l_gz-mask-is-applied-after-detection-not-before" title="Permanent link">&para;</a></h3>
+<p>The growth-zone mask (apical region of the tip-trail, length ≈ <code>L_gz</code>) is <em>not</em> known at midline-reconstruction time. The correct algorithm is:</p>
+<ol>
+<li>Smooth <code>(x, y)</code>; reconstruct full midline with arc-length <code>s(τ)</code>; compute <code>κ(s)</code> along the <em>full</em> trail. <strong>No mask.</strong> (PR #8.)</li>
+<li>Spatial CWT on the full <code>κ(s)</code>; peak-find <code>L_gz_estimate</code> from the <code>|κ(s)|</code> envelope; fit exponential decay basal of the peak for <code>L_c_estimate</code>. (PR #9.)</li>
+<li><em>Now</em> construct the growth-zone mask using the detected <code>L_gz</code>, and apply it to compute downstream traits (<code>λ_spatial_median</code>, <code>traveling_wave_residual</code>) on the basal-of-peak portion only. (PR #10.)</li>
+</ol>
+<p>PR #8's "growth-zone mask" responsibility is removed; PR #10 owns it.</p>
+<h3 id="cc-2-configuration-strategy-module-level-named-constants">CC-2. Configuration strategy: module-level named constants.<a class="headerlink" href="#cc-2-configuration-strategy-module-level-named-constants" title="Permanent link">&para;</a></h3>
+<p>Match <code>tracked_tip_pipeline.py</code> convention: tuple/dict module-level constants (e.g., <code>_TRACKED_TIP_UNITS</code>, <code>_VALID_ROOT_TYPES</code>, <code>_SCHEMA_VERSION</code>). One <code>_constants.py</code> per tier OR top-level if shared. Magic numbers to name (non-exhaustive — flesh out in PR #1):</p>
+<table>
+<thead>
+<tr>
+<th>Constant</th>
+<th>Default</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NOISE_MASK_K</code></td>
+<td>2</td>
+<td><code>theory.md</code> §6.2 (κ-mask: |v| &gt; 2σ_v)</td>
+</tr>
+<tr>
+<td><code>LGZ_STEADY_STATE_RESIDUAL_MAX</code></td>
+<td>0.2</td>
+<td><code>theory.md</code> §7.4</td>
+</tr>
+<tr>
+<td><code>NYQUIST_RATIO_MAX</code></td>
+<td>0.25</td>
+<td><code>theory.md</code> §6.5</td>
+</tr>
+<tr>
+<td><code>SG_D2_AGREEMENT_MAX</code></td>
+<td>1.5</td>
+<td><code>theory.md</code> §7.6 (clean-track threshold)</td>
+</tr>
+<tr>
+<td><code>LGZ_NMIN_RESOLVABLE</code></td>
+<td>5</td>
+<td><code>theory.md</code> §6.4</td>
+</tr>
+<tr>
+<td><code>COI_FRACTION_MAX</code></td>
+<td>0.5</td>
+<td><code>theory.md</code> §7.6</td>
+</tr>
+<tr>
+<td><code>BAND_POWER_NOISE_RATIO</code></td>
+<td>3</td>
+<td><code>theory.md</code> §7.6 (<code>is_nutating</code> threshold)</td>
+</tr>
+<tr>
+<td><code>WAVELET_DEFAULT_TEMPORAL</code></td>
+<td><code>"cmor1.5-1.0"</code></td>
+<td>Forensic match to Derr Sept-2025 oracle</td>
+</tr>
+<tr>
+<td><code>WAVELET_DEFAULT_SPATIAL</code></td>
+<td><code>"cgau2"</code></td>
+<td>Rivière 2022 §"Kinematics: fine elongation measurements"</td>
+</tr>
+<tr>
+<td><code>SG_WINDOW_SHORT</code></td>
+<td>5</td>
+<td><code>preliminary_results.md</code> §3.3</td>
+</tr>
+<tr>
+<td><code>SG_DEGREE</code></td>
+<td>3</td>
+<td><code>preliminary_results.md</code> §3.3</td>
+</tr>
+<tr>
+<td><code>SG_WINDOW_DETREND</code></td>
+<td>23</td>
+<td><code>preliminary_results.md</code> §3.4 (≈ 2 nutation periods)</td>
+</tr>
+<tr>
+<td><code>OUTLIER_STEP_RATIO</code></td>
+<td>2</td>
+<td><code>preliminary_results.md</code> §4.1 (median multiplier)</td>
+</tr>
+</tbody>
+</table>
+<p>Each constant is overridable via the pipeline class init or per-call kwarg, but defaults flow from one place.</p>
+<h3 id="cc-3-pure-pixel-pipeline-convention-downstream-convert_to_mm-utility">CC-3. Pure-pixel pipeline convention; downstream <code>convert_to_mm()</code> utility.<a class="headerlink" href="#cc-3-pure-pixel-pipeline-convention-downstream-convert_to_mm-utility" title="Permanent link">&para;</a></h3>
+<p>The pipeline NEVER takes <code>px_per_mm</code> as a parameter and NEVER emits <code>[mm]</code> columns. Every length-bearing trait is in pixels (<code>px</code>, <code>px²</code>, <code>px/frame</code>, <code>px/hr</code>, <code>px·hr⁻¹</code>); time in <code>hr</code> or <code>s</code>; angles in <code>rad</code>; rates in <code>hr⁻¹</code>; ratios as dimensionless. This matches <code>TrackedTipPipeline</code>'s convention exactly — <code>_TRACKED_TIP_UNITS</code> declares <code>lengths: "pixels"</code>. Calibration is always a downstream concern.</p>
+<p>Users who want mm output compose <code>sleap_roots.circumnutation.units.convert_to_mm(traits_df, units, px_per_mm)</code> on the trait DataFrame. This pure function lives in PR #1 (foundation), is fully tested in isolation, and never affects the pipeline output. The <code>R</code> parameter for Tier 4 (Bastien-Meroz) becomes <code>R_px</code> — the user provides their root cross-section radius in pixels using whatever calibration they trust; the formula <code>δ̇₀ = ω·R·Δφ / (2·ΔL)</code> cancels dimensions because <code>R/ΔL</code> is a length ratio, so <code>R_px / ΔL_px</code> is dimensionless and <code>δ̇₀</code> is <code>hr⁻¹</code> regardless of calibration.</p>
+<p>This decouples the DPI ambiguity (PR #19) from the pipeline entirely. The pipeline can ship and run on plate 001 today without resolving DPI; the resolved value flows into <code>convert_to_mm()</code> calls downstream.</p>
+<h3 id="cc-4-row-identity-in-trait-csv">CC-4. Row identity in trait CSV.<a class="headerlink" href="#cc-4-row-identity-in-trait-csv" title="Permanent link">&para;</a></h3>
+<p>To make per-plate / per-genotype / per-plant aggregation feasible without re-engineering, the per-plant trait CSV row-identity columns are:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>series, sample_uid, timepoint, plate_id, plant_id, track_id, genotype, treatment
+</span></code></pre></div>
+<p>Today <code>plant_id == track_id</code> everywhere; both columns are populated identically. The schema reserves both so a future divergence (multi-track-per-plant, e.g. measuring a plant via tip + a side-marker) is a non-breaking change. <code>genotype</code> and <code>treatment</code> are populated from <code>Series</code> metadata if available, NaN otherwise. PR #1 task: confirm <code>TrackedTipPipeline</code> output exposes <code>plate_id</code> and the metadata fields, and document upstream-dependency contract if it doesn't.</p>
+<p><strong><code>plant_id</code> semantics, populating responsibility, and future divergence.</strong> <code>plant_id</code> is meant to be a <strong>stable identifier for the physical plant entity</strong>, decoupled from the tracker-assigned <code>track_id</code>. The foundation contract is intentionally minimal: it requires the column to exist (and tests assert that callers conventionally set <code>plant_id = track_id</code> today), but it does <strong>not</strong> enforce equality at runtime. Per-plant aggregation in tier PRs (<code>aggregate_by_genotype</code>, see PR #15) keys on <code>plant_id</code> rather than <code>track_id</code> so the aggregation stays correct under any of the three foreseeable divergence cases:</p>
+<ol>
+<li><strong>Track fragmentation.</strong> The SLEAP tracker loses a plant mid-run and re-IDs it, so two <code>track_id</code> values bind to one physical plant. An adapter / cleanup step (a future tier PR or a manual proofread upstream) sets the two fragments to the same <code>plant_id</code> while leaving their <code>track_id</code>s distinct.</li>
+<li><strong>Multi-track-per-plant.</strong> A future model tracks the tip + a side-marker (or any second landmark) and emits two tracks per plant. Same one-<code>plant_id</code>-many-<code>track_id</code>s pattern.</li>
+<li><strong>External plate-position metadata.</strong> Suyash's CMTN plates have 6 plants in known positions. A future ingest step can map "position 1 (top-left) → <code>plant_id="plate001_WT_rep1"</code>, position 2 → <code>plant_id="plate001_WT_rep2"</code>, ..." onto the trajectory DataFrame so <code>plant_id</code> carries treatment-meaningful identity rather than tracker-internal numbering.</li>
+</ol>
+<p><strong>Populating responsibility is upstream of the foundation.</strong> <code>TrackedTipPipeline</code> does not currently emit <code>plant_id</code>, <code>plate_id</code>, <code>genotype</code>, or <code>treatment</code>. Callers feeding <code>TrackedTipPipeline</code> output into <code>CircumnutationInputs</code> must enrich the DataFrame with these four columns before construction; the convention today is <code>df["plant_id"] = df["track_id"]</code> and the other three set to <code>NaN</code> when unavailable. A future tier PR or upstream extension (e.g., a per-frame-metadata follow-up to <code>series-metadata</code>/PR #171) may automate this enrichment. The foundation requires the full 8-column schema rather than synthesizing defaults at validation time so the row-identity contract stays explicit and any divergence shows up as a deliberate caller decision.</p>
+<p><strong>Implementation already supports divergence.</strong> <code>_io.build_per_plant_template</code> drops duplicates on the full 8-tuple and sorts by <code>(series, sample_uid, plate_id, plant_id, track_id)</code>. If a caller populates <code>plant_id != track_id</code>, the template just produces more rows (one per unique 8-tuple). No code change is needed for divergence to work mechanically; only the spec definition needs to evolve when the convention does.</p>
+<h3 id="cc-5-growth-axis-edge-case-low-displacement-plants">CC-5. Growth-axis edge case (low-displacement plants).<a class="headerlink" href="#cc-5-growth-axis-edge-case-low-displacement-plants" title="Permanent link">&para;</a></h3>
+<p>Some real tracks have net displacement comparable to per-frame noise (mutants, stressed plants, very early imaging windows). The growth axis defined as <code>(x_N - x_1) / |x_N - x_1|</code> is meaningless in that regime. PR #2 must:</p>
+<ol>
+<li>Compute net displacement <code>D = |x_N - x_1|</code> (in pixels).</li>
+<li>If <code>D &lt; GROWTH_AXIS_RELIABILITY_K * sg_residual_xy</code> (recommend <code>K = 10</code>), set <code>growth_axis_unreliable = True</code> and set the rotation-dependent traits (<code>v_long_median</code>, <code>v_lat_median</code>, <code>long_lat_ratio</code>, <code>principal_axis_angle</code>) to NaN.</li>
+<li>The QC tier emits <code>growth_axis_unreliable</code> as a bool flag.</li>
+</ol>
+<h3 id="cc-6-cwt-determinism-reproducibility">CC-6. CWT determinism / reproducibility.<a class="headerlink" href="#cc-6-cwt-determinism-reproducibility" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Synthetic generator (PR #4) accepts an explicit <code>random_state</code> (numpy <code>Generator</code> or seed <code>int</code>) and propagates it.</li>
+<li><code>pywavelets.cwt</code> is deterministic — confirm in PR #5.</li>
+<li>The ridge-extraction algorithm (PR #5) MUST be deterministic — no random tie-breaking, no shuffling. Document in the function docstring.</li>
+<li>Tests assert determinism: same input → identical output across two runs, including in CI on different OSs.</li>
 </ul>
-</li>
+<h3 id="cc-7-tier-1-coordinate-choice-for-derr-regression">CC-7. Tier 1 coordinate choice for Derr regression.<a class="headerlink" href="#cc-7-tier-1-coordinate-choice-for-derr-regression" title="Permanent link">&para;</a></h3>
+<p>Derr's Sept-2025 oracle signal was a 1D coordinate but he didn't document which. Forensic reading (<code>preliminary_results.md</code> and the input PDF analysis): the ~80 px non-monotonic drift + ~10 px oscillation matches the <strong>lateral coordinate</strong> (perpendicular to growth axis), not raw image-x or image-y. Resolution:</p>
+<ul>
+<li><strong>Default:</strong> <code>coordinate="lateral"</code> for Tier 1 (uses Tier 0's growth-axis estimate).</li>
+<li><strong>Configurable:</strong> <code>coordinate=</code> accepts <code>["x", "y", "longitudinal", "lateral"]</code>.</li>
+<li><strong>Layer-2 regression test (PR #6):</strong> uses <code>coordinate="lateral"</code> and asserts <code>T = 3333 s ± 2%</code>. If the assertion fails, log the result for <code>coordinate="x"</code>, <code>"y"</code> as a diagnostic.</li>
+<li><strong>Close-out PR #21</strong> (verify-equations) confirms with Julien which coordinate his pilot used and locks in the test target.</li>
 </ul>
-</li>
+<h3 id="cc-8-is_nutating-threshold-noise_floor_estimate-definition">CC-8. <code>is_nutating</code> threshold: <code>noise_floor_estimate</code> definition.<a class="headerlink" href="#cc-8-is_nutating-threshold-noise_floor_estimate-definition" title="Permanent link">&para;</a></h3>
+<p><code>is_nutating</code> is defined in <code>theory.md</code> §7.6 as <code>band_power_ratio &gt; BAND_POWER_NOISE_RATIO * noise_floor_estimate</code>. Pin the noise-floor definition:</p>
+<ul>
+<li><code>noise_floor_estimate</code> = median of the Tier-1 Fourier amplitude spectrum over frequencies <code>&gt; 5 × (1 / T_nutation_median)</code> (out-of-band Fourier floor).</li>
+<li>Rationale: signal-band-relative, no dependence on calibration, matches Derr's plot's empty-spectrum region.</li>
 </ul>
+<p>Implementation in PR #6.</p>
+<h3 id="cc-9-logging-convention">CC-9. Logging convention.<a class="headerlink" href="#cc-9-logging-convention" title="Permanent link">&para;</a></h3>
+<p>Per-module logger via <code>logger = logging.getLogger(__name__)</code>, matching <code>tracked_tip_pipeline.py</code>. Per-plate progress messages at <code>INFO</code>; per-plant inside-plate messages at <code>DEBUG</code>. PR #1 sets up; subsequent PRs use.</p>
+<h3 id="cc-10-number-of-independent-noise-estimators-in-qc-tier-phase-1">CC-10. Number of independent noise estimators in QC tier (Phase 1).<a class="headerlink" href="#cc-10-number-of-independent-noise-estimators-in-qc-tier-phase-1" title="Permanent link">&para;</a></h3>
+<p>Per Elizabeth's directive (this conversation): all three independent noise estimators are emitted in Phase 1 — <code>sg_residual_xy</code>, <code>d2_noise_xy</code>, <code>msd_noise_xy</code>. Pairwise agreement traits: <code>sg_d2_agreement</code>, <code>sg_msd_agreement</code>, <code>d2_msd_agreement</code>. <code>track_is_clean</code> requires all three pairwise agreements ≤ 1.5. Implementation in PR #3.</p>
+<h2 id="pr-issue-split">PR / issue split<a class="headerlink" href="#pr-issue-split" title="Permanent link">&para;</a></h2>
+<p>Status: ⬜ not started | 🟡 in flight | ✅ merged. Issue links populated as drafts land in the vault.</p>
+<p>Each row is one PR, one OpenSpec change-id (<code>add-circumnutation-&lt;topic&gt;</code> for code PRs; <code>verify-…</code> for close-out docs PRs), and one GitHub issue.</p>
+<h3 id="phase-1-main-pipeline">Phase 1 — main pipeline<a class="headerlink" href="#phase-1-main-pipeline" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>OpenSpec change-id</th>
+<th>Scope</th>
+<th>Issue draft</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>add-circumnutation-foundation</code></td>
+<td>Deps (<code>pywavelets</code>, explicit <code>scipy</code>); package skeleton; <code>CircumnutationInputs</code> data class; calibration contract (CC-3 investigation); module-constants pattern (CC-2); row-identity schema (CC-4); units sidecar; logging (CC-9); <code>__init__.py</code> re-exports.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>add-circumnutation-tier0-kinematics</code></td>
+<td>Tier 0 traits (theory.md §7.1); growth-axis edge case (CC-5); plate 001 sanity tests.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>add-circumnutation-qc-tier</code></td>
+<td>All QC traits (theory.md §7.6) including <code>msd_noise_xy</code> (CC-10); <code>cadence_nyquist_ratio</code> (theory.md §6.5); <code>growth_axis_unreliable</code>; <code>qc_failure_reason</code>.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>add-circumnutation-synthetic-generator</code></td>
+<td><code>synthetic.generate_trajectory</code> integrating Rivière 2022 Eq. 4 forward; <code>random_state</code> propagation (CC-6); sanity tests.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>add-circumnutation-temporal-cwt-machinery</code></td>
+<td><code>temporal_cwt.compute_scaleogram</code> + <code>extract_ridge</code> + COI mask; deterministic per CC-6; no trait emission.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>add-circumnutation-tier1-derr-faithful</code></td>
+<td>Tier 1 trait emission (theory.md §7.2); <code>coordinate=</code> parameter (CC-7); <code>noise_floor_estimate</code> definition (CC-8); Layer-2 Derr regression.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>add-circumnutation-tier2-psi-g</code></td>
+<td><code>ψ_g(t)</code> unwrap + smooth (theory.md §3.5); Tier 2 trait emission (theory.md §7.3); cross-tier consistency check.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>add-circumnutation-tier3a-midline</code></td>
+<td>Tip-trail-as-midline reconstruction (theory.md §6.1); arc-length <code>s(τ)</code>; <code>κ(s)</code>; <code>v(t)</code>; SG smoothing of <code>(x,y)</code>. <strong>No growth-zone mask</strong> (CC-1).</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>add-circumnutation-tier3b-spatial-cwt</code></td>
+<td>Spatial CWT (<code>cgau2</code> default); <code>L_gz</code> peak-finder; <code>L_c</code> exponential-decay fit. <strong>No mask</strong> (CC-1).</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>add-circumnutation-tier3c-traits</code></td>
+<td>Tier-3 trait emission (theory.md §7.4) including <code>B_balance_number</code>, <code>L_gz_steady_state_residual</code>, <code>L_gz_resolvable</code>, <code>traveling_wave_residual</code>, <code>apex_basal_period_consistency</code>. <strong>Applies the L_gz growth-zone mask</strong> (CC-1).</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>add-circumnutation-tier4-parametric</code></td>
+<td><code>gamma_over_beta</code> alias + <code>delta_dot_0_estimate</code> (theory.md §7.5); Phase-2 NaN columns (<code>beta</code>, <code>gamma</code>, <code>theta_p</code>).</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>add-circumnutation-layer1-validation</code></td>
+<td>Synthetic-data parameterized suite; Averrhoa-scale + rice-scale; both handedness signs; tolerances per theory.md §8 Layer 1.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>add-circumnutation-layer3-cross-tier</code></td>
+<td>Explicit Layer-3 cross-tier consistency tests as a coherent class (<code>T_nutation ↔ T_psig ±5%</code>, <code>λ_spatial ↔ v·T ±10%</code>).</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>add-circumnutation-pipeline</code></td>
+<td><code>CircumnutationPipeline</code> DAG composition; pickle-ability; integration test on plate 001; CSV writer with full row-identity (CC-4).</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>add-circumnutation-per-genotype-aggregation</code></td>
+<td><code>aggregate_by_genotype()</code> per theory.md §7.7 (median ± IQR; <code>n_plants_passing_qc</code>; exclusion reasons). Schema-aware: groups by <code>(genotype, treatment)</code>, reports per-<code>plate_id</code> separately.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>add-circumnutation-plots</code></td>
+<td>Scaleograms (Tier 1 + Tier 3); trail overlay (κ-color-coded); 6-up plate panel; <code>--no-plots</code> flag.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>17</td>
+<td><code>add-circumnutation-cli</code></td>
+<td><code>sleap-roots circumnutation analyze</code>.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>18</td>
+<td><code>add-circumnutation-user-guide</code></td>
+<td><code>pipeline_guide.md</code>; cookbook entry; mkdocs nav; <code>docs/changelog.md</code> entry.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+</tbody>
+</table>
+<h3 id="phase-15-close-out-parallel-not-blocking-phase-1-merge">Phase 1.5 — close-out (parallel; not blocking Phase 1 merge)<a class="headerlink" href="#phase-15-close-out-parallel-not-blocking-phase-1-merge" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>OpenSpec change-id (or N/A)</th>
+<th>Scope</th>
+<th>Issue draft</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>19</td>
+<td>N/A (coordination + docs)</td>
+<td>Resolve DPI calibration with Suyash; document resolved value(s) + per-plate variation in new <code>docs/circumnutation/calibration.md</code>. Until resolved, all <code>[mm]</code> traits are scale-tentative — pipeline runs in pixels internally so this never blocks merging code.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>20</td>
+<td><code>verify-rice-l-gz-citation</code></td>
+<td>Confirm or replace Iijima &amp; Kato 2007 (theory.md §6.4 + §11). Update <code>theory.md</code> reference. Small docs PR.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>21</td>
+<td><code>verify-equation-attributions</code></td>
+<td>Append a verification log to <code>theory.md</code> Appendix B confirming BM2016 Eqs. 13/14/20/21/23, Rivière 2022 Eqs. 1–5, Meroz 2026 Eqs. 1/5/6/7 against published PDFs. Coordinate with Julien on the Tier 1 coordinate choice (CC-7) while at it. Small docs PR.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+<tr>
+<td>22</td>
+<td><code>add-taylor-r-pipeline-cross-validation</code></td>
+<td>Python re-implementation of LOESS centerline + drift correction + natural-spline + peak-finding (Taylor 2021 PNAS supplementary R). Regression test on <code>taylor_2021_pnas_loess_spline/data/all_tip_tracking_combined.csv</code> matching published amplitudes. NOT a Tier in the main pipeline — this is a <em>cross-validation reference implementation</em>.</td>
+<td>⬜</td>
+<td>⬜</td>
+</tr>
+</tbody>
+</table>
+<h3 id="beyond-phase-15-out-of-this-roadmap">Beyond Phase 1.5 (out of this roadmap)<a class="headerlink" href="#beyond-phase-15-out-of-this-roadmap" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Multi-node SLEAP skeleton tracking upstream → unlocks the spatial profile traits the current tip-only pipeline can't measure (theory.md §6.6).</li>
+<li>Full <code>(β, γ, θ_p)</code> identification with gravitropism stimulus.</li>
+<li>tsfresh exploratory feature extraction layer.</li>
+<li>3D reconstruction.</li>
+<li>AFM / cell-wall biology workstream.</li>
+<li>Live monitoring during timelapse (post-hoc analysis only in Phase 1).</li>
+<li>Multi-plate analysis: re-run on plates 002 (GA₄), 003 (MOCK rep), 004 (TZT) once Phase 1 is stable on plate 001.</li>
+</ul>
+<h2 id="open-scientific-blockers-live-tracked">Open scientific blockers (live-tracked)<a class="headerlink" href="#open-scientific-blockers-live-tracked" title="Permanent link">&para;</a></h2>
+<p>These are flagged in <code>theory.md</code> and <code>preliminary_results.md</code>. The pipeline runs around them; resolution moves Phase-1 deliverables from "scale-tentative" to "publication-defensible." Tracked as PRs #19–22 above. None blocks Phase-1 code merging.</p>
+<h2 id="how-to-execute">How to execute<a class="headerlink" href="#how-to-execute" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Pick the next ⬜ row.</li>
+<li>Draft the GitHub issue body to <code>c:\vaults\sleap-roots\circumnutation\github_issues\issue_&lt;change-id&gt;.md</code>. Reference the OpenSpec change-id, the relevant theory.md section, the relevant <code>preliminary_results.md</code> section if applicable, the cross-cutting concerns it touches.</li>
+<li>Open the GitHub issue (Elizabeth posts).</li>
+<li>Scaffold the OpenSpec change at <code>openspec/changes/&lt;change-id&gt;/</code> with <code>proposal.md</code>, optional <code>design.md</code>, <code>tasks.md</code>, <code>specs/circumnutation/spec.md</code>. Validate with <code>openspec validate &lt;change-id&gt; --strict</code>.</li>
+<li>TDD-implement per <code>tasks.md</code>. Open PR linking issue + change-id.</li>
+<li>After merge, archive with <code>openspec archive &lt;change-id&gt; --yes</code> to fold the requirements into <code>openspec/specs/circumnutation/spec.md</code>.</li>
+<li>Update this roadmap's status checkbox.</li>
+</ol>
 
 
 

@@ -12,7 +12,7 @@
         <meta name="author" content="Talmo Lab">
       
       
-        <link rel="canonical" href="https://roots.sleap.ai/latest/reference/SUMMARY/">
+        <link rel="canonical" href="https://roots.sleap.ai/latest/circumnutation/preliminary_results_2026-05-07/">
       
       
       
@@ -25,7 +25,7 @@
     
     
       
-        <title>SUMMARY - sleap-roots</title>
+        <title>Preliminary kinematic characterization of root circumnutation in rice CMTN data - sleap-roots</title>
       
     
     
@@ -79,6 +79,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#preliminary-kinematic-characterization-of-root-circumnutation-in-rice-cmtn-data" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -115,7 +120,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              SUMMARY
+              Preliminary kinematic characterization of root circumnutation in rice CMTN data
             
           </span>
         </div>
@@ -2818,49 +2823,403 @@
                   
 
 
+  
+  
 
-  <h1>SUMMARY</h1>
 
+<h1 id="preliminary-kinematic-characterization-of-root-circumnutation-in-rice-cmtn-data">Preliminary kinematic characterization of root circumnutation in rice CMTN data<a class="headerlink" href="#preliminary-kinematic-characterization-of-root-circumnutation-in-rice-cmtn-data" title="Permanent link">&para;</a></h1>
+<p><em>Working draft, 2026-05-07. Author: Elizabeth Berrigan. Tags: circumnutation, sleap-roots, kinematics, preliminary. Feasibility analysis for the sleap-roots circumnutation pipeline.</em></p>
+<h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
+<p>We characterize the kinematics of root circumnutation in tracked SLEAP predictions from a 6-plant rice (<em>Oryza sativa</em> cv. Nipponbare) plate, imaged at 5-min cadence over 47.9 hr. The dominant nutation period is <strong>~3333 s (55.5 min)</strong>, the lateral peak-to-peak amplitude after centerline detrending is <strong>~10 px (~0.20 mm at 1200 DPI scan resolution)</strong>, and the longitudinal tip-growth speed is <strong>~4.3 px/frame ≈ 1.0 mm/hr</strong>, consistent with rice primary-root growth rates in the literature. Empirical SLEAP localization noise on proofread predictions is <strong>~2 px (~40 µm)</strong>, giving a per-cycle SNR of ~5× and a coherent spectral SNR of ~35–40× across the ~57 cycles captured per track. Both temporal and spatial wavelet analyses are feasible from these data: ~11 samples per nutation cycle (well above Nyquist) and ~52 spatial wavelengths along the cumulative tip trail. A pixel-to-millimeter scale ambiguity (TIFF EXIF claims 400 DPI but the implied 4.4 mm/hr growth rate is too fast for rice) remains to be resolved with the experimenter; the 1200 DPI working assumption is biology-corroborated but not source-of-truth.</p>
+<h2 id="1-background">1. Background<a class="headerlink" href="#1-background" title="Permanent link">&para;</a></h2>
+<h3 id="11-biological-framing">1.1 Biological framing<a class="headerlink" href="#11-biological-framing" title="Permanent link">&para;</a></h3>
+<p>Plant circumnutation is a self-sustaining oscillatory growth movement, observable as a helical or quasi-circular trajectory of the organ apex. In roots, the period and amplitude depend on species, hormonal state, and mechanical loading. Two complementary theoretical frames currently inform pipeline design:</p>
 <ul>
-<li><a href="../sleap_roots/">sleap_roots</a><ul>
-<li><a href="../sleap_roots/angle/">angle</a></li>
-<li><a href="../sleap_roots/bases/">bases</a></li>
-<li><a href="../sleap_roots/circumnutation/">circumnutation</a><ul>
-<li><a href="../sleap_roots/circumnutation/kinematics/">kinematics</a></li>
-<li><a href="../sleap_roots/circumnutation/midline/">midline</a></li>
-<li><a href="../sleap_roots/circumnutation/parametric/">parametric</a></li>
-<li><a href="../sleap_roots/circumnutation/pipeline/">pipeline</a></li>
-<li><a href="../sleap_roots/circumnutation/plotting/">plotting</a></li>
-<li><a href="../sleap_roots/circumnutation/psi_g/">psi_g</a></li>
-<li><a href="../sleap_roots/circumnutation/qc/">qc</a></li>
-<li><a href="../sleap_roots/circumnutation/spatial_cwt/">spatial_cwt</a></li>
-<li><a href="../sleap_roots/circumnutation/synthetic/">synthetic</a></li>
-<li><a href="../sleap_roots/circumnutation/temporal_cwt/">temporal_cwt</a></li>
-<li><a href="../sleap_roots/circumnutation/units/">units</a></li>
+<li><strong>Auxin morphogen / Cholodny–Went oscillator.</strong> Asymmetric lateral redistribution of auxin (IAA) across the root diameter, controlled by PIN efflux carriers, breaks the radial symmetry of the organ at the organ scale and drives differential growth. Periodic redistribution produces nutation. Reviewed in <a href="https://arxiv.org/abs/2604.21763">Meroz, 2026</a>, §"Signal processing".</li>
+<li><strong>Mechanical asymmetric-growth wave.</strong> <a href="https://doi.org/10.1017/qpb.2025.10013">Rivière et al., 2025</a> (preprint: <a href="https://www.biorxiv.org/content/10.1101/2022.02.22.481493v1">bioRxiv 2022.02.22.481493</a>) show in carambola leaves that nutation proceeds via a steady traveling wave of asymmetric growth, with cell-wall-stiffness varying along the propagation direction. The phenomenology is consistent with the Cholodny–Went oscillator in dynamics (∂κ/∂t = -β sin(θ-θ_p) - γκ; <a href="https://arxiv.org/abs/1603.00459">Bastien &amp; Meroz, 2016</a>) but identifies the mechanical field as the substrate of memory rather than auxin alone.</li>
 </ul>
-</li>
-<li><a href="../sleap_roots/cli/">cli</a></li>
-<li><a href="../sleap_roots/convhull/">convhull</a></li>
-<li><a href="../sleap_roots/ellipse/">ellipse</a></li>
-<li><a href="../sleap_roots/lengths/">lengths</a></li>
-<li><a href="../sleap_roots/metadata/">metadata</a></li>
-<li><a href="../sleap_roots/networklength/">networklength</a></li>
-<li><a href="../sleap_roots/points/">points</a></li>
-<li><a href="../sleap_roots/scanline/">scanline</a></li>
-<li><a href="../sleap_roots/series/">series</a></li>
-<li><a href="../sleap_roots/summary/">summary</a></li>
-<li><a href="../sleap_roots/tips/">tips</a></li>
-<li><a href="../sleap_roots/tracked_tip_pipeline/">tracked_tip_pipeline</a></li>
-<li><a href="../sleap_roots/trait_pipelines/">trait_pipelines</a></li>
-<li><a href="../sleap_roots/viewer/">viewer</a><ul>
-<li><a href="../sleap_roots/viewer/cli/">cli</a></li>
-<li><a href="../sleap_roots/viewer/generator/">generator</a></li>
-<li><a href="../sleap_roots/viewer/renderer/">renderer</a></li>
-<li><a href="../sleap_roots/viewer/serializer/">serializer</a></li>
+<h3 id="12-methodological-lineages">1.2 Methodological lineages<a class="headerlink" href="#12-methodological-lineages" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Time-domain pipeline</strong> (rice circumnutation): <a href="https://doi.org/10.1073/pnas.2018940118">Taylor et al., 2021</a>, supplementary R code at <a href="https://doi.org/10.7924/r4b27x11m">Duke Research Data Repository, 10.7924/r4b27x11m</a>. LOESS centerline → drift correction → natural-spline smoothing → peak-finding for amplitude. Local copies in <code>external_code/taylor_2021_pnas_loess_spline/</code> (provenance documented in <code>external_code/README.md</code>).</li>
+<li><strong>Time-frequency pipeline</strong> (Derr unpublished): Continuous Wavelet Transform (CWT) via <code>pywavelets</code>, applied to 5-min-cadence rice tip trajectories from Suyash Patil's pilot data. The reference outputs (sample data, time-averaged amplitude spectrum, CWT scaleogram + Fourier transform) are at <code>external_code/derr_wavelets/sept_2025_outputs/</code>.</li>
 </ul>
-</li>
+<h2 id="2-data">2. Data<a class="headerlink" href="#2-data" title="Permanent link">&para;</a></h2>
+<h3 id="21-source">2.1 Source<a class="headerlink" href="#21-source" title="Permanent link">&para;</a></h3>
+<p>Experiment ID: <code>20250917_Suyash_Patil_CMTN_Nipponbare_0.8PG_GA4vsTZT</code></p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Genotype</td>
+<td><em>Oryza sativa</em> cv. Nipponbare</td>
+</tr>
+<tr>
+<td>Media</td>
+<td>½ MS, 0.6–0.8% phytagel</td>
+</tr>
+<tr>
+<td>Cadence</td>
+<td>5 min</td>
+</tr>
+<tr>
+<td>Frames per plate</td>
+<td>575</td>
+</tr>
+<tr>
+<td>Run duration</td>
+<td>47.9 hr</td>
+</tr>
+<tr>
+<td>Plants per plate</td>
+<td>6</td>
+</tr>
+<tr>
+<td>Plates analyzed</td>
+<td>1 (MOCK control) of 4 in experiment</td>
+</tr>
+<tr>
+<td>Other plate treatments (not yet analyzed)</td>
+<td>2.5 µM GA₄ (plate 002), MOCK rep (003), 0.2 µM TZT (004)</td>
+</tr>
+</tbody>
+</table>
+<p>NetApp working copy: <code>\\multilab-na.ad.salk.edu\hpi_dev\users\eberrigan\circumnutation\20250917_Suyash_Patil_CMTN_Nipponbare_0.8PG_GA4vsTZT\</code></p>
+<p>Original imaging source (groot-data): <code>\\pbiob-centos.salk.edu\groot-data\Suyash\AA_Suyash_MDATA\Circumnutation project\Images every 5 minutes\Nipponbare_0.8PG_GA4vsTZT\</code></p>
+<p>Coordination metadata: <a href="https://salkinstitute.box.com/file/1987750239743"><code>Circumnutation_Experimets_Directory.xlsx</code></a> (Box, shared by Suyash 2025-09-16).</p>
+<h3 id="22-sleap-predictions">2.2 SLEAP predictions<a class="headerlink" href="#22-sleap-predictions" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Inference:</strong> <code>sleap-track</code> (SLEAP 1.4.1a2), top-down models <code>250820_082118.centroid.n=377</code> + <code>250820_104319.centered_instance.n=377</code>, max 6 instances per frame, simplemaxtracks tracker, <code>track_window=5</code>.</li>
+<li><strong>Tracked + proofread output:</strong> <code>runs/run_20250917_201037/plate_001_greyscale.tracked_proofread.slp</code> (the file analyzed below).</li>
+<li>575 frames × 6 tracks = 3450 expected instances; 3906 actual (some frames have proofread <em>and</em> original predictions co-stored). 456 user-corrected points across 76 frames per track (13% manual override rate).</li>
 </ul>
-</li>
+<h2 id="3-methods">3. Methods<a class="headerlink" href="#3-methods" title="Permanent link">&para;</a></h2>
+<h3 id="31-data-extraction">3.1 Data extraction<a class="headerlink" href="#31-data-extraction" title="Permanent link">&para;</a></h3>
+<p>Direct HDF5 reads of <code>*tracked_proofread.slp</code> via <code>h5py</code> (analysis scripts at <code>external_code/analysis_2026-05-07/</code> once finalized; current working copies at <code>C:\Users\Elizabeth\AppData\Local\Temp\analyze_*.py</code>). For each frame and track, the tip coordinate <span class="arithmatex">\((x, y)\)</span> is the first node of the (single-node) skeleton. Where an <code>instance_type=0</code> (user-corrected) and <code>instance_type=1</code> (predicted) instance exist for the same frame and track, the user-corrected value takes precedence.</p>
+<h3 id="32-kinematic-statistics">3.2 Kinematic statistics<a class="headerlink" href="#32-kinematic-statistics" title="Permanent link">&para;</a></h3>
+<p>For each track, with the trace <span class="arithmatex">\(\{(x_i, y_i)\}_{i=1}^{N}\)</span> at frame indices <span class="arithmatex">\(i\)</span>:</p>
+<ul>
+<li><strong>Frame-to-frame displacement:</strong> <span class="arithmatex">\(\Delta_i = (x_{i+1}-x_i,\ y_{i+1}-y_i)\)</span></li>
+<li><strong>Step magnitude:</strong> <span class="arithmatex">\(s_i = \|\Delta_i\| = \sqrt{\Delta x_i^2 + \Delta y_i^2}\)</span></li>
+<li><strong>Path length:</strong> <span class="arithmatex">\(L = \sum_i s_i\)</span></li>
+<li><strong>Net displacement:</strong> <span class="arithmatex">\(D = \|\mathbf{x}_N - \mathbf{x}_1\|\)</span></li>
+<li><strong>Growth axis:</strong> <span class="arithmatex">\(\hat{\mathbf{u}}_g = (\mathbf{x}_N - \mathbf{x}_1) / D\)</span> (unit vector from start to end)</li>
+<li><strong>Lateral axis:</strong> <span class="arithmatex">\(\hat{\mathbf{u}}_\ell = R_{90°}\hat{\mathbf{u}}_g\)</span> (perpendicular)</li>
+<li><strong>Longitudinal step:</strong> <span class="arithmatex">\(\Delta_i^g = \Delta_i \cdot \hat{\mathbf{u}}_g\)</span></li>
+<li><strong>Lateral step:</strong> <span class="arithmatex">\(\Delta_i^\ell = \Delta_i \cdot \hat{\mathbf{u}}_\ell\)</span></li>
+</ul>
+<p>The growth axis is defined by net displacement rather than by PCA of <span class="arithmatex">\(\{\Delta_i\}\)</span>: PCA-on-diffs picks the direction of maximum <em>variance</em>, which for a steady-growth + isotropic-noise signal is the noise/oscillation axis, not the growth direction. The net-displacement definition is robust as long as the cumulative drift is much larger than per-frame noise, which holds here (<span class="arithmatex">\(D \approx 2400\)</span> px ≫ noise <span class="arithmatex">\(\sim 2\)</span> px).</p>
+<h3 id="33-sleap-localization-noise">3.3 SLEAP localization noise<a class="headerlink" href="#33-sleap-localization-noise" title="Permanent link">&para;</a></h3>
+<p>Two independent estimators for the localization noise standard deviation <span class="arithmatex">\(\sigma\)</span>:</p>
+<p><strong>(a) Savitzky–Golay residual.</strong> Fit a degree-3 polynomial in a 5-frame sliding window (window length much shorter than the nutation period <span class="arithmatex">\(T_n \approx 11.1\)</span> frames, but long enough to suppress white noise) to <span class="arithmatex">\(x(t)\)</span> and <span class="arithmatex">\(y(t)\)</span> separately:
+$<span class="arithmatex">\(\sigma_\text{SG}^2 = \mathrm{Var}(x_\text{raw} - x_\text{smooth}) + \mathrm{Var}(y_\text{raw} - y_\text{smooth})\)</span>$</p>
+<p><strong>(b) Second-difference noise.</strong> For i.i.d. noise <span class="arithmatex">\(\varepsilon \sim (0, \sigma^2)\)</span> added to a smooth signal <span class="arithmatex">\(s(t)\)</span>:
+$<span class="arithmatex">\(\Delta^2 x(t) = x(t+1) - 2x(t) + x(t-1)\)</span>$
+$<span class="arithmatex">\(\mathrm{Var}(\Delta^2 \varepsilon) = 6\sigma^2 \quad \Rightarrow \quad \sigma \approx \frac{\mathrm{std}(\Delta^2 x)}{\sqrt{6}}\)</span>$</p>
+<p>The two estimators make different smoothness assumptions; agreement is the cross-check.</p>
+<h3 id="34-nutation-amplitude-corrected-method">3.4 Nutation amplitude (corrected method)<a class="headerlink" href="#34-nutation-amplitude-corrected-method" title="Permanent link">&para;</a></h3>
+<p>The lateral bounding-box span <span class="arithmatex">\(\max(x) - \min(x)\)</span> along the lateral axis is <strong>not</strong> a reliable amplitude proxy: it conflates per-cycle oscillation with hour-scale drift of the centerline. Correct estimate:</p>
+<ol>
+<li>Detrend the lateral coordinate <span class="arithmatex">\(\ell(t)\)</span> with a long-window Savitzky–Golay filter (window = 23 frames ≈ 2 nutation periods, polynomial order 3). This suppresses the oscillation and retains slow centerline drift.</li>
+<li>Compute residuals <span class="arithmatex">\(\ell_\text{res}(t) = \ell(t) - \ell_\text{drift}(t)\)</span>.</li>
+<li>Report:</li>
+<li><span class="arithmatex">\(2\sigma_{\ell_\text{res}}\)</span> — Gaussian peak-to-peak estimate</li>
+<li>Median peak-to-peak between successive maxima/minima from <code>scipy.signal.find_peaks</code> (minimum spacing = <span class="arithmatex">\(T_n / 2 \approx 5.5\)</span> frames)</li>
+</ol>
+<h3 id="35-period-independent-confirmation">3.5 Period (independent confirmation)<a class="headerlink" href="#35-period-independent-confirmation" title="Permanent link">&para;</a></h3>
+<p>For external validation, peak-finding in the detrended lateral residual. Number of detected positive peaks per track, divided by the run duration, gives an empirical period estimate to compare against Derr's spectral peak.</p>
+<h2 id="4-results">4. Results<a class="headerlink" href="#4-results" title="Permanent link">&para;</a></h2>
+<h3 id="41-tip-kinematics-median-across-6-tracks">4.1 Tip kinematics (median across 6 tracks)<a class="headerlink" href="#41-tip-kinematics-median-across-6-tracks" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>Pixels</th>
+<th>mm @ 1200 DPI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mean per-frame step (Euclidean) <span class="arithmatex">\(\langle s \rangle\)</span></td>
+<td><strong>5.83</strong></td>
+<td>0.123</td>
+</tr>
+<tr>
+<td>Median per-frame step</td>
+<td>6.93</td>
+<td>0.147</td>
+</tr>
+<tr>
+<td>Std of per-frame step</td>
+<td>3.39</td>
+<td>0.072</td>
+</tr>
+<tr>
+<td>Mean longitudinal step <span class="arithmatex">\(\langle \Delta^g \rangle\)</span></td>
+<td><strong>4.29</strong></td>
+<td>0.091</td>
+</tr>
+<tr>
+<td>Mean lateral step $\langle</td>
+<td>\Delta^\ell</td>
+<td>\rangle$</td>
+</tr>
+<tr>
+<td>Longitudinal:lateral ratio</td>
+<td>1.56</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Path length <span class="arithmatex">\(L\)</span></td>
+<td>3328</td>
+<td>70.5</td>
+</tr>
+<tr>
+<td>Net displacement <span class="arithmatex">\(D\)</span></td>
+<td>2445</td>
+<td>51.8</td>
+</tr>
+<tr>
+<td>Path/net inflation <span class="arithmatex">\(L/D\)</span></td>
+<td>1.36</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Mean tip growth speed (longitudinal)</td>
+<td>51.5 px/hr</td>
+<td><strong>~1.03 mm/hr</strong> ✓</td>
+</tr>
+<tr>
+<td>Outlier rate (<span class="arithmatex">\(s &gt; 2 \cdot \mathrm{median}\)</span>)</td>
+<td>0.87%</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>The longitudinal growth speed of ~1.0 mm/hr is in the literature range for <em>Oryza sativa</em> primary roots (<a href="https://doi.org/10.1073/pnas.2018940118">Taylor et al., 2021</a> and references therein), supporting the working pixel-scale assumption (§4.6).</p>
+<h3 id="42-sleap-localization-noise">4.2 SLEAP localization noise<a class="headerlink" href="#42-sleap-localization-noise" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Estimator</th>
+<th>Median across 6 tracks (px)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Savitzky-Golay residual (xy)</td>
+<td>1.83</td>
+</tr>
+<tr>
+<td>Second-difference estimate (xy)</td>
+<td>2.67</td>
+</tr>
+<tr>
+<td>Mean prediction confidence</td>
+<td>0.998</td>
+</tr>
+</tbody>
+</table>
+<p>Both estimators converge on a <strong>localization noise floor of ~2 px (~40 µm at 1200 DPI)</strong>. The SG estimate is slightly lower because it absorbs some genuine high-frequency motion into the smoother; the second-difference estimate is slightly higher because it is sensitive to all frame-to-frame change, including real curvature. The agreement at <span class="arithmatex">\(\sim\)</span>1.5–3 px is the cross-check that this is dominated by localization noise rather than method-specific signal contamination.</p>
+<h3 id="43-nutation-amplitude-corrected">4.3 Nutation amplitude (corrected)<a class="headerlink" href="#43-nutation-amplitude-corrected" title="Permanent link">&para;</a></h3>
+<p>Initial measurement using the bbox lateral span (median 209 px) overestimated the per-cycle nutation amplitude by ~20×, because the span captures total drift over the 48-hr run rather than oscillation around the drifting centerline. After centerline detrending:</p>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>Median across 6 tracks (px)</th>
+<th>mm @ 1200 DPI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(2\sigma_{\ell_\text{res}}\)</span> (Gaussian peak-to-peak)</td>
+<td>12.7</td>
+<td>0.27</td>
+</tr>
+<tr>
+<td>Median peak-to-peak</td>
+<td><strong>9.9</strong></td>
+<td><strong>0.21</strong></td>
+</tr>
+<tr>
+<td>Half-amplitude (zero-to-peak)</td>
+<td>4.9</td>
+<td>0.10</td>
+</tr>
+<tr>
+<td>~~Bbox lateral span (deprecated)~~</td>
+<td>~~209~~</td>
+<td>~~4.4~~</td>
+</tr>
+</tbody>
+</table>
+<p>The two principled estimators (2σ Gaussian, direct peak-to-peak) agree at ~10–13 px.</p>
+<h3 id="44-period">4.4 Period<a class="headerlink" href="#44-period" title="Permanent link">&para;</a></h3>
+<p>Peak-finder applied to the detrended lateral residual: median 57 oscillation cycles per track over 575 frames. This corresponds to one cycle per 575/57 ≈ 10.1 frames = <strong>~50.4 minutes</strong>, consistent with Derr's spectral-peak measurement of <strong>~3333 s = 55.5 min</strong> (~10% discrepancy attributable to peak-finder vs. spectral-peak methodology). Reference: <code>external_code/derr_wavelets/sept_2025_outputs/5minutes_average_period=3333s.pdf</code>.</p>
+<h3 id="45-signal-to-noise-ratios">4.5 Signal-to-noise ratios<a class="headerlink" href="#45-signal-to-noise-ratios" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Per-cycle peak-to-peak amplitude / SLEAP noise</td>
+<td><span class="arithmatex">\(\sim 10/2 = 5\)</span></td>
+</tr>
+<tr>
+<td>Per-cycle zero-to-peak amplitude / SLEAP noise</td>
+<td><span class="arithmatex">\(\sim 5/2 = 2.5\)</span> (marginal)</td>
+</tr>
+<tr>
+<td>Cycles per 47.9-hr run</td>
+<td>~57</td>
+</tr>
+<tr>
+<td>Coherent-sum SNR boost factor across cycles</td>
+<td><span class="arithmatex">\(\sqrt{57} \approx 7.5\)</span></td>
+</tr>
+<tr>
+<td>Effective spectral-peak SNR</td>
+<td><strong><span class="arithmatex">\(\sim 35–40\)</span></strong> (clean)</td>
+</tr>
+<tr>
+<td>Per-frame step / SLEAP noise</td>
+<td><span class="arithmatex">\(\sim 5.8/2 \approx 3\)</span> (single-frame velocity is noisy)</td>
+</tr>
+</tbody>
+</table>
+<p>Implication: the wavelet <em>scaleogram</em> will reproduce Derr's reference outputs cleanly. Per-cycle amplitude estimates from raw data will be noisy and benefit from smoothing, longer runs, or ensembling across plants. Single-frame velocity estimates are unreliable; smooth across ~3–5 frames before differentiating.</p>
+<h3 id="46-pixel-to-millimeter-scale-unresolved">4.6 Pixel-to-millimeter scale (unresolved)<a class="headerlink" href="#46-pixel-to-millimeter-scale-unresolved" title="Permanent link">&para;</a></h3>
+<p>TIFF EXIF metadata of <code>_set1_day1_20250913-165722_001.tif</code> (raw scan):
+- Image size: 6608 × 6614 px
+- Resolution tag: 400 DPI → mpp = 25.4/400 = <strong>0.0635 mm/px</strong>
+- Implied physical size: 419.6 × 420.0 mm</p>
+<p>The implied 400 DPI scan would yield a longitudinal growth rate of ~4.4 mm/hr, which is too fast for rice primary roots (literature range 1–2 mm/hr at standard conditions). The scanner firmware is likely writing a nominal DPI to the tag rather than the actual scan resolution.</p>
+<p>A scan resolution of <strong>1200 DPI</strong> (mpp = 0.0212 mm/px) gives:
+- Longitudinal growth rate: 1.03 mm/hr ✓ in literature range
+- Physical plate dimension: ~140 × 140 mm (consistent with a square Petri plate)</p>
+<p>The 1200 DPI value is the working assumption for all mm conversions in this document, but is not source-of-truth. Confirmation from Suyash's coordination spreadsheet or direct measurement (known plate dimension / image-pixel dimension) is pending. <strong>All mm numbers in this document should be treated as scale-tentative.</strong></p>
+<h2 id="5-implications-for-pipeline-design">5. Implications for pipeline design<a class="headerlink" href="#5-implications-for-pipeline-design" title="Permanent link">&para;</a></h2>
+<h3 id="51-cadence-is-sufficient">5.1 Cadence is sufficient<a class="headerlink" href="#51-cadence-is-sufficient" title="Permanent link">&para;</a></h3>
+<p><strong>Temporal Nyquist:</strong> 11.1 samples per nutation period at 5-min cadence — well above the Nyquist limit of 2 samples/period and inside the conservative ~5–10 samples/period buffer typical for spectral / wavelet work.</p>
+<p><strong>Spatial Nyquist (for the spatial wavelet branch):</strong> per-frame step / spatial wavelength = 5.8 / 64 = <strong>9% per sample</strong>, equivalently 11 samples per spatial wavelength along the cumulative trail.</p>
+<p>5-min cadence is comfortable. 10-min cadence (5.5 samples/cycle) would be borderline. 30-min cadence (1.8 samples/cycle, sub-Nyquist) would alias.</p>
+<h3 id="52-spatial-wavelet-branch-is-feasible">5.2 Spatial wavelet branch is feasible<a class="headerlink" href="#52-spatial-wavelet-branch-is-feasible" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Window</th>
+<th>Trail length (px)</th>
+<th>n_wavelengths</th>
+<th>Wavelength (px)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>14-hr (Derr's reference cut)</td>
+<td>~975</td>
+<td>~15</td>
+<td>~64</td>
+</tr>
+<tr>
+<td>47.9-hr (full run)</td>
+<td>~3328</td>
+<td>~52</td>
+<td>~64</td>
+</tr>
+</tbody>
+</table>
+<p>Even the truncated Derr window contains ~15 spatial wavelengths along the trail, well above the rule-of-thumb minimum of 5 cycles for stable CWT decomposition. Treating the centerline-detrended lateral residual as a spatial signal indexed by arc length is justified by the trajectory aspect ratio (longitudinal:lateral bbox ~12:1, so arc length ≈ longitudinal coordinate to first order).</p>
+<h3 id="53-when-detrending-matters-and-when-it-doesnt">5.3 When detrending matters (and when it doesn't)<a class="headerlink" href="#53-when-detrending-matters-and-when-it-doesnt" title="Permanent link">&para;</a></h3>
+<p>The pre-detrending lateral bbox span (~209 px) is a ~20× overestimate of the true per-cycle nutation amplitude (~10 px peak-to-peak). The bbox is dominated by hour-scale drift of the centerline, not by oscillation around it. This conflation is the single largest methodological pitfall identified in this analysis.</p>
+<p>Detrending is <strong>required</strong> for:</p>
+<ul>
+<li><strong>Amplitude quantification</strong>, in either the time domain (peak-to-peak, RMS, zero-crossings) or the wavelet domain (<span class="arithmatex">\(|W(s,t)|\)</span> at the nutation scale). Drift contamination biases all of these. The 20× factor above is the magnitude of the bias when the bbox span is used naively.</li>
+<li><strong>Time-domain kinematic traits</strong> (handedness, phase coherence, instantaneous period from zero crossings) — all defined relative to a centerline and meaningless without one.</li>
+<li><strong>The spatial wavelet branch</strong>, intrinsically. The signal there <em>is</em> the lateral deviation from a centerline, so detrending is upstream of the wavelet rather than a preprocessing option.</li>
+</ul>
+<p>Detrending is <strong>helpful but not strictly required</strong> for:</p>
+<ul>
+<li><strong>Time-domain Morlet CWT used purely to detect the dominant period.</strong> Morlet at the nutation scale is band-pass with low DC response; the drift's spectral content at <span class="arithmatex">\(\sim 3 \times 10^{-4}\)</span> Hz is negligible. Empirically, <a href="external_code/derr_wavelets/sept_2025_outputs/_5minutes_wavelets.png">Derr's reference scaleogram</a> shows a clean nutation band even though his input signal (<a href="external_code/derr_wavelets/sept_2025_outputs/5minutes_sample_data.pdf">sample data</a>) retains the drift. So <em>period detection</em> via Morlet CWT is robust without detrending. Caveats: wavelets with larger DC sensitivity (Mexican hat, Haar) are more fragile; the cone-of-influence edge contamination is somewhat larger with drift present; auto-scaled scaleogram visualizations can be visually dominated by low-frequency drift content (Derr appears to clip the colorscale).</li>
+</ul>
+<p>In summary: <strong>for any quantitative trait, detrend first; for Morlet CWT scaleogram inspection of the period, you can get away without it but it's still good practice.</strong></p>
+<h3 id="54-sleap-precision-is-not-the-bottleneck-but-is-also-not-infinite">5.4 SLEAP precision is not the bottleneck — but is also not infinite<a class="headerlink" href="#54-sleap-precision-is-not-the-bottleneck-but-is-also-not-infinite" title="Permanent link">&para;</a></h3>
+<p>Per-cycle SNR (~5×) is comfortable but not luxurious. The bottleneck for per-cycle traits is biology (real plant-to-plant variability), not localization noise. For spectral peaks summed across the full run (effective SNR ~40×), the scaleogram will be clean.</p>
+<p>The 13% manual-correction rate on the proofread file is worth noting: raw model-only predictions would have a higher noise floor. If un-proofread runs become the standard, the per-cycle SNR could drop below the marginal threshold for amplitude work. Re-measure noise on raw <code>.tracked.slp</code> files before generalizing this margin to other species or imaging conditions.</p>
+<h3 id="55-per-cycle-vs-spectral-peak-metrics">5.5 Per-cycle vs. spectral-peak metrics<a class="headerlink" href="#55-per-cycle-vs-spectral-peak-metrics" title="Permanent link">&para;</a></h3>
+<p>The pipeline should report two distinct classes of trait, with different detrending and noise sensitivities:</p>
+<ul>
+<li><strong>Spectral / integrated traits</strong> (dominant period, mean amplitude, phase coherence over the run, drift in dominant period). High effective SNR (~35–40× after coherent summation across ~57 cycles). Period detection via Morlet CWT is robust to drift; mean amplitude requires detrending.</li>
+<li><strong>Per-cycle traits</strong> (instantaneous period(t), per-cycle amplitude(t), handedness within cycle). Noisier — single-cycle measurements have SNR ~5×. All require detrending. Consumers should expect to smooth across 2–3 cycles or ensemble across plants for clean per-cycle reads.</li>
+</ul>
+<h2 id="6-limitations">6. Limitations<a class="headerlink" href="#6-limitations" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Single plate analyzed.</strong> All numbers above are from plate 001 (MOCK control), 6 plants. Plates 002 (GA₄), 003 (MOCK replicate), 004 (TZT) are tracked + proofread but not yet processed. Plant-to-plant variability <em>within</em> this plate is captured; between-treatment effects are not yet quantified.</li>
+<li><strong>Single species, single growth condition.</strong> Per-species period and amplitude must not be hardcoded in the pipeline. Soybean / canola / pennycress / Arabidopsis will have different values.</li>
+<li><strong>Pixel-to-mm scale unresolved.</strong> All mm numbers depend on the working assumption mpp = 0.0212 mm/px (1200 DPI). Verify against Suyash's coordination spreadsheet or direct measurement before publication.</li>
+<li><strong>Proofread-only.</strong> Noise floor is post-manual-correction; raw model-only predictions will have higher noise. Re-measure when/if proofreading is removed from the standard pipeline.</li>
+<li><strong>Drift detrending parameter choice.</strong> The 23-frame detrend window (≈2 periods) is principled but somewhat arbitrary; sensitivity analysis should be part of the design spec.</li>
+<li><strong>No comparison to existing R pipeline (Taylor et al. 2021 / Elizabeth's adaptation).</strong> A direct comparison run on the same data would validate the Python re-implementation.</li>
+</ul>
+<h2 id="7-next-steps">7. Next steps<a class="headerlink" href="#7-next-steps" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Resolve pixel-to-mm scale with Suyash (coordination spreadsheet or direct measurement).</li>
+<li>Re-run the analysis on plates 002, 003, 004 to characterize MOCK plate-to-plate variability and treatment effects (GA₄, TZT).</li>
+<li>Implement the time-domain pipeline (LOESS centerline → drift correction → spline smoothing → peak-finding) in Python and validate against the R reference output on the same data.</li>
+<li>Implement the time-frequency pipeline (Morlet CWT via <code>pywavelets</code>) and compare scaleogram against <code>external_code/derr_wavelets/sept_2025_outputs/_5minutes_wavelets.png</code> as a sanity-check oracle.</li>
+<li>Test on a synthetic signal with known period, amplitude, and noise to verify pipeline recovers ground truth.</li>
+<li>Generalize to the un-tracked-yet 5-min experiments (Kitx vs. Hk1-3, Nipponbare PG concentration) once their tracking is finalized.</li>
+</ol>
+<h2 id="8-references">8. References<a class="headerlink" href="#8-references" title="Permanent link">&para;</a></h2>
+<h3 id="verified-used-in-this-analysis">Verified, used in this analysis<a class="headerlink" href="#verified-used-in-this-analysis" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Meroz, Y. (2026).</strong> Physics of computation and behavior in plants. <em>arXiv</em>, 2604.21763. <a href="https://arxiv.org/abs/2604.21763">URL</a> · DOI: <a href="https://doi.org/10.48550/arXiv.2604.21763">10.48550/arXiv.2604.21763</a>. Local literature note: <a href="../_sources/meroz2026-plant-computation.md"><code>_sources/meroz2026-plant-computation.md</code></a>.</li>
+<li><strong>Taylor, I., Lehner, K., McCaskey, E., Nirmal, N., Ozkan-Aydin, Y., Murray-Cooper, M., Jain, R., Hawkes, E. W., Ramani, P., Goldman, D. I., &amp; Benfey, P. N. (2021).</strong> Mechanism and function of root circumnutation. <em>Proceedings of the National Academy of Sciences</em>, 118(8), e2018940118. DOI: <a href="https://doi.org/10.1073/pnas.2018940118">10.1073/pnas.2018940118</a>. Open access via <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7923379/">PMC7923379</a>. Code &amp; data: Duke Research Data Repository, <a href="https://doi.org/10.7924/r4b27x11m">10.7924/r4b27x11m</a>. Local copy of supplementary R code: <a href="external_code/taylor_2021_pnas_loess_spline/"><code>external_code/taylor_2021_pnas_loess_spline/</code></a>.</li>
+<li><strong>Rivière, M., Peaucelle, A., Derr, J., &amp; Douady, S. (2025).</strong> Plant nutation relies on steady propagation of spatially asymmetric growth pattern. <em>Quantitative Plant Biology</em>. DOI: <a href="https://doi.org/10.1017/qpb.2025.10013">10.1017/qpb.2025.10013</a>. Open access via <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12451244/">PMC12451244</a>. Earlier preprint: <a href="https://www.biorxiv.org/content/10.1101/2022.02.22.481493v1">bioRxiv 2022.02.22.481493</a>.</li>
+<li><strong>Bastien, R., &amp; Meroz, Y. (2016).</strong> The Kinematics of Plant Nutation Reveals a Simple Relation Between Curvature and the Orientation of Differential Growth. <em>PLOS Computational Biology</em>. arXiv preprint: <a href="https://arxiv.org/abs/1603.00459">1603.00459</a>. Code (interactive simulator): <a href="https://github.com/RnoB/Nutation-Simulator">github.com/RnoB/Nutation-Simulator</a> (Unity / C#, MIT). Live: <a href="http://unred.org/nutation">unred.org/nutation</a>.</li>
+</ul>
+<h3 id="reference-outputs-used-as-oracles">Reference outputs used as oracles<a class="headerlink" href="#reference-outputs-used-as-oracles" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Derr, J. (unpublished, 2025-09-19).</strong> Wavelet scaleogram analysis of Suyash Patil's 5-min cadence rice CMTN pilot data. Three reference outputs provided via personal communication, archived locally at <a href="external_code/derr_wavelets/sept_2025_outputs/"><code>external_code/derr_wavelets/sept_2025_outputs/</code></a>:</li>
+<li><code>5minutes_sample_data.pdf</code> (input signal)</li>
+<li><code>5minutes_average_period=3333s.pdf</code> (time-averaged amplitude spectrum)</li>
+<li><code>_5minutes_wavelets.png</code> (CWT scaleogram + Fourier transform)</li>
+</ul>
+<h3 id="data-sources">Data sources<a class="headerlink" href="#data-sources" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Tracked + proofread predictions: <code>\\multilab-na.ad.salk.edu\hpi_dev\users\eberrigan\circumnutation\20250917_Suyash_Patil_CMTN_Nipponbare_0.8PG_GA4vsTZT\runs\run_20250917_201037\plate_001_greyscale.tracked_proofread.slp</code></li>
+<li>Raw scans: <code>\\pbiob-centos.salk.edu\groot-data\Suyash\AA_Suyash_MDATA\Circumnutation project\Images every 5 minutes\Nipponbare_0.8PG_GA4vsTZT\</code></li>
+<li>Coordination metadata: <a href="https://salkinstitute.box.com/file/1987750239743">Circumnutation_Experimets_Directory.xlsx</a> (Box).</li>
+</ul>
+<h3 id="notion-task-pages">Notion task pages<a class="headerlink" href="#notion-task-pages" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Hub (forward-looking): <a href="https://www.notion.so/3494a67a7667818db2aeee80d76efdd7">Circumnutation work (sleap-roots) — 2026 next phase</a></li>
+<li>Operational task (run logs, Box deliveries): <a href="https://www.notion.so/9b89bd279dab49d38ae26f5bd8059c65">Flat bed scanner circumnutation</a></li>
+<li>Literature consolidation: <a href="https://www.notion.so/3594a67a766781e49483dea54f721a84">Consolidate circumnutation reference materials</a></li>
+<li>Methods review: <a href="https://www.notion.so/3574a67a7667814d8cead4fd7a4d4e99">Review Meroz 2026 — circumnutation traits + modeling</a></li>
+</ul>
+<h2 id="appendix-analysis-scripts">Appendix: analysis scripts<a class="headerlink" href="#appendix-analysis-scripts" title="Permanent link">&para;</a></h2>
+<p>Working copies (will be promoted to a tracked location in the sleap-roots repo or <code>external_code/analysis/</code> before publication):</p>
+<ul>
+<li><strong>Frame-to-frame kinematics:</strong> <code>C:\Users\Elizabeth\AppData\Local\Temp\analyze_tip_growth.py</code> — per-track path length, net displacement, mean speed, bbox.</li>
+<li><strong>SLEAP localization noise:</strong> <code>C:\Users\Elizabeth\AppData\Local\Temp\analyze_sleap_resolution.py</code> — Savitzky–Golay residual + second-difference estimator.</li>
+<li><strong>Nutation amplitude (corrected):</strong> <code>C:\Users\Elizabeth\AppData\Local\Temp\analyze_amplitude.py</code> — bbox vs. detrended residual cross-check.</li>
+<li><strong>Per-frame step decomposition:</strong> <code>C:\Users\Elizabeth\AppData\Local\Temp\analyze_step.py</code> — longitudinal/lateral split via net-displacement growth axis.</li>
+</ul>
+<p>All scripts use <code>uv run --script</code> with inline <code># /// script</code> dependency declarations (h5py, numpy, scipy). They read the proofread <code>.slp</code> HDF5 directly, without <code>sleap-io</code>, for environment portability.</p>
+<h2 id="document-metadata">Document metadata<a class="headerlink" href="#document-metadata" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Source: this session, 2026-05-07.</li>
+<li>Memory: relevant numbers cached at <code>C:\Users\Elizabeth\.claude\projects\c--vaults\memory\project_circumnutation_oracle_metrics.md</code>.</li>
+<li>Status: working draft. To be reviewed against published R pipeline and re-validated on additional plates before any external sharing or publication.</li>
 </ul>
 
 

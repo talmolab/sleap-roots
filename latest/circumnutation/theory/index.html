@@ -1,0 +1,3670 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Analysis tools for SLEAP-based plant root phenotyping">
+      
+      
+        <meta name="author" content="Talmo Lab">
+      
+      
+        <link rel="canonical" href="https://roots.sleap.ai/latest/circumnutation/theory/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Circumnutation Theory and Trait Specification - sleap-roots</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="light-green">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#circumnutation-theory-and-trait-specification" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="sleap-roots" class="md-header__button md-logo" aria-label="sleap-roots" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            sleap-roots
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Circumnutation Theory and Trait Specification
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="light-green"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="green" data-md-color-accent="light-green"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/talmolab/sleap-roots" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    talmolab/sleap-roots
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guides/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../dev/contributing/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../cookbook/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Cookbook
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../changelog/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="sleap-roots" class="md-nav__button md-logo" aria-label="sleap-roots" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    sleap-roots
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/talmolab/sleap-roots" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    talmolab/sleap-roots
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/what-is-sleap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    What is SLEAP?
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../tutorials/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/dicot-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dicot Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/younger-monocot-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Younger Monocot Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/older-monocot-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Older Monocot Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/multiple-dicot-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multiple Dicot Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/multiple-primary-root-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multiple Primary Root Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/primary-root-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primary Root Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/lateral-root-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lateral Root Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../guides/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipelines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Pipelines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/pipelines/dicot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DicotPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/pipelines/younger-monocot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YoungerMonocotPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/pipelines/older-monocot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OlderMonocotPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/pipelines/multiple-primary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MultiplePrimaryRootPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/pipelines/multiple-dicot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MultipleDicotPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/pipelines/primary-root/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PrimaryRootPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/pipelines/lateral-root/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LateralRootPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Formats
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Formats
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/data-formats/sleap-files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SLEAP Files (.slp)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/data-formats/hdf5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HDF5 Output
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/data-formats/csv-traits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CSV Traits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/trait-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trait Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/batch-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/custom-pipelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Pipelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dev/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dev/setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dev/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dev/creating-pipelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating Pipelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dev/adding-traits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adding Traits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dev/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dev/code-style/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Style
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dev/release-process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../api/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Core
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/series/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Series
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/pipelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Traits
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Traits
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/traits/lengths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lengths
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/traits/angles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Angles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/traits/tips/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tips
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/traits/bases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/traits/convhull/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Convex Hull
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/traits/ellipse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ellipse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/traits/networklength/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network Length
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/traits/scanline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scanline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/traits/points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Points
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Utilities
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Utilities
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/utilities/summary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Summary Statistics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/examples/common-workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Common Workflows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../cookbook/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cookbook
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7" id="__nav_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cookbook
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cookbook/filtering-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Filtering Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cookbook/custom-traits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Traits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cookbook/batch-optimization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Optimization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cookbook/exporting-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exporting Results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="circumnutation-theory-and-trait-specification">Circumnutation Theory and Trait Specification<a class="headerlink" href="#circumnutation-theory-and-trait-specification" title="Permanent link">&para;</a></h1>
+<p><strong>Repo path:</strong> <code>docs/circumnutation/theory.md</code>
+<strong>Status:</strong> Theoretical foundation for the <code>sleap_roots/circumnutation/</code> pipeline. Implementation spec is separate.
+<strong>Audience:</strong> Pipeline authors (human and Claude). Self-contained — does not assume prior reading of the four source papers.</p>
+<hr />
+<h2 id="contents">Contents<a class="headerlink" href="#contents" title="Permanent link">&para;</a></h2>
+<ol>
+<li><a href="#1-purpose-and-scope">Purpose and scope</a></li>
+<li><a href="#2-conventions-and-calibration-contract">Conventions and calibration contract</a></li>
+<li><a href="#3-foundational-framework--bastien--meroz-2016">Foundational framework — Bastien &amp; Meroz 2016</a></li>
+<li><a href="#4-spatiotemporal-growth-pattern--rivière-et-al-2022--2025">Spatiotemporal growth pattern — Rivière et al. 2022 / 2025</a></li>
+<li><a href="#5-modern-synthesis--meroz-2026-review">Modern synthesis — Meroz 2026 review</a></li>
+<li><a href="#6-translation-to-tip-only-root-data">Translation to tip-only root data</a></li>
+<li><a href="#7-trait-specification">Trait specification</a></li>
+<li><a href="#8-validation-strategy">Validation strategy</a></li>
+<li><a href="#9-appendix-a--cell-wall-mechanism-out-of-pipeline-scope">Appendix A — Cell-wall mechanism (out of pipeline scope)</a></li>
+<li><a href="#10-appendix-b--corrections-from-prior-conversation-drafts">Appendix B — Corrections from prior conversation drafts</a></li>
+<li><a href="#11-references">References</a></li>
+</ol>
+<hr />
+<h2 id="1-purpose-and-scope">1. Purpose and scope<a class="headerlink" href="#1-purpose-and-scope" title="Permanent link">&para;</a></h2>
+<p>This document fixes the theoretical content the circumnutation pipeline rests on. It states what the literature claims, with paper + section + equation references for each claim, and translates those claims into operational definitions for traits computed from SLEAP-tracked root tip trajectories.</p>
+<p><strong>What the pipeline gets as input:</strong> per-track time series of tip positions, <span class="arithmatex">\((t, x, y)\)</span> in pixels at fixed cadence, plus an optional root cross-section radius <code>R_px</code> (pixels, for Tier 4 Bastien-Meroz). No midline, no multi-node skeleton, no destructive measurements. <strong>The pipeline does NOT take <code>px_per_mm</code> as a parameter</strong> — see the pure-pixel note in §2.3.</p>
+<p><strong>What the pipeline produces:</strong> per-plant scalar traits in pixel units for length-bearing quantities and calibration-independent units (hours, radians, dimensionless) elsewhere, written to a CSV plus a UTF-8 units sidecar JSON. Users who want millimeter output compose <code>sleap_roots.circumnutation.units.convert_to_mm()</code> downstream on the trait DataFrame; the pipeline itself never sees calibration. Diagnostic plots per plate are emitted alongside the CSV.</p>
+<p><strong>What is explicitly out of scope:</strong> any measurement requiring midline tracking along the organ, destructive sampling (AFM, immunolabelling), or 3D imaging. These are flagged in §9 as future biology validation, not pipeline work.</p>
+<p><strong>Reference data used in feasibility numbers throughout:</strong> plate 001 of the proofread CMTN Nipponbare dataset, <strong>assumed</strong> 1200 DPI imaging, 5-min cadence, 14-hour typical run, median 6 tip tracks per plate.</p>
+<blockquote>
+<p>⚠ <strong>DPI = 1200 is ASSUMED, NOT VERIFIED.</strong> All <code>mm</code> and <code>µm</code> numbers throughout this document derive from this assumption (1 px = 21.17 µm, 1 mm = 47.24 px). Pixel-based numbers (per-frame steps, noise, trail length in px) and time-based numbers (period in seconds, frame counts) are independent of the DPI assumption and are reliable. If the actual DPI differs, all <code>mm</code> and <code>µm</code> numbers scale linearly by (true DPI / 1200), but the structural conclusions (Tier 3 feasibility, Nyquist comfort, <span class="arithmatex">\(d/\lambda\)</span> ratio) hold regardless of DPI. <strong>Verify DPI before quoting any <code>mm</code>/<code>µm</code> number from this doc in any external writeup, paper, or grant.</strong> Search this doc for <code>[†DPI]</code> to find every value that depends on this assumption.</p>
+</blockquote>
+<p>Per-plate calibration: 1 px = 21.17 µm, so 1 mm = 47.24 px <code>[†DPI]</code>. Median per-frame total step ≈ 5.83 px (≈ 1.4 mm/hr <code>[†DPI]</code>); longitudinal component 4.29 px/frame (≈ 1.0 mm/hr <code>[†DPI]</code>); lateral component 2.75 px/frame (≈ 0.66 mm/hr <code>[†DPI]</code>). SLEAP detection noise σ ≈ 2 px (≈ 42 µm <code>[†DPI]</code>; estimated by two independent methods, see §7 QC). Nutation period from Derr's pilot CWT analysis on the same data: T ≈ 3333 s ≈ 55.5 min ≈ 0.926 hr (time only, no DPI dependence).</p>
+<hr />
+<h2 id="2-conventions-and-calibration-contract">2. Conventions and calibration contract<a class="headerlink" href="#2-conventions-and-calibration-contract" title="Permanent link">&para;</a></h2>
+<h3 id="21-coordinate-frame">2.1 Coordinate frame<a class="headerlink" href="#21-coordinate-frame" title="Permanent link">&para;</a></h3>
+<p>Image-space coordinates with <span class="arithmatex">\(x\)</span> horizontal, <span class="arithmatex">\(y\)</span> vertical (image convention: <span class="arithmatex">\(y\)</span> increases downward). The growth axis is <em>not</em> assumed to be aligned with any image axis — the pipeline must derive it per-track. We define the "longitudinal" direction per track as the principal axis of net displacement from <span class="arithmatex">\(t=0\)</span> to <span class="arithmatex">\(t=t_\text{end}\)</span>, and the "lateral" direction as its perpendicular in-plane. This makes traits rotation-invariant under camera-mounting variation.</p>
+<h3 id="22-time">2.2 Time<a class="headerlink" href="#22-time" title="Permanent link">&para;</a></h3>
+<p>Cadence is fixed per dataset (5 min for the reference data). Time is in seconds internally; trait outputs use hours where convention demands (e.g., growth rate in mm/hr).</p>
+<h3 id="23-calibration-pure-pixel-pipeline">2.3 Calibration (pure-pixel pipeline)<a class="headerlink" href="#23-calibration-pure-pixel-pipeline" title="Permanent link">&para;</a></h3>
+<p><strong>Architectural decision (2026-05-07; see <code>docs/circumnutation/roadmap.md</code> CC-3):</strong> the pipeline is pure-pixel. It never accepts <code>px_per_mm</code> and never emits <code>[mm]</code> columns. Calibration is always a downstream concern — users who want millimeter output run the trait DataFrame through <code>sleap_roots.circumnutation.units.convert_to_mm(traits_df, units, px_per_mm)</code>. The advantage is that the unresolved DPI ambiguity (1200 vs 400; see §1) is fully decoupled from the pipeline's correctness: every pipeline output is bit-exact reproducible regardless of calibration source.</p>
+<p>Every trait in §7 is flagged either:</p>
+<ul>
+<li><strong><code>[mm-convertible]</code></strong> — emitted in pixel form by the pipeline (column suffix <code>_px</code>, <code>_px_per_hr</code>, <code>_px_per_frame</code>, <code>_px²</code>). Convertible to mm via <code>convert_to_mm()</code> downstream. Previously written as <code>[mm]</code> throughout the trait tables in §7; that flag is retained for cross-reference to literature and downstream documentation, but the column the pipeline writes uses the px form.</li>
+<li><strong><code>[—]</code></strong> — calibration-independent (dimensionless ratios, time-only quantities, booleans, angles).</li>
+</ul>
+<p>The pipeline contract is: input <span class="arithmatex">\((t_\text{seconds}, x_\text{px}, y_\text{px}, R_\text{px}^\text{opt})\)</span>. Internal CWT, ridge extraction, derivative computations, and trait emission all operate in pixels. There is no trait-emission-time physical-unit conversion inside the pipeline — that step is owned by the user, downstream.</p>
+<h3 id="24-notation">2.4 Notation<a class="headerlink" href="#24-notation" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(s\)</span></td>
+<td>arc length along the organ midline, base <span class="arithmatex">\(\to\)</span> apex</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(s_a\)</span></td>
+<td>reverse arc length, apex <span class="arithmatex">\(\to\)</span> base (used in Rivière et al.)</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\theta(s,t)\)</span></td>
+<td>local tangent angle of the organ midline</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\kappa(s,t)\)</span></td>
+<td>scalar curvature, <span class="arithmatex">\(\kappa = \partial\theta/\partial s\)</span></td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\kappa_\perp(s,t)\)</span></td>
+<td>transverse curvature in the apical plane (top-view projected)</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\psi_c(s,t)\)</span></td>
+<td>direction of principal curvature (azimuthal angle in 3D)</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\psi_g(s,t)\)</span></td>
+<td>direction of maximal differential growth</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\dot{E}(s,t)\)</span> or <span class="arithmatex">\(\dot{\varepsilon}(s,t)\)</span></td>
+<td>mean elongation rate along the median line</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\dot{\delta}(s,t)\)</span></td>
+<td>differential elongation rate (between opposite sides)</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\boldsymbol{\Delta}\)</span></td>
+<td>differential growth vector (3D)</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(L_{gz}\)</span></td>
+<td>length of growth zone</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(L_c = \gamma/\beta\)</span></td>
+<td>convergence length</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(B = L_{gz}/L_c\)</span></td>
+<td>balance number (dimensionless control parameter)</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(R\)</span></td>
+<td>organ cross-sectional radius</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(T\)</span></td>
+<td>nutation period (temporal)</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\lambda\)</span></td>
+<td>nutation wavelength (spatial, along organ)</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(v\)</span></td>
+<td>apex propagation speed</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(\Delta\phi\)</span></td>
+<td>angular amplitude of nutation oscillation</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-foundational-framework-bastien-meroz-2016">3. Foundational framework — Bastien &amp; Meroz 2016<a class="headerlink" href="#3-foundational-framework-bastien-meroz-2016" title="Permanent link">&para;</a></h2>
+<p><strong>Source:</strong> Bastien R., Meroz Y. (2016) <em>The Kinematics of Plant Nutation Reveals a Simple Relation Between Curvature and the Orientation of Differential Growth.</em> PLoS Comp. Biol. 12(12):e1005238. arXiv:1603.00459.</p>
+<p>This paper extends the in-plane tropism kinematic framework of Bastien-Douady-Moulia (2013, 2014) to 3D nutation by adding a perpendicular-curvature equation. It is the canonical deterministic nutation model that justifies tip-only tangent-angle analysis.</p>
+<h3 id="31-geometric-setup">3.1 Geometric setup<a class="headerlink" href="#31-geometric-setup" title="Permanent link">&para;</a></h3>
+<p>The organ is a thin cylinder of constant radius <span class="arithmatex">\(R\)</span> along arc length <span class="arithmatex">\(s\)</span>. At each <span class="arithmatex">\((s,t)\)</span> it has a curvature magnitude <span class="arithmatex">\(C(s,t)\)</span> and a curvature direction <span class="arithmatex">\(\psi_c(s,t)\)</span> — the azimuthal angle of the bending plane in the cross-sectional frame [Bastien &amp; Meroz 2016, §"Geometrical Description", Figure 2]. The differential growth around the cross-section has a maximal direction <span class="arithmatex">\(\psi_g(s,t)\)</span> and a magnitude <span class="arithmatex">\(\Delta(\psi_g, s, t)\)</span>.</p>
+<h3 id="32-coupled-curvature-dynamics">3.2 Coupled curvature dynamics<a class="headerlink" href="#32-coupled-curvature-dynamics" title="Permanent link">&para;</a></h3>
+<p>Decomposing differential growth into components parallel (<span class="arithmatex">\(\Delta_\parallel\)</span>) and perpendicular (<span class="arithmatex">\(\Delta_\perp\)</span>) to the current bending plane, the coupled dynamics are [Bastien &amp; Meroz 2016, Eqs. 13 &amp; 14]:</p>
+<div class="arithmatex">\[\frac{DC(s,t)R}{Dt} = \Delta_\parallel(s,t)\,\dot{E}(s,t)\]</div>
+<div class="arithmatex">\[\frac{D\psi_c(s,t)}{Dt} = \frac{\Delta_\perp(s,t)\,\dot{E}(s,t)}{C(s,t)\,R}\]</div>
+<p>where <span class="arithmatex">\(D/Dt = \partial/\partial t + v(s,t)\,\partial/\partial s\)</span> is the material derivative co-moving with each tissue element [Bastien &amp; Meroz 2016, Eq. 7]. The first equation describes magnitude of bending; the second describes rotation of the bending plane. Nutation is the rotation of <span class="arithmatex">\(\psi_c\)</span> around the cross-section, driven by oscillating <span class="arithmatex">\(\psi_g\)</span>.</p>
+<h3 id="33-slaving-claim">3.3 Slaving claim<a class="headerlink" href="#33-slaving-claim" title="Permanent link">&para;</a></h3>
+<p>The model's central claim is that the bending plane <span class="arithmatex">\(\psi_c(s,t)\)</span> is <em>slaved</em> to the direction of maximal differential growth <span class="arithmatex">\(\psi_g(s,t)\)</span> — the organ's curvature direction chases the growth direction with a delay. Nutation arises when <span class="arithmatex">\(\psi_g\)</span> rotates periodically in time [Bastien &amp; Meroz 2016, §"Variation of the principal direction of the differential growth <span class="arithmatex">\(\psi_g(s,t)\)</span> as an internal oscillator"].</p>
+<h3 id="34-hypotheses-for-tip-only-analysis">3.4 Hypotheses for tip-only analysis<a class="headerlink" href="#34-hypotheses-for-tip-only-analysis" title="Permanent link">&para;</a></h3>
+<p>To make any sense of apical-tip projection data (the only data we have for root tips), Bastien &amp; Meroz state explicitly the hypotheses required [Bastien &amp; Meroz 2016, §"Measurements of the apical tip in the horizontal plane", H1–H3]:</p>
+<ul>
+<li><strong>H1 — Spatial homogeneity:</strong> dynamics do not depend on position along the organ; <span class="arithmatex">\(\Delta(\psi, s, t) = \Delta(\psi, t)\)</span>.</li>
+<li><strong>H2 — Unique tip→shape map:</strong> the 2D apical projection determines the 3D organ shape up to known constraints.</li>
+<li><strong>H3 — Elongation effects negligible:</strong> organ length growth does not distort the projected pattern over one nutation period.</li>
+</ul>
+<p>H1 is the most likely to fail — and in fact does fail along the Averrhoa rachis (see §4). For root tips in the regime where the elongation zone is short relative to the organ length and the apical tip is near the apical edge of the elongation zone, H1 is more defensible.</p>
+<h3 id="35-tip-only-extraction-equations-load-bearing-for-the-pipeline">3.5 Tip-only extraction equations (load-bearing for the pipeline)<a class="headerlink" href="#35-tip-only-extraction-equations-load-bearing-for-the-pipeline" title="Permanent link">&para;</a></h3>
+<p>Under H1–H3, with the apical tip projected to coordinates <span class="arithmatex">\((x_a(t), y_a(t))\)</span> in the horizontal plane, Bastien &amp; Meroz derive [2016, Eqs. 20 &amp; 21]:</p>
+<div class="arithmatex">\[\boxed{\psi_g(t) = \arctan\!\left(\frac{dx_a/dt}{dy_a/dt}\right)}\]</div>
+<div class="arithmatex">\[\boxed{\Delta(\psi_g, t)\,\dot{E}(t) = \frac{2R}{L}\sqrt{\dot{x}_a^2 + \dot{y}_a^2}}\]</div>
+<p>These say: <strong>(a)</strong> the direction of maximal differential growth equals the tangent angle of the tip trajectory, and <strong>(b)</strong> the magnitude of differential growth times mean elongation rate is proportional to the tip speed, with prefactor <span class="arithmatex">\(2R/L\)</span>.</p>
+<p>This is the load-bearing physical justification for the pipeline's use of tangent angle as the primary spectral signal. <span class="arithmatex">\(\psi_g(t)\)</span> is not a numerically convenient detrended quantity — it is, <em>under H1–H3</em>, the direct estimator of the underlying differential-growth oscillator. CWT applied to <span class="arithmatex">\(\psi_g(t)\)</span> recovers the spectral content of that oscillator.</p>
+<p><strong>Convention note:</strong> Bastien &amp; Meroz use <span class="arithmatex">\(\arctan(dx/dy)\)</span>, returning values in <span class="arithmatex">\((-\pi/2, \pi/2)\)</span>. The pipeline must use <span class="arithmatex">\(\text{atan2}(dx/dt, dy/dt)\)</span> and unwrap the result to allow <span class="arithmatex">\(\psi_g\)</span> to grow continuously past <span class="arithmatex">\(\pm\pi\)</span> — otherwise wrap-around discontinuities create spurious high-frequency CWT content.</p>
+<h3 id="36-regulation-proprioception-term">3.6 Regulation: proprioception term<a class="headerlink" href="#36-regulation-proprioception-term" title="Permanent link">&para;</a></h3>
+<p>To prevent the orbit from drifting away from the base, the parallel-curvature equation can be augmented with a curvature-dependent damping term [Bastien &amp; Meroz 2016, Eq. 23]:</p>
+<div class="arithmatex">\[\Delta_\parallel(s,t) = -\gamma C + \Delta(\psi_g) \sin(\psi_g - \psi_c)\]</div>
+<p>where <span class="arithmatex">\(\gamma\)</span> is the proprioceptive sensitivity. In the Meroz 2026 review framework (see §5), this <span class="arithmatex">\(\gamma\)</span> together with a misalignment sensitivity <span class="arithmatex">\(\beta\)</span> controls the convergence length <span class="arithmatex">\(L_c\)</span>.</p>
+<h3 id="37-h1-failure-signature-trochoid-patterns">3.7 H1-failure signature: trochoid patterns<a class="headerlink" href="#37-h1-failure-signature-trochoid-patterns" title="Permanent link">&para;</a></h3>
+<p>If two segments of the organ oscillate at different angular frequencies <span class="arithmatex">\(\omega_1\)</span> and <span class="arithmatex">\(\omega_2\)</span>, the apical tip traces an epi- or hypotrochoid (spirograph) pattern, and equation 3.5(a) returns an <em>effective</em> <span class="arithmatex">\(\psi_g\)</span> dominated by the faster oscillator [Bastien &amp; Meroz 2016, Figure 7, Movies S6–S7]. Trochoid signatures in the tip xy trajectory or multi-peak structure in the CWT spectrum are direct evidence H1 is failing — and motivate moving to spatially-resolved measurement.</p>
+<hr />
+<h2 id="4-spatiotemporal-growth-pattern-riviere-et-al-2022-2025">4. Spatiotemporal growth pattern — Rivière et al. 2022 / 2025<a class="headerlink" href="#4-spatiotemporal-growth-pattern-riviere-et-al-2022-2025" title="Permanent link">&para;</a></h2>
+<p><strong>Sources:</strong>
+- Rivière M., Peaucelle A., Derr J., Douady S. (2022) <em>Spatiotemporal growth pattern during plant nutation implies fast dynamics for cell wall mechanics and chemistry: a multiscale study in Averrhoa carambola.</em> bioRxiv 2022.02.22.481493. ("Rivière 2022")
+- Rivière M., Peaucelle A., Derr J., Douady S., Marmottant P. (2025) <em>Plant nutation relies on steady propagation of spatially asymmetric growth pattern.</em> Quantitative Plant Biology 6, e10013. doi:10.1017/qpb.2025.10013. ("QPB 2025")</p>
+<p>The 2022 preprint is the multiscale paper containing both kinematic and cell-wall results. QPB 2025 is the published descendant focused on the kinematic narrative. The kinematic content overlaps; cell-wall content (AFM + immunolabelling) is in the 2022 version only — see §9 for context. Citations below give the 2022 paper for kinematic specifics with QPB 2025 cross-references where the same finding appears.</p>
+<h3 id="41-system-and-method">4.1 System and method<a class="headerlink" href="#41-system-and-method" title="Permanent link">&para;</a></h3>
+<p>Time-lapse imaging of <em>Averrhoa carambola</em> compound leaves; top-view (2.5-min cadence) for curvature and node tracking, side-view (1-min cadence) for local elongation. Rachis midline obtained by thresholding fluorescent pigment + moving-median smoothing + local circle fit for <span class="arithmatex">\(\kappa_\perp\)</span>. Local elongation rate measured by image-to-image correlation between successive frames [Rivière 2022, §"Kinematics: data analysis" and §"Kinematics: fine elongation measurements"].</p>
+<p>Nutation period 1.5–4 hours (typically 2–3 h), angular amplitude ~25°, principal axis perpendicular to growth axis. Pendulum-like oscillation [Rivière 2022, §"Characterizing nutation", Figure 1].</p>
+<h3 id="42-spatial-localization-of-growth-and-bending">4.2 Spatial localization of growth and bending<a class="headerlink" href="#42-spatial-localization-of-growth-and-bending" title="Permanent link">&para;</a></h3>
+<p>Mean elongation rate <span class="arithmatex">\(\dot{E}\)</span> measured per interfoliolar segment; differential elongation <span class="arithmatex">\(\dot{\delta}\)</span> envelope extracted from <span class="arithmatex">\(\kappa_\perp(s,t)\)</span> via Hilbert transform. Both quantities show a spatially localized profile relative to the apex [Rivière 2022, Figure 2, panels B and C; QPB 2025 Figure 2 same data].</p>
+<p><strong>Headline kinematic finding [Rivière 2022, §"Differential elongation peaks where elongation drops"; QPB 2025 abstract and §"Spatial profile of differential growth"]:</strong></p>
+<blockquote>
+<p>The differential elongation rate is non-monotonous and its maximum coincides with the edge of the growing zone, where the mean elongation rate drops.</p>
+</blockquote>
+<p>Quantitatively for Averrhoa: typical growth-zone length ~50 mm, no detectable growth past ~100 mm from apex [Rivière 2022, §"Differential elongation peaks where elongation drops"]. Mean elongation rate in the growth zone ~<span class="arithmatex">\(10^{-2}\)</span> h⁻¹. Maximum differential elongation rate ~<span class="arithmatex">\(3 \times 10^{-2}\)</span> h⁻¹ (transient, modulated in time).</p>
+<h3 id="43-kinematic-model">4.3 Kinematic model<a class="headerlink" href="#43-kinematic-model" title="Permanent link">&para;</a></h3>
+<p>The paper's kinematic model has four components [Rivière 2022, §"Details and implementation of the model", Eqs. 2–5]:</p>
+<p><strong>(a) Lateral asymmetry decomposition</strong> [Eq. 2]:</p>
+<div class="arithmatex">\[\dot{\varepsilon} = \frac{\dot{\varepsilon}_R + \dot{\varepsilon}_L}{2}, \qquad \dot{\delta} = \frac{\dot{\varepsilon}_R - \dot{\varepsilon}_L}{2}\]</div>
+<p><strong>(b) Mean elongation as sigmoid in reverse arc length</strong> [Eq. 3]:</p>
+<div class="arithmatex">\[\dot{\varepsilon}(s_a) = \frac{\dot{\varepsilon}_0}{2}\left[1 - \tanh\!\left(\frac{s_a - L_{gz}}{\Delta L}\right)\right]\]</div>
+<p>This is a sigmoid centered at <span class="arithmatex">\(s_a = L_{gz}\)</span> with transition width <span class="arithmatex">\(\Delta L\)</span>. At the apex (<span class="arithmatex">\(s_a \to 0\)</span>), <span class="arithmatex">\(\dot{\varepsilon} \to \dot{\varepsilon}_0\)</span>. Past the growth zone (<span class="arithmatex">\(s_a \gg L_{gz}\)</span>), <span class="arithmatex">\(\dot{\varepsilon} \to 0\)</span>.</p>
+<p><strong>(c) Differential elongation as derivative of mean profile, modulated in time</strong> [Eq. 4]:</p>
+<div class="arithmatex">\[\dot{\delta}(s_a, t) = \dot{\delta}_0 \left[1 - \tanh^2\!\left(\frac{s_a - L_{gz}}{\Delta L}\right)\right] \sin(\omega t)\]</div>
+<p>The factor <span class="arithmatex">\(1 - \tanh^2\)</span> is the derivative of <span class="arithmatex">\(\tanh\)</span>, peaked at <span class="arithmatex">\(s_a = L_{gz}\)</span> with characteristic width <span class="arithmatex">\(\Delta L\)</span>. This is the mathematical realization of the headline finding: <span class="arithmatex">\(\dot{\delta}\)</span> peaks exactly where the gradient of <span class="arithmatex">\(\dot{\varepsilon}\)</span> is largest — at the basal edge of the growth zone.</p>
+<p><strong>(d) Curvature dynamics</strong> [Eq. 5]:</p>
+<div class="arithmatex">\[\frac{\partial \kappa_\perp}{\partial t} \approx \frac{1 - R^2 \kappa_\perp^2}{R}\,\dot{\delta}\]</div>
+<p>Material-derivative advection is neglected because the nutation period is much shorter than the elongation timescale. For small <span class="arithmatex">\(R\kappa_\perp\)</span>, this reduces to <span class="arithmatex">\(\partial\kappa_\perp/\partial t \approx \dot{\delta}/R\)</span>.</p>
+<h3 id="44-apex-angular-amplitude-relation-load-bearing-for-tip-only-fitting">4.4 Apex angular amplitude relation (load-bearing for tip-only fitting)<a class="headerlink" href="#44-apex-angular-amplitude-relation-load-bearing-for-tip-only-fitting" title="Permanent link">&para;</a></h3>
+<p>From the model, the angular amplitude at the apex is constrained by [Rivière 2022, Eq. 1]:</p>
+<div class="arithmatex">\[\boxed{\Delta\phi = \frac{2\,\Delta L\,\dot{\delta}_0}{\omega R}}\]</div>
+<p>Interpretation: <span class="arithmatex">\(\dot{\delta}_0/\omega\)</span> is the total differential elongation accumulated over half a nutation period; dividing by <span class="arithmatex">\(R\)</span> gives a curvature; integrating that curvature over the bending zone width <span class="arithmatex">\(2\Delta L\)</span> gives the apex deflection angle. <strong>This is a closed-form relation between five observable quantities</strong> — and four of them are extractable from tip data alone:</p>
+<ul>
+<li><span class="arithmatex">\(\Delta\phi\)</span> from tip angular extent</li>
+<li><span class="arithmatex">\(\omega = 2\pi/T\)</span> from temporal CWT</li>
+<li><span class="arithmatex">\(\Delta L\)</span> from spatial decay of <span class="arithmatex">\(|\kappa(s)|\)</span> basal of peak (see §6)</li>
+<li><span class="arithmatex">\(R\)</span> from external measurement (root cross-section)</li>
+</ul>
+<p>So <span class="arithmatex">\(\dot{\delta}_0\)</span> is <strong>derivable</strong>: <span class="arithmatex">\(\dot{\delta}_0 = \omega R\,\Delta\phi / (2\Delta L)\)</span>.</p>
+<h3 id="45-best-fit-parameters-averrhoa">4.5 Best-fit parameters (Averrhoa)<a class="headerlink" href="#45-best-fit-parameters-averrhoa" title="Permanent link">&para;</a></h3>
+<p>For one Averrhoa rachis, fitting the kinematic model to the side-view apparent-elongation wavelet decomposition [Rivière 2022, Figure 3I–J caption]:</p>
+<ul>
+<li><span class="arithmatex">\(L_{gz} = 20.6\)</span> mm</li>
+<li><span class="arithmatex">\(\Delta L = 12.2\)</span> mm</li>
+<li><span class="arithmatex">\(\dot{\delta}_0 = 4.5 \times 10^{-3}\)</span> h⁻¹</li>
+<li><span class="arithmatex">\(\dot{\varepsilon}_0 = 1.4 \times 10^{-2}\)</span> h⁻¹ (fixed before fitting)</li>
+<li><span class="arithmatex">\(R = 0.26\)</span> mm (fixed before fitting)</li>
+<li><span class="arithmatex">\(\Delta\phi = 8°\)</span></li>
+</ul>
+<p>Note <span class="arithmatex">\(\dot{\delta}_0 &lt; \dot{\varepsilon}_0\)</span> but the ratio is high enough that local contractions occur transiently when the local mean rate is at the falling edge of its sigmoid.</p>
+<h3 id="46-local-contractions-and-the-wavelet-signature">4.6 Local contractions and the wavelet signature<a class="headerlink" href="#46-local-contractions-and-the-wavelet-signature" title="Permanent link">&para;</a></h3>
+<p>The side-view apparent elongation rate <span class="arithmatex">\(\dot{\varepsilon}(s_a, t)\)</span> goes negative in places — actual local contraction, not just slower growth [Rivière 2022, Figure 3A]. CWT decomposition of this 2D field (using cgau2 mother wavelet — the second-derivative complex Gaussian) shows two dominant modes spatially separated [Rivière 2022, Figure 3B]:</p>
+<ul>
+<li><span class="arithmatex">\(\tau_{2f} \approx 1.2\)</span> h near the apical end of the bending zone</li>
+<li><span class="arithmatex">\(\tau_f \approx 2.1\)</span> h near the basal end</li>
+</ul>
+<p>The model predicts that <em>whether both modes appear</em> depends on the relative magnitudes of <span class="arithmatex">\(\dot{\delta}_0\)</span> and <span class="arithmatex">\(\dot{\varepsilon}_0\)</span> [Rivière 2022, Figure 3C–H]: only when contractions are allowed (low <span class="arithmatex">\(\dot{\varepsilon}_0\)</span> relative to <span class="arithmatex">\(\dot{\delta}_0\)</span>, panels C–D) does the apical-end frequency-doubled mode appear in the projection. The 2:1 ratio is therefore a side-view projection artifact under contraction conditions, <em>not</em> evidence of two separate oscillators.</p>
+<p><strong>This matters for the pipeline because the analogous side-view projection effect is not present in our top-view root-tip data.</strong> Whatever frequency-doubling signature we look for, it must be derived from the trail geometry directly, not from a side-view kymograph.</p>
+<h3 id="47-steady-traveling-wave-hypothesis-qpb-2025-framing">4.7 Steady traveling-wave hypothesis (QPB 2025 framing)<a class="headerlink" href="#47-steady-traveling-wave-hypothesis-qpb-2025-framing" title="Permanent link">&para;</a></h3>
+<p>QPB 2025 sharpens the 2022 finding into a <strong>steady traveling-wave</strong> statement [QPB 2025, §"Steady propagation of growth pattern", Figure 4]: the spatial profile <span class="arithmatex">\(\dot{\varepsilon}(s_a)\)</span> and <span class="arithmatex">\(\dot{\delta}(s_a, t)\)</span> is fixed in the reference frame attached to the apex, and propagates basally as the apex grows forward. Under this picture:</p>
+<div class="arithmatex">\[\boxed{\lambda_\text{spatial} = v_\text{growth} \cdot T_\text{temporal}}\]</div>
+<p>The spatial wavelength of the nutation pattern imprinted in the post-growth-zone tissue equals the apex propagation speed times the temporal period of nutation. This is a falsifiable equality and the central physical claim of the QPB paper.</p>
+<hr />
+<h2 id="5-modern-synthesis-meroz-2026-review">5. Modern synthesis — Meroz 2026 review<a class="headerlink" href="#5-modern-synthesis-meroz-2026-review" title="Permanent link">&para;</a></h2>
+<p><strong>Source:</strong> Meroz Y. (2026) <em>Physics of Computation and Behavior in Plants.</em> arXiv:2604.21763 [cond-mat.other].</p>
+<p>This is a review framing plant tropisms and circumnutations as spatiotemporal dynamical systems with distributed sensing, embodied mechanics, and functional stochasticity. It does <strong>not</strong> present new nutation dynamics — the deterministic model used (Eq. 1 below) is presented as tropism dynamics; circumnutation appears in §6.2 under stochasticity-as-functional-resource. The relevance for our pipeline is the dimensionless control parameter framework that ports cleanly to nutation and gives a single scalar trait with cross-species literature baseline.</p>
+<h3 id="51-tropism-dynamics-the-canonical-bastien-douady-moulia-equation">5.1 Tropism dynamics (the canonical Bastien-Douady-Moulia equation)<a class="headerlink" href="#51-tropism-dynamics-the-canonical-bastien-douady-moulia-equation" title="Permanent link">&para;</a></h3>
+<p>The minimal tropism model [Meroz 2026, Eq. 1; originally Bastien et al. 2013]:</p>
+<div class="arithmatex">\[\frac{\partial\kappa(s,t)}{\partial t} = -\beta \sin(\theta(s,t) - \theta_p) - \gamma\kappa(s,t), \qquad s &gt; L - L_{gz}\]</div>
+<p>In the mature zone (<span class="arithmatex">\(s \le L - L_{gz}\)</span>), <span class="arithmatex">\(\partial\kappa/\partial t = 0\)</span> — curvature is passively advected by growth but not actively generated. <span class="arithmatex">\(\beta\)</span> is the tropic sensitivity (gravity, light); <span class="arithmatex">\(\gamma\)</span> is the proprioceptive sensitivity; <span class="arithmatex">\(\theta_p\)</span> is the preferred direction of the stimulus.</p>
+<p><strong>Caveat from §2 of this doc:</strong> This equation as written is a tropism equation, not a nutation equation. It does not produce sustained oscillations on its own — it produces relaxation toward <span class="arithmatex">\(\theta = \theta_p\)</span>. The Bastien &amp; Meroz 2016 extension (§3 here) is required to produce nutation, by adding the perpendicular-curvature equation and an oscillating <span class="arithmatex">\(\psi_g\)</span>.</p>
+<h3 id="52-convergence-length">5.2 Convergence length<a class="headerlink" href="#52-convergence-length" title="Permanent link">&para;</a></h3>
+<p>In the small-angle linearization, the steady-state shape is exponential [Meroz 2026, Eq. 5]:</p>
+<div class="arithmatex">\[\theta(s) = \theta_0 \exp\!\left(-\frac{\beta}{\gamma}s\right)\]</div>
+<p>defining a characteristic length [Meroz 2026, Eq. 6]:</p>
+<div class="arithmatex">\[\boxed{L_c = \frac{\gamma}{\beta}}\]</div>
+<p>This is the spatial extent over which curvature decays. Small <span class="arithmatex">\(L_c\)</span> means localized bending; large <span class="arithmatex">\(L_c\)</span> means distributed curvature.</p>
+<h3 id="53-balance-number">5.3 Balance number<a class="headerlink" href="#53-balance-number" title="Permanent link">&para;</a></h3>
+<p>The dimensionless ratio of growth-zone length to convergence length [Meroz 2026, Eq. 7]:</p>
+<div class="arithmatex">\[\boxed{B = \frac{L_{gz}}{L_c} = \frac{L_{gz}\,\beta}{\gamma}}\]</div>
+<p>For tropism dynamics:
+- <span class="arithmatex">\(B &lt; 1\)</span>: bending insufficient to reach the vertical, overdamped relaxation.
+- <span class="arithmatex">\(B &gt; 1\)</span>: organ reaches the vertical and may overshoot, with oscillatory modes.</p>
+<p>Bastien et al. 2013 measured <span class="arithmatex">\(B\)</span> across 12 angiosperm species [Meroz 2026, §2.3 and Figure 2c; original data Bastien et al. 2013]: range 0.9–9.3, with overshoot mode count increasing with <span class="arithmatex">\(B\)</span>. Wheat coleoptile is mode 0 (no overshoot, <span class="arithmatex">\(B \approx 0.9\)</span>); <em>Impatiens glandulifera</em> is mode 2 (<span class="arithmatex">\(B \approx 9.3\)</span>).</p>
+<h3 id="54-where-circumnutation-sits">5.4 Where circumnutation sits<a class="headerlink" href="#54-where-circumnutation-sits" title="Permanent link">&para;</a></h3>
+<p>Circumnutation appears in [Meroz 2026, §6.2 "Noisy circumnutations facilitate exploration and sensing"] under the stochasticity-as-functional-resource framing, citing Nguyen, Dromi, Kempinski, Peleg, Meroz (2024, <em>Phys. Rev. X</em> 14:031027). The deterministic dynamical equations of §3 here remain the canonical model; the 2026 review adds a complementary stochastic-exploration interpretation.</p>
+<hr />
+<h2 id="6-translation-to-tip-only-root-data">6. Translation to tip-only root data<a class="headerlink" href="#6-translation-to-tip-only-root-data" title="Permanent link">&para;</a></h2>
+<h3 id="61-the-tip-trail-as-midline-identity">6.1 The tip-trail-as-midline identity<a class="headerlink" href="#61-the-tip-trail-as-midline-identity" title="Permanent link">&para;</a></h3>
+<p>For an apically-growing organ where tissue past the elongation zone does not reshape (the "tissue freezing" assumption underlying §4.7), every past tip position is a material point still sitting where it was laid down. So if <span class="arithmatex">\(\mathbf{p}(\tau) = (x(\tau), y(\tau))\)</span> is the tip at time <span class="arithmatex">\(\tau\)</span>, then the curve</p>
+<div class="arithmatex">\[\{\mathbf{p}(\tau) : 0 \le \tau \le t_\text{now}\}\]</div>
+<p>is the organ midline at time <span class="arithmatex">\(t_\text{now}\)</span>, for the part of the organ older than the growth zone. The time-to-arc-length conversion is:</p>
+<div class="arithmatex">\[s(\tau) = \int_0^\tau |v(\sigma)|\,d\sigma\]</div>
+<p>Trajectory curvature in time equals midline curvature at arc length:</p>
+<div class="arithmatex">\[\kappa_\text{path}(\tau) = \kappa(s(\tau))\]</div>
+<p>This identity — together with the QPB steady-traveling-wave duality <span class="arithmatex">\(\lambda = vT\)</span> — is what permits root-tip-only data to address spatial QPB-style findings without midline tracking. <strong>It is the load-bearing assumption for Tier 3 below.</strong> It can fail in three ways: (a) tissue continues to bend after exiting the growth zone (gravitropic re-orientation, elastic relaxation), (b) the growth zone is so long that the trail doesn't extend past it within the imaging window, (c) tip detection is so noisy that the reconstructed midline is dominated by jitter rather than real curvature. The pipeline must check for these.</p>
+<h3 id="62-trajectory-curvature">6.2 Trajectory curvature<a class="headerlink" href="#62-trajectory-curvature" title="Permanent link">&para;</a></h3>
+<p>Tip trajectory curvature is computed directly from the time series [standard differential geometry]:</p>
+<div class="arithmatex">\[\kappa_\text{path}(t) = \frac{\dot{x}\,\ddot{y} - \dot{y}\,\ddot{x}}{(\dot{x}^2 + \dot{y}^2)^{3/2}}\]</div>
+<p>Sign convention: positive = left turn, negative = right turn. The denominator <span class="arithmatex">\(|\mathbf{v}|^3\)</span> diverges when the tip momentarily stops; at 5-min cadence on rice this can occur on individual frames where displacement is below noise. The pipeline must guard with <span class="arithmatex">\(|\mathbf{v}| &gt; k\sigma_\mathbf{v}\)</span> for some <span class="arithmatex">\(k\)</span> (recommended <span class="arithmatex">\(k=2\)</span>, masking sub-noise frames).</p>
+<p>Reparameterizing by arc length <span class="arithmatex">\(s(\tau) = \int_0^\tau |\mathbf{v}|\,d\sigma\)</span> gives <span class="arithmatex">\(\kappa(s)\)</span> — the midline curvature as a function of position along the organ.</p>
+<h3 id="63-pipeline-tier-structure">6.3 Pipeline tier structure<a class="headerlink" href="#63-pipeline-tier-structure" title="Permanent link">&para;</a></h3>
+<p>Five tiers, each callable independently from a notebook; the full <code>CircumnutationPipeline</code> runs all of them.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Tier 0 — Raw kinematics (no spectral analysis)
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  v_total, v_long, v_lat, long/lat ratio, path/displacement ratio,
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  angular amplitude, growth-axis identification
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>Tier 1 — Derr-faithful temporal CWT
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  CWT on x(t) (or one chosen coordinate) using cmor1.5-1.0 wavelet
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  Ridge extraction → T(t), A(t), Fourier spectrum
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>  Regression-tested against Derr&#39;s Sept-2025 pilot output
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>Tier 2 — Bastien-Meroz ψ_g(t) CWT
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>  ψ_g(t) = atan2(dx/dt, dy/dt), unwrapped
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>  Pre-smoothed via Savitzky-Golay (degree 3, window ≥ 5 frames)
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>  CWT on ψ_g(t) → T_psig, A_psig, handedness from phase progression
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>  Δ(ψ_g)·Ė(t) = (2R/L)|v(t)| → kinematic differential-growth proxy
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>Tier 3 — Tip-trail spatial CWT (the QPB branch)
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>  Reconstruct midline via tip-trail-as-midline (§6.1)
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>  Compute κ(s) along the trail (smoothing required, see §7 QC)
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>  |κ(s)| envelope → peak location estimates L_gz
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>  Spatial CWT on κ(s) basal of the peak → λ(s), L_c, decay length
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>  Steady-traveling-wave check: λ_spatial vs v·T
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>Tier 4 — Bastien-Meroz parametric fit
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>  From Tier 3 outputs: L_gz, L_c → B = L_gz/L_c
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>  From Eq. 4.4: δ̇₀ = ωR·Δφ / (2ΔL)
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>  From Eq. 5.2: L_c = γ/β; one constraint, two unknowns —
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>    needs an additional measurement (e.g., decay rate during transient)
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    to disentangle β and γ individually. Phase 1 emits L_c only;
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    β and γ are Phase 2 with stimulus experiments.
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>QC tier — runs alongside all above
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>  Tracking quality (SG residual, 2nd-diff noise, outlier step rate)
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>  Cone-of-influence masks per CWT
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>  Calibration presence flag
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>  Nutation-presence boolean (band power vs noise floor)
+</span></code></pre></div>
+<h3 id="64-feasibility-numbers-reference-data">6.4 Feasibility numbers (reference data)<a class="headerlink" href="#64-feasibility-numbers-reference-data" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p>All <code>mm</code> numbers in this section assume 1200 DPI per §1 — verify before quoting. The pixel ratios (<span class="arithmatex">\(d/\lambda\)</span>, Nyquist ratio) and frame counts are DPI-independent, and so are the structural conclusions of this section.</p>
+</blockquote>
+<p>Computing in pixels first (DPI-independent), then converting:</p>
+<ul>
+<li>Spatial wavelength along the trail: <span class="arithmatex">\(\lambda \approx v_\text{px/frame} \cdot T_\text{frames} = 5.83 \times 11.1 \approx 65\)</span> px (<span class="arithmatex">\(\approx 1.37\)</span> mm <code>[†DPI]</code>)</li>
+<li>Trail length over 14-hr run: <span class="arithmatex">\(d \approx 5.83 \times 168 \approx 980\)</span> px (<span class="arithmatex">\(\approx 20.7\)</span> mm <code>[†DPI]</code>)</li>
+<li><span class="arithmatex">\(d/\lambda \approx 15\)</span> wavelengths imprinted in the trail (DPI-independent)</li>
+</ul>
+<p>For Tier 3 to be core-trait-worthy, <span class="arithmatex">\(d/\lambda &gt; 3\)</span> is required; 15 is well above threshold. <strong>The reference data fully supports Tier 3 regardless of the exact DPI value.</strong></p>
+<p>For the growth-zone region (most apical <span class="arithmatex">\(\sim L_{gz} \approx 1\)</span>–5 mm in rice — <em>literature estimate, pending verification with rice expert; see §11 references</em>), the trail comprises <span class="arithmatex">\(\sim L_{gz}/v \approx 0.7\)</span>–3.6 hours of imaging <code>[†DPI; rice $L_{gz}$ unverified]</code>, or 9–43 frames at 5-min cadence (DPI-independent if expressed in frames-per-elongation-zone-traverse, but the elongation zone length itself is in mm and so depends on both DPI calibration and biology). Peak-<span class="arithmatex">\(|\kappa(s)|\)</span> location is therefore resolvable but the spatial decay basal of the peak (decay length <span class="arithmatex">\(L_c\)</span>) is the better-resolved trait, since it operates on the longer post-growth-zone trail.</p>
+<h4 id="peak-kappas-resolvability-for-l_gz_estimate">Peak-<span class="arithmatex">\(|\kappa(s)|\)</span> resolvability for <code>L_gz_estimate</code><a class="headerlink" href="#peak-kappas-resolvability-for-l_gz_estimate" title="Permanent link">&para;</a></h4>
+<p>The peak of the <span class="arithmatex">\(|\kappa(s)|\)</span> envelope sits at arc-length <span class="arithmatex">\(L_{gz}\)</span> from the current apex (Rivière 2022 Eq. 4). To localize it, the growth-zone region of the trail must span enough samples for stable peak/transition detection. The number of trail frames within the growth zone is:</p>
+<div class="arithmatex">\[\boxed{N_{gz} = \frac{L_{gz}}{v \cdot \Delta t}}\]</div>
+<p>where <span class="arithmatex">\(\Delta t\)</span> is the frame cadence (in the same time units as <span class="arithmatex">\(v\)</span>). Resolvability requires <span class="arithmatex">\(N_{gz} \geq N_{\min}\)</span>, with <span class="arithmatex">\(N_{\min} \in [5, 10]\)</span> as a rule of thumb for stable peak/corner localization in 1D. Equivalently, the minimum measurable <span class="arithmatex">\(L_{gz}\)</span> for given imaging conditions is:</p>
+<div class="arithmatex">\[L_{gz}^{\min} = N_{\min} \cdot v \cdot \Delta t\]</div>
+<p><strong>Substituted for the reference data:</strong> <span class="arithmatex">\(v = 5.83\)</span> px/frame, $\Delta t = $ 5 min (so <span class="arithmatex">\(v \cdot \Delta t = 5.83\)</span> px/frame). With <span class="arithmatex">\(N_{\min} = 5\)</span>: <span class="arithmatex">\(L_{gz}^{\min} \approx 29\)</span> px ≈ 0.62 mm <code>[†DPI]</code>. With <span class="arithmatex">\(N_{\min} = 10\)</span> (conservative): <span class="arithmatex">\(L_{gz}^{\min} \approx 58\)</span> px ≈ 1.23 mm <code>[†DPI]</code>.</p>
+<p><strong>Conclusion:</strong> any rice <span class="arithmatex">\(L_{gz}\)</span> above <span class="arithmatex">\(\sim 1\)</span> mm is comfortably resolvable. At the low end of the literature estimate (<span class="arithmatex">\(L_{gz} = 1\)</span> mm = 47 px = 8 frames), it sits in the resolvability window between <span class="arithmatex">\(N_{\min} = 5\)</span> and <span class="arithmatex">\(N_{\min} = 10\)</span> — measurable but with reduced confidence. At <span class="arithmatex">\(L_{gz} \geq 2\)</span> mm, the peak is robustly resolvable. <strong>If the rice expert returns a value below ~1 mm, the <code>L_gz_estimate</code> trait should be flagged unreliable on the reference imaging conditions and either cadence increased or imaging resolution improved before relying on it.</strong></p>
+<p>This criterion is DPI-independent when expressed in pixels: <span class="arithmatex">\(N_{\min} \cdot v_\text{px/frame}\)</span>. The DPI assumption only enters when converting the threshold to mm for comparison with literature.</p>
+<p><strong>Implementation note — <span class="arithmatex">\(v\)</span> in the formula is local, not instantaneous.</strong> The <span class="arithmatex">\(v\)</span> in <span class="arithmatex">\(N_{gz} = L_{gz}/(v \cdot \Delta t)\)</span> is the tip growth speed in the trail region containing the candidate peak, <em>not</em> the instantaneous tip velocity at <span class="arithmatex">\(t_\text{now}\)</span>. On a typical clean rice plate <span class="arithmatex">\(v\)</span> is approximately steady across the run (per the QPB steady-state assumption), so the distinction is moot. But on plates where growth speed varies substantially — early-growth ramp-up, late-run slowdowns, environmental perturbations, tracking dropouts — the resolvability criterion should use <span class="arithmatex">\(\text{median}(v)\)</span> computed over the most recent trail window of length <span class="arithmatex">\(\sim L_{gz}\)</span>, not <span class="arithmatex">\(v(t_\text{now})\)</span> which can be biased by single-frame noise or transient slowdowns. For the QC trait <code>L_gz_resolvable</code>, recommend computing <span class="arithmatex">\(v\)</span> as the median per-frame step magnitude over the apical-most <span class="arithmatex">\(L_{gz}/(v_\text{rough}\,\Delta t)\)</span> frames, where <span class="arithmatex">\(v_\text{rough}\)</span> is a one-pass estimate using the median over the full run. One iteration of refinement is enough; do not iterate to convergence.</p>
+<h3 id="65-cadence-nyquist-check">6.5 Cadence-Nyquist check<a class="headerlink" href="#65-cadence-nyquist-check" title="Permanent link">&para;</a></h3>
+<p>Per-frame step / spatial wavelength = 5.83 / 65 ≈ 9.0%, well below the conservative 25% threshold for spatial aliasing. 5-min cadence is comfortable; 10-min would still work; 30-min would alias the nutation. <strong>This ratio is in pixels on both sides and so is DPI-independent</strong> — true regardless of calibration verification. This becomes a gatekeep parameter for upstream cadence choices.</p>
+<h3 id="66-fundamental-limits-of-tip-only-kinematics">6.6 Fundamental limits of tip-only kinematics<a class="headerlink" href="#66-fundamental-limits-of-tip-only-kinematics" title="Permanent link">&para;</a></h3>
+<p>This subsection clarifies what <em>cannot</em> be measured from tip-only data, regardless of imaging quality or pipeline cleverness. It determines which traits in §7 are upper bounds on what's possible from current data, and which would require an upstream pipeline change.</p>
+<p><strong>Apex velocity is an integral over the growth zone, not a profile.</strong> The instantaneous tip speed equals the integrated elongation rate along the growth zone:</p>
+<div class="arithmatex">\[v(t) = \int_0^{L_{gz}} \dot{\varepsilon}(s_a, t)\,ds_a\]</div>
+<p>A single number (<span class="arithmatex">\(v\)</span>) determined by an integral over a function (<span class="arithmatex">\(\dot{\varepsilon}\)</span>) gives one equation with infinitely many unknowns. Two organs with very different <span class="arithmatex">\(\dot{\varepsilon}(s_a)\)</span> shapes — including different combinations of growth-zone length, sigmoid transition width, and amplitude — can have identical <span class="arithmatex">\(v(t)\)</span> as long as their integrals match. <strong>Tip velocity tells us <em>total</em> growth rate, not <em>spatial distribution</em> of growth.</strong></p>
+<p><strong>The trail-as-midline identity holds only past the growth zone.</strong> Each past tip position <span class="arithmatex">\(p(\tau)\)</span> is a "fossil marker" — the apex's lab-frame location at time <span class="arithmatex">\(\tau\)</span>. After deposition, the corresponding material element continues to move basally in the apex frame until it exits the growth zone, then becomes stationary in the lab frame. Our trail recording never updates: it preserves <span class="arithmatex">\(p(\tau)\)</span> at the deposition time. So:</p>
+<ul>
+<li>For <span class="arithmatex">\(t - \tau &gt; \tau_{gz}\)</span> (post-growth-zone): trail position equals current material-element position. Trail = midline. ✓</li>
+<li>For <span class="arithmatex">\(t - \tau &lt; \tau_{gz}\)</span> (within-growth-zone): trail position <span class="arithmatex">\(\neq\)</span> current material-element position. The element has been "pushed forward" in the lab frame by ongoing growth happening apical to it; the trail records its deposition position only.</li>
+</ul>
+<p>Within the most recent <span class="arithmatex">\(\sim L_{gz}/v\)</span> time of trail data, the geometry is <em>deposition geometry</em>, not <em>current midline geometry</em>. Spatial CWT and curvature analysis in this region pick up the deposition-time structure, not the current-midline structure. <strong>The recent trail cannot be inverted to recover <span class="arithmatex">\(\dot{\varepsilon}(s_a)\)</span></strong> — the deposition spacing is degenerate with the elongation profile.</p>
+<p><strong>What this means for the trait list:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Trait</th>
+<th>Status from tip-only data</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(L_{gz}\)</span> via peak-$</td>
+<td>\kappa(s)</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(L_c\)</span> via post-peak exponential decay</td>
+<td>✓ Measurable (Tier 3)</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(B = L_{gz}/L_c\)</span></td>
+<td>✓ Measurable (Tier 4)</td>
+</tr>
+<tr>
+<td>Apex velocity <span class="arithmatex">\(v(t)\)</span></td>
+<td>✓ Measurable (Tier 0)</td>
+</tr>
+<tr>
+<td>Mean elongation rate <span class="arithmatex">\(\dot{\varepsilon}_0\)</span> in growth zone (scalar)</td>
+<td>✓ Approximately, via <span class="arithmatex">\(v / L_{gz}\)</span></td>
+</tr>
+<tr>
+<td>Differential growth amplitude <span class="arithmatex">\(\dot{\delta}_0\)</span> (scalar)</td>
+<td>✓ Derivable via <span class="arithmatex">\(\dot{\delta}_0 = \omega R \Delta\phi / (2\Delta L)\)</span> — Rivière 2022 Eq. 1</td>
+</tr>
+<tr>
+<td>Spatial profile <span class="arithmatex">\(\dot{\varepsilon}(s_a)\)</span> — sigmoid shape, transition width <span class="arithmatex">\(\Delta L\)</span></td>
+<td>✗ Not measurable — degenerate with <span class="arithmatex">\(v(t)\)</span></td>
+</tr>
+<tr>
+<td>Spatial profile <span class="arithmatex">\(\dot{\delta}(s_a, t)\)</span> shape</td>
+<td>✗ Not measurable for same reason</td>
+</tr>
+<tr>
+<td>Local contractions within growth zone</td>
+<td>✗ Not measurable; would need multi-node tracking</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\((\beta, \gamma)\)</span> separately (Bastien-Meroz parameters)</td>
+<td>✗ Phase 2 — requires gravitropism stimulus</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Required upstream change for the missing traits:</strong> multi-node SLEAP skeleton tracking (e.g., 5–10 nodes equispaced along the root midline, or feature-point tracking of distinguishable surface marks). This would give <span class="arithmatex">\((x_i(t), y_i(t))\)</span> for nodes <span class="arithmatex">\(i = 1, \ldots, N\)</span>, from which <span class="arithmatex">\(\dot{\varepsilon}(s_a, t)\)</span> is computable via image-to-image correlation à la Bastien et al. 2016 (KymoRod) or Chavarría-Krauser et al. 2008. <strong>This is a Phase 2+ pipeline upgrade and is outside the scope of this document.</strong> The current pipeline, working from tip-only data, can correctly emit <span class="arithmatex">\(L_{gz}\)</span>, <span class="arithmatex">\(L_c\)</span>, <span class="arithmatex">\(B\)</span>, <span class="arithmatex">\(\dot{\delta}_0\)</span>, and integrated <span class="arithmatex">\(\dot{\varepsilon}_0\)</span>, but cannot emit the spatial <em>profiles</em> of these quantities along the organ.</p>
+<hr />
+<h2 id="7-trait-specification">7. Trait specification<a class="headerlink" href="#7-trait-specification" title="Permanent link">&para;</a></h2>
+<p>Each trait has: symbol, units, computation source, calibration flag, and literature anchor.</p>
+<h3 id="71-tier-0-raw-kinematics">7.1 Tier 0 — Raw kinematics<a class="headerlink" href="#71-tier-0-raw-kinematics" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Units</th>
+<th>Description</th>
+<th>Source / anchor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>v_total_median</code></td>
+<td>mm/hr <code>[mm]</code></td>
+<td>Median per-frame total tip step magnitude × frames/hr × px-to-mm</td>
+<td>This doc §1; Rivière 2022 §"Characterizing nutation" for context</td>
+</tr>
+<tr>
+<td><code>v_long_median</code></td>
+<td>mm/hr <code>[mm]</code></td>
+<td>Same, projected onto principal-axis longitudinal direction</td>
+<td>This doc §2.1</td>
+</tr>
+<tr>
+<td><code>v_lat_median</code></td>
+<td>mm/hr <code>[mm]</code></td>
+<td>Same, projected onto perpendicular lateral direction</td>
+<td>This doc §2.1</td>
+</tr>
+<tr>
+<td><code>long_lat_ratio</code></td>
+<td>— <code>[—]</code></td>
+<td><code>v_long_median / v_lat_median</code></td>
+<td>This doc §1 reference data; intuition: ratio ≈ 1 means strong nutation, ratio ≫ 1 means weak</td>
+</tr>
+<tr>
+<td><code>path_displacement_ratio</code></td>
+<td>— <code>[—]</code></td>
+<td>Total path length / net base-to-end displacement</td>
+<td>This doc §1; rice 1.36 reference</td>
+</tr>
+<tr>
+<td><code>angular_amplitude</code></td>
+<td>rad <code>[—]</code></td>
+<td><span class="arithmatex">\(\Delta\phi\)</span>, peak-to-peak angular extent of <span class="arithmatex">\(\psi_g(t)\)</span></td>
+<td>Rivière 2022 Eq. 1</td>
+</tr>
+<tr>
+<td><code>principal_axis_angle</code></td>
+<td>rad <code>[—]</code></td>
+<td>Angle of growth axis in image frame</td>
+<td>Internal; rotation-invariance support</td>
+</tr>
+</tbody>
+</table>
+<h3 id="72-tier-1-derr-faithful-temporal-cwt">7.2 Tier 1 — Derr-faithful temporal CWT<a class="headerlink" href="#72-tier-1-derr-faithful-temporal-cwt" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Units</th>
+<th>Description</th>
+<th>Source / anchor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>T_nutation_median</code></td>
+<td>hr <code>[—]</code></td>
+<td>Median of <span class="arithmatex">\(T(t)\)</span> from CWT ridge of one tip coordinate, COI-masked</td>
+<td>Derr 2025 pilot; Bastien &amp; Meroz 2016 §"Temporal linear variation of <span class="arithmatex">\(\psi_g\)</span>" (linear oscillator)</td>
+</tr>
+<tr>
+<td><code>T_nutation_iqr</code></td>
+<td>hr <code>[—]</code></td>
+<td>Inter-quartile range of <span class="arithmatex">\(T(t)\)</span>, indicates period drift</td>
+<td>Rivière 2022 §"Elongation and bending are localized" mentions amplitude modulation</td>
+</tr>
+<tr>
+<td><code>A_nutation_envelope_max</code></td>
+<td>px or rad <code>[—]</code></td>
+<td>Peak of $</td>
+<td>C(t)</td>
+</tr>
+<tr>
+<td><code>band_power_ratio</code></td>
+<td>— <code>[—]</code></td>
+<td>Spectral power in <span class="arithmatex">\([0.5T, 2T]\)</span> band / total spectral power</td>
+<td>New trait, used for <code>is_nutating</code> boolean</td>
+</tr>
+<tr>
+<td><code>derr_match_residual</code></td>
+<td>— <code>[—]</code></td>
+<td>Residual between this pipeline's scaleogram and Derr's PNG on identical input</td>
+<td>Regression test against Derr 2025 oracle</td>
+</tr>
+</tbody>
+</table>
+<h3 id="73-tier-2-bastien-meroz-psi_g">7.3 Tier 2 — Bastien-Meroz <span class="arithmatex">\(\psi_g\)</span><a class="headerlink" href="#73-tier-2-bastien-meroz-psi_g" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Units</th>
+<th>Description</th>
+<th>Source / anchor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>T_psig_median</code></td>
+<td>hr <code>[—]</code></td>
+<td>Median period from CWT ridge of <span class="arithmatex">\(\psi_g(t)\)</span>, COI-masked</td>
+<td>Bastien &amp; Meroz 2016 Eq. 20</td>
+</tr>
+<tr>
+<td><code>psig_long_consistency</code></td>
+<td>— <code>[—]</code></td>
+<td>Correlation between <span class="arithmatex">\(T_\text{psig}\)</span> and <span class="arithmatex">\(T_\text{nutation}\)</span> across CWT range; diagnostic for H1</td>
+<td>Bastien &amp; Meroz 2016 §3.7 (trochoid signature)</td>
+</tr>
+<tr>
+<td><code>delta_E_amplitude_proxy</code></td>
+<td>px·hr⁻¹ <code>[—]</code></td>
+<td>Median of <span class="arithmatex">\(\sqrt{\dot{x}^2 + \dot{y}^2}\)</span> × (frames/hr); <span class="arithmatex">\(= (L/2R)\Delta\dot{E}\)</span></td>
+<td>Bastien &amp; Meroz 2016 Eq. 21</td>
+</tr>
+<tr>
+<td><code>handedness</code></td>
+<td><span class="arithmatex">\(\in \{-1, 0, +1\}\)</span> <code>[—]</code></td>
+<td>Sign of mean <span class="arithmatex">\(d\psi_g/dt\)</span> over COI-masked range; <span class="arithmatex">\(+1\)</span> = counterclockwise (left-handed in image frame), <span class="arithmatex">\(-1\)</span> = clockwise</td>
+<td>Bastien &amp; Meroz 2016 §"Constant principal direction of growth"</td>
+</tr>
+<tr>
+<td><code>helix_signed_area</code></td>
+<td>px² <code>[—]</code></td>
+<td>Signed area enclosed by tip trajectory (Shoelace formula); confirmation of handedness</td>
+<td>Standard kinematic</td>
+</tr>
+</tbody>
+</table>
+<h3 id="74-tier-3-spatial-wavelet-qpb-branch">7.4 Tier 3 — Spatial wavelet (QPB branch)<a class="headerlink" href="#74-tier-3-spatial-wavelet-qpb-branch" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Units</th>
+<th>Description</th>
+<th>Source / anchor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>L_gz_estimate</code></td>
+<td>mm <code>[mm]</code></td>
+<td>Distance from apex to peak of $</td>
+<td>\kappa(s)</td>
+</tr>
+<tr>
+<td><code>L_gz_steady_state_residual</code></td>
+<td>mm <code>[mm]</code></td>
+<td>Median absolute deviation of <code>L_gz_estimate</code> measured at multiple sliding-window timepoints (recommended: at $t = $ 4, 8, 12 hr into the run, with trail truncated at each). Steady-traveling-wave hypothesis (QPB 2025) predicts the apex-frame peak position is time-invariant. <strong>Threshold:</strong> residual <span class="arithmatex">\(&lt; 0.2 \times\)</span> <code>L_gz_estimate</code> is steady; larger residual flags hypothesis violation and reduces confidence in <code>L_gz_estimate</code>. Adds ~3 spatial-CWT calls per plant.</td>
+<td>This doc §6.6 (steady-state assumption); QPB 2025 §"Steady propagation"; falsification check</td>
+</tr>
+<tr>
+<td><code>L_gz_resolvable</code></td>
+<td>bool <code>[—]</code></td>
+<td>True iff <code>L_gz_estimate</code> <span class="arithmatex">\(\geq N_{\min} \cdot v \cdot \Delta t\)</span> with <span class="arithmatex">\(N_{\min} = 5\)</span>. False values mean the growth zone spans too few trail frames for reliable peak detection — see §6.4.</td>
+<td>This doc §6.4</td>
+</tr>
+<tr>
+<td><code>L_c_estimate</code></td>
+<td>mm <code>[mm]</code></td>
+<td>Exponential decay length of $</td>
+<td>\kappa(s)</td>
+</tr>
+<tr>
+<td><code>B_balance_number</code></td>
+<td>— <code>[—]</code></td>
+<td><span class="arithmatex">\(L_{gz} / L_c\)</span></td>
+<td>Meroz 2026 Eq. 7; Bastien et al. 2013 cross-species baseline</td>
+</tr>
+<tr>
+<td><code>lambda_spatial_median</code></td>
+<td>mm <code>[mm]</code></td>
+<td>Median of dominant spatial wavelength from CWT of <span class="arithmatex">\(\kappa(s)\)</span> basal of <span class="arithmatex">\(L_{gz}\)</span>, using <code>cgau2</code> mother wavelet (matches Rivière 2022)</td>
+<td>Rivière 2022 §"Kinematics: fine elongation measurements"; QPB 2025 §"Spatial Fourier decomposition"</td>
+</tr>
+<tr>
+<td><code>traveling_wave_residual</code></td>
+<td>— <code>[—]</code></td>
+<td><span class="arithmatex">\(\|\lambda_\text{spatial} - v\,T_\text{nutation}\| / (v\,T_\text{nutation})\)</span></td>
+<td>QPB 2025 §4.7 (this doc); falsifiable test of steady-traveling-wave hypothesis</td>
+</tr>
+<tr>
+<td><code>delta_dot_0_estimate</code></td>
+<td>hr⁻¹ <code>[mm-required-via-R]</code></td>
+<td><span class="arithmatex">\(\dot{\delta}_0 = \omega R\,\Delta\phi / (2\Delta L)\)</span>, with <span class="arithmatex">\(\omega = 2\pi/T_\text{nutation}\)</span>, <span class="arithmatex">\(R\)</span> from external root-radius measurement, <span class="arithmatex">\(\Delta L\)</span> from spatial decay (= <span class="arithmatex">\(L_c\)</span> in linearization), <span class="arithmatex">\(\Delta\phi\)</span> from Tier 0</td>
+<td>Rivière 2022 Eq. 1</td>
+</tr>
+<tr>
+<td><code>apex_basal_period_consistency</code></td>
+<td>— <code>[—]</code></td>
+<td>Whether spatial CWT shows uniform <span class="arithmatex">\(\lambda(s)\)</span> along trail; large variation = H1 violation</td>
+<td>Bastien &amp; Meroz 2016 §3.7; QPB 2025 §"Steady propagation"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="75-tier-4-parametric-fit-phase-1-partial">7.5 Tier 4 — Parametric fit (Phase 1 partial)<a class="headerlink" href="#75-tier-4-parametric-fit-phase-1-partial" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Units</th>
+<th>Description</th>
+<th>Source / anchor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gamma_over_beta</code></td>
+<td>mm <code>[mm]</code></td>
+<td><span class="arithmatex">\(L_c\)</span> alias, restated as <span class="arithmatex">\(\gamma/\beta\)</span> for explicit parametric reading</td>
+<td>Meroz 2026 Eq. 6</td>
+</tr>
+<tr>
+<td><code>beta</code></td>
+<td>h⁻¹ <code>[—]</code></td>
+<td>Tropic sensitivity. <strong>Phase 2</strong> — requires gravitropism stimulus experiment to disentangle from <span class="arithmatex">\(\gamma\)</span></td>
+<td>Meroz 2026 Eq. 1; Bastien et al. 2013</td>
+</tr>
+<tr>
+<td><code>gamma</code></td>
+<td>h⁻¹ <code>[—]</code></td>
+<td>Proprioceptive sensitivity. <strong>Phase 2</strong> — same as above</td>
+<td>Bastien &amp; Meroz 2016 Eq. 23</td>
+</tr>
+<tr>
+<td><code>theta_p</code></td>
+<td>rad <code>[—]</code></td>
+<td>Preferred (gravity) direction. <strong>Phase 2</strong></td>
+<td>Meroz 2026 Eq. 1</td>
+</tr>
+</tbody>
+</table>
+<h3 id="76-qc-tier-runs-unconditionally">7.6 QC tier (runs unconditionally)<a class="headerlink" href="#76-qc-tier-runs-unconditionally" title="Permanent link">&para;</a></h3>
+<p><strong>Methodological note on noise estimators.</strong> The two tracking-noise traits (<code>sg_residual_xy</code> and <code>d2_noise_xy</code>) are standard signal-processing noise estimators, not pipeline-novel inventions. SG-residual estimation appears in Press et al. <em>Numerical Recipes</em> and is standard in time-series analysis; the second-difference variance method derives from the textbook noise-propagation rule <span class="arithmatex">\(\text{Var}(\Delta^2 x) = 6\sigma^2\)</span> for white noise. Neither is the <em>canonical</em> method in plant kinematics literature — most root-tracking papers (e.g., KymoRod, Bastien et al. 2016 <em>Plant J.</em> 88:468) report a single empirically-estimated tracking accuracy without formal characterization, and Rivière 2022 doesn't formally characterize tip noise. The closest formal-noise-characterization tradition is <strong>single-particle tracking (SPT)</strong> in cell biology — Berglund 2010 (<em>Phys. Rev. E</em> 82:011917) for camera-based localization uncertainty and Michalet 2010 (<em>Phys. Rev. E</em> 82:041914) for the MSD-extrapolation method. Two-estimator agreement (<code>sg_d2_agreement</code> near 1) is a stronger validation than either method alone, which is why the pipeline computes both. <strong>For publication-grade defensibility, MSD extrapolation could be added as a third independent estimator</strong> — see implementation note below the table.</p>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Units</th>
+<th>Description</th>
+<th>Source / anchor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sg_residual_xy</code></td>
+<td>px <code>[—]</code></td>
+<td>Std of residuals after Savitzky-Golay (degree 3, window 5) smoothing of <span class="arithmatex">\((x,y)\)</span>, summed in quadrature</td>
+<td>Press et al. <em>Numerical Recipes</em> (any ed.); standard signal processing</td>
+</tr>
+<tr>
+<td><code>d2_noise_xy</code></td>
+<td>px <code>[—]</code></td>
+<td><span class="arithmatex">\(\text{std}(\Delta^2 x)/\sqrt{6}\)</span> in quadrature with <span class="arithmatex">\(y\)</span>, where <span class="arithmatex">\(\Delta^2 x_t = x_{t+1} - 2x_t + x_{t-1}\)</span>. Independent estimator from white-noise propagation <span class="arithmatex">\(\text{Var}(\Delta^2 x) = 6\sigma^2\)</span>.</td>
+<td>Standard finite-difference noise propagation</td>
+</tr>
+<tr>
+<td><code>sg_d2_agreement</code></td>
+<td>— <code>[—]</code></td>
+<td><span class="arithmatex">\(\max(\text{sg}, \text{d2}) / \min(\text{sg}, \text{d2})\)</span>. Should be <span class="arithmatex">\(\le 1.5\)</span> for clean tracks. Two-estimator agreement is stronger validation than either alone.</td>
+<td>This doc §1 reference data shows 1.46</td>
+</tr>
+<tr>
+<td><code>frac_outlier_steps</code></td>
+<td>— <code>[—]</code></td>
+<td>Fraction of per-frame total steps <span class="arithmatex">\(&gt;\)</span> 2 × median</td>
+<td>This doc §1 reference (0.87% on plate 001)</td>
+</tr>
+<tr>
+<td><code>worst_step_ratio</code></td>
+<td>— <code>[—]</code></td>
+<td>Max per-frame step / median step</td>
+<td>Reference 2.5 on plate 001</td>
+</tr>
+<tr>
+<td><code>track_is_clean</code></td>
+<td>bool <code>[—]</code></td>
+<td>All of: <code>sg_d2_agreement &lt; 1.5</code>, <code>frac_outlier_steps &lt; 0.05</code>, <code>worst_step_ratio &lt; 5</code></td>
+<td>Composite QC flag</td>
+</tr>
+<tr>
+<td><code>coi_fraction_t1</code></td>
+<td>— <code>[—]</code></td>
+<td>Fraction of CWT scaleogram inside cone of influence (Tier 1). &gt;50% → unreliable.</td>
+<td>Standard CWT practice (Torrence &amp; Compo 1998 <em>Bull. Amer. Meteor. Soc.</em> 79:61)</td>
+</tr>
+<tr>
+<td><code>coi_fraction_t3</code></td>
+<td>— <code>[—]</code></td>
+<td>Same for spatial CWT (Tier 3)</td>
+<td>Same</td>
+</tr>
+<tr>
+<td><code>is_nutating</code></td>
+<td>bool <code>[—]</code></td>
+<td><code>band_power_ratio &gt; 3 × noise_floor_estimate</code></td>
+<td>Phase 1 sanity check</td>
+</tr>
+</tbody>
+</table>
+<p><em>(Note: an earlier draft of this table included <code>calibration_present</code> as a QC trait. The pure-pixel pipeline decision in §2.3 removes calibration from the pipeline entirely, so this trait was dropped. If downstream code records calibration provenance, that lives in the run-metadata sidecar's <code>_constants_snapshot</code>/<code>calibration_source</code> fields the user populates when calling <code>convert_to_mm()</code>, not as a pipeline-emitted QC trait.)</em></p>
+<p><strong>Optional Phase 1+ trait — <code>msd_noise_xy</code>.</strong> A third noise estimator from the MSD-extrapolation method standard in single-particle tracking biology. Compute the mean squared displacement of detrended residuals at small lag <span class="arithmatex">\(\tau\)</span>:</p>
+<div class="arithmatex">\[\text{MSD}(\tau) = \langle (x(t+\tau) - x(t))^2 + (y(t+\tau) - y(t))^2 \rangle\]</div>
+<p>For pure i.i.d. noise on a stationary signal, <span class="arithmatex">\(\text{MSD}(\tau \to 0) = 4\sigma^2\)</span> (in 2D), so <span class="arithmatex">\(\sigma = \sqrt{\text{MSD}(\tau \to 0)/4}\)</span>. Implementation: detrend with the same SG filter, then compute MSD at lag 1 frame. Adds a third independent method whose assumptions differ from both SG and d2 — useful if you ever need stronger publication defensibility against a reviewer who knows the SPT literature. <strong>Not recommended for Phase 1 unless requested</strong> — the existing two-estimator agreement at 1.46 already establishes data quality, and a third estimator is incremental rather than structural.</p>
+<h3 id="77-per-genotype-aggregation">7.7 Per-genotype aggregation<a class="headerlink" href="#77-per-genotype-aggregation" title="Permanent link">&para;</a></h3>
+<p>The above are per-track. Per-plant aggregation is median across the 6 tracks of the same plant. Per-genotype aggregation is median ± IQR across plants, with explicit <code>n_plants_passing_qc</code> count. Plants where <code>track_is_clean = False</code> for all tracks are excluded from aggregation but flagged in the trait CSV with reason.</p>
+<hr />
+<h2 id="8-validation-strategy">8. Validation strategy<a class="headerlink" href="#8-validation-strategy" title="Permanent link">&para;</a></h2>
+<p>Three independent test layers, each catching a different failure mode.</p>
+<p><strong>Layer 1 — Synthetic data with known parameters.</strong> Generate a tip trajectory by integrating Eq. 4.3 forward with chosen <span class="arithmatex">\(L_{gz}\)</span>, <span class="arithmatex">\(\Delta L\)</span>, <span class="arithmatex">\(\dot{\delta}_0\)</span>, <span class="arithmatex">\(\dot{\varepsilon}_0\)</span>, <span class="arithmatex">\(\omega\)</span>, <span class="arithmatex">\(R\)</span>. Apply Gaussian noise at <span class="arithmatex">\(\sigma = 2\)</span> px to the resulting <span class="arithmatex">\((x, y)\)</span>. Run the full pipeline. Recovered <span class="arithmatex">\(T_\text{nutation}\)</span>, <span class="arithmatex">\(L_{gz}\)</span>, <span class="arithmatex">\(L_c\)</span> (= <span class="arithmatex">\(\Delta L\)</span> in the linear regime), handedness, and <span class="arithmatex">\(\dot{\delta}_0\)</span> should match inputs within tolerances (recommend <span class="arithmatex">\(\pm 5\%\)</span> for <span class="arithmatex">\(T\)</span>, <span class="arithmatex">\(\pm 15\%\)</span> for spatial quantities given the noise level). This catches algorithmic bugs.</p>
+<p><strong>Layer 2 — Regression test against Derr's pilot.</strong> Run Tier 1 on the exact tip coordinate Derr used (5-min cadence, 14-hr run from the original CMTN dataset). The output scaleogram should match the PNG oracle in band location and intensity within visual tolerance; the Fourier peak should match <span class="arithmatex">\(T = 3333\)</span> s within <span class="arithmatex">\(\pm 2\%\)</span>. This catches drift from the established pilot output.</p>
+<p><strong>Layer 3 — Cross-tier consistency.</strong> <span class="arithmatex">\(T_\text{nutation}\)</span> (Tier 1) and <span class="arithmatex">\(T_\text{psig}\)</span> (Tier 2) should agree within <span class="arithmatex">\(\pm 5\%\)</span> on plates where H1 holds. <span class="arithmatex">\(\lambda_\text{spatial}\)</span> (Tier 3) and <span class="arithmatex">\(v \cdot T_\text{nutation}\)</span> should agree within <span class="arithmatex">\(\pm 10\%\)</span> if the steady-traveling-wave hypothesis holds. Disagreement is <em>itself</em> a result, not a bug — but the pipeline should flag it explicitly via <code>traveling_wave_residual</code> rather than silently passing.</p>
+<p>Validation runs as part of CI; any layer failing fails the build.</p>
+<hr />
+<h2 id="9-appendix-a-cell-wall-mechanism-out-of-pipeline-scope">9. Appendix A — Cell-wall mechanism (out of pipeline scope)<a class="headerlink" href="#9-appendix-a-cell-wall-mechanism-out-of-pipeline-scope" title="Permanent link">&para;</a></h2>
+<p>[Rivière 2022, §"Asymmetric rigidity and cell wall composition in the bending zone", Figure 4] — included for context only; not reproducible from tip-tracking data.</p>
+<p>In the Averrhoa rachis bending zone, AFM mapping of transverse rachis sections shows the inner (concave) face has cell walls 17% softer on average than the outer (convex) face (3 biological replicates, std 6%). Multitarget immunolabelling reveals that this mechanical asymmetry coincides with biochemical asymmetry: highly methylesterified homogalacturonan (HG, antibody LM20) and low-methylesterified HG (antibody 2F4) are both ~5–13% more abundant on the outer (growing) face than the inner. Other cell-wall components (crystalline cellulose, amorphous cellulose, mannans, xyloglucans) show no statistically significant asymmetry [Rivière 2022, §"Asymmetric rigidity..." final paragraph and Figure 4D].</p>
+<p>The interpretation [Rivière 2022, §"Correlation between growth and cell wall properties"] is that HG demethylesterification triggers cell-wall softening and expansion (consistent with the Peaucelle lab's nanofilament expansion model — Haas et al. 2020, <em>Science</em> 367:1003), and this process must cycle on the nutation period (~30 minutes for a half-cycle). This is <em>fast cell-wall remodeling</em>, not the static-state assumption.</p>
+<p><strong>Why this matters for the pipeline (and why it doesn't):</strong> the bending zone identified by <code>L_gz_estimate</code> corresponds, in the Averrhoa picture, to a region of asymmetric HG distribution and reduced wall elasticity on the bending side. If a future biology collaborator wants to validate this on rice roots, the predicted assay is: section the root at the pipeline-identified <code>L_gz</code> distance from the tip during a known phase of the nutation cycle, and probe with LM19/LM20 antibodies for HG methylation state asymmetry, plus AFM for elasticity asymmetry. <strong>Pipeline outputs the target zone; pipeline does not measure cell-wall properties.</strong></p>
+<hr />
+<h2 id="10-appendix-b-corrections-from-prior-conversation-drafts">10. Appendix B — Corrections from prior conversation drafts<a class="headerlink" href="#10-appendix-b-corrections-from-prior-conversation-drafts" title="Permanent link">&para;</a></h2>
+<p>The conversation that produced this doc contained two interpretive errors that should not propagate to the implementing session. Recording them here so the implementing Claude inherits the corrected understanding.</p>
+<p><strong>(1) The "2:1 mode ratio" along the rachis is not two oscillators at different positions.</strong> Earlier framing suggested QPB found a 2:1 ratio between basal <span class="arithmatex">\(T_\text{nutation}\)</span> and apical <span class="arithmatex">\(T_\text{projection}\)</span> representing two distinct physical oscillators. Reading the actual paper [Rivière 2022 §"The elongation profile in the growth zone is compatible with local contractions", Figure 3]: the two periods <span class="arithmatex">\(\tau_f \approx 2.1\)</span> h (basal) and <span class="arithmatex">\(\tau_{2f} \approx 1.2\)</span> h (apical) appear in the wavelet decomposition of <em>side-view-projected apparent elongation rate</em> <span class="arithmatex">\(\dot{\varepsilon}(s_a, t)\)</span>, and the model demonstrates that the apical-end frequency-doubling is a projection artifact that appears only when local contractions occur (i.e. when <span class="arithmatex">\(\dot{\delta}_0 &gt; \dot{\varepsilon}_0/2\)</span> in the model). It is <strong>diagnostic of contraction</strong>, not of two separate oscillators. The pipeline's top-view tip data does not have this projection structure; we cannot reproduce or look for this specific 2:1 signature directly.</p>
+<p><strong>(2) Bastien-Douady-Moulia (2013, 2014) vs. Bastien-Meroz (2016).</strong> The earlier conversation initially attributed the curvature-with-proprioception equation <span class="arithmatex">\(\partial\kappa/\partial t = -\beta\sin(\theta - \theta_p) - \gamma\kappa\)</span> to "the Bastien-Meroz framework" and discussed fitting nutation traits to it. That equation is a <strong>tropism</strong> equation from Bastien-Douady-Moulia, restated in [Meroz 2026, Eq. 1] as such. The Bastien-Meroz 2016 paper extends it to nutation by adding the perpendicular-curvature equation [Eq. 14] and an oscillating <span class="arithmatex">\(\psi_g\)</span> — that is the actual nutation extension, and equations 20–21 from BM2016 are what give us the load-bearing <span class="arithmatex">\(\psi_g(t) = \arctan(\dot{x}_a/\dot{y}_a)\)</span> tip-only extraction. Phase 1 of the pipeline emits <span class="arithmatex">\(L_c\)</span> (= <span class="arithmatex">\(\gamma/\beta\)</span>) only; full <span class="arithmatex">\((\beta, \gamma, \theta_p)\)</span> identification is Phase 2 and requires a gravitropism stimulus experiment.</p>
+<hr />
+<h2 id="11-references">11. References<a class="headerlink" href="#11-references" title="Permanent link">&para;</a></h2>
+<p>Bastien, R., Bohr, T., Moulia, B., Douady, S. (2013). Unifying model of shoot gravitropism reveals proprioception as a central feature of posture control in plants. <em>PNAS</em> 110(2):755–760.</p>
+<p>Bastien, R., Douady, S., Moulia, B. (2014). A unifying modeling of plant shoot gravitropism with an explicit account of the effects of growth. <em>Frontiers in Plant Science</em> 5:136.</p>
+<p>Bastien, R., Meroz, Y. (2016). The kinematics of plant nutation reveals a simple relation between curvature and the orientation of differential growth. <em>PLoS Computational Biology</em> 12(12):e1005238. arXiv:1603.00459. → <strong>§3, §6, §10 cite specific equations.</strong></p>
+<p>Bastien, R., Guayasamín, O., Douady, S., Moulia, B. (2016). KymoRod: a method for automated kinematic analysis of rod-shaped plant organs. <em>The Plant Journal</em> 88(3):468–475. → <strong>§6.6 multi-node midline tracking method (Phase 2+ upgrade); §7.6 noise-method context for plant kinematics.</strong></p>
+<p>Berglund, A.J. (2010). Statistics of camera-based single-particle tracking. <em>Physical Review E</em> 82:011917. → <strong>§7.6 SPT localization-uncertainty methodology.</strong></p>
+<p>Haas, K.T., Wightman, R., Meyerowitz, E.M., Peaucelle, A. (2020). Pectin homogalacturonan nanofilament expansion drives morphogenesis in plant epidermal cells. <em>Science</em> 367(6481):1003–1007. → <strong>§9 mechanism.</strong></p>
+<p>Iijima, M., Kato, J. (2007). Combined soil physical stress of soil drying, anaerobiosis and mechanical impedance to seedling root growth of four crop species. <em>Plant Production Science</em> 10(4):451–459. → <strong>§6.4 rice <span class="arithmatex">\(L_{gz}\)</span> estimate.</strong> ⚠ <strong>PROVISIONAL CITATION — NOT VERIFIED.</strong> This paper was selected from memory as a plausible source for "rice elongation zone ~1–5 mm" but I have not confirmed the paper actually contains this measurement. <strong>Action required:</strong> either confirm the value is in this paper, substitute a verified rice-specific paper (rice expert consultation pending), or replace with explicit <code># TODO measure on representative plate</code> in §6.4 and remove this reference. Beemster &amp; Baskin 1998 (<em>Plant Physiology</em> 116:1515–1526) gives ~0.7 mm for <em>Arabidopsis</em> primary root and is the canonical Arabidopsis-elongation-zone paper, but is not rice-specific.</p>
+<p>Meroz, Y. (2026). Physics of computation and behavior in plants. arXiv:2604.21763 [cond-mat.other]. → <strong>§5 cites Eqs. 1, 5, 6, 7, and §6.2.</strong></p>
+<p>Michalet, X. (2010). Mean square displacement analysis of single-particle trajectories with localization error: Brownian motion in an isotropic medium. <em>Physical Review E</em> 82:041914. → <strong>§7.6 MSD-extrapolation noise-estimation method (optional Phase 1+ trait).</strong></p>
+<p>Nguyen, C., Dromi, I., Kempinski, A., Gall, G.E.C., Peleg, O., Meroz, Y. (2024). Noisy circumnutations facilitate self-organized shade avoidance in sunflowers. <em>Phys. Rev. X</em> 14:031027. → <strong>§5.4 stochastic-circumnutation framing.</strong></p>
+<p>Press, W.H., Teukolsky, S.A., Vetterling, W.T., Flannery, B.P. (any edition). <em>Numerical Recipes: The Art of Scientific Computing.</em> Cambridge University Press. → <strong>§7.6 Savitzky-Golay residual noise estimation; standard reference.</strong></p>
+<p>Rivière, M., Peaucelle, A., Derr, J., Douady, S. (2022). Spatiotemporal growth pattern during plant nutation implies fast dynamics for cell wall mechanics and chemistry: a multiscale study in <em>Averrhoa carambola</em>. bioRxiv 2022.02.22.481493. → <strong>§4 cites Eqs. 1–5 and Figs. 2, 3, 4.</strong></p>
+<p>Rivière, M., Peaucelle, A., Derr, J., Douady, S., Marmottant, P. (2025). Plant nutation relies on steady propagation of spatially asymmetric growth pattern. <em>Quantitative Plant Biology</em> 6:e10013. doi:10.1017/qpb.2025.10013. → <strong>§4.7 traveling-wave duality.</strong></p>
+<p>Torrence, C., Compo, G.P. (1998). A practical guide to wavelet analysis. <em>Bulletin of the American Meteorological Society</em> 79(1):61–78. → <strong>§7.6 cone-of-influence and CWT methodology; standard reference.</strong></p>
+<hr />
+<p><strong>End of theory.md.</strong> Implementing session: read top-to-bottom before writing the first line of code. Trait list in §7 is the contract; everything else exists to justify it.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 Talmo Lab
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/talmolab/sleap-roots" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://pypi.org/project/sleap-roots/" target="_blank" rel="noopener" title="pypi.org" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.follow", "toc.integrate", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
