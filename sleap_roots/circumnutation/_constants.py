@@ -158,6 +158,25 @@ pipeline emits no mm units should check against
 """
 
 
+ROW_IDENTITY_UNITS: dict = {
+    "series": "string",
+    "sample_uid": "string",
+    "timepoint": "string",
+    "plate_id": "string",
+    "plant_id": "int",
+    "track_id": "int",
+    "genotype": "string",
+    "treatment": "string",
+}
+"""Canonical unit-string mapping for the eight row-identity columns.
+
+Public so tier modules can import it directly when building their own
+per-plant DataFrames and units sidecars; consumed by
+:func:`sleap_roots.circumnutation._io.default_units_for_template`.
+Every value here is guaranteed to be in :data:`PIPELINE_UNIT_VOCABULARY`.
+"""
+
+
 # ---------------------------------------------------------------------------
 # Typed override-bag for ergonomic per-call constant overrides
 # ---------------------------------------------------------------------------

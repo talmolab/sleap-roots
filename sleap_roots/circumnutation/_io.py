@@ -37,6 +37,7 @@ from sleap_roots.circumnutation._constants import (
     _CONSTANTS_VERSION,
     _SCHEMA_VERSION,
     PIPELINE_UNIT_VOCABULARY,
+    ROW_IDENTITY_UNITS,
     ConstantsT,
 )
 from sleap_roots.circumnutation._types import (
@@ -98,14 +99,20 @@ def build_per_plant_template(inputs: CircumnutationInputs) -> pd.DataFrame:
             f"track_id must be non-NaN integer-coercible"
         )
 
-    # B3: detect conflicting per-frame metadata (different values for the
-    # same 5-tuple) BEFORE drop_duplicates collapses them. A future tier
+    # B3 + F1: detect conflicting per-frame metadata (different values for
+    # the same 5-tuple) BEFORE drop_duplicates collapses them. A future tier
     # PR merging trait DataFrames onto the template would silently duplicate
     # rows; raise here instead.
+    #
+    # Use dropna=False on BOTH groupby and nunique so NaN-vs-concrete
+    # mismatches are flagged. The prior dropna=True (nunique) form silently
+    # accepted a plant with genotype=NaN on some frames and genotype="WT"
+    # on others (nunique saw only one non-NaN value), leaving drop_duplicates
+    # to emit two rows for the same 5-tuple plant.
     for conflict_col in _CONFLICT_CHECK_COLUMNS:
         grouped = df.groupby(list(_IDENTITY_5_TUPLE), dropna=False)[
             conflict_col
-        ].nunique(dropna=True)
+        ].nunique(dropna=False)
         offenders = grouped[grouped > 1]
         if not offenders.empty:
             first_offender = offenders.index[0]
@@ -113,8 +120,9 @@ def build_per_plant_template(inputs: CircumnutationInputs) -> pd.DataFrame:
                 f"build_per_plant_template: conflicting {conflict_col!r} values "
                 f"for plant {dict(zip(_IDENTITY_5_TUPLE, first_offender))} — "
                 f"every frame of a single plant must share the same "
-                f"{conflict_col!r}. Fix upstream metadata join before "
-                f"constructing CircumnutationInputs."
+                f"{conflict_col!r} (including all-NaN vs concrete-value "
+                f"mismatch). Fix upstream metadata join before constructing "
+                f"CircumnutationInputs."
             )
 
     # Drop duplicates on the row-identity columns; keep first occurrence.
@@ -154,18 +162,6 @@ def build_per_plant_template(inputs: CircumnutationInputs) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 
-_ROW_IDENTITY_UNITS: dict = {
-    "series": "string",
-    "sample_uid": "string",
-    "timepoint": "string",
-    "plate_id": "string",
-    "plant_id": "int",
-    "track_id": "int",
-    "genotype": "string",
-    "treatment": "string",
-}
-
-
 def default_units_for_template(template_df: pd.DataFrame) -> dict:
     """Return the per-column units dict for a per-plant template DataFrame.
 
@@ -177,9 +173,11 @@ def default_units_for_template(template_df: pd.DataFrame) -> dict:
 
     Returns:
         Mapping of column-name → unit-string in
-        :data:`sleap_roots.circumnutation._constants.VALID_UNIT_VOCABULARY`.
+        :data:`sleap_roots.circumnutation._constants.PIPELINE_UNIT_VOCABULARY`.
+        Sourced from
+        :data:`sleap_roots.circumnutation._constants.ROW_IDENTITY_UNITS`.
     """
-    return {col: _ROW_IDENTITY_UNITS[col] for col in template_df.columns}
+    return {col: ROW_IDENTITY_UNITS[col] for col in template_df.columns}
 
 
 # ---------------------------------------------------------------------------
@@ -251,6 +249,31 @@ def write_per_plant_csv(
             ``df`` should be present).
         run_metadata: Mapping returned by :func:`gather_run_metadata`.
     """
+    # F2: enforce 1:1 coverage between units dict keys and DataFrame columns
+    # BEFORE writing any files. The spec says "every column from the CSV is
+    # a key in the JSON mapping" — extra keys signal stale state, missing
+    # keys silently violate the sidecar contract.
+    df_cols = set(df.columns)
+    units_keys = set(units.keys())
+    missing_in_units = df_cols - units_keys
+    extra_in_units = units_keys - df_cols
+    if missing_in_units or extra_in_units:
+        parts = []
+        if missing_in_units:
+            parts.append(
+                f"DataFrame columns missing from units dict: "
+                f"{sorted(missing_in_units)}"
+            )
+        if extra_in_units:
+            parts.append(
+                f"units keys not present in DataFrame: " f"{sorted(extra_in_units)}"
+            )
+        raise ValueError(
+            "write_per_plant_csv: units dict does not 1:1 cover DataFrame "
+            "columns. " + "; ".join(parts) + ". Fix the units mapping before "
+            "writing the sidecar."
+        )
+
     # B4: validate every unit string against PIPELINE_UNIT_VOCABULARY BEFORE
     # writing anything to disk. The split vocabularies were the structural
     # defense of the pure-pixel contract; without writer enforcement that

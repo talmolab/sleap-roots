@@ -203,6 +203,20 @@ For every per-plant trait CSV the system SHALL write a sibling `traits_per_plant
 - **AND** the exception message names the offending column and the invalid unit string
 - **AND** no CSV or sidecar files are written
 
+#### Scenario: Writer rejects units dict that doesn't cover every column
+- **GIVEN** a DataFrame with columns `["a", "b"]` and a units dict `{"a": "px"}` (missing `"b"`)
+- **WHEN** `_io.write_per_plant_csv(out_path, df, units, run_metadata)` is called
+- **THEN** a `ValueError` is raised
+- **AND** the exception message names the missing column(s)
+- **AND** no CSV or sidecar files are written
+
+#### Scenario: Writer rejects units dict with extra keys not in the DataFrame
+- **GIVEN** a DataFrame with columns `["a"]` and a units dict `{"a": "px", "b": "hr"}` (`"b"` not in df)
+- **WHEN** `_io.write_per_plant_csv(out_path, df, units, run_metadata)` is called
+- **THEN** a `ValueError` is raised
+- **AND** the exception message names the extra key(s)
+- **AND** no CSV or sidecar files are written
+
 ### Requirement: Run-metadata sidecar
 For every per-plant CSV the system SHALL write a sibling `run_metadata.json` capturing: `input_path`, `sleap_roots_git_sha`, `sleap_roots_version`, `sleap_io_version`, `numpy_version`, `scipy_version`, `pandas_version`, `python_version`, `platform`, `timestamp` (ISO 8601 UTC), `run_id`, `_schema_version`, `_constants_version`, `_constants_snapshot`. The `_constants_snapshot` SHALL be a JSON-serializable mapping from every name in `_constants.py` to its value at write time. The numpy / scipy / pandas / platform fields support numerical reproducibility (IEEE float rounding can differ between numpy versions and across BLAS implementations).
 

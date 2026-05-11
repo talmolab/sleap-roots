@@ -154,7 +154,7 @@ def test_constant_has_documented_default(name, expected):
 def test_pipeline_unit_vocabulary_is_px_only():
     """PIPELINE_UNIT_VOCABULARY contains only px-based + calibration-independent units.
 
-    Regression test for Copilot PR #200 finding: the original
+    Regression test for openspec change `add-circumnutation-foundation` (round-1 review): the original
     `VALID_UNIT_VOCABULARY` contained mm-based units, weakening the
     pure-pixel sidecar contract. The split establishes one vocabulary
     for what the pipeline emits (this one — px only) and a separate
@@ -302,7 +302,7 @@ def test_unconvertible_R_px_raises(valid_trajectory_df):
 def test_unconvertible_cadence_s_raises(valid_trajectory_df):
     """Non-numeric cadence_s (e.g. a string) raises a ValueError naming cadence_s.
 
-    Regression test for Copilot PR #200 review finding: the original
+    Regression test for openspec change `add-circumnutation-foundation` (round-1 review): the original
     `_validate_cadence_s` raised TypeError from `float(value)` without
     naming the field, contradicting the docstring contract that "the
     message names the offending field". The fix mirrors the try/except
@@ -320,7 +320,7 @@ def test_unconvertible_cadence_s_raises(valid_trajectory_df):
 def test_cadence_s_string_coerced_to_float(valid_trajectory_df):
     """Numeric-string `cadence_s="300"` is coerced to float, not stored as a string.
 
-    Regression test for Copilot PR #200 second-round finding: validation
+    Regression test for openspec change `add-circumnutation-foundation` (round-2 review): validation
     accepted convertible strings but didn't actually convert, so
     `inputs.cadence_s` would still be the string and downstream numeric
     code would fail. Fix uses an attrs `converter=` so the stored value
@@ -618,7 +618,7 @@ def test_units_sidecar_utf8_round_trip(tmp_path):
 def test_sidecar_path_with_dots_in_csv_stem(tmp_path, valid_trajectory_df):
     """CSV filenames with intermediate dots (`traits.per.plant.csv`) place the units sidecar at the right name.
 
-    Regression test for Copilot PR #200 second-round finding: the
+    Regression test for openspec change `add-circumnutation-foundation` (round-2 review): the
     original implementation used
     `csv_path.with_suffix("").with_suffix(".units.json")`, which
     incorrectly stripped intermediate dotted segments (so
@@ -841,6 +841,39 @@ def test_conflicting_genotype_across_frames_raises():
         build_per_plant_template(inputs)
 
 
+def test_nan_vs_concrete_genotype_conflict_raises():
+    """Round-3 finding (F1): NaN on frame 1 vs 'WT' on frame 2 of the same plant must raise.
+
+    `nunique(dropna=True)` would see only one non-NaN value and let this pass,
+    after which drop_duplicates() would emit two rows for the same 5-tuple plant.
+    The conflict detection MUST count NaN as a distinct value.
+    """
+    from sleap_roots.circumnutation import CircumnutationInputs
+    from sleap_roots.circumnutation._io import build_per_plant_template
+
+    rows = []
+    for frame, genotype in enumerate([np.nan, "WT"]):
+        rows.append(
+            {
+                "series": "S",
+                "sample_uid": "U",
+                "timepoint": "T0",
+                "plate_id": "P",
+                "plant_id": 1,
+                "track_id": 1,
+                "genotype": genotype,
+                "treatment": np.nan,
+                "frame": frame,
+                "tip_x": 1.0,
+                "tip_y": 2.0,
+            }
+        )
+    df = pd.DataFrame(rows)
+    inputs = CircumnutationInputs(trajectory_df=df, cadence_s=300.0)
+    with pytest.raises(ValueError, match=r"genotype|conflict"):
+        build_per_plant_template(inputs)
+
+
 def test_track_id_nan_raises_clear_error(valid_trajectory_df):
     """B3 (related): NaN in track_id surfaces as a ValueError naming the field, not pandas IntCastingNaNError."""
     from sleap_roots.circumnutation import CircumnutationInputs
@@ -880,6 +913,96 @@ def test_write_per_plant_csv_rejects_invalid_unit(tmp_path, valid_trajectory_df)
         write_per_plant_csv(out_path, df, units, metadata)
     # No files should have been written.
     assert not out_path.exists()
+
+
+def test_write_per_plant_csv_rejects_missing_unit_for_column(
+    tmp_path, valid_trajectory_df
+):
+    """Round-3 finding (F2): units dict must cover every CSV column; missing key raises.
+
+    Spec scenario "Sidecar exists and parses" promises every column from
+    the CSV is a key in the JSON mapping. The writer must enforce this
+    pre-flight, not let the constraint be silently violated.
+    """
+    from sleap_roots.circumnutation import CircumnutationInputs
+    from sleap_roots.circumnutation._io import (
+        build_per_plant_template,
+        default_units_for_template,
+        gather_run_metadata,
+        write_per_plant_csv,
+    )
+
+    inputs = CircumnutationInputs(
+        trajectory_df=valid_trajectory_df, cadence_s=300.0, run_id="r1"
+    )
+    df = build_per_plant_template(inputs)
+    units = default_units_for_template(df)
+    # Drop one key so the units dict no longer covers the DataFrame.
+    missing_key = "track_id"
+    del units[missing_key]
+    metadata = gather_run_metadata(input_path="x", run_id="r1")
+    out_path = tmp_path / "out.csv"
+    with pytest.raises(ValueError, match=r"track_id|missing|coverage"):
+        write_per_plant_csv(out_path, df, units, metadata)
+    assert not out_path.exists()
+
+
+def test_write_per_plant_csv_rejects_extra_units_keys(tmp_path, valid_trajectory_df):
+    """Round-3 finding (F2): units dict must not have keys absent from the DataFrame.
+
+    Extra keys signal a bug (column was emitted but not in df, or stale
+    units mapping). Reject loudly rather than silently writing an
+    inconsistent sidecar.
+    """
+    from sleap_roots.circumnutation import CircumnutationInputs
+    from sleap_roots.circumnutation._io import (
+        build_per_plant_template,
+        default_units_for_template,
+        gather_run_metadata,
+        write_per_plant_csv,
+    )
+
+    inputs = CircumnutationInputs(
+        trajectory_df=valid_trajectory_df, cadence_s=300.0, run_id="r1"
+    )
+    df = build_per_plant_template(inputs)
+    units = default_units_for_template(df)
+    units["nonexistent_column"] = "px"
+    metadata = gather_run_metadata(input_path="x", run_id="r1")
+    out_path = tmp_path / "out.csv"
+    with pytest.raises(ValueError, match=r"nonexistent_column|extra"):
+        write_per_plant_csv(out_path, df, units, metadata)
+    assert not out_path.exists()
+
+
+def test_row_identity_units_importable_from_constants():
+    """Round-3 finding (F3): _constants exposes ROW_IDENTITY_UNITS as a public mapping.
+
+    The OpenSpec contract promised this; the implementation left it as a
+    private constant in _io.py. Move it to _constants.py and verify
+    importability + correct keys.
+    """
+    from sleap_roots.circumnutation._constants import (
+        PIPELINE_UNIT_VOCABULARY,
+        ROW_IDENTITY_UNITS,
+    )
+
+    expected_keys = {
+        "series",
+        "sample_uid",
+        "timepoint",
+        "plate_id",
+        "plant_id",
+        "track_id",
+        "genotype",
+        "treatment",
+    }
+    assert set(ROW_IDENTITY_UNITS.keys()) == expected_keys
+    # Every value must be in the pipeline-output vocabulary.
+    for col, unit in ROW_IDENTITY_UNITS.items():
+        assert (
+            unit in PIPELINE_UNIT_VOCABULARY
+        ), f"{col} unit {unit!r} not in PIPELINE_UNIT_VOCABULARY"
 
 
 def test_write_per_plant_csv_rejects_unknown_unit(tmp_path, valid_trajectory_df):
