@@ -853,13 +853,15 @@ def test_2G1_nipponbare_reference_values():
     """2.G.1 — Nipponbare reference-value sanity test (tolerances locked in 4.4).
 
     See ``NIPPONBARE_TOL`` above for the calibration provenance, including
-    why only ``v_total_median_px_per_frame`` has a real prelim sanity-floor
-    anchor (median match) and the other four traits are snapshot tests.
+    why both ``v_total_median_px_per_frame`` AND ``path_displacement_ratio``
+    have real prelim sanity-floor anchors (median match) and the other
+    three traits are snapshot tests.
 
-    The proofread fixture has 3 of 6 tracks failing the growth-axis
-    reliability gate — see ``NIPPONBARE_EXPECTED_GATED_TRACKS``. This is
-    empirically meaningful (L/D ratios of 18–119 on tracks 2, 3, 5) and
-    NOT a bug in the impl or calibration.
+    All 6 Nipponbare proofread tracks pass the growth-axis reliability gate
+    under the corrected dedup behavior (see ``NIPPONBARE_EXPECTED_CLEAN_TRACKS``
+    and the upstream fix to ``Series.get_tracked_tips`` shipped in this PR).
+    Visual inspection in the SLEAP GUI confirms all 6 plants grow healthily
+    from the top to the bottom of the plate.
     """
     from sleap_roots.circumnutation import kinematics
 
@@ -867,11 +869,10 @@ def test_2G1_nipponbare_reference_values():
     result = kinematics.compute(df)
     assert len(result) == 6
 
-    # Median-across-clean-tracks for each tolerance-checked trait.
-    # `.median()` skips NaN by default — rotation-dependent traits are NaN
-    # for the 3 gated tracks, so the median is over the 3 clean tracks for
-    # those traits; rotation-invariant traits (v_total, path_displacement)
-    # have valid values for all 6 and the median is over all 6.
+    # Median-across-tracks for each tolerance-checked trait. `.median()`
+    # skips NaN by default — under the corrected dedup behavior, all 6
+    # tracks are gate-clean for this fixture, so the median is over all 6
+    # tracks for every trait (rotation-dependent and rotation-invariant).
     for trait, (lo, hi) in NIPPONBARE_TOL.items():
         med = float(result[trait].median())
         assert lo <= med <= hi, f"{trait} median {med:.4f} not in [{lo:.4f}, {hi:.4f}]"
