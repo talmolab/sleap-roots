@@ -579,7 +579,27 @@ class Series:
         # ordering across frames (verified during the #129 brainstorm: frame 0
         # may be [track_0, 1, 2, 3, 4, 5] but frame 1 may be
         # [track_0, 3, 4, 2, 1, 5]). We must read inst.track.name per instance.
-        rows = []
+        #
+        # On proofread .slp files, SLEAP retains BOTH the original
+        # PredictedInstance (tracker's prediction; score is a float) AND the
+        # user-corrected Instance (score is None) for every frame the user
+        # manually corrected. Per
+        # docs/circumnutation/preliminary_results_2026-05-07.md §3.1:
+        # "Where an instance_type=0 (user-corrected) and instance_type=1
+        # (predicted) instance exist for the same frame and track, the
+        # user-corrected value takes precedence." We honor that convention so
+        # callers get exactly one row per (track_id, frame_idx). Without this
+        # dedup, downstream consumers (e.g.
+        # sleap_roots.circumnutation.kinematics.compute) compute Δframe=0
+        # divides and propagate ±inf / NaN through every velocity-bearing
+        # trait on every proofread frame.
+        from sleap_io.model.instance import Instance, PredictedInstance
+
+        # First pass: collect every tracked instance plus the set of
+        # (frame_idx, track_name) keys for which a user-corrected instance
+        # exists.
+        candidates: List[Tuple[Tuple[int, str], "Instance", bool]] = []
+        user_corrected_keys: set = set()
         offending_frames = []
         for lf in labels.labeled_frames:
             for inst in lf.instances:
@@ -587,16 +607,16 @@ class Series:
                 if track is None or not getattr(track, "name", None):
                     offending_frames.append(lf.frame_idx)
                     continue
-                pts = inst.numpy()
-                tip_xy = pts[-1]  # last node = tip by skeleton convention
-                rows.append(
-                    {
-                        "track_id": track.name,
-                        "frame": lf.frame_idx,
-                        "tip_x": float(tip_xy[0]),
-                        "tip_y": float(tip_xy[1]),
-                    }
+                key = (lf.frame_idx, track.name)
+                # PredictedInstance subclasses Instance in sleap-io, so the
+                # isinstance check MUST exclude PredictedInstance to detect
+                # user corrections.
+                is_user = isinstance(inst, Instance) and not isinstance(
+                    inst, PredictedInstance
                 )
+                candidates.append((key, inst, is_user))
+                if is_user:
+                    user_corrected_keys.add(key)
 
         if offending_frames:
             unique_frames = sorted(set(offending_frames))
@@ -605,6 +625,29 @@ class Series:
                 f"untracked instances found at frame indices {unique_frames}. "
                 f"See https://sleap.ai/tutorials/tracking.html for tracking "
                 f"setup."
+            )
+
+        # Second pass: drop PredictedInstance rows where a user-corrected
+        # Instance exists for the same (track, frame). All other duplicates
+        # are preserved (e.g., two user-corrected instances from a buggy
+        # proofreader, or two PredictedInstances from a buggy tracker — these
+        # remain visible in the long-format DataFrame for downstream
+        # debugging, matching the existing `TrackedTipPipeline` contract
+        # tested in `tests/test_tracked_tip_pipeline.py` §6.14).
+        rows = []
+        for key, inst, is_user in candidates:
+            if not is_user and key in user_corrected_keys:
+                # Predicted instance shadowed by a user-corrected version
+                # at the same (track, frame). Drop per prelim §3.1.
+                continue
+            tip_xy = inst.numpy()[-1]  # last node = tip by skeleton convention
+            rows.append(
+                {
+                    "track_id": key[1],
+                    "frame": key[0],
+                    "tip_x": float(tip_xy[0]),
+                    "tip_y": float(tip_xy[1]),
+                }
             )
 
         df = pd.DataFrame(rows, columns=["track_id", "frame", "tip_x", "tip_y"])

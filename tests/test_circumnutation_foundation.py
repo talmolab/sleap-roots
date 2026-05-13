@@ -23,8 +23,13 @@ import pytest
 # Stub-module canonical-callable map
 # ---------------------------------------------------------------------------
 
+# NOTE: `kinematics` was removed from STUB_MODULES in PR #2 (OpenSpec change
+# add-circumnutation-tier0-kinematics) — it is now an implementation module,
+# not a stub. The MODIFIED Package layout requirement in that change reduces
+# the stub count from 10 to 9. The contract-module list in
+# `test_module_logger_is_namespaced` was extended to include `kinematics`,
+# `_noise`, and `_geometry` so the logger-namespace contract still covers them.
 STUB_MODULES = [
-    ("kinematics", "compute", 2),
     ("qc", "compute", 3),
     ("synthetic", "generate_trajectory", 4),
     ("temporal_cwt", "compute_scaleogram", 5),
@@ -723,7 +728,18 @@ def test_constants_snapshot_reflects_override():
 
 @pytest.mark.parametrize(
     "module_name",
-    [name for name, _, _ in STUB_MODULES] + ["_constants", "_types", "_io", "units"],
+    [name for name, _, _ in STUB_MODULES]
+    + [
+        "_constants",
+        "_types",
+        "_io",
+        "units",
+        # Added in PR #2: kinematics (now an implementation module, not a
+        # stub) and the two new private helper modules.
+        "kinematics",
+        "_noise",
+        "_geometry",
+    ],
 )
 def test_module_logger_is_namespaced(module_name):
     """If the module declares a `logger`, it MUST be the module-namespaced logger."""
@@ -787,8 +803,11 @@ def test_convert_to_mm_inf_rejected(bad):
 # B2 — every stub whose tier needs cross-cutting overrides must accept constants= kwarg
 
 
+# NOTE: `kinematics` was removed in PR #2 — it is now an implementation
+# module and no longer raises NotImplementedError when called with
+# `constants=...`. Its `constants=None` parameter contract is preserved
+# (and exercised by the kinematics test file).
 STUBS_WITH_CONSTANTS_KWARG = [
-    ("kinematics", "compute"),
     ("qc", "compute"),
     ("temporal_cwt", "compute_scaleogram"),
     ("psi_g", "compute_psi_g"),
