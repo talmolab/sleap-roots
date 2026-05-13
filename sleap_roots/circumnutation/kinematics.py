@@ -199,27 +199,31 @@ def _compute_one_track(group: pd.DataFrame, constants: ConstantsT) -> Dict[str, 
     displacement_vec = xy[-1] - xy[0]
     D = float(np.linalg.norm(displacement_vec))
 
-    # Step 5 — local SG residual + reliability gate (computed before D=0 short-
-    # circuit so the flag reflects the reliability rule consistently)
+    # Step 5 — local SG residual + reliability gate (single point of truth).
+    # The gate has three contributing conditions; collapsing them into one
+    # boolean expression removes the dual-write footgun that the prior
+    # implementation had (gate set in step 5, then potentially overwritten
+    # by step 6's D==0 short-circuit). Equivalence preserved across all
+    # branches; tests 2.C.1–2.C.6 + 2.B.3 + 2.B.7 + 2.B.8 cover every case.
     sg_residual_local = _noise.compute_sg_residual_xy(
         xy[:, 0],
         xy[:, 1],
         window=constants.SG_WINDOW_SHORT,
         degree=constants.SG_DEGREE,
     )
+    # Gate fires if: (a) D == 0 (closed loop — D < any positive K·residual),
+    # OR (b) D < K · sg_residual when the residual is well-defined.
     # Strict less-than: at D == K * residual the axis is judged reliable.
-    # If residual is NaN (track too short for SG), treat the gate as not firing.
-    if math.isnan(sg_residual_local):
-        growth_axis_unreliable = False
-    else:
-        growth_axis_unreliable = (
-            D < constants.GROWTH_AXIS_RELIABILITY_K * sg_residual_local
-        )
+    # NaN residual (track too short for SG) is treated as gate-does-not-fire.
+    growth_axis_unreliable = D == 0.0 or (
+        not math.isnan(sg_residual_local)
+        and D < constants.GROWTH_AXIS_RELIABILITY_K * sg_residual_local
+    )
 
-    # Step 6 — D=0 closed-loop short-circuit: rotation-dep traits are NaN,
-    # gate is True (D < any positive multiple of residual).
+    # Step 6 — D=0 closed-loop short-circuit: rotation-dep traits are NaN.
+    # The growth_axis_unreliable flag is already True from step 5 (D==0 case
+    # is one of its disjuncts).
     if D == 0.0:
-        growth_axis_unreliable = True
         # ψ_g (rotation-invariant — survives) and v_total (already computed)
         psi_g = _geometry.compute_psi_g(xy[:, 0], xy[:, 1])
         angular_amplitude = (
@@ -237,7 +241,7 @@ def _compute_one_track(group: pd.DataFrame, constants: ConstantsT) -> Dict[str, 
             "path_displacement_ratio": float("nan"),  # D == 0
             "angular_amplitude": angular_amplitude,
             "principal_axis_angle": float("nan"),
-            "growth_axis_unreliable": True,
+            "growth_axis_unreliable": growth_axis_unreliable,
         }
 
     # Normal case: D > 0, construct growth axis and project

@@ -5,6 +5,7 @@ import logging
 import math
 import numpy as np
 import sleap_io as sio
+from sleap_io.model.instance import Instance, PredictedInstance
 import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -593,7 +594,7 @@ class Series:
         # sleap_roots.circumnutation.kinematics.compute) compute Δframe=0
         # divides and propagate ±inf / NaN through every velocity-bearing
         # trait on every proofread frame.
-        from sleap_io.model.instance import Instance, PredictedInstance
+        # (Instance / PredictedInstance imported at top of module — line 8.)
 
         # First pass: collect every tracked instance plus the set of
         # (frame_idx, track_name) keys for which a user-corrected instance
