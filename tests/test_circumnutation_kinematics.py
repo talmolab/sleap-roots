@@ -247,6 +247,40 @@ def test_2A6_invalid_trajectory_df_missing_tip_x():
         kinematics.compute(df_missing)
 
 
+def test_2A7_inf_tip_x_propagates_without_raising(recwarn):
+    """2.A.7 — ±inf in tip_x propagates through computation without raising.
+
+    Maps to spec Requirement "Tier 0 input-validation boundary" scenario
+    "`±inf` in tip_x propagates without raising": Tier 0 does NOT validate
+    per-row finiteness (per the foundation's permissive style); ``±inf``
+    feeds through ``np.diff`` and ``np.linalg.norm`` to produce either
+    ``inf`` or ``NaN`` in downstream traits. The function MUST NOT raise.
+
+    Note: the impl emits ``RuntimeWarning`` from ``_noise.compute_sg_residual_xy``
+    on inf-bearing input (``np.std`` of an inf-containing array). The
+    ``recwarn`` fixture captures these so they don't fail the test under
+    ``-W error``; they're documented behavior, not a regression.
+    """
+    from sleap_roots.circumnutation import kinematics
+
+    n = 10
+    tip_x = np.arange(n, dtype=float)
+    tip_x[5] = float("inf")
+    tip_y = np.zeros(n)
+    df = _build_track_df(0, tip_x=tip_x, tip_y=tip_y)
+    # Must not raise.
+    result = kinematics.compute(df)
+    row = result.iloc[0]
+    # At least one velocity-related trait is non-finite (inf or NaN) —
+    # path_displacement_ratio reliably catches the inf because D depends
+    # on xy[0] and xy[-1] (both finite here, so D is finite) but L includes
+    # the inf-bearing diff, producing inf/finite = inf.
+    assert not math.isfinite(row["path_displacement_ratio"]), (
+        "path_displacement_ratio should be non-finite under ±inf injection; "
+        f"got {row['path_displacement_ratio']}"
+    )
+
+
 # ===========================================================================
 # 2.B — Synthetic exact-value tests
 # ===========================================================================

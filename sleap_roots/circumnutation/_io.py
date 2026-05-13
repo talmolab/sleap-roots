@@ -99,7 +99,7 @@ def build_per_plant_template(inputs: CircumnutationInputs) -> pd.DataFrame:
 
 
 def _build_per_plant_template_from_df(df: pd.DataFrame) -> pd.DataFrame:
-    """Same drop-duplicates + sort + dtype-coerce logic on a raw DataFrame.
+    """Apply drop-duplicates + sort + dtype-coerce on a raw trajectory DataFrame.
 
     Tier modules whose canonical signature takes a raw ``trajectory_df``
     (``kinematics.compute`` today; ``qc.compute``, ``parametric.compute``

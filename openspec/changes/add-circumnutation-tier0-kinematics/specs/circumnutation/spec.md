@@ -265,11 +265,11 @@ Beyond the foundation's column-presence and DataFrame-type checks, Tier 0 makes 
 - **THEN** no exception is raised
 - **AND** the trait values for that track are either `inf` or `NaN` (propagation-dependent), reflecting the documented "Tier 0 does not validate ±inf" non-goal
 
-#### Scenario: Duplicate `(track_id, frame)` rows produce a non-finite trait but no exception
+#### Scenario: Duplicate `(track_id, frame)` rows do not raise and propagate non-finite values opportunistically
 - **GIVEN** a trajectory_df where the same `(track_id, frame)` 2-tuple appears in two rows (e.g., the upstream join double-emitted a frame)
 - **WHEN** `kinematics.compute(trajectory_df)` is called
 - **THEN** no exception is raised
-- **AND** at least one velocity-related trait value is non-finite (`inf` or `NaN`) for the affected track, due to the resulting `Δframe = 0` divide-by-zero
+- **AND** the resulting `Δframe = 0` divide-by-zero MAY produce non-finite (`inf` or `NaN`) values in velocity-related traits — whether the non-finite value reaches the final trait depends on the projection (`[0, 0] / 0 = NaN`; `[nonzero, ·] / 0 = ±inf`) AND on whether the corrupted step survives the `np.nanmedian` aggregation. Tier 0 does NOT guarantee that the contamination is observable in the emitted traits; it guarantees only that no exception is raised. PR #3 QC's `frac_outlier_steps` is the right place for explicit duplicate-frame detection.
 - **AND** the documented behavior is "Tier 0 does not detect duplicate frames — PR #3 QC's `frac_outlier_steps` is the right place"
 
 ### Requirement: Per-plant template helper for raw-DataFrame callers
