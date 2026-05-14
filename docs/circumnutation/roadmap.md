@@ -88,8 +88,8 @@ Today `plant_id == track_id` everywhere; both columns are populated identically.
 Some real tracks have net displacement comparable to per-frame noise (mutants, stressed plants, very early imaging windows). The growth axis defined as `(x_N - x_1) / |x_N - x_1|` is meaningless in that regime. PR #2 must:
 
 1. Compute net displacement `D = |x_N - x_1|` (in pixels).
-2. If `D < GROWTH_AXIS_RELIABILITY_K * sg_residual_xy` (recommend `K = 10`), set `growth_axis_unreliable = True` and set the rotation-dependent traits (`v_long_median`, `v_lat_median`, `long_lat_ratio`, `principal_axis_angle`) to NaN.
-3. The QC tier emits `growth_axis_unreliable` as a bool flag.
+2. If `D < GROWTH_AXIS_RELIABILITY_K * sg_residual_xy` (recommend `K = 10`), set `growth_axis_unreliable = True` and set the **6 rotation-dependent traits** (`v_long_signed_median`, `v_long_abs_median`, `v_lat_signed_median`, `v_lat_abs_median`, `long_lat_ratio`, `principal_axis_angle`) to NaN. The 4-trait NaN-set originally documented here was expanded to 6 in PR #2 when the signed/abs split was adopted for the velocity traits (see PR #2's design.md D1 for the trait-list expansion rationale).
+3. **Tier 0 (PR #2) emits `growth_axis_unreliable` as a bool flag on the per-plant trait DataFrame; QC tier (PR #3) composes with it (e.g., as a clause in `track_is_clean`) but does NOT re-emit a duplicate column.** This re-interpretation of the original "QC tier emits the flag" wording resolves a circular dependency where Tier 0's gate would otherwise need PR #3's `sg_residual_xy` trait value at runtime. The same SG-residual formula is shared via the private helper `sleap_roots.circumnutation._noise.compute_sg_residual_xy` so both tiers compute numerically identical residuals from identical inputs. See `openspec/changes/archive/.../add-circumnutation-tier0-kinematics/design.md` D2 (also reachable via the live capability spec at `openspec/specs/circumnutation/spec.md`, Requirement "Growth-axis reliability gate") for the full rationale.
 
 ### CC-6. CWT determinism / reproducibility.
 

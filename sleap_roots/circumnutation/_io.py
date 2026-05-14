@@ -74,6 +74,12 @@ def build_per_plant_template(inputs: CircumnutationInputs) -> pd.DataFrame:
     ``pandas.DataFrame.sort_values`` over the 5-tuple — string columns
     sort lexicographically and integer columns sort numerically.
 
+    This is a thin wrapper over :func:`_build_per_plant_template_from_df`;
+    tier modules whose canonical signature takes a raw ``trajectory_df``
+    (e.g., ``kinematics.compute`` per PR #2) should import that private
+    helper directly to avoid wrapping the DataFrame in an unused
+    :class:`CircumnutationInputs` instance.
+
     Args:
         inputs: Validated :class:`CircumnutationInputs`.
 
@@ -89,8 +95,34 @@ def build_per_plant_template(inputs: CircumnutationInputs) -> pd.DataFrame:
             values in ``timepoint`` / ``genotype`` / ``treatment``
             across frames (sign of upstream join error).
     """
-    df = inputs.trajectory_df
+    return _build_per_plant_template_from_df(inputs.trajectory_df)
 
+
+def _build_per_plant_template_from_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply drop-duplicates + sort + dtype-coerce on a raw trajectory DataFrame.
+
+    Tier modules whose canonical signature takes a raw ``trajectory_df``
+    (``kinematics.compute`` today; ``qc.compute``, ``parametric.compute``
+    in later PRs) import this helper directly rather than wrapping their
+    DataFrame in a :class:`CircumnutationInputs` purely to satisfy the
+    public API. The public :func:`build_per_plant_template` wraps this
+    helper for the foundation-style caller path.
+
+    Behaviorally identical to the public function: same validations,
+    same error messages, same column order, same dtype coercions.
+
+    Args:
+        df: Raw trajectory DataFrame containing at minimum the eight
+            row-identity columns. Per-frame columns (``frame``, ``tip_x``,
+            ``tip_y``) need not be present for this helper, since it only
+            inspects the row-identity columns.
+
+    Returns:
+        Per-plant DataFrame as documented on :func:`build_per_plant_template`.
+
+    Raises:
+        ValueError: Same conditions as the public wrapper.
+    """
     # B3: clear ValueError for NaN track_id rather than pandas' IntCastingNaNError.
     if df["track_id"].isna().any():
         bad_rows = df[df["track_id"].isna()].index.tolist()[:5]

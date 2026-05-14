@@ -937,3 +937,177 @@ def test_real_fixture_track_order_non_determinism_handled():
         "track_4",
         "track_5",
     }
+
+
+# ---------------------------------------------------------------------------
+# §13 — proofread .slp dedup (PR #2 / `add-circumnutation-tier0-kinematics`)
+# ---------------------------------------------------------------------------
+#
+# `Series.get_tracked_tips()` MUST return one row per (track_id, frame_idx),
+# even on proofread .slp files where SLEAP keeps both the `PredictedInstance`
+# (the tracker's prediction) AND the user-corrected `Instance` (proofreader's
+# correction) for the same frame and track. Per
+# `docs/circumnutation/preliminary_results_2026-05-07.md` §3.1:
+# *"Where an instance_type=0 (user-corrected) and instance_type=1 (predicted)
+# instance exist for the same frame and track, the user-corrected value
+# takes precedence."*
+#
+# Discovered during PR #2 Nipponbare calibration; the original
+# `get_tracked_tips` (PR #190) iterates over `lf.instances` and emits one
+# row per instance, producing duplicate (track_id, frame) rows on proofread
+# frames. The dedup is enforced in PR #2.
+
+NIPPONBARE_PROOFREAD_SLP = "tests/data/circumnutation_nipponbare_plate_001/plate_001_greyscale.tracked_proofread.slp"
+NIPPONBARE_PROOFREAD_CSV = (
+    "tests/data/circumnutation_nipponbare_plate_001/fixture_metadata.csv"
+)
+
+
+@pytest.mark.skipif(
+    not Path(NIPPONBARE_PROOFREAD_SLP).exists(),
+    reason=f"Nipponbare proofread fixture not present: {NIPPONBARE_PROOFREAD_SLP}",
+)
+def test_get_tracked_tips_dedup_proofread_one_row_per_track_frame():
+    """§13.1: proofread .slp → exactly 6 tracks × 575 frames = 3450 rows, no duplicates.
+
+    Sanity-check the fixture has the multi-instance-per-frame pattern that
+    this test is designed to expose (otherwise the test would pass
+    vacuously). Then assert the returned DataFrame has no duplicate
+    (track_id, frame_idx) pairs.
+    """
+    from sleap_io.model.instance import Instance, PredictedInstance
+
+    # Fixture sanity: at least one frame must have both a PredictedInstance
+    # AND a user-corrected Instance for the same track — otherwise this test
+    # cannot exercise the dedup behavior.
+    labels = sio.load_slp(NIPPONBARE_PROOFREAD_SLP)
+    found_proofread_frame = False
+    for lf in labels.labeled_frames:
+        track_classes = {}
+        for inst in lf.instances:
+            if inst.track is None:
+                continue
+            classes = track_classes.setdefault(inst.track.name, set())
+            if isinstance(inst, PredictedInstance):
+                classes.add("predicted")
+            elif isinstance(inst, Instance):
+                classes.add("user")
+        if any(c == {"predicted", "user"} for c in track_classes.values()):
+            found_proofread_frame = True
+            break
+    assert found_proofread_frame, (
+        "Nipponbare fixture must contain at least one frame with both "
+        "PredictedInstance and user-corrected Instance for the same track; "
+        "otherwise this test passes vacuously."
+    )
+
+    # The actual contract: one row per (track_id, frame).
+    series = Series.load(
+        series_name="plate_001",
+        primary_path=NIPPONBARE_PROOFREAD_SLP,
+        csv_path=NIPPONBARE_PROOFREAD_CSV,
+        sample_uid="plate_001",
+    )
+    df = series.get_tracked_tips()
+    # 6 tracks x 575 frames = 3450 unique (track_id, frame_idx) tuples.
+    assert len(df) == 3450, f"Expected 3450 rows (6x575), got {len(df)}"
+    # No duplicate (track_id, frame) pairs.
+    duped = df.duplicated(subset=["track_id", "frame"]).sum()
+    assert duped == 0, f"Expected zero duplicate (track_id, frame) rows, got {duped}"
+
+
+@pytest.mark.skipif(
+    not Path(NIPPONBARE_PROOFREAD_SLP).exists(),
+    reason=f"Nipponbare proofread fixture not present: {NIPPONBARE_PROOFREAD_SLP}",
+)
+def test_get_tracked_tips_dedup_proofread_user_corrected_takes_precedence():
+    """§13.2: when both Instance and PredictedInstance exist, returned xy comes from the user-corrected one.
+
+    Per prelim §3.1 convention. Frame 371 of the Nipponbare fixture has
+    track_0 with PredictedInstance at (2439.2, 1814.9) and user-corrected
+    Instance at (4441.1, 4054.5) — a 3000-px proofread correction. The
+    returned DataFrame for `(track_id="track_0", frame=371)` MUST carry
+    the user-corrected xy, not the predicted xy.
+    """
+    from sleap_io.model.instance import Instance, PredictedInstance
+
+    # Find a (frame, track) with both types of instance and grab the
+    # user-corrected xy as the expected value. Don't hard-code frame 371 -
+    # discover it from the fixture so the test stays correct under fixture
+    # re-export.
+    labels = sio.load_slp(NIPPONBARE_PROOFREAD_SLP)
+    expected = None
+    for lf in labels.labeled_frames:
+        by_track = {}
+        for inst in lf.instances:
+            if inst.track is None:
+                continue
+            slot = by_track.setdefault(inst.track.name, {})
+            if isinstance(inst, PredictedInstance):
+                slot["predicted"] = inst
+            elif isinstance(inst, Instance):
+                slot["user"] = inst
+        for track_name, slot in by_track.items():
+            if "predicted" in slot and "user" in slot:
+                pred_xy = slot["predicted"].numpy()[-1]
+                user_xy = slot["user"].numpy()[-1]
+                if (
+                    abs(pred_xy[0] - user_xy[0]) > 10
+                    or abs(pred_xy[1] - user_xy[1]) > 10
+                ):
+                    expected = (lf.frame_idx, track_name, user_xy, pred_xy)
+                    break
+        if expected is not None:
+            break
+    assert expected is not None, (
+        "Nipponbare fixture must contain at least one (frame, track) where "
+        "PredictedInstance and user-corrected Instance differ by > 10 px; "
+        "otherwise this test passes vacuously."
+    )
+    frame_idx, track_name, user_xy, pred_xy = expected
+
+    series = Series.load(
+        series_name="plate_001",
+        primary_path=NIPPONBARE_PROOFREAD_SLP,
+        csv_path=NIPPONBARE_PROOFREAD_CSV,
+        sample_uid="plate_001",
+    )
+    df = series.get_tracked_tips()
+    row = df[(df["track_id"] == track_name) & (df["frame"] == frame_idx)]
+    assert len(row) == 1, (
+        f"Expected exactly one row for (track={track_name}, frame={frame_idx}); "
+        f"got {len(row)}"
+    )
+    returned_xy = (float(row.iloc[0].tip_x), float(row.iloc[0].tip_y))
+    # Must match user-corrected, NOT predicted.
+    assert returned_xy[0] == pytest.approx(float(user_xy[0])), (
+        f"tip_x={returned_xy[0]} should match user-corrected {user_xy[0]}, "
+        f"not predicted {pred_xy[0]}"
+    )
+    assert returned_xy[1] == pytest.approx(float(user_xy[1])), (
+        f"tip_y={returned_xy[1]} should match user-corrected {user_xy[1]}, "
+        f"not predicted {pred_xy[1]}"
+    )
+
+
+@pytest.mark.skipif(
+    not Path(REAL_FIXTURE_SLP).exists(),
+    reason=f"KitaakeX fixture not present: {REAL_FIXTURE_SLP}",
+)
+def test_get_tracked_tips_kitaakex_non_proofread_no_change():
+    """§13.3: on the KitaakeX (non-proofread) fixture, the dedup fix is a no-op.
+
+    All instances are `PredictedInstance` (no user corrections), so the row
+    count and values should be identical to the pre-fix behavior. Guards
+    against the dedup logic accidentally dropping rows on non-proofread files.
+    """
+    series = Series.load(
+        series_name="plate_001",
+        primary_path=REAL_FIXTURE_SLP,
+        csv_path=REAL_FIXTURE_CSV,
+        sample_uid="plate_001",
+    )
+    df = series.get_tracked_tips()
+    # 311 frames x 6 tracks = 1866 rows (verified in §12.1).
+    assert len(df) == 1866
+    assert df.duplicated(subset=["track_id", "frame"]).sum() == 0
