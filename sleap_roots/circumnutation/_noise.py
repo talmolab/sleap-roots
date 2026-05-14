@@ -1,24 +1,36 @@
-"""Shared noise-estimation helpers for the circumnutation pipeline.
+"""Shared SLEAP-localization-noise-estimation helpers for the circumnutation pipeline.
 
-Single source of truth for the Savitzky-Golay residual formula used as a
-local tracking-noise estimator. Consumed by:
+Single source of truth for the three independent noise-estimator formulas
+emitted by the QC tier (PR #3 per CC-10) and shared with Tier 0 (PR #2)
+for the growth-axis reliability gate. Three deterministic helpers:
 
-- Tier 0 (``kinematics.py``, PR #2) — uses the residual as the
-  growth-axis reliability gate value (``D < K * sg_residual_xy_local``).
-- QC tier (``qc.py``, PR #3 — not yet implemented) — will emit
-  ``sg_residual_xy`` as a canonical per-track trait using this same
-  formula.
+- :func:`compute_sg_residual_xy` — Savitzky-Golay residual quadrature
+  sum. Consumed by Tier 0 (``kinematics.py``, PR #2) for the growth-axis
+  reliability gate value (``D < K * sg_residual_xy_local``) AND by the
+  QC tier (``qc.py``, PR #3) as the canonical ``sg_residual_xy`` trait
+  emission. Keeping the formula here (not duplicated across tier modules)
+  guarantees the Tier 0 gate value and the canonical QC trait are
+  numerically identical for the same inputs.
+- :func:`compute_d2_residual_xy` — second-difference variance estimator
+  with ``/sqrt(6)`` white-noise-propagation normalization. Consumed by
+  QC tier as the canonical ``d2_noise_xy`` trait.
+- :func:`compute_msd_residual_xy` — MSD-extrapolation estimator (2D
+  MSD = 4σ²; the factor of 4 is load-bearing). Consumed by QC tier as
+  the canonical ``msd_noise_xy`` trait per CC-10.
 
-Keeping the formula here (and not duplicated across tier modules)
-guarantees the Tier 0 gate value and the canonical QC trait are
-numerically identical for the same inputs.
+All three helpers return ``float`` and emit ``logger.debug`` + ``np.nan``
+when the input is too short for their respective formulas.
 
 Theory references:
 
 - Press et al. *Numerical Recipes* (any edition) — Savitzky-Golay
   residual estimation is a standard signal-processing technique.
+- ``docs/circumnutation/preliminary_results_2026-05-07.md`` §3.3 — the
+  SG-residual and d2 formulas anchored to plate 001 reference values.
 - ``docs/circumnutation/theory.md`` §7.6 — QC tier methodological note
-  on the two-estimator agreement (`sg_residual_xy` vs `d2_noise_xy`).
+  on the three-estimator agreement (sg / d2 / MSD).
+- Michalet 2010 *Phys. Rev. E* 82:041914 — MSD-extrapolation method
+  from single-particle-tracking literature.
 """
 
 import logging

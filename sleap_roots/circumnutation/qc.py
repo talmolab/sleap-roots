@@ -250,13 +250,22 @@ def _compute_one_track(group: pd.DataFrame, constants: ConstantsT) -> Dict[str, 
     n = len(subset)
 
     # Step 2 — ALWAYS compute growth_axis_unreliable (preserve equality
-    # contract with Tier 0 in all paths)
+    # contract with Tier 0 in all paths). Materialize xy once here and
+    # reuse across the rest of the algorithm (avoids re-running the
+    # pandas → numpy cast at step 4; pairs with reusing sg below).
     if n < 2:
         growth_axis_unreliable = False
-        # No xy to work with; sg_residual is NaN by convention.
+        logger.debug(
+            "qc.compute: track has n=%d < 2 after dropna; "
+            "growth_axis_unreliable=False by convention (matches Tier 0 _emit_nan_row).",
+            n,
+        )
+        # sg_step2 not used past here; short-track gate emits sentinel.
+        xy = None
+        sg_step2 = float("nan")
     else:
         xy = subset[["tip_x", "tip_y"]].to_numpy(dtype=float)
-        _, _, growth_axis_unreliable = _compute_growth_axis_unreliable_local(
+        _, sg_step2, growth_axis_unreliable = _compute_growth_axis_unreliable_local(
             xy, constants
         )
 
@@ -269,17 +278,12 @@ def _compute_one_track(group: pd.DataFrame, constants: ConstantsT) -> Dict[str, 
         )
         return _emit_short_track_row(growth_axis_unreliable)
 
-    # Step 4 — three noise estimators (sg from step 2 if it were stashed;
-    # recompute for clarity since the cost is small and re-cast of xy is
-    # already done)
-    xy = subset[["tip_x", "tip_y"]].to_numpy(dtype=float)
+    # Step 4 — three noise estimators. Reuse sg_step2 from step 2 (same
+    # arguments → same result; cached to avoid the ~0.2ms duplicate SG
+    # filter call). d2 and msd are not computed in step 2 because the
+    # growth-axis gate only needs sg; compute them here.
     frame = subset["frame"].to_numpy(dtype=float)
-    sg = _noise.compute_sg_residual_xy(
-        xy[:, 0],
-        xy[:, 1],
-        window=constants.SG_WINDOW_SHORT,
-        degree=constants.SG_DEGREE,
-    )
+    sg = sg_step2
     d2 = _noise.compute_d2_residual_xy(xy[:, 0], xy[:, 1])
     msd = _noise.compute_msd_residual_xy(
         xy[:, 0],
@@ -294,7 +298,12 @@ def _compute_one_track(group: pd.DataFrame, constants: ConstantsT) -> Dict[str, 
     sg_msd = _pairwise_agreement(sg, msd)
     d2_msd = _pairwise_agreement(d2, msd)
 
-    # Step 6 — step magnitudes (gap-aware diff)
+    # Step 6 — step magnitudes (gap-aware diff). Suppress numpy
+    # divide-warnings: per spec Requirement "QC tier input-validation
+    # boundary" (and Tier 0's identical contract at kinematics.py:184-191),
+    # duplicate (track_id, frame) rows produce Δframe=0 and a documented
+    # non-finite trait value. The warnings would otherwise spam stderr on
+    # real fixtures that contain such duplicates.
     delta_xy = np.diff(xy, axis=0)
     delta_frame = np.diff(frame)
     with np.errstate(divide="ignore", invalid="ignore"):

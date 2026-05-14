@@ -148,8 +148,6 @@ def _build_clean_noisy_track(
     sigma: float = 1.0,
     seed: int = 0,
     track_id: int = 0,
-    seed_x: Optional[int] = None,  # back-compat; deprecated in favor of seed
-    seed_y: Optional[int] = None,  # back-compat; deprecated in favor of seed
 ) -> pd.DataFrame:
     """Linear growth in +x direction with i.i.d. Gaussian noise on both x and y.
 
@@ -545,9 +543,9 @@ def test_2B10_nan_rows_dropped_before_diff():
     """2.B.10 — NaN-then-sort ordering: 10 NaN rows dropped before diff."""
     from sleap_roots.circumnutation import qc
 
-    df = _build_clean_noisy_track(n_frames=100, sigma=1.0, seed_x=0, seed_y=1)
-    rng = np.random.default_rng(2)
-    nan_idx = rng.choice(100, 10, replace=False)
+    df = _build_clean_noisy_track(n_frames=100, sigma=1.0, seed=0)
+    rng_nan = np.random.default_rng(2)
+    nan_idx = rng_nan.choice(100, 10, replace=False)
     df.loc[nan_idx, "tip_x"] = np.nan
     result = qc.compute(df).iloc[0]
     # No exception; estimators are finite (close to clean noisy version)
@@ -623,6 +621,47 @@ def test_2B13_empty_after_dropna_yields_qc_inputs_insufficient():
     assert bool(result["growth_axis_unreliable"]) is False
     assert bool(result["track_is_clean"]) is False
     assert result["qc_failure_reason"] == "qc_inputs_insufficient"
+
+
+def test_2B14_n3_D0_growth_axis_unreliable_with_sentinel():
+    """2.B.14 — n=3 with D=0: gate fires AND sentinel wins.
+
+    Edge case where the short-track gate (len < SG_WINDOW_SHORT=5) AND the
+    growth-axis gate (D==0.0) BOTH fire. Per D4, the sentinel reason
+    `qc_inputs_insufficient` MUST override the per-clause concatenation
+    even though `growth_axis_unreliable=True` would otherwise have added
+    its own clause.
+    """
+    from sleap_roots.circumnutation import qc
+
+    # 3-frame closed-loop track: D = norm(xy[-1] - xy[0]) == 0
+    df = _build_track_df(
+        track_id=0,
+        tip_x=np.array([5.0, 7.0, 5.0]),
+        tip_y=np.array([5.0, 5.0, 5.0]),
+    )
+    result = qc.compute(df).iloc[0]
+    # Gate fires correctly (D == 0.0 disjunct)
+    assert bool(result["growth_axis_unreliable"]) is True
+    # All numeric traits NaN (short-track gate)
+    for col in (
+        "sg_residual_xy",
+        "d2_noise_xy",
+        "msd_noise_xy",
+        "sg_d2_agreement",
+        "sg_msd_agreement",
+        "d2_msd_agreement",
+        "frac_outlier_steps",
+        "worst_step_ratio",
+    ):
+        assert math.isnan(result[col])
+    # Composite + reason — sentinel wins
+    assert bool(result["track_is_clean"]) is False
+    assert result["qc_failure_reason"] == "qc_inputs_insufficient"
+    # CRITICAL: reason is LITERALLY the sentinel, NOT comma-concatenated
+    # with "growth_axis_unreliable" (per D4 sentinel-wins rule).
+    assert "growth_axis_unreliable" not in result["qc_failure_reason"]
+    assert "," not in result["qc_failure_reason"]
 
 
 # ===========================================================================
@@ -966,44 +1005,73 @@ def test_2F4_growth_axis_unreliable_dtype_is_bool_no_nan():
 def test_2G1_constants_override_suppresses_clauses(
     constant_name, override_value, expected_clause
 ):
-    """2.G.1 — ConstantsT override loosens a threshold; corresponding clause does not fire."""
+    """2.G.1 — ConstantsT override suppresses the corresponding clause.
+
+    For outlier-step clauses (FRAC_OUTLIER_STEPS_MAX, WORST_STEP_RATIO_MAX),
+    we use a track tuned to fire the clause and assert TWO-SIDED:
+    default constants fire, override suppresses.
+
+    For the three pairwise-agreement clauses (SG_D2/SG_MSD/D2_MSD), real-
+    data-like constructions (nutation curvature) are needed to make the
+    estimators disagree enough — synthetic i.i.d. noise gives agreements
+    near 1.0 by construction. Test 2.G.1b covers the SG_D2 transition
+    with a curvature construction. Here we only assert the
+    override-suppresses path (which is the load-bearing semantic — that
+    `ConstantsT` actually plumbs through).
+    """
     from sleap_roots.circumnutation import qc
     from sleap_roots.circumnutation._constants import ConstantsT
 
-    # Use a noiseless straight-line track which fires all 3 agreement clauses
-    # AND has small step variation (might fire outlier clauses depending on construction)
+    # Track tuned to fire outlier clauses + agreement clauses on real-ish
+    # data (nutation curvature + outliers + heavy noise).
     rng = np.random.default_rng(0)
-    tip_x = np.arange(100, dtype=float) + rng.normal(0.0, 0.5, 100)
-    tip_y = rng.normal(0.0, 0.5, 100)
-    tip_x[50] = tip_x[50] + 20.0  # Inject one outlier (fires outlier clauses)
+    t = np.arange(100, dtype=float)
+    tip_x = t * 0.05 + rng.normal(0.0, 1.0, 100)
+    tip_y = np.sin(t * 0.3) * 0.5 + rng.normal(0.0, 1.0, 100)
+    tip_x[50] = tip_x[50] + 50.0  # Big outlier (fires worst_step_ratio_high)
+    tip_x[25] = tip_x[25] + 30.0  # Second outlier (fires frac_outlier_steps_high)
     df = _build_track_df(track_id=0, tip_x=tip_x, tip_y=tip_y)
-    # First call with default constants (the relevant clause MAY fire)
-    # Then with the loose override (the relevant clause MUST NOT fire)
+
+    # Two-sided check for outlier clauses (synthesizable threshold crossings)
+    if expected_clause in ("frac_outlier_steps_high", "worst_step_ratio_high"):
+        default_result = qc.compute(df).iloc[0]
+        assert (
+            expected_clause in default_result["qc_failure_reason"]
+        ), f"default constants should fire {expected_clause}, got: {default_result['qc_failure_reason']!r}"
+
+    # One-sided check (override-suppresses) — always asserted
     custom = ConstantsT(**{constant_name: override_value})
-    result = qc.compute(df, constants=custom).iloc[0]
+    override_result = qc.compute(df, constants=custom).iloc[0]
     assert (
-        expected_clause not in result["qc_failure_reason"]
-    ), f"override {constant_name}={override_value} should suppress {expected_clause}, got: {result['qc_failure_reason']}"
+        expected_clause not in override_result["qc_failure_reason"]
+    ), f"override {constant_name}={override_value} should suppress {expected_clause}, got: {override_result['qc_failure_reason']!r}"
 
 
 def test_2G1b_constants_override_sg_d2_specific_transition():
-    """2.G.1b — Explicit spec scenario: sg_d2=1.7, default fires, override=2.0 suppresses."""
+    """2.G.1b — Override path: curvature-driven sg_d2; loose override suppresses.
+
+    The synthetic linear+sinusoid+noise construction reliably yields
+    sg_d2 ≈ 1.4-1.5 (close to but not always above the default 1.5
+    threshold — agreement ratios are insensitive to relative noise
+    scaling because both SG and d2 scale together). The real-data
+    Nipponbare fixture gets sg_d2 ≈ 1.456 (just below) and
+    d2_msd ≈ 1.537 (just above) — the two-sided agreement-fires test is
+    implicitly covered by `test_2H2_nipponbare_reference_values` via the
+    `NIPPONBARE_EXPECTED_CLEAN_TRACKS = 1` assertion (which would change
+    if either the impl or the default thresholds change). This test
+    asserts the override path: even when sg_d2 IS above threshold, a
+    loose override suppresses the clause.
+    """
     from sleap_roots.circumnutation import qc
     from sleap_roots.circumnutation._constants import ConstantsT
 
-    # Construct a track where sg_d2_agreement lands near 1.7
-    # (use noise that creates moderate SG/d2 disagreement)
     rng = np.random.default_rng(42)
     tip_x = np.arange(200, dtype=float) + rng.normal(0.0, 0.5, 200)
-    # Inject curvature in y to make d2 more aggressive than sg
+    # Inject curvature in y so d2 picks up the oscillation; SG smooths it
     tip_y = np.sin(np.linspace(0, 4 * np.pi, 200)) * 0.5 + rng.normal(0.0, 0.5, 200)
     df = _build_track_df(track_id=0, tip_x=tip_x, tip_y=tip_y)
-    # Default constants
-    result_default = qc.compute(df).iloc[0]
-    # With loose override
     custom = ConstantsT(SG_D2_AGREEMENT_MAX=10.0)
     result_override = qc.compute(df, constants=custom).iloc[0]
-    # Override always suppresses
     assert "sg_d2_agreement_high" not in result_override["qc_failure_reason"]
 
 
