@@ -316,6 +316,8 @@ Three focused GitHub issues, one per experiment cluster. Each references epic #1
 
 **Issue γ — MSD lag selection for circumnutation noise estimation.** Compare single-lag (`lag=1`, current default per theory.md §7.6) against Michalet-2010-style multi-lag extrapolation across lags `{1, 2, 3, 4, 5}` on plate 001 and KitaakeX. Report whether the multi-lag approach gives systematically tighter agreement with `sg_residual_xy` and `d2_noise_xy`. If multi-lag wins, change `_noise.compute_msd_residual_xy` default and document the methodology in `docs/circumnutation/theory.md` §7.6.
 
+**Issue δ — `±inf` input detection for `qc.compute`.** Raised by the `/openspec-review` scientific-rigor reviewer. Risk R5 above documents the pathological case where >50% of step magnitudes are `inf`: `median(steps) = inf`, then `inf > 2 * inf == False`, so `frac_outlier_steps` silently passes at `0.0` and a corrupted track masquerades as clean. Two solution options for triage in the issue: (A) extend the foundation validator `_types._validate_trajectory_df` to reject non-finite `tip_x`/`tip_y` at construction time — cross-tier impact (affects Tier 0 too) and changes the foundation contract that currently permits `±inf`; (B) add a per-row finiteness scan inside `qc.py` and fire a dedicated `non_finite_inputs` clause in `qc_failure_reason` — local to QC tier, additive, doesn't break the Tier 0 contract. Option B is the lower-blast-radius fix; the issue body should describe both options and request triage input before implementation.
+
 ## Open Questions
 
 None blocking. The empirical-anchor weakness (R1) is the largest unknown, and it is explicitly tracked via Issues α/β/γ as documented follow-up work rather than as a blocker.

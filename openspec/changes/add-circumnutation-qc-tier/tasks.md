@@ -16,11 +16,17 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
 
 - [ ] 2.A.1 Test `compute_returns_per_plant_dataframe`: build a 6-track trajectory_df via the existing `valid_trajectory_df` pattern (from `test_circumnutation_foundation.py`), call `qc.compute(df)`, assert return is `pd.DataFrame` with exactly 6 rows.
 - [ ] 2.A.2 Test `output_columns_match_spec`: assert columns = the 8 row-identity columns (first, in declared order) + the 11 new columns in the documented order: `sg_residual_xy`, `d2_noise_xy`, `msd_noise_xy`, `sg_d2_agreement`, `sg_msd_agreement`, `d2_msd_agreement`, `frac_outlier_steps`, `worst_step_ratio`, `growth_axis_unreliable`, `track_is_clean`, `qc_failure_reason`. Hard-code the expected column order list at module level.
-- [ ] 2.A.3 Test `unit_columns_match_vocabulary`: assert every emitted trait column's unit string (from the module-level `_QC_TRAIT_UNITS` dict imported from `qc.py`) is in `PIPELINE_UNIT_VOCABULARY`. Cover: `px` for the 3 estimators, `—` for the 5 dimensionless, `bool` for `growth_axis_unreliable` and `track_is_clean`, `string` for `qc_failure_reason`.
+- [ ] 2.A.3 Test `unit_columns_match_vocabulary`: assert every emitted trait column's unit string (from the module-level `_QC_TRAIT_UNITS` dict imported from `qc.py`) is in `PIPELINE_UNIT_VOCABULARY`. Cover: `px` for the 3 estimators, `—` for the 5 dimensionless, `bool` for `growth_axis_unreliable` and `track_is_clean`, `string` for `qc_failure_reason`. **Add explicit negative assertions** (per spec scenario "Output column units are within PIPELINE_UNIT_VOCABULARY"): `assert not any('mm' in u for u in units.values())` AND `assert not any('px/hr' in u for u in units.values())`.
 - [ ] 2.A.4 Test `track_id_is_integer_and_plant_id_equals_track_id`: same invariants as the foundation/Tier-0 tests, just on the QC output DataFrame.
 - [ ] 2.A.5 Test `output_sort_order_is_numeric`: identity columns sorted by the 5-tuple, `track_id` numeric (not lexicographic).
 - [ ] 2.A.6 Test `timepoint_column_preserved`: with input rows carrying `timepoint = "T0"`, confirm the output DataFrame still has `timepoint == "T0"` for every row (regression guard against the `_IDENTITY_5_TUPLE` re-selection bug — see spec Requirement: QC tier per-track quality traits + design.md D7 merge step).
 - [ ] 2.A.7 Test `invalid_trajectory_df_raises_valueerror`: parametrize over non-DataFrame types (`None`, `[1, 2, 3]`, `{"frame": []}`, `np.array([1.0])`) — each MUST raise `ValueError` whose message mentions "DataFrame". Also assert `qc.compute(df_missing_tip_x)` raises `ValueError` whose message names `tip_x` explicitly. Maps to Requirement "QC tier input-validation boundary".
+
+- [ ] 2.A.8 Test `qc_compute_no_longer_raises_not_implemented_error`: mirror PR #2's precedent for `kinematics.compute`. Call `qc.compute(valid_trajectory_df)` with a 1-row valid input; assert return is a `pd.DataFrame` and no `NotImplementedError` is raised. Maps to MODIFIED Package layout scenario "`qc.compute` no longer raises NotImplementedError".
+
+- [ ] 2.A.9 Test `duplicate_track_id_frame_rows_do_not_raise`: build `trajectory_df` where the same `(track_id=0, frame=5)` 2-tuple appears in two rows (simulating an upstream join error); assert `qc.compute(df)` returns without raising. Trait values may be non-finite (inf or NaN) per the spec's documented non-goal. Maps to spec scenario "Duplicate `(track_id, frame)` rows do not raise".
+
+- [ ] 2.A.10 Test `inf_in_tip_x_propagates_without_raising`: build `trajectory_df` with one row having `tip_x = float('inf')`; assert `qc.compute(df)` returns without raising. The track's trait values may be `inf` or `NaN` (propagation-dependent). Maps to spec scenario "±inf in tip_x propagates without raising".
 
 ### 2.B — Synthetic exact-value tests (spec Requirement: QC tier per-track quality traits / scenarios)
 
@@ -43,9 +49,9 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
   - `track_is_clean == False`
   - `qc_failure_reason` contains `"growth_axis_unreliable"`
 
-- [ ] 2.B.4 Test `short_track_triggers_gate`: 3-frame track. Expected:
+- [ ] 2.B.4 Test `short_track_triggers_gate`: 3-frame track with non-zero displacement (e.g., `tip_x = [0.0, 1.0, 2.0]`, `tip_y = [0.0, 0.0, 0.0]`). Expected:
   - 8 numeric traits + 3 pairwise agreements all NaN
-  - `growth_axis_unreliable` value matches what Tier 0's logic would produce (for n=3 < SG_WINDOW_SHORT, `sg` returns NaN, gate disjunct collapses to `D == 0.0`)
+  - `growth_axis_unreliable` value matches what Tier 0's logic would produce. For n=3 the algorithm enters the full path (n ≥ 2, NOT the n<2 short-circuit), then `sg = _noise.compute_sg_residual_xy(...)` returns NaN because `len = 3 < SG_WINDOW_SHORT = 5` (helper's own short-input branch). Thus the gate evaluates `(D == 0.0) OR (not math.isnan(NaN) and ...)` = `(D == 0.0) OR False` = `D == 0.0`. For this non-zero-displacement track, `growth_axis_unreliable == False`. (Verifying the equality path matches `kinematics.py:218`.)
   - `track_is_clean == False`
   - `qc_failure_reason == "qc_inputs_insufficient"` (literally, NOT comma-concatenated with other clauses)
 
@@ -79,6 +85,26 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
 
 - [ ] 2.B.10 Test `nan_rows_dropped_before_diff`: 100-frame clean noisy track (per 2.B.2) with 10 random rows (`np.random.default_rng(2).choice(100, 10, replace=False)`) having `tip_x = NaN`. Expected: trait values match the no-NaN-row case within float tolerance. NaN-then-sort ordering invariant validated.
 
+- [ ] 2.B.11 Test `n_5_boundary_msd_returns_nan` (**load-bearing D8 case**): 5-frame straight-line-with-noise track (`tip_x = np.arange(5) + rng.normal(0, 1, 5)`, `tip_y = rng.normal(0, 1, 5)`). At exactly `len = SG_WINDOW_SHORT = 5`, the short-track gate does NOT fire (gate is `len < SG_WINDOW_SHORT`, strict less-than). Expected:
+  - `sg_residual_xy` finite (SG can run at len = window = 5)
+  - `d2_noise_xy` finite (d2 only needs len ≥ 3)
+  - `msd_noise_xy == NaN` (MSD needs len ≥ window + lag = 6; helper returns NaN + DEBUG log)
+  - `sg_d2_agreement` finite
+  - `sg_msd_agreement == NaN`, `d2_msd_agreement == NaN`
+  - `track_is_clean == False`
+  - `qc_failure_reason` contains BOTH `"sg_msd_agreement_high"` AND `"d2_msd_agreement_high"` (per design.md D8 final paragraph: "MSD may legitimately return NaN for a track of length exactly 5...this is expected: a 5-frame track has too few samples for the MSD method")
+  - DOES NOT contain `"qc_inputs_insufficient"` (the short-track gate doesn't fire at n=5)
+
+- [ ] 2.B.12 Test `n_6_boundary_all_estimators_finite`: 6-frame clean noisy track. At `len = SG_WINDOW_SHORT + lag = 6`, MSD's minimum is satisfied. Expected: all three noise estimators finite, all three pairwise agreements finite, no `*_high` clauses fire from estimator-NaN propagation (other clauses may or may not fire based on the actual values; assert agreements specifically are non-NaN).
+
+- [ ] 2.B.13 Test `empty_after_dropna_yields_qc_inputs_insufficient`: build `trajectory_df` for a single track where every row has `tip_x = NaN`. After dropna, `len(subset) == 0`. Expected:
+  - the returned DataFrame has 1 row for that track
+  - 8 numeric traits + 3 pairwise agreements all NaN
+  - `growth_axis_unreliable == False` (matches Tier 0's `_emit_nan_row` for the same case)
+  - `track_is_clean == False`
+  - `qc_failure_reason == "qc_inputs_insufficient"`
+  - No exception raised
+
 ### 2.C — Per-helper synthetic tests (spec Requirement: Tier 0 helper modules)
 
 - [ ] 2.C.1 Test `compute_sg_residual_xy_unchanged_by_pr3`: assert PR #2's existing SG-residual scenarios still pass (regression — confirm we didn't break the existing helper).
@@ -99,7 +125,7 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
 
 - [ ] 2.D.1 Test `pairwise_agreement_when_estimators_agree`: synthetic noisy track where all three estimators converge → all 3 agreements near 1.0 (∈ [1.0, 1.5]).
 
-- [ ] 2.D.2 Test `pairwise_agreement_when_one_estimator_is_nan`: track where SG returns valid but d2 returns NaN (impossible in practice but constructible by mocking) → `sg_d2_agreement` is NaN; both `sg_d2_agreement_high` AND `d2_msd_agreement_high` clauses fire.
+- [ ] 2.D.2 Test `pairwise_agreement_when_one_estimator_is_nan`: track where SG returns valid but d2 returns NaN (impossible in practice but constructible by mocking). Use `monkeypatch.setattr("sleap_roots.circumnutation._noise.compute_d2_residual_xy", lambda *a, **k: float("nan"))` to force d2 to return NaN regardless of input (matches the monkeypatch precedent in `test_circumnutation_kinematics.py:488-562`). With a clean noisy track input, expect: `sg_d2_agreement` is NaN; `d2_msd_agreement` is NaN; both corresponding `*_high` clauses fire; `qc_failure_reason` contains both.
 
 ### 2.E — `track_is_clean` + `qc_failure_reason` composition (spec Requirement: QC tier track_is_clean and qc_failure_reason composition)
 
@@ -127,9 +153,10 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
 
 ### 2.G — ConstantsT override parametric (spec Requirements: Module-level constants, QC tier per-track quality traits)
 
-- [ ] 2.G.1 Test parametrized over `(constant_name, override_value, expected_clause_in_reason)` for each of the 6 threshold constants. For each row, construct a synthetic track that puts the underlying trait at a value that crosses the default threshold, then call once with default constants (asserts clause fires) and once with `ConstantsT(<constant>=loose_value)` (asserts clause does NOT fire).
+- [ ] 2.G.1 Test parametrized over `(constant_name, override_value, expected_clause_in_reason)` for each of the 6 threshold constants. For each row, construct a synthetic track that puts the underlying trait at a value that crosses the default threshold, then call once with default constants (asserts clause fires) and once with `ConstantsT(<constant>=loose_value)` (asserts clause does NOT fire). The parametrize table SHALL include explicitly the spec scenario "ConstantsT override changes per-clause thresholds" pair: a track tuned so `sg_d2_agreement = 1.7`; default `SG_D2_AGREEMENT_MAX=1.5` fires `sg_d2_agreement_high`; override `ConstantsT(SG_D2_AGREEMENT_MAX=2.0)` suppresses it.
 - [ ] 2.G.2 Test `constants_snapshot_contains_4_new_keys`: call `_default_constants_snapshot()` and assert `FRAC_OUTLIER_STEPS_MAX`, `WORST_STEP_RATIO_MAX`, `SG_MSD_AGREEMENT_MAX`, `D2_MSD_AGREEMENT_MAX` are all present.
 - [ ] 2.G.3 Test `_CONSTANTS_VERSION_is_2`: assert `_constants._CONSTANTS_VERSION == 2`.
+- [ ] 2.G.4 Test `qc_compute_accepts_constants_kwarg`: assert `qc.compute(valid_trajectory_df, constants=ConstantsT())` returns a `pd.DataFrame` without raising `TypeError` or `NotImplementedError`. Closes the coverage gap left by §2.I.2 removing `qc` from `STUBS_WITH_CONSTANTS_KWARG` in the foundation test (after that removal, `test_stub_accepts_constants_kwarg` no longer covers `qc.compute`, but `qc.compute` is now an *implementation* that MUST accept the kwarg).
 
 ### 2.H — KitaakeX smoke + Nipponbare reference value test
 
@@ -137,7 +164,7 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
   - return is a DataFrame with exactly 6 rows + 19 columns
   - all 3 noise estimators finite for all 6 tracks
   - all 3 pairwise agreements finite
-  - explicit units sidecar validation: combine `default_units_for_template(template)` with `_QC_TRAIT_UNITS`; assert `all(u in PIPELINE_UNIT_VOCABULARY for u in units.values())`; round-trip via `_io.write_per_plant_csv` + read-back
+  - explicit units sidecar validation: combine `default_units_for_template(template)` with `_QC_TRAIT_UNITS`; assert `all(u in PIPELINE_UNIT_VOCABULARY for u in units.values())`; round-trip via `_io.write_per_plant_csv` to `tmp_path` + read-back the sidecar JSON via `_io.read_units_sidecar` AND explicitly assert that all 11 QC trait column names are keys in the read-back dict AND their values match `_QC_TRAIT_UNITS` (byte-for-byte unchanged, including non-ASCII `—`).
 
 - [ ] 2.H.2 Test `nipponbare_reference_values`: load `tests/data/circumnutation_nipponbare_plate_001/plate_001_greyscale.tracked_proofread.slp`; enrich (`plate_id="plate_001"`, `plant_id = track_id`, `genotype="Nipponbare"`, `treatment="MOCK"`); call `qc.compute(enriched_df)`. Assert per-track median values fall within tolerance ranges locked during impl (section 4.4 below):
 
@@ -149,7 +176,10 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
   - `median(per_track_sg_d2_agreement) ∈ [TODO_LOWER, TODO_UPPER]` — expected anchor near 1.46 but with looser tolerance because this is median-of-quotients (could differ by 10-20% from §7.6's quotient-of-medians value); ±25%
   - All 6 tracks: `growth_axis_unreliable == False` (Nipponbare is a healthy plate)
   - At least 5 of 6 tracks: `track_is_clean == True` (one outlier tolerated for population effects)
-  - Equality contract: `kinematics_result["growth_axis_unreliable"].equals(qc_result["growth_axis_unreliable"])` is True
+  - Equality contract — assert ALL of:
+    - `qc_result["growth_axis_unreliable"].dtype == np.dtype("bool")` (matches spec scenario "Equality on Nipponbare fixture")
+    - `kinematics_result["growth_axis_unreliable"].dtype == np.dtype("bool")`
+    - `(kinematics_result["growth_axis_unreliable"] == qc_result["growth_axis_unreliable"]).all()` is True (element-wise equal)
 
 ### 2.I — Foundation test migration (per spec Requirement: Package layout MODIFIED)
 
@@ -188,14 +218,15 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
   - helper `_emit_short_track_row(growth_axis_unreliable: bool) -> dict[str, Any]`: returns the NaN/sentinel row when short-track gate fires
   - helper `_compute_one_track(group: pd.DataFrame, constants: ConstantsT) -> dict[str, Any]`: implements D7 steps 1-9
   - helper `_compose_track_is_clean_and_reason(traits: dict, constants: ConstantsT) -> tuple[bool, str]`: implements the composition formula from spec Requirement "QC tier track_is_clean and qc_failure_reason composition"
-  - public `compute(trajectory_df, constants=None) -> pd.DataFrame`: input validation → resolve constants → build template → per-track loop via groupby → merge + re-select columns enforcing 19-column order
+  - public `compute(trajectory_df, constants=None) -> pd.DataFrame`: **drop the `=None` default on `trajectory_df`** (the current stub at `qc.py:20` uses `trajectory_df=None` so the foundation test's `fn()` invocation works against `NotImplementedError`; PR #2 removed it for `kinematics.compute` at `kinematics.py:307` and we mirror that). Input validation → resolve constants → build template → per-track loop via groupby → merge + re-select columns enforcing 19-column order
   - Google-style docstring per pydocstyle, naming all 11 emitted columns and their units. Include "Coordinate convention" / "Pure-pixel + cadence-independent emission" / "Composes with Tier 0" subsections matching kinematics.py's docstring style.
+  - **Docstring SHALL include a "Caveat: noiseless input" note**: *"Noiseless synthetic data (perfectly smooth trajectories) makes all three noise estimators return 0.0, which yields `0/0 = NaN` for all three pairwise agreements. Under NaN-comparison semantics this fires the three `*_agreement_high` clauses and `track_is_clean = False`. Real SLEAP-tracked data always carries ≳ 0.1 px quantization noise so this is benign in practice, but synthetic smoke tests should expect this behavior."* This is the documented edge case from test 2.B.1.
   - replace the existing `NotImplementedError("PR #3 — see docs/circumnutation/roadmap.md")` body with the working implementation
 
 - [ ] 4.2 Run `uv run pytest tests/test_circumnutation_qc.py -v` — all sections green except 2.H.2 (Nipponbare placeholders still `TODO_*`).
 
 - [ ] 4.3 Calibrate the Nipponbare tolerances:
-  - Run a one-off invocation: `uv run python -c "..."` to call `qc.compute` on the Nipponbare fixture; capture the per-track median values for `sg_residual_xy`, `d2_noise_xy`, `msd_noise_xy`, and the median of per-track `sg_d2_agreement`.
+  - Write a one-off script to `c:\vaults\sleap-roots\circumnutation\scripts\calibrate_qc_tolerances.py` (NOT `uv run python -c "..."` inline — PowerShell on Windows has unpredictable quoting behavior for multi-line `-c` arguments). The script loads the Nipponbare fixture, calls `qc.compute`, prints the per-track median values for `sg_residual_xy`, `d2_noise_xy`, `msd_noise_xy`, and the median of per-track `sg_d2_agreement`. Run via `uv run python c:\vaults\sleap-roots\circumnutation\scripts\calibrate_qc_tolerances.py`.
   - **Sanity floor**: assert the captured `median(per_track_sg_residual_xy)` falls within ±50% of the prelim §4.2 anchor of 1.83 px; similarly for d2 vs 2.67 px. If either differs by more than ±50%, STOP and investigate before locking — would indicate impl bug.
   - **Once sanity-floor passes**: write the captured values as `value ± 20%` (medians) and `value ± 25%` (sg_d2_agreement which is more variable as median-of-quotients) into test 2.H.2. Replace `TODO_*` placeholders with concrete numeric bounds.
   - Re-run test 2.H.2 — green.
@@ -227,16 +258,17 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
 - [ ] 6.6 Run `uv run pydocstyle --convention=google sleap_roots/` — passes.
 - [ ] 6.7 Run `uv run mkdocs build` — passes; `qc.compute` doc page renders.
 - [ ] 6.8 Run `openspec validate add-circumnutation-qc-tier --strict` — valid.
-- [ ] 6.9 Parametrize-id sanity check: confirm `test_stub_callable_raises_with_correct_pr` now collects 8 parametrize cases (was 9), `test_stub_module_imports_cleanly` collects 8 (was 9), and `test_stub_accepts_constants_kwarg` collects 5 (was 6). Mention the expected pytest collection delta in the PR description.
+- [ ] 6.9 Parametrize-id sanity check: confirm `test_stub_callable_raises_with_correct_pr` now collects 8 parametrize cases (was 9), `test_stub_module_imports_cleanly` collects 8 (was 9), and `test_stub_accepts_constants_kwarg` collects 5 (was 6). For `test_module_logger_is_namespaced` the count is **net-zero (was 15, still 15)**: §2.I.1 removes `qc` from STUB_MODULES (one fewer there) but §2.I.3 adds `qc`, `_noise`, `_geometry` to the contract-module list — net `9+6 = 15 → 8+7 = 15` (the +1 to the contract list is `qc`; `_noise` and `_geometry` were already in the contract list from PR #2 per the test convention). Mention the expected pytest collection deltas in the PR description.
 
 ## 7. PR open
 
 - [ ] 7.1 Draft GitHub issue body to `c:\vaults\sleap-roots\circumnutation\github_issues\issue_add-circumnutation-qc-tier.md` referencing epic #197, OpenSpec change-id, theory.md §7.6, prelim §3.3 / §4.2, CC-2/CC-3/CC-5/CC-9/CC-10. Show Elizabeth before posting (do NOT post unilaterally).
-- [ ] 7.2 Draft 3 follow-up issue bodies to `c:\vaults\sleap-roots\circumnutation\github_issues\`:
+- [ ] 7.2 Draft 4 follow-up issue bodies to `c:\vaults\sleap-roots\circumnutation\github_issues\`:
   - `issue_pairwise_agreement_threshold_validation.md` (Issue α — design.md follow-up cluster 1)
   - `issue_outlier_step_threshold_validation.md` (Issue β — cluster 2)
   - `issue_msd_lag_selection.md` (Issue γ — cluster 3)
-  - Each issue body: (a) references epic #197 + this PR's design.md; (b) describes the experimental design (fixtures + sweep + success criteria); (c) notes the relevant constants are `ConstantsT`-overridable.
+  - `issue_qc_inf_input_detection.md` (Issue δ — `±inf` input detection for `qc.compute`. Raised by `/openspec-review` scientific-rigor reviewer: the pathological case where >50% of step magnitudes are `inf` lets `frac_outlier_steps` silently pass at 0.0 because `median = inf` and `inf > 2 * inf == False`. Proposal: extend `qc.compute` to detect non-finite `tip_x`/`tip_y` inputs and either fire a dedicated `non_finite_inputs` clause in `qc_failure_reason` or warn at the `_types._validate_trajectory_df` boundary. Out of scope for PR #3 because it would require either (i) extending the foundation validator (cross-tier impact) or (ii) adding a per-row finiteness scan in `qc.py` (changes the public API contract about ±inf propagation). Defer to a follow-up PR. Issue body should describe both options and request triage input.)
+  - Each issue body: (a) references epic #197 + this PR's design.md; (b) describes the experimental design or proposal (fixtures + sweep + success criteria for α/β/γ; option-A/option-B trade-off for δ); (c) notes the relevant constants are `ConstantsT`-overridable (α/β/γ) or that the API contract change scope is the blocker (δ).
 - [ ] 7.3 Open PR with title "feat(circumnutation): QC tier per-track quality traits (#<sub-issue>)" and a body cross-linking the epic, sub-issue, OpenSpec change-id, and design.md. Labels: `enhancement`, `circumnutation`, `multi-pr`. Body matches `.claude/commands/pr-description.md` template.
 - [ ] 7.4 Push the branch. Confirm CI is green on Ubuntu / Windows / macOS at Python 3.11.
 

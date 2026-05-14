@@ -167,6 +167,45 @@ Both modules SHALL declare module-level loggers via `logger = logging.getLogger(
 - **THEN** the return is an empty 1-D array (`shape == (0,)`)
 - **AND** no exception is raised
 
+### Requirement: Growth-axis reliability gate
+For each track, the system SHALL compute net displacement `D = ‖xy[-1] − xy[0]‖` (in pixels) and a local SG-residual noise estimate via `_noise.compute_sg_residual_xy(x, y, window=constants.SG_WINDOW_SHORT, degree=constants.SG_DEGREE)`. It SHALL set `growth_axis_unreliable = (D < constants.GROWTH_AXIS_RELIABILITY_K * sg_residual_xy_local)` — strict less-than. The threshold multiplier is configurable via `ConstantsT.GROWTH_AXIS_RELIABILITY_K` with documented default `10`.
+
+When `growth_axis_unreliable == True`, the 6 rotation-dependent trait columns (`v_long_signed_median_px_per_frame`, `v_long_abs_median_px_per_frame`, `v_lat_signed_median_px_per_frame`, `v_lat_abs_median_px_per_frame`, `long_lat_ratio`, `principal_axis_angle`) SHALL be set to `NaN`. The 3 rotation-invariant traits (`v_total_median_px_per_frame`, `path_displacement_ratio`, `angular_amplitude`) SHALL NOT be NaN'd by the gate (they may still be NaN for other documented reasons — e.g. `path_displacement_ratio` when `D == 0`, or all traits when fewer than 2 valid frames).
+
+Both the Tier 0 module AND the QC tier module SHALL emit the `growth_axis_unreliable` column on their respective per-plant trait DataFrames. The two emissions SHALL be element-wise equal as `bool` dtype by construction, because both tiers compute the flag via the same formula on the same inputs through the shared `_noise.compute_sg_residual_xy` helper after applying the same `xy = subset[["tip_x","tip_y"]].to_numpy(dtype=float)` cast. PR #14 pipeline composition MAY coalesce or drop one column (either choice is safe because they are equal). This rule SUPERSEDES the previous "sole emitter" wording from PR #2 (rationale: QC's standalone usefulness requires the bool column for downstream `df[~df.growth_axis_unreliable]` filtering — see PR #3 design.md D5). The equality contract is governed by Requirement: QC tier growth_axis_unreliable equality with Tier 0.
+
+The local SG residual computation SHALL use the same `_noise.compute_sg_residual_xy` helper that the QC tier uses to emit the canonical `sg_residual_xy` trait, so the gate value and the canonical trait are guaranteed-identical from identical inputs.
+
+#### Scenario: Gate fires below threshold
+- **GIVEN** a trajectory_df constructed via the dual-recipe pattern documented in "ConstantsT override changes the gate threshold" — `D = 5 px` paired with a known/fixed `sg_residual = 1.0 px` (either via `monkeypatch` of `_noise.compute_sg_residual_xy` or via a smooth-line-plus-σ=0.7-noise construction)
+- **WHEN** `kinematics.compute(trajectory_df)` is called (default `GROWTH_AXIS_RELIABILITY_K=10`)
+- **THEN** `growth_axis_unreliable == True`
+- **AND** the 6 rotation-dependent columns are NaN
+
+#### Scenario: Gate does not fire above threshold
+- **GIVEN** a trajectory_df constructed via the same dual-recipe pattern — `D = 100 px` paired with a fixed `sg_residual = 1.0 px`
+- **WHEN** `kinematics.compute(trajectory_df)` is called (default K=10)
+- **THEN** `growth_axis_unreliable == False`
+- **AND** the 6 rotation-dependent columns carry finite (non-NaN) values
+
+#### Scenario: Gate threshold is strict less-than at boundary
+- **GIVEN** a trajectory_df with `D = 10.0` and SG residual fixed to `1.0` (via monkeypatch as in the dual-recipe pattern), at the exact boundary `D == K * residual`
+- **WHEN** `kinematics.compute(trajectory_df)` is called (K=10)
+- **THEN** `growth_axis_unreliable == False` (strict less-than per the spec — at equality, the axis is judged reliable)
+
+#### Scenario: Rotation-invariant traits survive the gate
+- **GIVEN** any trajectory_df where the gate fires (`growth_axis_unreliable == True`)
+- **WHEN** `kinematics.compute(trajectory_df)` is called
+- **THEN** `v_total_median_px_per_frame`, `path_displacement_ratio`, and `angular_amplitude` are NOT set to NaN by the gate
+- **AND** they are finite values reflecting the actual track kinematics
+
+#### Scenario: Both tiers emit the column with equal values
+- **GIVEN** a valid `trajectory_df` (any synthetic or real fixture)
+- **WHEN** both `kinematics.compute(df)` and `qc.compute(df)` are invoked with default constants
+- **THEN** both returned DataFrames contain a `growth_axis_unreliable` column
+- **AND** both columns are `bool` dtype with no NaN values
+- **AND** the two columns are element-wise equal (`(kinematics_result["growth_axis_unreliable"] == qc_result["growth_axis_unreliable"]).all()` is True)
+
 ## ADDED Requirements
 
 ### Requirement: QC tier per-track quality traits
@@ -314,7 +353,7 @@ _FAILURE_CLAUSE_ORDER: tuple = (
 - **AND** `track_is_clean == False`
 
 #### Scenario: Multiple clause failures → comma-separated reason in stable order
-- **GIVEN** a track where `growth_axis_unreliable == True` AND `sg_d2_agreement == 1.7 > 1.5` AND `frac_outlier_steps == 0.10 > 0.05`
+- **GIVEN** a track constructed to fire three clauses simultaneously. Construction recipe (parallel to PR #2's dual-recipe pattern): take a 30-frame track with `tip_x = np.random.default_rng(0).normal(0, 1, 30)`, `tip_y = np.random.default_rng(1).normal(0, 1, 30)` (pure-noise, no growth → `growth_axis_unreliable=True`); inject 4 outlier frames (`tip_x[10:14] = 100`) so `frac_outlier_steps > 0.05`; the noise structure + outliers also pushes `sg_d2_agreement` above 1.5. Equivalent monkeypatch alternative: `monkeypatch.setattr("sleap_roots.circumnutation._noise.compute_d2_residual_xy", lambda *a, **k: 1.7 * sg_value)` to force exactly `sg_d2_agreement = 1.7`.
 - **WHEN** `qc.compute(trajectory_df)` is called
 - **THEN** `qc_failure_reason == "growth_axis_unreliable, sg_d2_agreement_high, frac_outlier_steps_high"` (clauses in `_FAILURE_CLAUSE_ORDER` order)
 
@@ -330,7 +369,7 @@ _FAILURE_CLAUSE_ORDER: tuple = (
 - **AND** when called with default constants (`WORST_STEP_RATIO_MAX=5`), it DOES appear
 
 ### Requirement: QC tier growth_axis_unreliable equality with Tier 0
-The system SHALL emit `growth_axis_unreliable` as a column of the QC tier per-plant DataFrame, with values numerically identical (bit-for-bit equal under IEEE float semantics) to the same column emitted by Tier 0's `kinematics.compute` on the same `trajectory_df` input. The equality is by construction: both tiers compute the flag via `(D == 0.0) or (not math.isnan(sg_residual) and D < constants.GROWTH_AXIS_RELIABILITY_K * sg_residual)` where `sg_residual = _noise.compute_sg_residual_xy(xy[:,0], xy[:,1], window=constants.SG_WINDOW_SHORT, degree=constants.SG_DEGREE)`, `D = float(np.linalg.norm(xy[-1] - xy[0]))`, and `xy = subset[["tip_x", "tip_y"]].to_numpy(dtype=float)` after the same NaN-drop and sort-by-frame.
+The system SHALL emit `growth_axis_unreliable` as a column of the QC tier per-plant DataFrame, with values element-wise equal as `bool` dtype to the same column emitted by Tier 0's `kinematics.compute` on the same `trajectory_df` input. The equality is by construction: both tiers compute the flag via `(D == 0.0) or (not math.isnan(sg_residual) and D < constants.GROWTH_AXIS_RELIABILITY_K * sg_residual)` where `sg_residual = _noise.compute_sg_residual_xy(xy[:,0], xy[:,1], window=constants.SG_WINDOW_SHORT, degree=constants.SG_DEGREE)`, `D = float(np.linalg.norm(xy[-1] - xy[0]))`, and `xy = subset[["tip_x", "tip_y"]].to_numpy(dtype=float)` after the same NaN-drop and sort-by-frame.
 
 The column SHALL be `bool` dtype (no NaN values) in BOTH outputs — tracks where the computation is degenerate (`len < 2` after dropna) SHALL emit `False`, matching Tier 0's `_emit_nan_row` precedent.
 
