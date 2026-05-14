@@ -25,12 +25,13 @@ import pytest
 
 # NOTE: `kinematics` was removed from STUB_MODULES in PR #2 (OpenSpec change
 # add-circumnutation-tier0-kinematics) — it is now an implementation module,
-# not a stub. The MODIFIED Package layout requirement in that change reduces
-# the stub count from 10 to 9. The contract-module list in
+# not a stub. `qc` was removed in PR #3 (add-circumnutation-qc-tier) for the
+# same reason. The MODIFIED Package layout requirement in PR #3 reduces the
+# stub count from 9 to 8. The contract-module list in
 # `test_module_logger_is_namespaced` was extended to include `kinematics`,
-# `_noise`, and `_geometry` so the logger-namespace contract still covers them.
+# `_noise`, `_geometry` (PR #2) and `qc` (PR #3) so the logger-namespace
+# contract still covers them as implementation modules.
 STUB_MODULES = [
-    ("qc", "compute", 3),
     ("synthetic", "generate_trajectory", 4),
     ("temporal_cwt", "compute_scaleogram", 5),
     ("psi_g", "compute_psi_g", 7),
@@ -200,14 +201,14 @@ def test_valid_unit_vocabulary_is_union_of_pipeline_and_converted():
     assert VALID_UNIT_VOCABULARY == PIPELINE_UNIT_VOCABULARY | CONVERTED_UNIT_VOCABULARY
 
 
-def test_schema_and_constants_versions_are_integers_equal_to_one():
-    """`_SCHEMA_VERSION` and `_CONSTANTS_VERSION` exist as integers equal to 1."""
+def test_schema_version_is_1_and_constants_version_is_2():
+    """`_SCHEMA_VERSION` is 1 (PR #1); `_CONSTANTS_VERSION` is 2 (bumped in PR #3)."""
     from sleap_roots.circumnutation import _constants
 
     assert isinstance(_constants._SCHEMA_VERSION, int)
     assert _constants._SCHEMA_VERSION == 1
     assert isinstance(_constants._CONSTANTS_VERSION, int)
-    assert _constants._CONSTANTS_VERSION == 1
+    assert _constants._CONSTANTS_VERSION == 2
 
 
 # ---------------------------------------------------------------------------
@@ -739,6 +740,8 @@ def test_constants_snapshot_reflects_override():
         "kinematics",
         "_noise",
         "_geometry",
+        # Added in PR #3: qc (now an implementation module, not a stub).
+        "qc",
     ],
 )
 def test_module_logger_is_namespaced(module_name):
@@ -805,10 +808,10 @@ def test_convert_to_mm_inf_rejected(bad):
 
 # NOTE: `kinematics` was removed in PR #2 — it is now an implementation
 # module and no longer raises NotImplementedError when called with
-# `constants=...`. Its `constants=None` parameter contract is preserved
-# (and exercised by the kinematics test file).
+# `constants=...`. `qc` was removed in PR #3 for the same reason. Their
+# `constants=None` parameter contracts are preserved (and exercised in
+# the tier-specific test files).
 STUBS_WITH_CONSTANTS_KWARG = [
-    ("qc", "compute"),
     ("temporal_cwt", "compute_scaleogram"),
     ("psi_g", "compute_psi_g"),
     ("midline", "reconstruct"),

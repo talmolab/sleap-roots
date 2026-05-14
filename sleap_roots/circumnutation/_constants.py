@@ -28,8 +28,14 @@ logger = logging.getLogger(__name__)
 _SCHEMA_VERSION: int = 1
 """Bumped when the per-plant CSV row-identity columns or sidecar JSON shapes change."""
 
-_CONSTANTS_VERSION: int = 1
-"""Bumped when any default in this module changes."""
+_CONSTANTS_VERSION: int = 2
+"""Bumped when any default in this module changes.
+
+PR #3 (``add-circumnutation-qc-tier``) bumped this 1 → 2 by adding four
+new QC-tier threshold constants (``FRAC_OUTLIER_STEPS_MAX``,
+``WORST_STEP_RATIO_MAX``, ``SG_MSD_AGREEMENT_MAX``, ``D2_MSD_AGREEMENT_MAX``)
+to the overridable defaults set.
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -47,6 +53,22 @@ NYQUIST_RATIO_MAX: float = 0.25
 
 SG_D2_AGREEMENT_MAX: float = 1.5
 """Pairwise agreement threshold between SG and second-difference noise estimators (theory.md §7.6)."""
+
+SG_MSD_AGREEMENT_MAX: float = 1.5
+"""Pairwise agreement threshold between SG and MSD-extrapolation noise estimators (roadmap.md CC-10).
+
+Inherited from :data:`SG_D2_AGREEMENT_MAX`; CC-10 specifies all three
+pairwise agreements share the same default threshold. Empirical
+validation of whether the three thresholds should diverge is tracked in
+GitHub Issue α (PR #3 follow-up).
+"""
+
+D2_MSD_AGREEMENT_MAX: float = 1.5
+"""Pairwise agreement threshold between d2 and MSD-extrapolation noise estimators (roadmap.md CC-10).
+
+Inherited from :data:`SG_D2_AGREEMENT_MAX`; see :data:`SG_MSD_AGREEMENT_MAX`
+for the rationale and empirical-validation follow-up.
+"""
 
 LGZ_NMIN_RESOLVABLE: int = 5
 """Minimum number of trail frames within the growth zone for L_gz peak resolvability (theory.md §6.4)."""
@@ -89,6 +111,19 @@ SG_WINDOW_DETREND: int = 23
 
 OUTLIER_STEP_RATIO: float = 2
 """Multiplier of median-step-magnitude above which a frame is flagged outlier (preliminary_results.md §4.1)."""
+
+FRAC_OUTLIER_STEPS_MAX: float = 0.05
+"""Threshold on the fraction of per-frame steps exceeding :data:`OUTLIER_STEP_RATIO` * median (theory.md §7.6 clean-track clause).
+
+Used by the QC tier's ``track_is_clean`` composite. Empirical validation
+of this default is tracked in GitHub Issue β (PR #3 follow-up).
+"""
+
+WORST_STEP_RATIO_MAX: float = 5
+"""Threshold on the max-step / median-step ratio for the QC tier's ``track_is_clean`` clause (theory.md §7.6).
+
+Empirical validation tracked in GitHub Issue β (PR #3 follow-up).
+"""
 
 GROWTH_AXIS_RELIABILITY_K: float = 10
 """Net displacement / SG-residual ratio below which growth-axis is flagged unreliable (roadmap.md CC-5)."""
@@ -203,6 +238,8 @@ class ConstantsT:
     LGZ_STEADY_STATE_RESIDUAL_MAX: float = LGZ_STEADY_STATE_RESIDUAL_MAX
     NYQUIST_RATIO_MAX: float = NYQUIST_RATIO_MAX
     SG_D2_AGREEMENT_MAX: float = SG_D2_AGREEMENT_MAX
+    SG_MSD_AGREEMENT_MAX: float = SG_MSD_AGREEMENT_MAX
+    D2_MSD_AGREEMENT_MAX: float = D2_MSD_AGREEMENT_MAX
     LGZ_NMIN_RESOLVABLE: int = LGZ_NMIN_RESOLVABLE
     COI_FRACTION_MAX: float = COI_FRACTION_MAX
     BAND_POWER_NOISE_RATIO: float = BAND_POWER_NOISE_RATIO
@@ -212,6 +249,8 @@ class ConstantsT:
     SG_DEGREE: int = SG_DEGREE
     SG_WINDOW_DETREND: int = SG_WINDOW_DETREND
     OUTLIER_STEP_RATIO: float = OUTLIER_STEP_RATIO
+    FRAC_OUTLIER_STEPS_MAX: float = FRAC_OUTLIER_STEPS_MAX
+    WORST_STEP_RATIO_MAX: float = WORST_STEP_RATIO_MAX
     GROWTH_AXIS_RELIABILITY_K: float = GROWTH_AXIS_RELIABILITY_K
 
 
@@ -230,6 +269,8 @@ def _default_constants_snapshot() -> dict:
         "LGZ_STEADY_STATE_RESIDUAL_MAX": LGZ_STEADY_STATE_RESIDUAL_MAX,
         "NYQUIST_RATIO_MAX": NYQUIST_RATIO_MAX,
         "SG_D2_AGREEMENT_MAX": SG_D2_AGREEMENT_MAX,
+        "SG_MSD_AGREEMENT_MAX": SG_MSD_AGREEMENT_MAX,
+        "D2_MSD_AGREEMENT_MAX": D2_MSD_AGREEMENT_MAX,
         "LGZ_NMIN_RESOLVABLE": LGZ_NMIN_RESOLVABLE,
         "COI_FRACTION_MAX": COI_FRACTION_MAX,
         "BAND_POWER_NOISE_RATIO": BAND_POWER_NOISE_RATIO,
@@ -239,5 +280,7 @@ def _default_constants_snapshot() -> dict:
         "SG_DEGREE": SG_DEGREE,
         "SG_WINDOW_DETREND": SG_WINDOW_DETREND,
         "OUTLIER_STEP_RATIO": OUTLIER_STEP_RATIO,
+        "FRAC_OUTLIER_STEPS_MAX": FRAC_OUTLIER_STEPS_MAX,
+        "WORST_STEP_RATIO_MAX": WORST_STEP_RATIO_MAX,
         "GROWTH_AXIS_RELIABILITY_K": GROWTH_AXIS_RELIABILITY_K,
     }
