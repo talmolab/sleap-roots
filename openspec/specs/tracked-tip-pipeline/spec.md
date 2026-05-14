@@ -29,6 +29,8 @@ A new method `Series.get_tracked_tips(self, root_type: Optional[Literal["primary
 - The `tip_x` and `tip_y` values MUST come from `inst.numpy()[-1]` for each instance — the LAST node of the skeleton, by SLEAP convention. This applies to single-node skeletons (e.g. `['r0']`) and multi-node skeletons (e.g. `['base', 'mid', 'tip']`) identically.
 - The method MUST iterate per-instance (not by stacking `inst.numpy()` arrays per frame). Tracker output does NOT preserve positional ordering across frames; the implementation MUST read `inst.track.name` per instance individually.
 - Untracked instances (`inst.track is None` or `inst.track.name` empty/None/falsy) MUST cause the method to raise `ValueError` whose message contains the offending frame index AND the URL `https://sleap.ai/tutorials/tracking.html` (or the closest supported sleap.ai documentation URL — whichever is canonical at the time).
+- **(Added in PR #2)** On proofread `.slp` files, where SLEAP retains both the `PredictedInstance` (the tracker's prediction; `score` is a float) and the user-corrected `Instance` (`score` is `None`) for the same `(frame_idx, track.name)`, the method MUST keep ONLY the user-corrected `Instance` and drop the `PredictedInstance`. This honors the prelim §3.1 convention: *"Where an `instance_type=0` (user-corrected) and `instance_type=1` (predicted) instance exist for the same frame and track, the user-corrected value takes precedence."* The dedup MUST use `isinstance(inst, Instance) and not isinstance(inst, PredictedInstance)` as the test for user-corrected (`PredictedInstance` subclasses `Instance` in `sleap_io`, so the negative `isinstance(_, PredictedInstance)` is required to distinguish them).
+- **(Added in PR #2)** Other duplicate patterns are NOT collapsed: two `PredictedInstance` instances for the same `(track_id, frame_idx)` (rare buggy tracker output) remain as two rows in the returned DataFrame; two user-corrected `Instance` instances for the same `(track_id, frame_idx)` (rare proofreader pathology) remain as two rows. Only the predicted-with-user-correction pattern is deduplicated. This preserves the existing per-track-summary dedup contract documented by `tests/test_tracked_tip_pipeline.py` §6.14 (where `TrackedTipPipeline` exercises the case of two user-corrected instances at the same frame and expects `len(trajectories) == 2` while `n_frames_tracked == 1`).
 
 #### Scenario: Returns long-format DataFrame with expected columns
 
@@ -85,6 +87,35 @@ A new method `Series.get_tracked_tips(self, root_type: Optional[Literal["primary
 - **Given** a tracked .slp whose skeleton has 3 nodes named `['base', 'mid', 'tip']` and one tracked instance per frame
 - **When** `series.get_tracked_tips()` is called
 - **Then** the returned `tip_x` / `tip_y` values equal the LAST-node coordinates (`inst.numpy()[-1]`), NOT the base or mid coordinates
+
+#### Scenario: Proofread `.slp` — PredictedInstance with user-corrected Instance for same (track, frame) collapses to one row
+
+- **Given** a proofread `.slp` (e.g. the Nipponbare plate 001 fixture at `tests/data/circumnutation_nipponbare_plate_001/plate_001_greyscale.tracked_proofread.slp`) where every frame the user manually corrected retains BOTH a `PredictedInstance` (tracker's prediction; `score`=float) AND a user-corrected `Instance` (`score`=None) for the same `(track.name, frame_idx)`
+- **When** `series.get_tracked_tips()` is called
+- **Then** the returned DataFrame contains exactly ONE row per `(track_id, frame_idx)` 2-tuple (no duplicates)
+- **And** for each `(track_id, frame_idx)` where both instance types coexisted, the `tip_x`/`tip_y` values equal the user-corrected `Instance`'s `inst.numpy()[-1]`, NOT the `PredictedInstance`'s
+- **And** for the Nipponbare fixture specifically: `len(df) == 3450` (6 tracks × 575 frames, no duplicates) and `df.duplicated(subset=["track_id", "frame"]).sum() == 0`
+
+#### Scenario: Non-proofread `.slp` — dedup is a no-op
+
+- **Given** a tracked `.slp` where ALL instances are `PredictedInstance` (no user corrections; e.g. the existing KitaakeX fixture at `tests/data/circumnutation_plate/plate_001_greyscale.tracked.slp`)
+- **When** `series.get_tracked_tips()` is called
+- **Then** the returned row count equals the row count under the pre-dedup behavior (the dedup logic finds no PredictedInstance-with-user-correction pairs to collapse)
+- **And** `df.duplicated(subset=["track_id", "frame"]).sum() == 0` (vacuously satisfied)
+- **And** for the KitaakeX fixture specifically: `len(df) == 1866` (311 frames × 6 tracks)
+
+#### Scenario: Two PredictedInstance for same (track, frame) — NOT collapsed
+
+- **Given** a tracked `.slp` containing pathological duplicate `PredictedInstance` rows for the same `(track.name, frame_idx)` (rare buggy-tracker output)
+- **When** `series.get_tracked_tips()` is called
+- **Then** both rows appear in the returned DataFrame — the dedup logic only addresses the predicted-with-user-correction pattern; same-type duplicates are preserved for downstream debugging visibility
+
+#### Scenario: Two user-corrected Instance for same (track, frame) — NOT collapsed
+
+- **Given** a tracked `.slp` containing pathological duplicate user-corrected `Instance` rows for the same `(track.name, frame_idx)` (rare proofreader pathology)
+- **When** `series.get_tracked_tips()` is called
+- **Then** both rows appear in the returned DataFrame
+- **And** the existing `TrackedTipPipeline` per-track summary contract (tested at `tests/test_tracked_tip_pipeline.py` §6.14: `len(trajectories) == 2` while `n_frames_tracked == 1`) remains intact
 
 ### Requirement: `validate_tracked_slp` SHALL validate a .slp path
 
