@@ -3218,6 +3218,9 @@
 <h2 id="7-trait-specification">7. Trait specification<a class="headerlink" href="#7-trait-specification" title="Permanent link">&para;</a></h2>
 <p>Each trait has: symbol, units, computation source, calibration flag, and literature anchor.</p>
 <h3 id="71-tier-0-raw-kinematics">7.1 Tier 0 — Raw kinematics<a class="headerlink" href="#71-tier-0-raw-kinematics" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p>⚙ <strong>Units annotation (post-conversion):</strong> under the pure-pixel pipeline convention (§2.3 / CC-3), the velocity traits are emitted by <code>sleap_roots.circumnutation.kinematics.compute</code> in <code>px/frame</code> units. The <code>mm/hr</code> annotation in the Units column below is the <em>post-conversion</em> form, produced downstream by composing <code>sleap_roots.circumnutation.units.convert_to_mm()</code> (PR #1 foundation) and a future <code>convert_to_per_hour()</code> utility on the trait DataFrame. The pipeline itself emits column names with the <code>_px_per_frame</code> suffix (e.g., <code>v_total_median_px_per_frame</code>); the table below uses the short form for readability.</p>
+</blockquote>
 <table>
 <thead>
 <tr>
@@ -3231,44 +3234,62 @@
 <tr>
 <td><code>v_total_median</code></td>
 <td>mm/hr <code>[mm]</code></td>
-<td>Median per-frame total tip step magnitude × frames/hr × px-to-mm</td>
+<td>Median per-frame total tip step magnitude (magnitude — always ≥ 0). Rotation-invariant; survives the growth-axis reliability gate.</td>
 <td>This doc §1; Rivière 2022 §"Characterizing nutation" for context</td>
 </tr>
 <tr>
-<td><code>v_long_median</code></td>
+<td><code>v_long_signed_median</code></td>
 <td>mm/hr <code>[mm]</code></td>
-<td>Same, projected onto principal-axis longitudinal direction</td>
+<td>Signed median of per-frame longitudinal projection <code>Δ_long_i = Δxy_i · û_g</code>. Typically &gt; 0 for a growing plant, ~0 for pure jitter, &lt; 0 for a retracting plant. Rotation-dependent; NaN'd when growth axis is unreliable.</td>
+<td>This doc §2.1, §3.2 (prelim)</td>
+</tr>
+<tr>
+<td><code>v_long_abs_median</code></td>
+<td>mm/hr <code>[mm]</code></td>
+<td>Absolute median of per-frame longitudinal projection. Always ≥ 0. Rotation-dependent.</td>
 <td>This doc §2.1</td>
 </tr>
 <tr>
-<td><code>v_lat_median</code></td>
+<td><code>v_lat_signed_median</code></td>
 <td>mm/hr <code>[mm]</code></td>
-<td>Same, projected onto perpendicular lateral direction</td>
+<td>Signed median of per-frame lateral projection <code>Δ_lat_i = Δxy_i · û_lat</code>. Expected ≈ 0 by symmetry around the growth axis (itself a sanity check on the axis estimate). Rotation-dependent.</td>
+<td>This doc §2.1</td>
+</tr>
+<tr>
+<td><code>v_lat_abs_median</code></td>
+<td>mm/hr <code>[mm]</code></td>
+<td>Absolute median of per-frame lateral projection. Always ≥ 0. Rotation-dependent.</td>
 <td>This doc §2.1</td>
 </tr>
 <tr>
 <td><code>long_lat_ratio</code></td>
 <td>— <code>[—]</code></td>
-<td><code>v_long_median / v_lat_median</code></td>
-<td>This doc §1 reference data; intuition: ratio ≈ 1 means strong nutation, ratio ≫ 1 means weak</td>
+<td><code>v_long_abs_median / v_lat_abs_median</code>; uses <strong>abs</strong> versions (the ratio of signed quantities is dominated by the near-zero signed-lateral denominator and is rarely meaningful). NaN when <code>v_lat_abs_median = 0</code>. Intuition: ratio ≈ 1 means strong nutation, ratio ≫ 1 means weak. Rotation-dependent.</td>
+<td>This doc §1 reference data</td>
 </tr>
 <tr>
 <td><code>path_displacement_ratio</code></td>
 <td>— <code>[—]</code></td>
-<td>Total path length / net base-to-end displacement</td>
+<td>Total path length <code>L</code> / net base-to-end displacement <code>D</code>. NaN when <code>D = 0</code> exactly (closed loop). Rotation-invariant; survives the gate.</td>
 <td>This doc §1; rice 1.36 reference</td>
 </tr>
 <tr>
 <td><code>angular_amplitude</code></td>
 <td>rad <code>[—]</code></td>
-<td><span class="arithmatex">\(\Delta\phi\)</span>, peak-to-peak angular extent of <span class="arithmatex">\(\psi_g(t)\)</span></td>
-<td>Rivière 2022 Eq. 1</td>
+<td><span class="arithmatex">\(\Delta\phi\)</span>, peak-to-peak angular extent of the unwrapped velocity-direction time series <code>ψ_g(t)</code> per Bastien-Meroz 2016 Eq. 20 / §3.5: <code>max(ψ_g) − min(ψ_g)</code>. <strong>Rotation-invariant under offset AND sign-flip</strong> of ψ_g, so the trait's value is INDEPENDENT of the <code>atan2</code> argument-order convention. Survives the gate.</td>
+<td>Rivière 2022 Eq. 1; Bastien-Meroz 2016 §3.5</td>
 </tr>
 <tr>
 <td><code>principal_axis_angle</code></td>
 <td>rad <code>[—]</code></td>
-<td>Angle of growth axis in image frame</td>
+<td>Image-frame angle of the growth axis via STANDARD math <code>atan2(y_N − y_1, x_N − x_1)</code>. NOT the same as ψ_g (different formula, different quantity, different convention — see §3.5 for the ψ_g convention warning). Under image-y-down (§2.1), a root growing image-down reads as <code>+π/2</code>. Rotation-dependent.</td>
 <td>Internal; rotation-invariance support</td>
+</tr>
+<tr>
+<td><code>growth_axis_unreliable</code></td>
+<td>bool <code>[—]</code></td>
+<td>True iff <code>D &lt; GROWTH_AXIS_RELIABILITY_K × sg_residual_xy_local</code> (default <code>K = 10</code>); when True, Tier 0 NaN's the 6 rotation-dependent traits above. <strong>Emitted by Tier 0 (PR #2), composed but not re-emitted by QC tier (PR #3).</strong> See <code>openspec/changes/archive/.../add-circumnutation-tier0-kinematics/design.md</code> D2 for the cross-tier ownership rationale.</td>
+<td><code>roadmap.md</code> CC-5; this PR's design D2</td>
 </tr>
 </tbody>
 </table>
@@ -3463,6 +3484,7 @@
 </tbody>
 </table>
 <h3 id="76-qc-tier-runs-unconditionally">7.6 QC tier (runs unconditionally)<a class="headerlink" href="#76-qc-tier-runs-unconditionally" title="Permanent link">&para;</a></h3>
+<p><strong>Cross-tier ownership note (added with PR #2):</strong> the <code>growth_axis_unreliable</code> flag (see §7.1) is emitted by Tier 0 (PR #2), not by the QC tier. PR #3's QC implementation SHALL compose with this flag (e.g., as a clause in a composite <code>track_is_clean</code> QC trait below) but SHALL NOT re-emit a duplicate <code>growth_axis_unreliable</code> column — each trait is emitted by exactly one tier. The flag's value depends on the same SG-residual formula that QC's canonical <code>sg_residual_xy</code> trait uses; both tiers call the shared helper <code>sleap_roots.circumnutation._noise.compute_sg_residual_xy</code> so the values are guaranteed identical for identical inputs.</p>
 <p><strong>Methodological note on noise estimators.</strong> The two tracking-noise traits (<code>sg_residual_xy</code> and <code>d2_noise_xy</code>) are standard signal-processing noise estimators, not pipeline-novel inventions. SG-residual estimation appears in Press et al. <em>Numerical Recipes</em> and is standard in time-series analysis; the second-difference variance method derives from the textbook noise-propagation rule <span class="arithmatex">\(\text{Var}(\Delta^2 x) = 6\sigma^2\)</span> for white noise. Neither is the <em>canonical</em> method in plant kinematics literature — most root-tracking papers (e.g., KymoRod, Bastien et al. 2016 <em>Plant J.</em> 88:468) report a single empirically-estimated tracking accuracy without formal characterization, and Rivière 2022 doesn't formally characterize tip noise. The closest formal-noise-characterization tradition is <strong>single-particle tracking (SPT)</strong> in cell biology — Berglund 2010 (<em>Phys. Rev. E</em> 82:011917) for camera-based localization uncertainty and Michalet 2010 (<em>Phys. Rev. E</em> 82:041914) for the MSD-extrapolation method. Two-estimator agreement (<code>sg_d2_agreement</code> near 1) is a stronger validation than either method alone, which is why the pipeline computes both. <strong>For publication-grade defensibility, MSD extrapolation could be added as a third independent estimator</strong> — see implementation note below the table.</p>
 <table>
 <thead>
