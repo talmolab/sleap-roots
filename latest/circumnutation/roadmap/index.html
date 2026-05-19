@@ -2951,7 +2951,7 @@
 <ol>
 <li>Compute net displacement <code>D = |x_N - x_1|</code> (in pixels).</li>
 <li>If <code>D &lt; GROWTH_AXIS_RELIABILITY_K * sg_residual_xy</code> (recommend <code>K = 10</code>), set <code>growth_axis_unreliable = True</code> and set the <strong>6 rotation-dependent traits</strong> (<code>v_long_signed_median</code>, <code>v_long_abs_median</code>, <code>v_lat_signed_median</code>, <code>v_lat_abs_median</code>, <code>long_lat_ratio</code>, <code>principal_axis_angle</code>) to NaN. The 4-trait NaN-set originally documented here was expanded to 6 in PR #2 when the signed/abs split was adopted for the velocity traits (see PR #2's design.md D1 for the trait-list expansion rationale).</li>
-<li><strong>Tier 0 (PR #2) emits <code>growth_axis_unreliable</code> as a bool flag on the per-plant trait DataFrame; QC tier (PR #3) composes with it (e.g., as a clause in <code>track_is_clean</code>) but does NOT re-emit a duplicate column.</strong> This re-interpretation of the original "QC tier emits the flag" wording resolves a circular dependency where Tier 0's gate would otherwise need PR #3's <code>sg_residual_xy</code> trait value at runtime. The same SG-residual formula is shared via the private helper <code>sleap_roots.circumnutation._noise.compute_sg_residual_xy</code> so both tiers compute numerically identical residuals from identical inputs. See <code>openspec/changes/archive/.../add-circumnutation-tier0-kinematics/design.md</code> D2 (also reachable via the live capability spec at <code>openspec/specs/circumnutation/spec.md</code>, Requirement "Growth-axis reliability gate") for the full rationale.</li>
+<li><strong>BOTH Tier 0 (PR #2) AND QC tier (PR #3) emit <code>growth_axis_unreliable</code> as a bool column on their respective per-plant trait DataFrames.</strong> Values are element-wise equal as <code>bool</code> dtype by construction because both tiers compute the flag via the same gate formula on the same inputs through the shared <code>sleap_roots.circumnutation._noise.compute_sg_residual_xy</code> helper after applying the same <code>to_numpy(dtype=float)</code> cast. The original "no re-emission" rule (carried from PR #2 per CC-5 step 3 archive) is REVERSED by PR #3 (see PR #3 design.md D5): QC's standalone usefulness requires the bool column for downstream <code>df[~df.growth_axis_unreliable]</code> filtering instead of brittle string-parsing of <code>qc_failure_reason</code>. PR #14 pipeline composition may coalesce or drop one (either is safe). Spec contract: <code>openspec/specs/circumnutation/spec.md</code> Requirement "Growth-axis reliability gate" (modified by PR #3) and Requirement "QC tier growth_axis_unreliable equality with Tier 0" (added by PR #3).</li>
 </ol>
 <h3 id="cc-6-cwt-determinism-reproducibility">CC-6. CWT determinism / reproducibility.<a class="headerlink" href="#cc-6-cwt-determinism-reproducibility" title="Permanent link">&para;</a></h3>
 <ul>
@@ -3011,7 +3011,7 @@
 <tr>
 <td>3</td>
 <td><code>add-circumnutation-qc-tier</code></td>
-<td>All QC traits (theory.md §7.6) including <code>msd_noise_xy</code> (CC-10); <code>cadence_nyquist_ratio</code> (theory.md §6.5); <code>growth_axis_unreliable</code>; <code>qc_failure_reason</code>.</td>
+<td>QC traits per theory.md §7.6: 3 noise estimators (sg/d2/msd per CC-10), 3 pairwise agreements, 2 outlier-step diagnostics, <code>growth_axis_unreliable</code> (re-emitted per design.md D5; equal-by-construction to Tier 0's), <code>track_is_clean</code> composite, <code>qc_failure_reason</code> stable-ordered comma-separated diagnostic. <code>cadence_nyquist_ratio</code> moved to PR #6 (depends on Tier 1's <code>T_nutation_median</code>).</td>
 <td>⬜</td>
 <td>⬜</td>
 </tr>
@@ -3032,7 +3032,7 @@
 <tr>
 <td>6</td>
 <td><code>add-circumnutation-tier1-derr-faithful</code></td>
-<td>Tier 1 trait emission (theory.md §7.2); <code>coordinate=</code> parameter (CC-7); <code>noise_floor_estimate</code> definition (CC-8); Layer-2 Derr regression.</td>
+<td>Tier 1 trait emission (theory.md §7.2); <code>coordinate=</code> parameter (CC-7); <code>noise_floor_estimate</code> definition (CC-8); Layer-2 Derr regression; <strong><code>cadence_nyquist_ratio</code> (moved from PR #3; depends on Tier 1's <code>T_nutation_median</code>)</strong> per theory.md §6.5.</td>
 <td>⬜</td>
 <td>⬜</td>
 </tr>
