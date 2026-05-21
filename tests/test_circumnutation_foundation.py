@@ -26,13 +26,13 @@ import pytest
 # NOTE: `kinematics` was removed from STUB_MODULES in PR #2 (OpenSpec change
 # add-circumnutation-tier0-kinematics) — it is now an implementation module,
 # not a stub. `qc` was removed in PR #3 (add-circumnutation-qc-tier) for the
-# same reason. The MODIFIED Package layout requirement in PR #3 reduces the
-# stub count from 9 to 8. The contract-module list in
+# same reason. `synthetic` was removed in PR #4 (add-circumnutation-synthetic-
+# generator) for the same reason. The MODIFIED Package layout requirement in
+# PR #4 reduces the stub count from 8 to 7. The contract-module list in
 # `test_module_logger_is_namespaced` was extended to include `kinematics`,
-# `_noise`, `_geometry` (PR #2) and `qc` (PR #3) so the logger-namespace
-# contract still covers them as implementation modules.
+# `_noise`, `_geometry` (PR #2), `qc` (PR #3), and `synthetic` (PR #4) so
+# the logger-namespace contract still covers them as implementation modules.
 STUB_MODULES = [
-    ("synthetic", "generate_trajectory", 4),
     ("temporal_cwt", "compute_scaleogram", 5),
     ("psi_g", "compute_psi_g", 7),
     ("midline", "reconstruct", 8),
@@ -201,14 +201,14 @@ def test_valid_unit_vocabulary_is_union_of_pipeline_and_converted():
     assert VALID_UNIT_VOCABULARY == PIPELINE_UNIT_VOCABULARY | CONVERTED_UNIT_VOCABULARY
 
 
-def test_schema_version_is_1_and_constants_version_is_2():
-    """`_SCHEMA_VERSION` is 1 (PR #1); `_CONSTANTS_VERSION` is 2 (bumped in PR #3)."""
+def test_schema_version_is_1_and_constants_version_is_3():
+    """`_SCHEMA_VERSION` is 1 (PR #1); `_CONSTANTS_VERSION` is 3 (bumped in PR #4)."""
     from sleap_roots.circumnutation import _constants
 
     assert isinstance(_constants._SCHEMA_VERSION, int)
     assert _constants._SCHEMA_VERSION == 1
     assert isinstance(_constants._CONSTANTS_VERSION, int)
-    assert _constants._CONSTANTS_VERSION == 2
+    assert _constants._CONSTANTS_VERSION == 3
 
 
 # ---------------------------------------------------------------------------
@@ -808,15 +808,28 @@ def test_convert_to_mm_inf_rejected(bad):
 
 # NOTE: `kinematics` was removed in PR #2 — it is now an implementation
 # module and no longer raises NotImplementedError when called with
-# `constants=...`. `qc` was removed in PR #3 for the same reason. Their
-# `constants=None` parameter contracts are preserved (and exercised in
-# the tier-specific test files).
+# `constants=...`. `qc` was removed in PR #3 for the same reason.
+# `synthetic` is intentionally NOT in this list because the original PR #1
+# stub had a positional-only signature with no `constants=` kwarg; PR #4
+# replaces the stub with an implementation that DOES accept `constants=`
+# but the implementation is exercised via `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG`
+# below (no NotImplementedError contract).
 STUBS_WITH_CONSTANTS_KWARG = [
     ("temporal_cwt", "compute_scaleogram"),
     ("psi_g", "compute_psi_g"),
     ("midline", "reconstruct"),
     ("spatial_cwt", "compute_scaleogram"),
     ("pipeline", "compute_traits"),
+]
+
+
+# Implementation modules that accept `constants=ConstantsT()` kwarg without
+# raising NotImplementedError. Added by PR #4 per the split-table refactor
+# in the `add-circumnutation-synthetic-generator` change's Migration Plan.
+IMPLEMENTATIONS_WITH_CONSTANTS_KWARG = [
+    ("kinematics", "compute"),
+    ("qc", "compute"),
+    ("synthetic", "generate_trajectory"),  # added by PR #4
 ]
 
 
@@ -830,6 +843,50 @@ def test_stub_accepts_constants_kwarg(module_name, callable_name):
     fn = getattr(mod, callable_name)
     with pytest.raises(NotImplementedError):
         fn(constants=object())  # any sentinel; should not be argument-validated
+
+
+@pytest.mark.parametrize(
+    "module_name,callable_name", IMPLEMENTATIONS_WITH_CONSTANTS_KWARG
+)
+def test_implementation_accepts_constants_kwarg(module_name, callable_name):
+    """Implementation modules accept `constants=ConstantsT()` without raising.
+
+    Added by PR #4 (add-circumnutation-synthetic-generator) Migration Plan
+    §"Foundation test migration" split-table refactor. Mirrors the
+    `test_stub_accepts_constants_kwarg` parametrize-table pattern but
+    asserts a successful return (DataFrame) rather than NotImplementedError.
+    """
+    from sleap_roots.circumnutation._constants import ConstantsT
+
+    mod = importlib.import_module(f"sleap_roots.circumnutation.{module_name}")
+    fn = getattr(mod, callable_name)
+    if module_name == "synthetic":
+        # synthetic.generate_trajectory has only kw-only parameters and all
+        # defaults are valid; call with constants= only.
+        result = fn(constants=ConstantsT())
+    else:
+        # kinematics.compute / qc.compute take a positional trajectory_df.
+        # Build a minimal valid 10-frame, 1-track trajectory inline.
+        rows = []
+        for frame in range(10):
+            rows.append(
+                {
+                    "series": "test",
+                    "sample_uid": "test",
+                    "timepoint": "T0",
+                    "plate_id": "test",
+                    "plant_id": 0,
+                    "track_id": 0,
+                    "genotype": np.nan,
+                    "treatment": np.nan,
+                    "frame": frame,
+                    "tip_x": float(frame),
+                    "tip_y": 0.0,
+                }
+            )
+        df = pd.DataFrame(rows)
+        result = fn(df, constants=ConstantsT())
+    assert isinstance(result, pd.DataFrame)
 
 
 # B3 — conflicting per-frame metadata raises clear error
