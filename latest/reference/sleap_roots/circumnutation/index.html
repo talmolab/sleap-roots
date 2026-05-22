@@ -2863,14 +2863,19 @@ contract is unambiguous.</p>
 <p>The pipeline is organized as five computation tiers + a QC tier
 (see <code>docs/circumnutation/theory.md</code> §6.3 for the full architecture
 and <code>docs/circumnutation/roadmap.md</code> for the multi-PR rollout).</p>
-<p>This foundation PR (PR #1) lands the contracts only — package layout,
+<p>The foundation PR (PR #1) landed the contracts — package layout,
 :class:<code>CircumnutationInputs</code> data class, :data:<code>ROW_IDENTITY_COLUMNS</code>
 schema, units sidecar, run-metadata sidecar, module-level constants,
 :func:<code>~sleap_roots.circumnutation.units.convert_to_mm</code> downstream
-utility, and per-module logging convention. The 10 stub modules
-(<code>kinematics</code>, <code>qc</code>, <code>synthetic</code>, <code>temporal_cwt</code>, <code>psi_g</code>,
-<code>midline</code>, <code>spatial_cwt</code>, <code>parametric</code>, <code>plotting</code>,
-<code>pipeline</code>) raise <code>NotImplementedError</code> until their tier PRs land.</p>
+utility, and per-module logging convention. Tier PRs land tier-by-tier:</p>
+<ul>
+<li><code>kinematics</code> — Tier 0 raw kinematic traits (PR #2, merged)</li>
+<li><code>qc</code> — QC tier per-track quality (PR #3, merged)</li>
+<li><code>synthetic</code> — Layer-1 validation generator (PR #4, this PR)</li>
+<li><code>temporal_cwt</code>, <code>psi_g</code>, <code>midline</code>, <code>spatial_cwt</code>,
+  <code>parametric</code>, <code>plotting</code>, <code>pipeline</code> — remaining stubs, raise
+  <code>NotImplementedError</code> until their tier PRs land.</li>
+</ul>
 <p>Pure-pixel convention: the pipeline never accepts <code>px_per_mm</code> and
 never emits <code>[mm]</code> columns. Calibration is always a downstream
 concern handled by :func:<code>~sleap_roots.circumnutation.units.convert_to_mm</code>.</p>
