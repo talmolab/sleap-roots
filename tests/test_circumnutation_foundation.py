@@ -742,6 +742,10 @@ def test_constants_snapshot_reflects_override():
         "_geometry",
         # Added in PR #3: qc (now an implementation module, not a stub).
         "qc",
+        # Added in PR #4: synthetic (now an implementation module, not a
+        # stub). The logger-namespace assertion must list it explicitly
+        # because it was removed from STUB_MODULES above (Copilot review #4).
+        "synthetic",
     ],
 )
 def test_module_logger_is_namespaced(module_name):

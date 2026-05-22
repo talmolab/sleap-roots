@@ -246,14 +246,16 @@ def test_2B1_same_int_seed_bit_identical():
     assert np.array_equal(df_a["tip_x"].to_numpy(), df_b["tip_x"].to_numpy())
     assert np.array_equal(df_a["tip_y"].to_numpy(), df_b["tip_y"].to_numpy())
     # Canary: known first-3 values for random_state=0 with default kwargs,
-    # captured by the §3.7 canary script on 2026-05-21. These are locked
-    # in as a regression detector. If numpy PCG64 changes, this test fails
-    # fast and we pin numpy in pyproject.toml.
+    # captured by the §3.7 canary script on 2026-05-22 (re-captured after
+    # the cos(π/2) snap-to-zero fix per Copilot review #3 of PR #210; the
+    # snap removed ~6e-17 FP noise from the growth-axis decomposition,
+    # which shifted ULPs in tip_x). Locked as a regression detector for
+    # future numpy PCG64 changes.
     expected_tip_x_first3 = np.array(
         [
             0.17780938387044457,
-            -2.8661972119043138,
-            -3.6186816320785167,
+            -2.866197211904314,
+            -3.6186816320785176,
         ]
     )
     expected_tip_y_first3 = np.array(
@@ -345,16 +347,16 @@ def test_2C1_v_long_recovery_exact_at_amplitude_zero():
     tier0 = kinematics.compute(df)
     v_long = float(tier0["v_long_signed_median_px_per_frame"].iloc[0])
     assert abs(v_long - 4.29) < 1e-9, f"v_long = {v_long}, expected 4.29 ± 1e-9"
-    # Pure-linear yields long_lat_ratio that's either NaN (true zero v_lat) or
-    # very large (FP-induced near-zero v_lat from cos(π/2) ≈ 6.1e-17). In
-    # practice the cos(π/2) FP artifact produces a tiny but non-zero u_g[0],
-    # so v_lat_abs_median is tiny and long_lat_ratio = v_long_abs/v_lat_abs
-    # is a huge finite number rather than NaN. The semantic ("ratio degenerate
-    # when v_lat → 0") is preserved either way per round-1 Sci N2.
-    ratio = tier0["long_lat_ratio"].iloc[0]
-    assert (
-        pd.isna(ratio) or abs(ratio) > 1e6
-    ), f"long_lat_ratio = {ratio}; expected NaN or > 1e6 for pure-linear synth"
+    # Pure-linear yields v_lat_abs_median == 0 EXACTLY after the cos(π/2)
+    # snap-to-zero added per Copilot review #3 of PR #210. kinematics
+    # returns NaN per its `v_lat_abs_median == 0 → long_lat_ratio is NaN`
+    # contract. Strict assertion (was "NaN OR > 1e6" before the snap removed
+    # the cos(π/2) ≈ 6.1e-17 FP artifact).
+    assert pd.isna(tier0["long_lat_ratio"].iloc[0]), (
+        f"long_lat_ratio = {tier0['long_lat_ratio'].iloc[0]}; "
+        f"expected NaN for pure-linear synth (cos(π/2) snap should make "
+        f"v_lat_abs_median == 0 exactly)"
+    )
 
 
 def test_2C2_angular_amplitude_small_angle_recovery(synthetic_setup):

@@ -11,12 +11,20 @@ The apex propagates along the growth axis at velocity ``v_growth_per_s
 ``A_lat · sin(handedness · ω · t + initial_phase_rad)`` with
 ``A_lat = amplitude_px / 2`` and ``ω = 2π / T_nutation_s``; iid Gaussian
 localization noise is added per-axis with ``σ_per_axis = noise_sigma_px / √2``
-so the QC tier's xy-quadrature noise estimators
-(:func:`~sleap_roots.circumnutation._noise.compute_sg_residual_xy` etc.)
-recover ``noise_sigma_px`` directly. See ``openspec/changes/.../design.md``
-D1 for the equation block and the Rivière correspondence (D2) noting why
-the 6-parameter Rivière tuple ``(L_gz, ΔL, δ̇₀, ε̇₀, ω, R)`` collapses to
-3 tip-observable aggregates ``(Δφ, v_growth, ω)`` — PR #12 will wrap with
+so ``noise_sigma_px`` targets the xy-quadrature noise SCALE that the QC
+tier's estimators (:func:`~sleap_roots.circumnutation._noise.compute_sg_residual_xy`,
+:func:`~sleap_roots.circumnutation._noise.compute_d2_residual_xy`,
+:func:`~sleap_roots.circumnutation._noise.compute_msd_residual_xy`)
+measure — modulo each estimator's documented multiplicative bias on the
+closed-form trajectory: sg ≈ 0.65×, d2 ≈ 0.95×, msd ≈ 0.61× (see
+§3.7 canary capture in design.md). Only d2 is near-unbiased; sg and msd
+under-bias by ~35-40% because the SG smoothing absorbs noise into the
+fitted polynomial. The QC tier's xy-quadrature MAGNITUDE recovery thus
+SCALES LINEARLY with ``noise_sigma_px`` but is offset by the estimator-
+specific bias factor. See ``openspec/changes/.../design.md`` D1 for the
+equation block and the Rivière correspondence (D2) noting why the
+6-parameter Rivière tuple ``(L_gz, ΔL, δ̇₀, ε̇₀, ω, R)`` collapses to 3
+tip-observable aggregates ``(Δφ, v_growth, ω)`` — PR #12 will wrap with
 a Rivière-named translation helper when PR #9 / PR #11 land the spatial-
 CWT recovery.
 
@@ -90,12 +98,19 @@ fixture that should reject ambiguous types at the call site.
 Multi-track plates (idiom)
 --------------------------
 Each call produces ONE track. For a plate of N tracks with statistically
-independent noise streams::
+independent noise streams, wrap each spawned ``SeedSequence`` in a
+``Generator`` before passing it as ``random_state`` (the validation layer
+accepts ``int | np.random.Generator | None`` only — ``SeedSequence`` is
+rejected to keep the type contract narrow per design.md D5)::
 
     seed_seq = np.random.SeedSequence(42)
     child_seeds = seed_seq.spawn(6)
     df_plate = pd.concat([
-        generate_trajectory(track_id=i, plant_id=i, random_state=child_seeds[i])
+        generate_trajectory(
+            track_id=i,
+            plant_id=i,
+            random_state=np.random.default_rng(child_seeds[i]),
+        )
         for i in range(6)
     ], ignore_index=True)
 """
@@ -450,7 +465,21 @@ def generate_trajectory(
     v_growth_per_s = growth_rate_v / cadence_s_v
     A_lat = amplitude_px_v / 2.0
 
-    u_g = np.array([math.cos(growth_axis_v), math.sin(growth_axis_v)], dtype=np.float64)
+    # Compute growth-axis unit vector and snap floating-point near-zero
+    # components to exactly 0. Without snapping, math.cos(math.pi/2) ≈ 6.1e-17
+    # produces a tiny x-drift in the pure-linear (amplitude=0, growth=π/2)
+    # case, which prevents kinematics' `v_lat_abs_median == 0` exactness
+    # contract and produces a finite-but-huge `long_lat_ratio` instead of
+    # the documented NaN. Snapping at 1e-12 (well below SLEAP's px-quantum)
+    # makes cardinal-axis trajectories truly axis-aligned without affecting
+    # non-cardinal angles. (Copilot review #1, PR #210.)
+    cos_g = math.cos(growth_axis_v)
+    sin_g = math.sin(growth_axis_v)
+    if abs(cos_g) < 1e-12:
+        cos_g = 0.0
+    if abs(sin_g) < 1e-12:
+        sin_g = 0.0
+    u_g = np.array([cos_g, sin_g], dtype=np.float64)
     u_lat = np.array([-u_g[1], u_g[0]], dtype=np.float64)
 
     phase = handedness_v * omega * t_array + initial_phase_v
