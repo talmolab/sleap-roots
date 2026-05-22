@@ -244,6 +244,17 @@ def _check_random_state(
             f"random_state must be int, np.random.Generator, or None; "
             f"got bool: {value!r}"
         )
+    if isinstance(value, np.random.RandomState):
+        # Explicit rejection of the legacy np.random.RandomState API per
+        # design.md D5 — stability across numpy versions is only guaranteed
+        # for the modern Generator API (PCG64) per NEP 19; the legacy
+        # RandomState (MT19937) lacks that contract.
+        raise TypeError(
+            f"random_state must be a modern np.random.Generator (e.g., from "
+            f"np.random.default_rng(...)); the legacy np.random.RandomState "
+            f"API is rejected because NEP 19 only guarantees cross-version "
+            f"stability for Generator/PCG64. Got: {value!r}"
+        )
     if isinstance(value, (int, np.integer)):
         return int(value)
     if isinstance(value, np.random.Generator):
