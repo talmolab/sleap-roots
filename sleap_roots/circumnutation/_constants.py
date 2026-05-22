@@ -14,6 +14,7 @@ typed override-bag; the module-level names are the canonical defaults.
 """
 
 import logging
+import math
 
 import attrs
 
@@ -28,13 +29,20 @@ logger = logging.getLogger(__name__)
 _SCHEMA_VERSION: int = 1
 """Bumped when the per-plant CSV row-identity columns or sidecar JSON shapes change."""
 
-_CONSTANTS_VERSION: int = 2
+_CONSTANTS_VERSION: int = 3
 """Bumped when any default in this module changes.
 
 PR #3 (``add-circumnutation-qc-tier``) bumped this 1 → 2 by adding four
 new QC-tier threshold constants (``FRAC_OUTLIER_STEPS_MAX``,
 ``WORST_STEP_RATIO_MAX``, ``SG_MSD_AGREEMENT_MAX``, ``D2_MSD_AGREEMENT_MAX``)
 to the overridable defaults set.
+
+PR #4 (``add-circumnutation-synthetic-generator``) bumped this 2 → 3 by
+adding seven new synthetic-generator default constants
+(``SYNTHETIC_T_NUTATION_S``, ``SYNTHETIC_AMPLITUDE_PX``,
+``SYNTHETIC_GROWTH_RATE_PX_PER_FRAME``, ``SYNTHETIC_NOISE_SIGMA_PX``,
+``SYNTHETIC_CADENCE_S``, ``SYNTHETIC_N_FRAMES``,
+``SYNTHETIC_GROWTH_AXIS_ANGLE_RAD``) to the overridable defaults set.
 """
 
 
@@ -127,6 +135,38 @@ Empirical validation tracked in GitHub Issue β (PR #3 follow-up).
 
 GROWTH_AXIS_RELIABILITY_K: float = 10
 """Net displacement / SG-residual ratio below which growth-axis is flagged unreliable (roadmap.md CC-5)."""
+
+
+# ---------------------------------------------------------------------------
+# Synthetic-trajectory generator defaults (PR #4; preliminary_results.md
+# §1 / §3.4 / §4.1 / §4.3 — plate 001 Nipponbare empirical anchors)
+# ---------------------------------------------------------------------------
+
+SYNTHETIC_T_NUTATION_S: float = 3333.0
+"""Default nutation period in seconds (Derr Sept-2025 pilot; prelim §3.4)."""
+
+SYNTHETIC_AMPLITUDE_PX: float = 10.0
+"""Default peak-to-peak transverse nutation amplitude in px (prelim §4.3 plate 001 detrended)."""
+
+SYNTHETIC_GROWTH_RATE_PX_PER_FRAME: float = 4.29
+"""Default apex propagation speed along growth axis in px/frame (prelim §4.1 mean longitudinal step ⟨Δᵍ⟩)."""
+
+SYNTHETIC_NOISE_SIGMA_PX: float = 2.0
+"""Default xy-quadrature target noise σ in px (theory.md §8 Layer 1; plate 001 sg ≈ 1.83).
+
+NB: this is the xy-quadrature target so that the QC tier's
+``sg_residual_xy`` recovers ``noise_sigma_px`` directly. Per-axis draws
+in the closed-form synthesis use ``σ_per_axis = noise_sigma_px / √2``.
+"""
+
+SYNTHETIC_CADENCE_S: float = 300.0
+"""Default frame cadence in seconds (plate 001 imaging cadence = 5 min)."""
+
+SYNTHETIC_N_FRAMES: int = 575
+"""Default number of frames (plate 001 frame count over 47.9 hr at 5-min cadence)."""
+
+SYNTHETIC_GROWTH_AXIS_ANGLE_RAD: float = math.pi / 2
+"""Default growth-axis orientation in radians (image-y-down: root growing in +y screen direction)."""
 
 
 # ---------------------------------------------------------------------------
@@ -252,6 +292,14 @@ class ConstantsT:
     FRAC_OUTLIER_STEPS_MAX: float = FRAC_OUTLIER_STEPS_MAX
     WORST_STEP_RATIO_MAX: float = WORST_STEP_RATIO_MAX
     GROWTH_AXIS_RELIABILITY_K: float = GROWTH_AXIS_RELIABILITY_K
+    # PR #4 — synthetic-generator defaults
+    SYNTHETIC_T_NUTATION_S: float = SYNTHETIC_T_NUTATION_S
+    SYNTHETIC_AMPLITUDE_PX: float = SYNTHETIC_AMPLITUDE_PX
+    SYNTHETIC_GROWTH_RATE_PX_PER_FRAME: float = SYNTHETIC_GROWTH_RATE_PX_PER_FRAME
+    SYNTHETIC_NOISE_SIGMA_PX: float = SYNTHETIC_NOISE_SIGMA_PX
+    SYNTHETIC_CADENCE_S: float = SYNTHETIC_CADENCE_S
+    SYNTHETIC_N_FRAMES: int = SYNTHETIC_N_FRAMES
+    SYNTHETIC_GROWTH_AXIS_ANGLE_RAD: float = SYNTHETIC_GROWTH_AXIS_ANGLE_RAD
 
 
 def _default_constants_snapshot() -> dict:
@@ -283,4 +331,12 @@ def _default_constants_snapshot() -> dict:
         "FRAC_OUTLIER_STEPS_MAX": FRAC_OUTLIER_STEPS_MAX,
         "WORST_STEP_RATIO_MAX": WORST_STEP_RATIO_MAX,
         "GROWTH_AXIS_RELIABILITY_K": GROWTH_AXIS_RELIABILITY_K,
+        # PR #4 — synthetic-generator defaults
+        "SYNTHETIC_T_NUTATION_S": SYNTHETIC_T_NUTATION_S,
+        "SYNTHETIC_AMPLITUDE_PX": SYNTHETIC_AMPLITUDE_PX,
+        "SYNTHETIC_GROWTH_RATE_PX_PER_FRAME": SYNTHETIC_GROWTH_RATE_PX_PER_FRAME,
+        "SYNTHETIC_NOISE_SIGMA_PX": SYNTHETIC_NOISE_SIGMA_PX,
+        "SYNTHETIC_CADENCE_S": SYNTHETIC_CADENCE_S,
+        "SYNTHETIC_N_FRAMES": SYNTHETIC_N_FRAMES,
+        "SYNTHETIC_GROWTH_AXIS_ANGLE_RAD": SYNTHETIC_GROWTH_AXIS_ANGLE_RAD,
     }

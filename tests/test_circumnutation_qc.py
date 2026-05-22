@@ -1091,11 +1091,16 @@ def test_2G2_constants_snapshot_contains_4_new_keys():
     assert snapshot["D2_MSD_AGREEMENT_MAX"] == 1.5
 
 
-def test_2G3_constants_version_is_2():
-    """2.G.3 — _CONSTANTS_VERSION bumped 1 → 2."""
+def test_2G3_constants_version_is_at_least_2():
+    """2.G.3 — _CONSTANTS_VERSION >= 2 (bumped 1 → 2 in PR #3; further bumped in PR #4).
+
+    Asserting >= 2 rather than == 2 means this PR #3-era test stays valid
+    across subsequent version bumps (PR #4 bumped to 3); the strict-equality
+    assertion lives in test_circumnutation_foundation.py per each PR.
+    """
     from sleap_roots.circumnutation import _constants
 
-    assert _constants._CONSTANTS_VERSION == 2
+    assert _constants._CONSTANTS_VERSION >= 2
 
 
 def test_2G4_qc_compute_accepts_constants_kwarg():
