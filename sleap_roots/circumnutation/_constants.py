@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 _SCHEMA_VERSION: int = 1
 """Bumped when the per-plant CSV row-identity columns or sidecar JSON shapes change."""
 
-_CONSTANTS_VERSION: int = 3
+_CONSTANTS_VERSION: int = 4
 """Bumped when any default in this module changes.
 
 PR #3 (``add-circumnutation-qc-tier``) bumped this 1 → 2 by adding four
@@ -43,6 +43,15 @@ adding seven new synthetic-generator default constants
 ``SYNTHETIC_GROWTH_RATE_PX_PER_FRAME``, ``SYNTHETIC_NOISE_SIGMA_PX``,
 ``SYNTHETIC_CADENCE_S``, ``SYNTHETIC_N_FRAMES``,
 ``SYNTHETIC_GROWTH_AXIS_ANGLE_RAD``) to the overridable defaults set.
+
+PR #5 (``add-circumnutation-temporal-cwt-machinery``) bumped this 3 → 4
+by adding four new CWT-machinery default constants (``COI_EFOLDING_FACTOR``,
+``CWT_SCALE_COUNT_DEFAULT``, ``CWT_PERIOD_MIN_NYQUIST_FACTOR``,
+``CWT_PERIOD_MAX_SIGNAL_FRACTION``) to the overridable defaults set.
+The ``COI_EFOLDING_FACTOR`` default of ``math.sqrt(1.5)`` = ``√B`` for
+cmor1.5-1.0 was empirically verified across cmor0.5/1.0/1.5/2.0 via
+step-response measurement (see ``openspec/changes/add-circumnutation-
+temporal-cwt-machinery/design.md`` D3).
 """
 
 
@@ -57,7 +66,18 @@ LGZ_STEADY_STATE_RESIDUAL_MAX: float = 0.2
 """Threshold on `L_gz_steady_state_residual / L_gz_estimate` (theory.md §7.4)."""
 
 NYQUIST_RATIO_MAX: float = 0.25
-"""Maximum tolerated per-frame-step / spatial-wavelength ratio for spatial CWT (theory.md §6.5)."""
+"""Maximum tolerated per-frame-step / spatial-wavelength ratio for spatial CWT (theory.md §6.5).
+
+Cross-reference (PR #5): numerically equal to :data:`CWT_PERIOD_MAX_SIGNAL_FRACTION`
+(both default to ``0.25``) but semantically distinct. ``NYQUIST_RATIO_MAX`` is a
+QC alias-protection threshold for PR #6's ``cadence_nyquist_ratio`` trait
+(theory.md §6.5 — the per-frame-step / spatial-wavelength ratio for spatial CWT
+must stay below this to avoid spatial aliasing). ``CWT_PERIOD_MAX_SIGNAL_FRACTION``
+is the CWT scale-range upper bound used by ``compute_scaleogram`` to derive
+``period_max_s = fraction * n_frames * cadence_s``. The two constants happen to
+share the same numeric default ``0.25`` by coincidence; future tuning may change
+either independently.
+"""
 
 SG_D2_AGREEMENT_MAX: float = 1.5
 """Pairwise agreement threshold between SG and second-difference noise estimators (theory.md §7.6)."""
@@ -97,6 +117,66 @@ WAVELET_DEFAULT_TEMPORAL: str = "cmor1.5-1.0"
 
 WAVELET_DEFAULT_SPATIAL: str = "cgau2"
 """Default mother wavelet for spatial CWT — matches Rivière 2022 §"Kinematics: fine elongation measurements"."""
+
+
+# ---------------------------------------------------------------------------
+# Temporal CWT machinery defaults (PR #5; design.md D3/D4/D7)
+# ---------------------------------------------------------------------------
+
+COI_EFOLDING_FACTOR: float = math.sqrt(1.5)
+"""Cone-of-influence half-width = factor · scale, in samples (PR #5).
+
+Calibrated for ``cmor1.5-1.0`` (the default ``WAVELET_DEFAULT_TEMPORAL``):
+the wavelet's Gaussian envelope is ``exp(-t²/B)`` with B=1.5, so the
+e-folding time at scale ``s`` is ``s · √B = s · √1.5 ≈ 1.225·s``. This is
+the empirically-verified factor (step-response measurement at scales
+20/50/100 across cmor0.5/1.0/1.5/2.0 each give factor ≈ √B). See
+``openspec/changes/add-circumnutation-temporal-cwt-machinery/design.md`` D3
+for the full derivation.
+
+**When overriding ``WAVELET_DEFAULT_TEMPORAL`` to a different wavelet, ALSO
+override ``COI_EFOLDING_FACTOR`` to the wavelet-appropriate value.** For
+cmor variants the factor is ``math.sqrt(B)``; for ``cgau2`` (PR #9 spatial
+sibling) the factor differs and PR #9 will determine it.
+
+NOT to be confused with Torrence & Compo's ``√2`` factor (1998 Eq. 12),
+which is the special case for the *standard* Morlet with ω₀=6 (B_equivalent=2).
+For cmor1.5-1.0 the analogous factor is ``√1.5``, not ``√2``.
+"""
+
+CWT_SCALE_COUNT_DEFAULT: int = 64
+"""Number of log-spaced scales returned by :func:`compute_scaleogram` (PR #5).
+
+Derr Sept-2025 pilot used ~64 scales; this density is comparable to
+12/octave × ~5-6 octaves (standard CWT-literature target). Overridable via
+``ConstantsT(CWT_SCALE_COUNT_DEFAULT=...)`` for callers wanting denser
+spectral sampling (at the cost of memory: scales × n_frames complex128).
+"""
+
+CWT_PERIOD_MIN_NYQUIST_FACTOR: float = 2.0
+"""Multiplier of ``cadence_s`` setting the minimum period in the CWT scale range (PR #5).
+
+``period_min_s = factor · cadence_s = 2 · cadence_s`` is the Nyquist period
+(strict mathematical floor below which aliasing is certain). For cmor1.5-1.0
+the wavelet support at scale = 2 (period = 2 cadence) is poor; PR #5
+documents this caveat (design.md R3) and notes that traits consuming the
+scaleogram should COI-mask AND additionally filter to scales with adequate
+wavelet support. Tightening to ``factor = 4.0`` is a defensible alternative
+default for callers wanting cleaner low-period resolution.
+"""
+
+CWT_PERIOD_MAX_SIGNAL_FRACTION: float = 0.25
+"""Fraction of ``n_frames · cadence_s`` setting the maximum period in the CWT scale range (PR #5).
+
+``period_max_s = fraction · n_frames · cadence_s = 0.25 · n_frames · cadence_s``
+is Torrence & Compo's recommended ``n/4`` upper bound for tractable COI
+fraction. Numerically equal to :data:`NYQUIST_RATIO_MAX` (PR #1) at default
+``0.25``, but semantically distinct — see that constant's docstring for the
+distinction. ``CWT_PERIOD_MAX_SIGNAL_FRACTION`` is the CWT-scale-range upper
+bound used by ``compute_scaleogram``; ``NYQUIST_RATIO_MAX`` is the QC alias-
+protection threshold for PR #6's ``cadence_nyquist_ratio`` trait. Future
+tuning may change either independently.
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -300,6 +380,11 @@ class ConstantsT:
     SYNTHETIC_CADENCE_S: float = SYNTHETIC_CADENCE_S
     SYNTHETIC_N_FRAMES: int = SYNTHETIC_N_FRAMES
     SYNTHETIC_GROWTH_AXIS_ANGLE_RAD: float = SYNTHETIC_GROWTH_AXIS_ANGLE_RAD
+    # PR #5 — temporal CWT machinery defaults
+    COI_EFOLDING_FACTOR: float = COI_EFOLDING_FACTOR
+    CWT_SCALE_COUNT_DEFAULT: int = CWT_SCALE_COUNT_DEFAULT
+    CWT_PERIOD_MIN_NYQUIST_FACTOR: float = CWT_PERIOD_MIN_NYQUIST_FACTOR
+    CWT_PERIOD_MAX_SIGNAL_FRACTION: float = CWT_PERIOD_MAX_SIGNAL_FRACTION
 
 
 def _default_constants_snapshot() -> dict:
@@ -339,4 +424,9 @@ def _default_constants_snapshot() -> dict:
         "SYNTHETIC_CADENCE_S": SYNTHETIC_CADENCE_S,
         "SYNTHETIC_N_FRAMES": SYNTHETIC_N_FRAMES,
         "SYNTHETIC_GROWTH_AXIS_ANGLE_RAD": SYNTHETIC_GROWTH_AXIS_ANGLE_RAD,
+        # PR #5 — temporal CWT machinery defaults
+        "COI_EFOLDING_FACTOR": COI_EFOLDING_FACTOR,
+        "CWT_SCALE_COUNT_DEFAULT": CWT_SCALE_COUNT_DEFAULT,
+        "CWT_PERIOD_MIN_NYQUIST_FACTOR": CWT_PERIOD_MIN_NYQUIST_FACTOR,
+        "CWT_PERIOD_MAX_SIGNAL_FRACTION": CWT_PERIOD_MAX_SIGNAL_FRACTION,
     }
