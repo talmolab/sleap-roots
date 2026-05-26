@@ -157,7 +157,9 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
 
 - [ ] 2.F.8 `compute_scaleogram_x_at_min_frames_succeeds` (positive boundary test, per /openspec-review round-1 TDD-I11): `x = np.linspace(0.0, 1.0, 9, dtype=np.float64); result = compute_scaleogram(x, 300.0); assert result.scaleogram.shape == (CWT_SCALE_COUNT_DEFAULT, 9)`. Asserts that the documented `MIN_FRAMES_REQUIRED = 9` floor is achievable (the negative case `len(x) == 8` is in §2.F.1).
 
-  **Total: 9 + 9 + 3 + 2 + 3 + 2 + 3 + 1 = 32 ids** (up from 30 with the np.bool_ + n=9-positive additions).
+- [ ] 2.F.9 `constants_accepts_numpy_integer_for_scale_count` (per /review-pr round-1 Behavioral-I1 — accept np.int64 for `CWT_SCALE_COUNT_DEFAULT` symmetric with `_validate_cadence_s` accepting np.integer; closes the asymmetric-rejection gap that would block sidecar-JSON round-tripped numpy types).
+
+  **Total** (after /review-pr round-1 additions of np.int64 acceptance + 2 wavelet-validation ids in §2.F.4): §2.F.1=11 (was 9; +2 GREEN-phase coverage closure ids per round-1 Testing-I1: `x_list_not_ndarray` and `x_string_dtype`) + §2.F.2=9 + §2.F.3=3 + §2.F.4=10 (was 8; +2 wavelet ids per /review-pr round-1 Behavioral-I2) + §2.F.5=3 + §2.F.6=2 + §2.F.7=3 + §2.F.8=1 + §2.F.9=1 = **43 ids in §2.F** (up from the original 32 by 11 GREEN-phase additions; total parametrize-ids across the test file ≈ 87 after all rounds).
 
 ### 2.G — ConstantsT override + 2-tier resolution-order
 

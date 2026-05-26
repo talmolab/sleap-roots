@@ -242,13 +242,38 @@ def _validate_cwt_constants(constants: ConstantsT) -> None:
             )
     # Positive int: CWT_SCALE_COUNT_DEFAULT (must be ≥ 1; rejecting 0 because
     # np.logspace(..., num=0) returns empty array → downstream pywt.cwt fails
-    # with cryptic numpy errors).
+    # with cryptic numpy errors). Accept ``np.integer`` for symmetry with
+    # ``_validate_cadence_s`` (per /review-pr round-1 Behavioral-I1 —
+    # sidecar JSON restored through numpy types should round-trip cleanly).
     n_scales = constants.CWT_SCALE_COUNT_DEFAULT
-    if not isinstance(n_scales, int) or isinstance(n_scales, bool) or n_scales < 1:
+    if isinstance(n_scales, (bool, np.bool_)):
+        raise ValueError(
+            f"constants.CWT_SCALE_COUNT_DEFAULT must be a positive integer (>= 1), "
+            f"got bool: {n_scales!r}"
+        )
+    if not isinstance(n_scales, (int, np.integer)) or int(n_scales) < 1:
         raise ValueError(
             f"constants.CWT_SCALE_COUNT_DEFAULT must be a positive integer (>= 1), "
             f"got {n_scales!r}"
         )
+    # Wavelet name (added per /review-pr round-1 Behavioral-I2 — pywt's own
+    # error for an unknown name doesn't include the `constants.<FIELD>`
+    # naming per CC-1 contract; intercept here so the spec contract holds
+    # for downstream callers reading the error message).
+    wavelet_name = constants.WAVELET_DEFAULT_TEMPORAL
+    if not isinstance(wavelet_name, str) or not wavelet_name:
+        raise ValueError(
+            f"constants.WAVELET_DEFAULT_TEMPORAL must be a non-empty string, "
+            f"got {wavelet_name!r}"
+        )
+    try:
+        pywt.scale2frequency(wavelet_name, 1.0)
+    except (ValueError, TypeError) as exc:
+        raise ValueError(
+            f"constants.WAVELET_DEFAULT_TEMPORAL must be a pywt-recognized wavelet "
+            f"name (e.g., 'cmor1.5-1.0'); got {wavelet_name!r} which pywt rejected "
+            f"with: {exc!s}"
+        ) from exc
 
 
 def _derive_min_frames_required(constants: ConstantsT) -> int:

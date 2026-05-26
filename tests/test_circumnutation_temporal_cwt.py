@@ -695,6 +695,33 @@ def test_2F3_compute_scaleogram_constants_type_invalid(bad_constants):
             "COI_EFOLDING_FACTOR",
             id="coi_factor_inf",
         ),
+        # Wavelet validation (added per /review-pr round-1 Behavioral-I2 — pywt
+        # raises a TypeError/ValueError that does not name `constants.<FIELD>`
+        # per the CC-1 naming convention; field-named ValueError preferred).
+        pytest.param(
+            ConstantsT(WAVELET_DEFAULT_TEMPORAL="garbage_wavelet"),
+            "WAVELET_DEFAULT_TEMPORAL",
+            id="wavelet_unknown_name",
+        ),
+        pytest.param(
+            ConstantsT(WAVELET_DEFAULT_TEMPORAL=""),
+            "WAVELET_DEFAULT_TEMPORAL",
+            id="wavelet_empty_string",
+        ),
+        # bool / np.bool_ for CWT_SCALE_COUNT_DEFAULT (covers the bool-rejection
+        # branch — Python bool is an int subclass, so the int-isinstance check
+        # would silently pass it as `n_scales=1`/`n_scales=0` if not explicitly
+        # guarded).
+        pytest.param(
+            ConstantsT(CWT_SCALE_COUNT_DEFAULT=True),
+            "CWT_SCALE_COUNT_DEFAULT",
+            id="scale_count_python_bool",
+        ),
+        pytest.param(
+            ConstantsT(CWT_SCALE_COUNT_DEFAULT=np.bool_(True)),
+            "CWT_SCALE_COUNT_DEFAULT",
+            id="scale_count_numpy_bool",
+        ),
     ],
 )
 def test_2F4_compute_scaleogram_constants_field_invalid(
@@ -791,6 +818,20 @@ def test_2F8_compute_scaleogram_x_at_min_frames_succeeds():
     assert result.scaleogram.shape == (CWT_SCALE_COUNT_DEFAULT, 9)
 
 
+def test_2F9_constants_accepts_numpy_integer_for_scale_count():
+    """§2.F.9: ConstantsT(CWT_SCALE_COUNT_DEFAULT=np.int64(32)) is accepted (per /review-pr Behavioral-I1).
+
+    Asymmetry with `_validate_cadence_s` (which accepts `np.integer`) is closed:
+    `_validate_cwt_constants` accepts both Python `int` and `numpy.integer` for
+    `CWT_SCALE_COUNT_DEFAULT`, rejecting only `bool` / `np.bool_` and non-integers.
+    """
+    x = np.linspace(0.0, 100.0, 64, dtype=np.float64)
+    # np.int64(32) — common when restoring from a JSON sidecar that round-tripped through numpy
+    custom = ConstantsT(CWT_SCALE_COUNT_DEFAULT=np.int64(32))
+    result = compute_scaleogram(x, 300.0, constants=custom)
+    assert result.scaleogram.shape[0] == 32
+
+
 # ===========================================================================
 # §2.G — ConstantsT override + 2-tier resolution-order
 # ===========================================================================
@@ -870,7 +911,11 @@ def test_2G6_min_frames_required_tracks_constants_override():
     # With CWT_PERIOD_MIN_NYQUIST_FACTOR=4.0 and CWT_PERIOD_MAX_SIGNAL_FRACTION=0.25,
     # floor(4.0/0.25) + 1 = 17 frames required.
     custom = ConstantsT(CWT_PERIOD_MIN_NYQUIST_FACTOR=4.0)
-    with pytest.raises((ValueError, TypeError), match=r"x|MIN_FRAMES|length|finite"):
+    # Tightened regex per /review-pr round-1 Testing-I2: drop "finite" — that
+    # token would also match a validator-misfire path, masking a wrong-error
+    # regression. The actual error path for an under-floor `x` length comes
+    # from `_validate_x` and names `x` or `MIN_FRAMES`.
+    with pytest.raises(ValueError, match=r"x|MIN_FRAMES|length"):
         compute_scaleogram(
             np.linspace(0.0, 1.0, 16, dtype=np.float64), 300.0, constants=custom
         )

@@ -197,8 +197,10 @@ def main() -> int:
     print("=" * 78)
     prov = captured["provenance"]
     print(f"Capture date (ISO 8601 UTC): {prov['capture_date_iso']}")
-    print(f"Platform: {prov['platform']['system']} {prov['platform']['release']} "
-          f"({prov['platform']['machine']})")
+    print(
+        f"Platform: {prov['platform']['system']} {prov['platform']['release']} "
+        f"({prov['platform']['machine']})"
+    )
     print(f"Python: {prov['platform']['python_version']}")
     print(f"numpy: {prov['library_versions']['numpy']}")
     print(f"pywt:  {prov['library_versions']['pywt']}")
@@ -206,7 +208,9 @@ def main() -> int:
     print(f"Run parameters: {prov['run_parameters']}")
     print()
     print(f"scale_idx_at_target = {captured['scale_idx_at_target']}")
-    print(f"boundary_samples_at_target_scale = {captured['boundary_samples_at_target_scale']}")
+    print(
+        f"boundary_samples_at_target_scale = {captured['boundary_samples_at_target_scale']}"
+    )
     print(f"frame_indices = {tuple(captured['frame_indices'])}")
     print()
     print("Captured complex values (paste into §2.B.3 _CANARY_EXPECTED_VALUES):")
