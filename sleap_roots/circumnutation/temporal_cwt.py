@@ -228,14 +228,25 @@ def _validate_cwt_constants(constants: ConstantsT) -> None:
     message per the CC-1 validation convention.
     """
     # Positive-finite floats: COI_EFOLDING_FACTOR, CWT_PERIOD_MIN_NYQUIST_FACTOR,
-    # CWT_PERIOD_MAX_SIGNAL_FRACTION
+    # CWT_PERIOD_MAX_SIGNAL_FRACTION. Per /copilot-review round-2 on PR #213,
+    # attrs does not enforce type annotations at construction, so a caller
+    # could pass `ConstantsT(COI_EFOLDING_FACTOR="hello")` and trip
+    # `math.isfinite`'s generic TypeError before reaching the named-field
+    # error message. Pre-check type so the ValueError names the field.
     for field_name in (
         "COI_EFOLDING_FACTOR",
         "CWT_PERIOD_MIN_NYQUIST_FACTOR",
         "CWT_PERIOD_MAX_SIGNAL_FRACTION",
     ):
         value = getattr(constants, field_name)
-        if not math.isfinite(value) or value <= 0:
+        if isinstance(value, (bool, np.bool_)) or not isinstance(
+            value, (int, float, np.floating, np.integer)
+        ):
+            raise ValueError(
+                f"constants.{field_name} must be a positive finite numeric "
+                f"value, got {type(value).__name__}: {value!r}"
+            )
+        if not math.isfinite(float(value)) or float(value) <= 0:
             raise ValueError(
                 f"constants.{field_name} must be a positive finite float, "
                 f"got {value!r}"
@@ -458,10 +469,18 @@ def compute_scaleogram(
         n_frames, cadence_s_v, _c
     )
 
+    # Lazy %-style formatting per circumnutation convention (cf. _noise.py,
+    # qc.py); the message is not formatted when DEBUG level is disabled.
+    # Per /copilot-review round-2 C6.
     logger.debug(
-        f"compute_scaleogram(n_frames={n_frames}, cadence_s={cadence_s_v:.6f}, "
-        f"n_scales={len(scales)}, period_min_s={float(periods_s.min()):.6f}, "
-        f"period_max_s={float(periods_s.max()):.6f}, wavelet={wavelet_name!r})"
+        "compute_scaleogram(n_frames=%d, cadence_s=%.6f, n_scales=%d, "
+        "period_min_s=%.6f, period_max_s=%.6f, wavelet=%r)",
+        n_frames,
+        cadence_s_v,
+        len(scales),
+        float(periods_s.min()),
+        float(periods_s.max()),
+        wavelet_name,
     )
 
     coefs, _ = pywt.cwt(x_v, scales, wavelet_name)
@@ -529,7 +548,8 @@ def extract_ridge(
             "cannot derive a ridge from an empty frame axis"
         )
 
-    logger.debug(f"extract_ridge(n_scales={n_scales}, n_frames={n_frames})")
+    # Lazy %-style formatting per /copilot-review round-2 C7.
+    logger.debug("extract_ridge(n_scales=%d, n_frames=%d)", n_scales, n_frames)
 
     abs_scaleogram = np.abs(scaleogram_result.scaleogram)
     ridge_scale_idx = np.argmax(abs_scaleogram, axis=0).astype(np.int64)

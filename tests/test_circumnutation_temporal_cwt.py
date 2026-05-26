@@ -193,24 +193,37 @@ def test_2A10_RidgeResult_is_frozen_attrs_class():
 
 
 def test_2A11_caplog_no_warning_or_error_on_default_call(caplog):
-    """§2.A.11: no WARNING/ERROR/CRITICAL records on the happy path."""
+    """§2.A.11: no WARNING/ERROR/CRITICAL records on the happy path from temporal_cwt.
+
+    Filter records by logger name per /copilot-review round-2 C3 — pytest's
+    caplog captures globally, so unrelated WARNING+ records from other loggers
+    would otherwise produce false-positive failures.
+    """
     with caplog.at_level(logging.WARNING, logger=TEMPORAL_CWT_LOGGER):
         result = compute_scaleogram(_make_default_x(), 300.0)
         extract_ridge(result)
-    # caplog.records filtered to WARNING+ — none should appear
-    assert all(
-        rec.levelno < logging.WARNING for rec in caplog.records
-    ), f"Unexpected WARNING/ERROR records: {[rec.message for rec in caplog.records]}"
+    module_records = [r for r in caplog.records if r.name == TEMPORAL_CWT_LOGGER]
+    assert all(rec.levelno < logging.WARNING for rec in module_records), (
+        f"Unexpected WARNING/ERROR records on {TEMPORAL_CWT_LOGGER}: "
+        f"{[(rec.levelname, rec.message) for rec in module_records if rec.levelno >= logging.WARNING]}"
+    )
 
 
 def test_2A12_caplog_debug_messages_contain_required_tokens(caplog):
-    """§2.A.12: DEBUG records carry the documented tokens for both functions."""
+    """§2.A.12: DEBUG records carry the documented tokens for both functions.
+
+    Filter records by logger name per /copilot-review round-2 C4 — pytest's
+    caplog captures globally; only the temporal_cwt module's DEBUG emissions
+    are part of the contract.
+    """
     with caplog.at_level(logging.DEBUG, logger=TEMPORAL_CWT_LOGGER):
         result = compute_scaleogram(_make_default_x(), 300.0)
         extract_ridge(result)
 
     debug_messages = [
-        rec.message for rec in caplog.records if rec.levelno == logging.DEBUG
+        rec.message
+        for rec in caplog.records
+        if rec.name == TEMPORAL_CWT_LOGGER and rec.levelno == logging.DEBUG
     ]
     # compute_scaleogram message
     compute_msgs = [m for m in debug_messages if m.startswith("compute_scaleogram(")]
@@ -721,6 +734,21 @@ def test_2F3_compute_scaleogram_constants_type_invalid(bad_constants):
             ConstantsT(CWT_SCALE_COUNT_DEFAULT=np.bool_(True)),
             "CWT_SCALE_COUNT_DEFAULT",
             id="scale_count_numpy_bool",
+        ),
+        # Non-numeric type for a 'float' ConstantsT field (per /copilot-review
+        # round-2 on PR #213 — attrs does not enforce type annotations at
+        # construction, so a caller can pass `ConstantsT(COI_EFOLDING_FACTOR="hello")`;
+        # the validator must raise a field-named ValueError, not a
+        # `math.isfinite`-internal TypeError).
+        pytest.param(
+            ConstantsT(COI_EFOLDING_FACTOR="hello"),
+            "COI_EFOLDING_FACTOR",
+            id="coi_factor_non_numeric_string",
+        ),
+        pytest.param(
+            ConstantsT(CWT_PERIOD_MAX_SIGNAL_FRACTION=None),
+            "CWT_PERIOD_MAX_SIGNAL_FRACTION",
+            id="signal_fraction_none",
         ),
     ],
 )
