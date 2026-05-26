@@ -649,7 +649,9 @@ def test_2F3_compute_scaleogram_constants_type_invalid(bad_constants):
         compute_scaleogram(x, 300.0, constants=bad_constants)
 
 
-# §2.F.4 — invalid constants field values (2 ids per round-1 Code-I1)
+# §2.F.4 — invalid constants field values (6 ids: 2 original per round-1 Code-I1 +
+# 4 added per /copilot-review PR #213 C1 — CWT_SCALE_COUNT_DEFAULT and
+# COI_EFOLDING_FACTOR were not validated)
 @pytest.mark.parametrize(
     "bad_constants_obj,expected_field",
     [
@@ -662,6 +664,36 @@ def test_2F3_compute_scaleogram_constants_type_invalid(bad_constants):
             ConstantsT(CWT_PERIOD_MIN_NYQUIST_FACTOR=-1.0),
             "CWT_PERIOD_MIN_NYQUIST_FACTOR",
             id="nyquist_factor_negative",
+        ),
+        pytest.param(
+            ConstantsT(CWT_SCALE_COUNT_DEFAULT=0),
+            "CWT_SCALE_COUNT_DEFAULT",
+            id="scale_count_zero",
+        ),
+        pytest.param(
+            ConstantsT(CWT_SCALE_COUNT_DEFAULT=-5),
+            "CWT_SCALE_COUNT_DEFAULT",
+            id="scale_count_negative",
+        ),
+        pytest.param(
+            ConstantsT(COI_EFOLDING_FACTOR=0.0),
+            "COI_EFOLDING_FACTOR",
+            id="coi_factor_zero",
+        ),
+        pytest.param(
+            ConstantsT(COI_EFOLDING_FACTOR=-1.0),
+            "COI_EFOLDING_FACTOR",
+            id="coi_factor_negative",
+        ),
+        pytest.param(
+            ConstantsT(COI_EFOLDING_FACTOR=float("nan")),
+            "COI_EFOLDING_FACTOR",
+            id="coi_factor_nan",
+        ),
+        pytest.param(
+            ConstantsT(COI_EFOLDING_FACTOR=float("inf")),
+            "COI_EFOLDING_FACTOR",
+            id="coi_factor_inf",
         ),
     ],
 )

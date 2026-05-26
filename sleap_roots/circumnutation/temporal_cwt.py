@@ -63,14 +63,18 @@ import attrs
 import numpy as np
 import pywt
 
-from sleap_roots.circumnutation._constants import (
-    COI_EFOLDING_FACTOR,
-    CWT_PERIOD_MAX_SIGNAL_FRACTION,
-    CWT_PERIOD_MIN_NYQUIST_FACTOR,
-    CWT_SCALE_COUNT_DEFAULT,
-    ConstantsT,
-    WAVELET_DEFAULT_TEMPORAL,
-)
+from sleap_roots.circumnutation._constants import ConstantsT
+
+# The CWT-machinery module-level constants (``COI_EFOLDING_FACTOR``,
+# ``CWT_SCALE_COUNT_DEFAULT``, ``CWT_PERIOD_MIN_NYQUIST_FACTOR``,
+# ``CWT_PERIOD_MAX_SIGNAL_FRACTION``, ``WAVELET_DEFAULT_TEMPORAL``) are
+# NOT imported at module scope: every runtime reference goes through the
+# resolved :class:`ConstantsT` instance attribute (``_c.X``) per the D7
+# resolution-order (``constants or ConstantsT()``). The module-level names
+# are referenced in docstrings only and are reachable via
+# ``sleap_roots.circumnutation._constants`` for callers who want to inspect
+# the defaults directly. (Per GitHub Copilot review on PR #213 — unused
+# imports cleaned up.)
 
 
 logger = logging.getLogger(__name__)
@@ -211,35 +215,52 @@ def _validate_cadence_s(cadence_s: Any) -> float:
     return float_value
 
 
+def _validate_cwt_constants(constants: ConstantsT) -> None:
+    """Validate the 4 CWT-machinery fields of ``constants`` are well-formed.
+
+    Closes the validation gap flagged by GitHub Copilot's review of PR #213.
+    All 4 CWT-machinery fields must be positive finite (with
+    ``CWT_SCALE_COUNT_DEFAULT`` additionally an integer-castable positive
+    int) so that downstream scale-axis / COI-mask derivation cannot fail
+    with cryptic numpy errors.
+
+    Raises ``ValueError`` with the offending field name embedded in the
+    message per the CC-1 validation convention.
+    """
+    # Positive-finite floats: COI_EFOLDING_FACTOR, CWT_PERIOD_MIN_NYQUIST_FACTOR,
+    # CWT_PERIOD_MAX_SIGNAL_FRACTION
+    for field_name in (
+        "COI_EFOLDING_FACTOR",
+        "CWT_PERIOD_MIN_NYQUIST_FACTOR",
+        "CWT_PERIOD_MAX_SIGNAL_FRACTION",
+    ):
+        value = getattr(constants, field_name)
+        if not math.isfinite(value) or value <= 0:
+            raise ValueError(
+                f"constants.{field_name} must be a positive finite float, "
+                f"got {value!r}"
+            )
+    # Positive int: CWT_SCALE_COUNT_DEFAULT (must be ≥ 1; rejecting 0 because
+    # np.logspace(..., num=0) returns empty array → downstream pywt.cwt fails
+    # with cryptic numpy errors).
+    n_scales = constants.CWT_SCALE_COUNT_DEFAULT
+    if not isinstance(n_scales, int) or isinstance(n_scales, bool) or n_scales < 1:
+        raise ValueError(
+            f"constants.CWT_SCALE_COUNT_DEFAULT must be a positive integer (>= 1), "
+            f"got {n_scales!r}"
+        )
+
+
 def _derive_min_frames_required(constants: ConstantsT) -> int:
     """Derive the minimum ``len(x)`` required by ``compute_scaleogram``.
 
-    Non-empty scale range requires ``period_max_s > period_min_s`` strictly,
-    i.e., ``n > NYQUIST_FACTOR / SIGNAL_FRACTION``. The integer floor is
+    Assumes ``constants`` has already been validated by
+    :func:`_validate_cwt_constants`. Non-empty scale range requires
+    ``period_max_s > period_min_s`` strictly, i.e.,
+    ``n > NYQUIST_FACTOR / SIGNAL_FRACTION``. The integer floor is
     ``int(floor(NYQUIST_FACTOR / SIGNAL_FRACTION)) + 1``. At defaults
     (``2.0 / 0.25 = 8.0``) this gives 9 frames.
-
-    Positive-finite guards on both constants close the ``SIGNAL_FRACTION=0``
-    ZeroDivisionError edge case (round-2 reviewer R2-N2). Raises
-    ``ValueError`` with the named offending field per the CC-1 validation
-    convention.
     """
-    if (
-        not math.isfinite(constants.CWT_PERIOD_MAX_SIGNAL_FRACTION)
-        or constants.CWT_PERIOD_MAX_SIGNAL_FRACTION <= 0
-    ):
-        raise ValueError(
-            f"constants.CWT_PERIOD_MAX_SIGNAL_FRACTION must be a positive finite "
-            f"float, got {constants.CWT_PERIOD_MAX_SIGNAL_FRACTION!r}"
-        )
-    if (
-        not math.isfinite(constants.CWT_PERIOD_MIN_NYQUIST_FACTOR)
-        or constants.CWT_PERIOD_MIN_NYQUIST_FACTOR <= 0
-    ):
-        raise ValueError(
-            f"constants.CWT_PERIOD_MIN_NYQUIST_FACTOR must be a positive finite "
-            f"float, got {constants.CWT_PERIOD_MIN_NYQUIST_FACTOR!r}"
-        )
     return (
         int(
             math.floor(
@@ -402,6 +423,7 @@ def compute_scaleogram(
     """
     constants_resolved = _check_constants(constants)
     _c = constants_resolved if constants_resolved is not None else ConstantsT()
+    _validate_cwt_constants(_c)
     cadence_s_v = _validate_cadence_s(cadence_s)
     min_frames_required = _derive_min_frames_required(_c)
     x_v = _validate_x(x, min_frames_required)
