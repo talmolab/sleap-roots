@@ -32,8 +32,10 @@ import pytest
 # `test_module_logger_is_namespaced` was extended to include `kinematics`,
 # `_noise`, `_geometry` (PR #2), `qc` (PR #3), and `synthetic` (PR #4) so
 # the logger-namespace contract still covers them as implementation modules.
+# PR #5 (add-circumnutation-temporal-cwt-machinery) further reduces the stub
+# count from 7 to 6 and the STUBS_WITH_CONSTANTS_KWARG count from 5 to 4,
+# since temporal_cwt is now an implementation module.
 STUB_MODULES = [
-    ("temporal_cwt", "compute_scaleogram", 5),
     ("psi_g", "compute_psi_g", 7),
     ("midline", "reconstruct", 8),
     ("spatial_cwt", "compute_scaleogram", 9),
@@ -201,14 +203,14 @@ def test_valid_unit_vocabulary_is_union_of_pipeline_and_converted():
     assert VALID_UNIT_VOCABULARY == PIPELINE_UNIT_VOCABULARY | CONVERTED_UNIT_VOCABULARY
 
 
-def test_schema_version_is_1_and_constants_version_is_3():
-    """`_SCHEMA_VERSION` is 1 (PR #1); `_CONSTANTS_VERSION` is 3 (bumped in PR #4)."""
+def test_schema_version_is_1_and_constants_version_is_4():
+    """`_SCHEMA_VERSION` is 1 (PR #1); `_CONSTANTS_VERSION` is 4 (bumped in PR #5)."""
     from sleap_roots.circumnutation import _constants
 
     assert isinstance(_constants._SCHEMA_VERSION, int)
     assert _constants._SCHEMA_VERSION == 1
     assert isinstance(_constants._CONSTANTS_VERSION, int)
-    assert _constants._CONSTANTS_VERSION == 3
+    assert _constants._CONSTANTS_VERSION == 4
 
 
 # ---------------------------------------------------------------------------
@@ -746,6 +748,12 @@ def test_constants_snapshot_reflects_override():
         # stub). The logger-namespace assertion must list it explicitly
         # because it was removed from STUB_MODULES above (Copilot review #4).
         "synthetic",
+        # Added in PR #5: temporal_cwt (now an implementation module, not a
+        # stub). Must be listed explicitly because §2.I.1 of the
+        # add-circumnutation-temporal-cwt-machinery change removes it from
+        # STUB_MODULES above (preventing the same Copilot regression
+        # that PR #4 hit for synthetic).
+        "temporal_cwt",
     ],
 )
 def test_module_logger_is_namespaced(module_name):
@@ -819,7 +827,6 @@ def test_convert_to_mm_inf_rejected(bad):
 # but the implementation is exercised via `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG`
 # below (no NotImplementedError contract).
 STUBS_WITH_CONSTANTS_KWARG = [
-    ("temporal_cwt", "compute_scaleogram"),
     ("psi_g", "compute_psi_g"),
     ("midline", "reconstruct"),
     ("spatial_cwt", "compute_scaleogram"),
@@ -834,6 +841,7 @@ IMPLEMENTATIONS_WITH_CONSTANTS_KWARG = [
     ("kinematics", "compute"),
     ("qc", "compute"),
     ("synthetic", "generate_trajectory"),  # added by PR #4
+    ("temporal_cwt", "compute_scaleogram"),  # added by PR #5
 ]
 
 
@@ -868,6 +876,17 @@ def test_implementation_accepts_constants_kwarg(module_name, callable_name):
         # synthetic.generate_trajectory has only kw-only parameters and all
         # defaults are valid; call with constants= only.
         result = fn(constants=ConstantsT())
+        assert isinstance(result, pd.DataFrame)
+    elif module_name == "temporal_cwt":
+        # temporal_cwt.compute_scaleogram(x, cadence_s, constants=None).
+        # Build a minimal valid 1-D array meeting MIN_FRAMES_REQUIRED=9 at
+        # defaults. Returns a ScaleogramResult, not a DataFrame. Added by
+        # PR #5 (add-circumnutation-temporal-cwt-machinery).
+        from sleap_roots.circumnutation.temporal_cwt import ScaleogramResult
+
+        x = np.linspace(0.0, 100.0, 16, dtype=np.float64)
+        result = fn(x, 300.0, constants=ConstantsT())
+        assert isinstance(result, ScaleogramResult)
     else:
         # kinematics.compute / qc.compute take a positional trajectory_df.
         # Build a minimal valid 10-frame, 1-track trajectory inline.
@@ -890,7 +909,7 @@ def test_implementation_accepts_constants_kwarg(module_name, callable_name):
             )
         df = pd.DataFrame(rows)
         result = fn(df, constants=ConstantsT())
-    assert isinstance(result, pd.DataFrame)
+        assert isinstance(result, pd.DataFrame)
 
 
 # B3 — conflicting per-frame metadata raises clear error
