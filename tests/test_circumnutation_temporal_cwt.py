@@ -14,7 +14,7 @@
   ``_coi_boundary_samples`` private-but-test-importable helper
 - §2.E ridge sanity — single-frequency concentration + COI-interior
   max-fraction dispersion test on pure-noise input
-- §2.F validation/errors (32 parametrized ids enumerated precisely)
+- §2.F validation/errors (parametrized; ids enumerated below)
 - §2.G ConstantsT override + 2-tier resolution-order
 - §2.H reference-fixture sanity — §2.H.1 proofread-fixture constraint
   satisfaction across 6 tracks; §2.H.2 Layer-1 synthetic sanity at ±10%
@@ -570,7 +570,9 @@ def test_2E4_in_coi_consistent_with_scaleogram_coi_mask():
 
 
 # ===========================================================================
-# §2.F — Validation / errors (32 parametrized ids)
+# §2.F — Validation / errors (parametrized; current id count tracked via
+# `pytest --collect-only -q tests/test_circumnutation_temporal_cwt.py | grep '::test_2F'`
+# rather than a stale hardcoded number — per /copilot-review round-3 on PR #213)
 # ===========================================================================
 
 
@@ -592,7 +594,9 @@ def _make_x_with_neg_inf() -> np.ndarray:
     return x
 
 
-# §2.F.1 — invalid x (9 ids)
+# §2.F.1 — invalid x (parametrize cases enumerated below; count tracked via
+# `pytest --collect-only -q tests/test_circumnutation_temporal_cwt.py::test_2F1_compute_scaleogram_x_invalid`
+# rather than a stale hardcoded number — per /copilot-review round-3 on PR #213)
 @pytest.mark.parametrize(
     "bad_x",
     [
@@ -646,7 +650,7 @@ def test_2F2_compute_scaleogram_cadence_s_invalid(bad_cadence, expected_exc):
         compute_scaleogram(x, bad_cadence)
 
 
-# §2.F.3 — invalid constants type (3 ids)
+# §2.F.3 — invalid constants type (parametrize cases enumerated below)
 @pytest.mark.parametrize(
     "bad_constants",
     [
@@ -761,7 +765,7 @@ def test_2F4_compute_scaleogram_constants_field_invalid(
         compute_scaleogram(x, 300.0, constants=bad_constants_obj)
 
 
-# §2.F.5 — extract_ridge type-invalid (3 ids)
+# §2.F.5 — extract_ridge type-invalid (parametrize cases enumerated below)
 @pytest.mark.parametrize(
     "bad_input",
     [
@@ -806,7 +810,7 @@ def _make_empty_scaleogram_result(empty_axis: str) -> ScaleogramResult:
     raise ValueError(f"Unknown empty_axis: {empty_axis}")
 
 
-# §2.F.6 — extract_ridge empty (2 ids)
+# §2.F.6 — extract_ridge empty (parametrize cases enumerated below)
 @pytest.mark.parametrize(
     "empty_axis,match_pattern",
     [
