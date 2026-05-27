@@ -2841,16 +2841,193 @@
 
     <div class="doc doc-contents first">
 
-        <p>Tier 1 — temporal continuous wavelet transform machinery (PR #5 will implement).</p>
-<p>Provides the generic CWT scaleogram + ridge-extraction helpers that
-Tier 1 (PR #6, Derr-faithful trait emission) and Tier 2 (PR #7,
-Bastien-Meroz ψ_g) compose. Uses the analytic complex Morlet
-<code>cmor1.5-1.0</code> mother wavelet by default
-(:data:<code>~sleap_roots.circumnutation._constants.WAVELET_DEFAULT_TEMPORAL</code>),
-chosen as a forensic match to Derr's Sept-2025 oracle scaleogram on
-the same Suyash CMTN plate. The returned scaleogram is complex-valued;
-ridge extraction is deterministic (no random tie-breaking) per
-roadmap CC-6.</p>
+        <p>Tier 1 — temporal continuous wavelet transform machinery (PR #5).</p>
+<p>Provides the generic CWT scaleogram + ridge-extraction primitives that
+Tier 1 (PR #6, Derr-faithful trait emission), Tier 2 (PR #7, Bastien-Meroz
+ψ_g), and the QC tier's <code>coi_fraction_t1</code> reliability gate compose on top
+of. PR #5 emits <strong>NO TRAITS</strong> (scope discipline) — trait emission is PR #6's
+responsibility per <code>docs/circumnutation/theory.md</code> §7.2.</p>
+<h3 id="sleap_roots.circumnutation.temporal_cwt--public-api">Public API<a class="headerlink" href="#sleap_roots.circumnutation.temporal_cwt--public-api" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:func:<code>compute_scaleogram</code> — full CWT scaleogram + COI mask</li>
+<li>:func:<code>extract_ridge</code> — per-frame ridge of period + amplitude + power</li>
+<li>:class:<code>ScaleogramResult</code> — frozen attrs container for <code>compute_scaleogram</code> output</li>
+<li>:class:<code>RidgeResult</code> — frozen attrs container for <code>extract_ridge</code> output</li>
+</ul>
+<h3 id="sleap_roots.circumnutation.temporal_cwt--wavelet-scale-axis-coi-formula">Wavelet, scale axis, COI formula<a class="headerlink" href="#sleap_roots.circumnutation.temporal_cwt--wavelet-scale-axis-coi-formula" title="Permanent link">&para;</a></h3>
+<p>Mother wavelet: <code>cmor1.5-1.0</code> (default per
+:data:<code>~sleap_roots.circumnutation._constants.WAVELET_DEFAULT_TEMPORAL</code>) —
+forensic match to Derr's Sept-2025 oracle scaleogram on the same Suyash
+CMTN plate. Scales are log-spaced over an auto-derived period range
+<code>[CWT_PERIOD_MIN_NYQUIST_FACTOR · cadence_s, CWT_PERIOD_MAX_SIGNAL_FRACTION
+· n_frames · cadence_s]</code>; period-axis derivation uses
+<code>pywt.scale2frequency</code> for wavelet-agnostic correctness (the shortcut
+<code>period = scale · cadence_s</code> only holds at <code>center_freq = 1.0</code>).</p>
+<p>The cone-of-influence (COI) mask flags frames where the wavelet support
+extends past a signal boundary, making the scaleogram unreliable. For
+cmor1.5-1.0 the COI half-width is <code>√1.5 · scale ≈ 1.225 · scale</code> samples,
+empirically verified across cmor variants (each gives factor <code>√B</code>). See
+<code>openspec/changes/add-circumnutation-temporal-cwt-machinery/design.md</code> D3
+for the full derivation.</p>
+<h3 id="sleap_roots.circumnutation.temporal_cwt--determinism-contract-cc-6">Determinism contract (CC-6)<a class="headerlink" href="#sleap_roots.circumnutation.temporal_cwt--determinism-contract-cc-6" title="Permanent link">&para;</a></h3>
+<p>Same input → bit-identical scaleogram in the same Python process AND within
+<code>atol=1e-9</code> across Ubuntu / Windows / macOS CI runners (matching PR #4's
+synthetic generator baseline). pywt.cwt is documented deterministic; tests
+in §2.B of <code>tests/test_circumnutation_temporal_cwt.py</code> validate same-
+process bit-identical (atol=0) and lock a 3-value canary at the resonant
+scale against <code>synthetic.generate_trajectory(random_state=0, n_frames=128,
+T_nutation_s=3333, cadence_s=300, noise_sigma_px=0)</code> input.</p>
+<h3 id="sleap_roots.circumnutation.temporal_cwt--scope-discipline">Scope discipline<a class="headerlink" href="#sleap_roots.circumnutation.temporal_cwt--scope-discipline" title="Permanent link">&para;</a></h3>
+<p>No trait emission, no Layer-2 Derr forensic match (deferred to PR #6's
+<code>derr_match_residual</code> trait), no parabolic refinement of the ridge
+(deferred to PR #6 if its <code>T_nutation_iqr</code> accuracy spec demands it), no
+ridge-tracking continuity post-filter (planned follow-up GitHub issue —
+per-frame argmax can hop discontinuously at multi-harmonic frames per
+Mallat 1999 <em>A Wavelet Tour of Signal Processing</em> §4.4.2).</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="sleap_roots.circumnutation.temporal_cwt.ScaleogramResult" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">ScaleogramResult</span>
+
+
+<a href="#sleap_roots.circumnutation.temporal_cwt.ScaleogramResult" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Output of :func:<code>compute_scaleogram</code>. Frozen container of CWT outputs.</p>
+<p>All ndarray fields are immutable-by-convention (<code>frozen=True</code> prevents
+rebinding the attribute but does NOT deep-freeze the underlying numpy
+arrays). The pattern mirrors the foundation's
+:class:<code>~sleap_roots.circumnutation._types.CircumnutationInputs</code> /
+:class:<code>~sleap_roots.circumnutation._constants.ConstantsT</code> precedent.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="sleap_roots.circumnutation.temporal_cwt.ScaleogramResult.scaleogram">scaleogram</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Complex-valued CWT coefficients of shape
+<code>(n_scales, n_frames)</code>, dtype <code>complex128</code>. <code>|scaleogram|</code>
+is the magnitude envelope; <code>np.angle(scaleogram)</code> is the phase.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="sleap_roots.circumnutation.temporal_cwt.ScaleogramResult.scales">scales</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pywt scale axis of shape <code>(n_scales,)</code>, dtype <code>float64</code>,
+strictly monotonically increasing (log-spaced by default).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="sleap_roots.circumnutation.temporal_cwt.ScaleogramResult.periods_s">periods_s</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Period axis in seconds of shape <code>(n_scales,)</code>, dtype
+<code>float64</code>. Derived via <code>pywt.scale2frequency</code> round-trip for
+wavelet-agnostic correctness.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="sleap_roots.circumnutation.temporal_cwt.ScaleogramResult.frequencies_hz">frequencies_hz</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Frequency axis in Hz of shape <code>(n_scales,)</code>, dtype
+<code>float64</code>. Equal to <code>1.0 / periods_s</code> to within numerical
+precision.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="sleap_roots.circumnutation.temporal_cwt.ScaleogramResult.coi_mask">coi_mask</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Cone-of-influence boolean mask of shape
+<code>(n_scales, n_frames)</code>. <code>True</code> indicates inside-COI =
+unreliable (within <code>COI_EFOLDING_FACTOR · scale</code> samples of a
+signal boundary).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="sleap_roots.circumnutation.temporal_cwt.ScaleogramResult.cadence_s">cadence_s</span></code></td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The <code>cadence_s</code> value passed to <code>compute_scaleogram</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="sleap_roots.circumnutation.temporal_cwt.ScaleogramResult.wavelet">wavelet</span></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The resolved wavelet name (default
+:data:<code>WAVELET_DEFAULT_TEMPORAL</code> = <code>"cmor1.5-1.0"</code>).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
 
 
 
@@ -2872,6 +3049,145 @@ roadmap CC-6.</p>
 
 
 
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="sleap_roots.circumnutation.temporal_cwt.RidgeResult" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">RidgeResult</span>
+
+
+<a href="#sleap_roots.circumnutation.temporal_cwt.RidgeResult" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>Output of :func:<code>extract_ridge</code>. Per-frame ridge of the scaleogram.</p>
+<p>The ridge is NOT pre-COI-masked — PR #6's trait emission applies the
+mask per <code>theory.md</code> §7.2 "COI-masked" language. <code>in_coi</code> exposes
+per-frame COI status so downstream callers can filter as they wish.</p>
+<p>Note on field redundancy: <code>powers = amplitudes ** 2</code> by construction.
+Both are exposed so downstream consumers can use either <code>|C|</code> or
+<code>|C|²</code> without recomputing. The redundancy is intentional and locked
+by the spec's "Temporal CWT ridge API" requirement scenario.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="sleap_roots.circumnutation.temporal_cwt.RidgeResult.frame_indices">frame_indices</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Frame index axis of shape <code>(n_frames,)</code>, dtype
+<code>int64</code>. Always equal to <code>np.arange(n_frames, dtype=np.int64)</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="sleap_roots.circumnutation.temporal_cwt.RidgeResult.periods_s">periods_s</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Period at the argmax(|scaleogram|) cell for each frame.
+Shape <code>(n_frames,)</code>, dtype <code>float64</code>. <strong>Indexed by frame, NOT
+by scale</strong> — value at index <code>i</code> is the period at the ridge for
+frame <code>i</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="sleap_roots.circumnutation.temporal_cwt.RidgeResult.amplitudes">amplitudes</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>|C|</code> at the ridge cell for each frame. Shape
+<code>(n_frames,)</code>, dtype <code>float64</code>, all values ≥ 0.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="sleap_roots.circumnutation.temporal_cwt.RidgeResult.powers">powers</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>|C|² = amplitudes ** 2</code> (redundant by construction).
+Shape <code>(n_frames,)</code>, dtype <code>float64</code>.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="sleap_roots.circumnutation.temporal_cwt.RidgeResult.in_coi">in_coi</span></code></td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>COI status at the ridge cell for each frame. Shape
+<code>(n_frames,)</code>, dtype <code>bool</code>. <code>True</code> means the ridge fell
+into the COI band at that frame.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
 <div class="doc doc-object doc-function">
 
 
@@ -2881,27 +3197,126 @@ roadmap CC-6.</p>
 
 <a href="#sleap_roots.circumnutation.temporal_cwt.compute_scaleogram" class="headerlink" title="Permanent link">&para;</a></h3>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">compute_scaleogram</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">cadence_s</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">wavelet</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">scale_range</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">constants</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">x</span><span class="p">:</span> <span class="n"><span title="numpy.ndarray">ndarray</span></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">cadence_s</span><span class="p">:</span> <span class="n"><span title="float">float</span></span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">constants</span><span class="p">:</span> <span class="n"><span title="typing.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="sleap_roots.circumnutation._constants.ConstantsT">ConstantsT</span></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="ScaleogramResult (sleap_roots.circumnutation.temporal_cwt.ScaleogramResult)" href="#sleap_roots.circumnutation.temporal_cwt.ScaleogramResult">ScaleogramResult</a></span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Compute a temporal CWT scaleogram (PR #5 will implement).</p>
-<p>Args (when implemented):
-    x: 1-D numpy array of the input signal (e.g., one tip coordinate).
-    cadence_s: Sampling cadence in seconds.
-    wavelet: Mother wavelet name (default
-        :data:<code>~sleap_roots.circumnutation._constants.WAVELET_DEFAULT_TEMPORAL</code>).
-    scale_range: Optional <code>(low, high)</code> scale range; auto-derived
-        from cadence and signal length if omitted.</p>
-<p>Returns (when implemented):
-    A <code>ScaleogramResult</code> containing the complex CWT coefficients,
-    scale-to-period mapping, and cone-of-influence mask.</p>
+        <p>Compute a temporal CWT scaleogram on a 1-D signal.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>x</code>
+            </td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>1-D <code>np.ndarray</code> of finite real values (NaN / ±inf rejected).
+Must have length ≥ <code>MIN_FRAMES_REQUIRED</code> derived at call time
+from the resolved <code>constants</code> (= 9 at defaults). Coerced to
+<code>np.float64</code> for downstream pywt.cwt.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cadence_s</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Sampling cadence in seconds (positive finite float; bool
+and string types are explicitly rejected).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>constants</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="sleap_roots.circumnutation._constants.ConstantsT">ConstantsT</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional :class:<code>ConstantsT</code> override-bag. 2-tier
+resolution per design.md D7: <code>constants or ConstantsT()</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="ScaleogramResult (sleap_roots.circumnutation.temporal_cwt.ScaleogramResult)" href="#sleap_roots.circumnutation.temporal_cwt.ScaleogramResult">ScaleogramResult</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A frozen :class:<code>ScaleogramResult</code> containing the complex CWT</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="ScaleogramResult (sleap_roots.circumnutation.temporal_cwt.ScaleogramResult)" href="#sleap_roots.circumnutation.temporal_cwt.ScaleogramResult">ScaleogramResult</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>coefficients, scale axis, period/frequency axes, boolean COI mask,</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="ScaleogramResult (sleap_roots.circumnutation.temporal_cwt.ScaleogramResult)" href="#sleap_roots.circumnutation.temporal_cwt.ScaleogramResult">ScaleogramResult</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>and the resolved <code>cadence_s</code> + <code>wavelet</code> strings.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
 <p><span class="doc-section-title">Raises:</span></p>
@@ -2915,11 +3330,345 @@ roadmap CC-6.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="NotImplementedError">NotImplementedError</span></code>
+                  <code><span title="ValueError">ValueError</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Always; this is a stub for PR #5.</p>
+                <p>If <code>x</code> is non-finite / wrong shape / wrong dtype /
+too-short; if <code>cadence_s</code> has an invalid value (0, negative,
+NaN, ±inf); if a <code>constants</code> field violates its positive-finite
+invariant.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>x</code> is not an ndarray; if <code>cadence_s</code> has an
+invalid type (bool, str, list); if <code>constants</code> is not <code>None</code>
+and not a <code>ConstantsT</code> instance.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <p>Default cmor1.5-1.0 scaleogram on a 575-frame trajectory::</p>
+<div class="language-text highlight"><pre><span></span><code>&gt;&gt;&gt; import numpy as np
+&gt;&gt;&gt; from sleap_roots.circumnutation.temporal_cwt import compute_scaleogram
+&gt;&gt;&gt; x = np.linspace(0.0, 100.0, 575, dtype=np.float64)
+&gt;&gt;&gt; result = compute_scaleogram(x, 300.0)
+&gt;&gt;&gt; result.scaleogram.shape
+(64, 575)
+&gt;&gt;&gt; result.scaleogram.dtype
+dtype(&#39;complex128&#39;)
+</code></pre></div>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>sleap_roots/circumnutation/temporal_cwt.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-417">417</a></span>
+<span class="normal"><a href="#__codelineno-0-418">418</a></span>
+<span class="normal"><a href="#__codelineno-0-419">419</a></span>
+<span class="normal"><a href="#__codelineno-0-420">420</a></span>
+<span class="normal"><a href="#__codelineno-0-421">421</a></span>
+<span class="normal"><a href="#__codelineno-0-422">422</a></span>
+<span class="normal"><a href="#__codelineno-0-423">423</a></span>
+<span class="normal"><a href="#__codelineno-0-424">424</a></span>
+<span class="normal"><a href="#__codelineno-0-425">425</a></span>
+<span class="normal"><a href="#__codelineno-0-426">426</a></span>
+<span class="normal"><a href="#__codelineno-0-427">427</a></span>
+<span class="normal"><a href="#__codelineno-0-428">428</a></span>
+<span class="normal"><a href="#__codelineno-0-429">429</a></span>
+<span class="normal"><a href="#__codelineno-0-430">430</a></span>
+<span class="normal"><a href="#__codelineno-0-431">431</a></span>
+<span class="normal"><a href="#__codelineno-0-432">432</a></span>
+<span class="normal"><a href="#__codelineno-0-433">433</a></span>
+<span class="normal"><a href="#__codelineno-0-434">434</a></span>
+<span class="normal"><a href="#__codelineno-0-435">435</a></span>
+<span class="normal"><a href="#__codelineno-0-436">436</a></span>
+<span class="normal"><a href="#__codelineno-0-437">437</a></span>
+<span class="normal"><a href="#__codelineno-0-438">438</a></span>
+<span class="normal"><a href="#__codelineno-0-439">439</a></span>
+<span class="normal"><a href="#__codelineno-0-440">440</a></span>
+<span class="normal"><a href="#__codelineno-0-441">441</a></span>
+<span class="normal"><a href="#__codelineno-0-442">442</a></span>
+<span class="normal"><a href="#__codelineno-0-443">443</a></span>
+<span class="normal"><a href="#__codelineno-0-444">444</a></span>
+<span class="normal"><a href="#__codelineno-0-445">445</a></span>
+<span class="normal"><a href="#__codelineno-0-446">446</a></span>
+<span class="normal"><a href="#__codelineno-0-447">447</a></span>
+<span class="normal"><a href="#__codelineno-0-448">448</a></span>
+<span class="normal"><a href="#__codelineno-0-449">449</a></span>
+<span class="normal"><a href="#__codelineno-0-450">450</a></span>
+<span class="normal"><a href="#__codelineno-0-451">451</a></span>
+<span class="normal"><a href="#__codelineno-0-452">452</a></span>
+<span class="normal"><a href="#__codelineno-0-453">453</a></span>
+<span class="normal"><a href="#__codelineno-0-454">454</a></span>
+<span class="normal"><a href="#__codelineno-0-455">455</a></span>
+<span class="normal"><a href="#__codelineno-0-456">456</a></span>
+<span class="normal"><a href="#__codelineno-0-457">457</a></span>
+<span class="normal"><a href="#__codelineno-0-458">458</a></span>
+<span class="normal"><a href="#__codelineno-0-459">459</a></span>
+<span class="normal"><a href="#__codelineno-0-460">460</a></span>
+<span class="normal"><a href="#__codelineno-0-461">461</a></span>
+<span class="normal"><a href="#__codelineno-0-462">462</a></span>
+<span class="normal"><a href="#__codelineno-0-463">463</a></span>
+<span class="normal"><a href="#__codelineno-0-464">464</a></span>
+<span class="normal"><a href="#__codelineno-0-465">465</a></span>
+<span class="normal"><a href="#__codelineno-0-466">466</a></span>
+<span class="normal"><a href="#__codelineno-0-467">467</a></span>
+<span class="normal"><a href="#__codelineno-0-468">468</a></span>
+<span class="normal"><a href="#__codelineno-0-469">469</a></span>
+<span class="normal"><a href="#__codelineno-0-470">470</a></span>
+<span class="normal"><a href="#__codelineno-0-471">471</a></span>
+<span class="normal"><a href="#__codelineno-0-472">472</a></span>
+<span class="normal"><a href="#__codelineno-0-473">473</a></span>
+<span class="normal"><a href="#__codelineno-0-474">474</a></span>
+<span class="normal"><a href="#__codelineno-0-475">475</a></span>
+<span class="normal"><a href="#__codelineno-0-476">476</a></span>
+<span class="normal"><a href="#__codelineno-0-477">477</a></span>
+<span class="normal"><a href="#__codelineno-0-478">478</a></span>
+<span class="normal"><a href="#__codelineno-0-479">479</a></span>
+<span class="normal"><a href="#__codelineno-0-480">480</a></span>
+<span class="normal"><a href="#__codelineno-0-481">481</a></span>
+<span class="normal"><a href="#__codelineno-0-482">482</a></span>
+<span class="normal"><a href="#__codelineno-0-483">483</a></span>
+<span class="normal"><a href="#__codelineno-0-484">484</a></span>
+<span class="normal"><a href="#__codelineno-0-485">485</a></span>
+<span class="normal"><a href="#__codelineno-0-486">486</a></span>
+<span class="normal"><a href="#__codelineno-0-487">487</a></span>
+<span class="normal"><a href="#__codelineno-0-488">488</a></span>
+<span class="normal"><a href="#__codelineno-0-489">489</a></span>
+<span class="normal"><a href="#__codelineno-0-490">490</a></span>
+<span class="normal"><a href="#__codelineno-0-491">491</a></span>
+<span class="normal"><a href="#__codelineno-0-492">492</a></span>
+<span class="normal"><a href="#__codelineno-0-493">493</a></span>
+<span class="normal"><a href="#__codelineno-0-494">494</a></span>
+<span class="normal"><a href="#__codelineno-0-495">495</a></span>
+<span class="normal"><a href="#__codelineno-0-496">496</a></span>
+<span class="normal"><a href="#__codelineno-0-497">497</a></span>
+<span class="normal"><a href="#__codelineno-0-498">498</a></span>
+<span class="normal"><a href="#__codelineno-0-499">499</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-417"><a id="__codelineno-0-417" name="__codelineno-0-417"></a><span class="k">def</span><span class="w"> </span><span class="nf">compute_scaleogram</span><span class="p">(</span>
+</span><span id="__span-0-418"><a id="__codelineno-0-418" name="__codelineno-0-418"></a>    <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+</span><span id="__span-0-419"><a id="__codelineno-0-419" name="__codelineno-0-419"></a>    <span class="n">cadence_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-0-420"><a id="__codelineno-0-420" name="__codelineno-0-420"></a>    <span class="n">constants</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ConstantsT</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-421"><a id="__codelineno-0-421" name="__codelineno-0-421"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ScaleogramResult</span><span class="p">:</span>
+</span><span id="__span-0-422"><a id="__codelineno-0-422" name="__codelineno-0-422"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute a temporal CWT scaleogram on a 1-D signal.</span>
+</span><span id="__span-0-423"><a id="__codelineno-0-423" name="__codelineno-0-423"></a>
+</span><span id="__span-0-424"><a id="__codelineno-0-424" name="__codelineno-0-424"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-425"><a id="__codelineno-0-425" name="__codelineno-0-425"></a><span class="sd">        x: 1-D ``np.ndarray`` of finite real values (NaN / ±inf rejected).</span>
+</span><span id="__span-0-426"><a id="__codelineno-0-426" name="__codelineno-0-426"></a><span class="sd">            Must have length ≥ ``MIN_FRAMES_REQUIRED`` derived at call time</span>
+</span><span id="__span-0-427"><a id="__codelineno-0-427" name="__codelineno-0-427"></a><span class="sd">            from the resolved ``constants`` (= 9 at defaults). Coerced to</span>
+</span><span id="__span-0-428"><a id="__codelineno-0-428" name="__codelineno-0-428"></a><span class="sd">            ``np.float64`` for downstream pywt.cwt.</span>
+</span><span id="__span-0-429"><a id="__codelineno-0-429" name="__codelineno-0-429"></a><span class="sd">        cadence_s: Sampling cadence in seconds (positive finite float; bool</span>
+</span><span id="__span-0-430"><a id="__codelineno-0-430" name="__codelineno-0-430"></a><span class="sd">            and string types are explicitly rejected).</span>
+</span><span id="__span-0-431"><a id="__codelineno-0-431" name="__codelineno-0-431"></a><span class="sd">        constants: Optional :class:`ConstantsT` override-bag. 2-tier</span>
+</span><span id="__span-0-432"><a id="__codelineno-0-432" name="__codelineno-0-432"></a><span class="sd">            resolution per design.md D7: ``constants or ConstantsT()``.</span>
+</span><span id="__span-0-433"><a id="__codelineno-0-433" name="__codelineno-0-433"></a>
+</span><span id="__span-0-434"><a id="__codelineno-0-434" name="__codelineno-0-434"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-435"><a id="__codelineno-0-435" name="__codelineno-0-435"></a><span class="sd">        A frozen :class:`ScaleogramResult` containing the complex CWT</span>
+</span><span id="__span-0-436"><a id="__codelineno-0-436" name="__codelineno-0-436"></a><span class="sd">        coefficients, scale axis, period/frequency axes, boolean COI mask,</span>
+</span><span id="__span-0-437"><a id="__codelineno-0-437" name="__codelineno-0-437"></a><span class="sd">        and the resolved ``cadence_s`` + ``wavelet`` strings.</span>
+</span><span id="__span-0-438"><a id="__codelineno-0-438" name="__codelineno-0-438"></a>
+</span><span id="__span-0-439"><a id="__codelineno-0-439" name="__codelineno-0-439"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-440"><a id="__codelineno-0-440" name="__codelineno-0-440"></a><span class="sd">        ValueError: If ``x`` is non-finite / wrong shape / wrong dtype /</span>
+</span><span id="__span-0-441"><a id="__codelineno-0-441" name="__codelineno-0-441"></a><span class="sd">            too-short; if ``cadence_s`` has an invalid value (0, negative,</span>
+</span><span id="__span-0-442"><a id="__codelineno-0-442" name="__codelineno-0-442"></a><span class="sd">            NaN, ±inf); if a ``constants`` field violates its positive-finite</span>
+</span><span id="__span-0-443"><a id="__codelineno-0-443" name="__codelineno-0-443"></a><span class="sd">            invariant.</span>
+</span><span id="__span-0-444"><a id="__codelineno-0-444" name="__codelineno-0-444"></a><span class="sd">        TypeError: If ``x`` is not an ndarray; if ``cadence_s`` has an</span>
+</span><span id="__span-0-445"><a id="__codelineno-0-445" name="__codelineno-0-445"></a><span class="sd">            invalid type (bool, str, list); if ``constants`` is not ``None``</span>
+</span><span id="__span-0-446"><a id="__codelineno-0-446" name="__codelineno-0-446"></a><span class="sd">            and not a ``ConstantsT`` instance.</span>
+</span><span id="__span-0-447"><a id="__codelineno-0-447" name="__codelineno-0-447"></a>
+</span><span id="__span-0-448"><a id="__codelineno-0-448" name="__codelineno-0-448"></a><span class="sd">    Examples:</span>
+</span><span id="__span-0-449"><a id="__codelineno-0-449" name="__codelineno-0-449"></a><span class="sd">        Default cmor1.5-1.0 scaleogram on a 575-frame trajectory::</span>
+</span><span id="__span-0-450"><a id="__codelineno-0-450" name="__codelineno-0-450"></a>
+</span><span id="__span-0-451"><a id="__codelineno-0-451" name="__codelineno-0-451"></a><span class="sd">            &gt;&gt;&gt; import numpy as np</span>
+</span><span id="__span-0-452"><a id="__codelineno-0-452" name="__codelineno-0-452"></a><span class="sd">            &gt;&gt;&gt; from sleap_roots.circumnutation.temporal_cwt import compute_scaleogram</span>
+</span><span id="__span-0-453"><a id="__codelineno-0-453" name="__codelineno-0-453"></a><span class="sd">            &gt;&gt;&gt; x = np.linspace(0.0, 100.0, 575, dtype=np.float64)</span>
+</span><span id="__span-0-454"><a id="__codelineno-0-454" name="__codelineno-0-454"></a><span class="sd">            &gt;&gt;&gt; result = compute_scaleogram(x, 300.0)</span>
+</span><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="sd">            &gt;&gt;&gt; result.scaleogram.shape</span>
+</span><span id="__span-0-456"><a id="__codelineno-0-456" name="__codelineno-0-456"></a><span class="sd">            (64, 575)</span>
+</span><span id="__span-0-457"><a id="__codelineno-0-457" name="__codelineno-0-457"></a><span class="sd">            &gt;&gt;&gt; result.scaleogram.dtype</span>
+</span><span id="__span-0-458"><a id="__codelineno-0-458" name="__codelineno-0-458"></a><span class="sd">            dtype(&#39;complex128&#39;)</span>
+</span><span id="__span-0-459"><a id="__codelineno-0-459" name="__codelineno-0-459"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-460"><a id="__codelineno-0-460" name="__codelineno-0-460"></a>    <span class="n">constants_resolved</span> <span class="o">=</span> <span class="n">_check_constants</span><span class="p">(</span><span class="n">constants</span><span class="p">)</span>
+</span><span id="__span-0-461"><a id="__codelineno-0-461" name="__codelineno-0-461"></a>    <span class="n">_c</span> <span class="o">=</span> <span class="n">constants_resolved</span> <span class="k">if</span> <span class="n">constants_resolved</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ConstantsT</span><span class="p">()</span>
+</span><span id="__span-0-462"><a id="__codelineno-0-462" name="__codelineno-0-462"></a>    <span class="n">_validate_cwt_constants</span><span class="p">(</span><span class="n">_c</span><span class="p">)</span>
+</span><span id="__span-0-463"><a id="__codelineno-0-463" name="__codelineno-0-463"></a>    <span class="n">cadence_s_v</span> <span class="o">=</span> <span class="n">_validate_cadence_s</span><span class="p">(</span><span class="n">cadence_s</span><span class="p">)</span>
+</span><span id="__span-0-464"><a id="__codelineno-0-464" name="__codelineno-0-464"></a>    <span class="n">min_frames_required</span> <span class="o">=</span> <span class="n">_derive_min_frames_required</span><span class="p">(</span><span class="n">_c</span><span class="p">)</span>
+</span><span id="__span-0-465"><a id="__codelineno-0-465" name="__codelineno-0-465"></a>    <span class="n">x_v</span> <span class="o">=</span> <span class="n">_validate_x</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">min_frames_required</span><span class="p">)</span>
+</span><span id="__span-0-466"><a id="__codelineno-0-466" name="__codelineno-0-466"></a>    <span class="n">n_frames</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_v</span><span class="p">)</span>
+</span><span id="__span-0-467"><a id="__codelineno-0-467" name="__codelineno-0-467"></a>
+</span><span id="__span-0-468"><a id="__codelineno-0-468" name="__codelineno-0-468"></a>    <span class="n">scales</span><span class="p">,</span> <span class="n">periods_s</span><span class="p">,</span> <span class="n">frequencies_hz</span><span class="p">,</span> <span class="n">wavelet_name</span> <span class="o">=</span> <span class="n">_log_spaced_scales</span><span class="p">(</span>
+</span><span id="__span-0-469"><a id="__codelineno-0-469" name="__codelineno-0-469"></a>        <span class="n">n_frames</span><span class="p">,</span> <span class="n">cadence_s_v</span><span class="p">,</span> <span class="n">_c</span>
+</span><span id="__span-0-470"><a id="__codelineno-0-470" name="__codelineno-0-470"></a>    <span class="p">)</span>
+</span><span id="__span-0-471"><a id="__codelineno-0-471" name="__codelineno-0-471"></a>
+</span><span id="__span-0-472"><a id="__codelineno-0-472" name="__codelineno-0-472"></a>    <span class="c1"># Lazy %-style formatting per circumnutation convention (cf. _noise.py,</span>
+</span><span id="__span-0-473"><a id="__codelineno-0-473" name="__codelineno-0-473"></a>    <span class="c1"># qc.py); the message is not formatted when DEBUG level is disabled.</span>
+</span><span id="__span-0-474"><a id="__codelineno-0-474" name="__codelineno-0-474"></a>    <span class="c1"># Per /copilot-review round-2 C6.</span>
+</span><span id="__span-0-475"><a id="__codelineno-0-475" name="__codelineno-0-475"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+</span><span id="__span-0-476"><a id="__codelineno-0-476" name="__codelineno-0-476"></a>        <span class="s2">&quot;compute_scaleogram(n_frames=</span><span class="si">%d</span><span class="s2">, cadence_s=</span><span class="si">%.6f</span><span class="s2">, n_scales=</span><span class="si">%d</span><span class="s2">, &quot;</span>
+</span><span id="__span-0-477"><a id="__codelineno-0-477" name="__codelineno-0-477"></a>        <span class="s2">&quot;period_min_s=</span><span class="si">%.6f</span><span class="s2">, period_max_s=</span><span class="si">%.6f</span><span class="s2">, wavelet=</span><span class="si">%r</span><span class="s2">)&quot;</span><span class="p">,</span>
+</span><span id="__span-0-478"><a id="__codelineno-0-478" name="__codelineno-0-478"></a>        <span class="n">n_frames</span><span class="p">,</span>
+</span><span id="__span-0-479"><a id="__codelineno-0-479" name="__codelineno-0-479"></a>        <span class="n">cadence_s_v</span><span class="p">,</span>
+</span><span id="__span-0-480"><a id="__codelineno-0-480" name="__codelineno-0-480"></a>        <span class="nb">len</span><span class="p">(</span><span class="n">scales</span><span class="p">),</span>
+</span><span id="__span-0-481"><a id="__codelineno-0-481" name="__codelineno-0-481"></a>        <span class="nb">float</span><span class="p">(</span><span class="n">periods_s</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span>
+</span><span id="__span-0-482"><a id="__codelineno-0-482" name="__codelineno-0-482"></a>        <span class="nb">float</span><span class="p">(</span><span class="n">periods_s</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
+</span><span id="__span-0-483"><a id="__codelineno-0-483" name="__codelineno-0-483"></a>        <span class="n">wavelet_name</span><span class="p">,</span>
+</span><span id="__span-0-484"><a id="__codelineno-0-484" name="__codelineno-0-484"></a>    <span class="p">)</span>
+</span><span id="__span-0-485"><a id="__codelineno-0-485" name="__codelineno-0-485"></a>
+</span><span id="__span-0-486"><a id="__codelineno-0-486" name="__codelineno-0-486"></a>    <span class="n">coefs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">pywt</span><span class="o">.</span><span class="n">cwt</span><span class="p">(</span><span class="n">x_v</span><span class="p">,</span> <span class="n">scales</span><span class="p">,</span> <span class="n">wavelet_name</span><span class="p">)</span>
+</span><span id="__span-0-487"><a id="__codelineno-0-487" name="__codelineno-0-487"></a>    <span class="n">scaleogram</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">coefs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
+</span><span id="__span-0-488"><a id="__codelineno-0-488" name="__codelineno-0-488"></a>
+</span><span id="__span-0-489"><a id="__codelineno-0-489" name="__codelineno-0-489"></a>    <span class="n">coi_mask</span> <span class="o">=</span> <span class="n">_make_coi_mask</span><span class="p">(</span><span class="n">scales</span><span class="p">,</span> <span class="n">n_frames</span><span class="p">,</span> <span class="n">_c</span><span class="o">.</span><span class="n">COI_EFOLDING_FACTOR</span><span class="p">)</span>
+</span><span id="__span-0-490"><a id="__codelineno-0-490" name="__codelineno-0-490"></a>
+</span><span id="__span-0-491"><a id="__codelineno-0-491" name="__codelineno-0-491"></a>    <span class="k">return</span> <span class="n">ScaleogramResult</span><span class="p">(</span>
+</span><span id="__span-0-492"><a id="__codelineno-0-492" name="__codelineno-0-492"></a>        <span class="n">scaleogram</span><span class="o">=</span><span class="n">scaleogram</span><span class="p">,</span>
+</span><span id="__span-0-493"><a id="__codelineno-0-493" name="__codelineno-0-493"></a>        <span class="n">scales</span><span class="o">=</span><span class="n">scales</span><span class="p">,</span>
+</span><span id="__span-0-494"><a id="__codelineno-0-494" name="__codelineno-0-494"></a>        <span class="n">periods_s</span><span class="o">=</span><span class="n">periods_s</span><span class="p">,</span>
+</span><span id="__span-0-495"><a id="__codelineno-0-495" name="__codelineno-0-495"></a>        <span class="n">frequencies_hz</span><span class="o">=</span><span class="n">frequencies_hz</span><span class="p">,</span>
+</span><span id="__span-0-496"><a id="__codelineno-0-496" name="__codelineno-0-496"></a>        <span class="n">coi_mask</span><span class="o">=</span><span class="n">coi_mask</span><span class="p">,</span>
+</span><span id="__span-0-497"><a id="__codelineno-0-497" name="__codelineno-0-497"></a>        <span class="n">cadence_s</span><span class="o">=</span><span class="n">cadence_s_v</span><span class="p">,</span>
+</span><span id="__span-0-498"><a id="__codelineno-0-498" name="__codelineno-0-498"></a>        <span class="n">wavelet</span><span class="o">=</span><span class="n">wavelet_name</span><span class="p">,</span>
+</span><span id="__span-0-499"><a id="__codelineno-0-499" name="__codelineno-0-499"></a>    <span class="p">)</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="sleap_roots.circumnutation.temporal_cwt.extract_ridge" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">extract_ridge</span>
+
+
+<a href="#sleap_roots.circumnutation.temporal_cwt.extract_ridge" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">extract_ridge</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">scaleogram_result</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="ScaleogramResult (sleap_roots.circumnutation.temporal_cwt.ScaleogramResult)" href="#sleap_roots.circumnutation.temporal_cwt.ScaleogramResult">ScaleogramResult</a></span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">constants</span><span class="p">:</span> <span class="n"><span title="typing.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="sleap_roots.circumnutation._constants.ConstantsT">ConstantsT</span></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="RidgeResult (sleap_roots.circumnutation.temporal_cwt.RidgeResult)" href="#sleap_roots.circumnutation.temporal_cwt.RidgeResult">RidgeResult</a></span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Extract the per-frame ridge from a :class:<code>ScaleogramResult</code>.</p>
+<p>For each frame, the ridge is the scale index where <code>|scaleogram|</code> is
+maximized. Per-frame <code>np.argmax</code> is deterministic via numpy's
+documented tie-breaking (smallest index on equal values).</p>
+<p>Known limitation (Mallat 1999 §4.4.2): per-frame independence can
+produce spurious jitter at frames where two harmonics have similar
+amplitude. PR #6 may add a continuity post-filter (median-window or
+ridge-following) if its <code>T_nutation_iqr</code> accuracy spec demands it.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>scaleogram_result</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="ScaleogramResult (sleap_roots.circumnutation.temporal_cwt.ScaleogramResult)" href="#sleap_roots.circumnutation.temporal_cwt.ScaleogramResult">ScaleogramResult</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A :class:<code>ScaleogramResult</code> instance.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>constants</code>
+            </td>
+            <td>
+                  <code><span title="typing.Optional">Optional</span>[<span title="sleap_roots.circumnutation._constants.ConstantsT">ConstantsT</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional :class:<code>ConstantsT</code> override-bag. Accepted for
+forward-compatibility (e.g., future parabolic-refinement
+threshold); currently unused but type-validated.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="RidgeResult (sleap_roots.circumnutation.temporal_cwt.RidgeResult)" href="#sleap_roots.circumnutation.temporal_cwt.RidgeResult">RidgeResult</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A frozen :class:<code>RidgeResult</code> with per-frame ridge fields.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>scaleogram_result</code> is not a <code>ScaleogramResult</code>;
+if <code>constants</code> is not <code>None</code> and not a <code>ConstantsT</code> instance.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>scaleogram_result</code> has <code>n_scales == 0</code> or
+<code>n_frames == 0</code> (empty scaleogram).</p>
               </div>
             </td>
           </tr>
@@ -2929,47 +3678,141 @@ roadmap CC-6.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>sleap_roots/circumnutation/temporal_cwt.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-20">20</a></span>
-<span class="normal"><a href="#__codelineno-0-21">21</a></span>
-<span class="normal"><a href="#__codelineno-0-22">22</a></span>
-<span class="normal"><a href="#__codelineno-0-23">23</a></span>
-<span class="normal"><a href="#__codelineno-0-24">24</a></span>
-<span class="normal"><a href="#__codelineno-0-25">25</a></span>
-<span class="normal"><a href="#__codelineno-0-26">26</a></span>
-<span class="normal"><a href="#__codelineno-0-27">27</a></span>
-<span class="normal"><a href="#__codelineno-0-28">28</a></span>
-<span class="normal"><a href="#__codelineno-0-29">29</a></span>
-<span class="normal"><a href="#__codelineno-0-30">30</a></span>
-<span class="normal"><a href="#__codelineno-0-31">31</a></span>
-<span class="normal"><a href="#__codelineno-0-32">32</a></span>
-<span class="normal"><a href="#__codelineno-0-33">33</a></span>
-<span class="normal"><a href="#__codelineno-0-34">34</a></span>
-<span class="normal"><a href="#__codelineno-0-35">35</a></span>
-<span class="normal"><a href="#__codelineno-0-36">36</a></span>
-<span class="normal"><a href="#__codelineno-0-37">37</a></span>
-<span class="normal"><a href="#__codelineno-0-38">38</a></span>
-<span class="normal"><a href="#__codelineno-0-39">39</a></span>
-<span class="normal"><a href="#__codelineno-0-40">40</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="k">def</span><span class="w"> </span><span class="nf">compute_scaleogram</span><span class="p">(</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a>    <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cadence_s</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wavelet</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">scale_range</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">constants</span><span class="o">=</span><span class="kc">None</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="p">):</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute a temporal CWT scaleogram (PR #5 will implement).</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="sd">    Args (when implemented):</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">        x: 1-D numpy array of the input signal (e.g., one tip coordinate).</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">        cadence_s: Sampling cadence in seconds.</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">        wavelet: Mother wavelet name (default</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">            :data:`~sleap_roots.circumnutation._constants.WAVELET_DEFAULT_TEMPORAL`).</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="sd">        scale_range: Optional ``(low, high)`` scale range; auto-derived</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="sd">            from cadence and signal length if omitted.</span>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="sd">    Returns (when implemented):</span>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="sd">        A ``ScaleogramResult`` containing the complex CWT coefficients,</span>
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">        scale-to-period mapping, and cone-of-influence mask.</span>
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a>
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">    Raises:</span>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="sd">        NotImplementedError: Always; this is a stub for PR #5.</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;PR #5 — see docs/circumnutation/roadmap.md&quot;</span><span class="p">)</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-502">502</a></span>
+<span class="normal"><a href="#__codelineno-0-503">503</a></span>
+<span class="normal"><a href="#__codelineno-0-504">504</a></span>
+<span class="normal"><a href="#__codelineno-0-505">505</a></span>
+<span class="normal"><a href="#__codelineno-0-506">506</a></span>
+<span class="normal"><a href="#__codelineno-0-507">507</a></span>
+<span class="normal"><a href="#__codelineno-0-508">508</a></span>
+<span class="normal"><a href="#__codelineno-0-509">509</a></span>
+<span class="normal"><a href="#__codelineno-0-510">510</a></span>
+<span class="normal"><a href="#__codelineno-0-511">511</a></span>
+<span class="normal"><a href="#__codelineno-0-512">512</a></span>
+<span class="normal"><a href="#__codelineno-0-513">513</a></span>
+<span class="normal"><a href="#__codelineno-0-514">514</a></span>
+<span class="normal"><a href="#__codelineno-0-515">515</a></span>
+<span class="normal"><a href="#__codelineno-0-516">516</a></span>
+<span class="normal"><a href="#__codelineno-0-517">517</a></span>
+<span class="normal"><a href="#__codelineno-0-518">518</a></span>
+<span class="normal"><a href="#__codelineno-0-519">519</a></span>
+<span class="normal"><a href="#__codelineno-0-520">520</a></span>
+<span class="normal"><a href="#__codelineno-0-521">521</a></span>
+<span class="normal"><a href="#__codelineno-0-522">522</a></span>
+<span class="normal"><a href="#__codelineno-0-523">523</a></span>
+<span class="normal"><a href="#__codelineno-0-524">524</a></span>
+<span class="normal"><a href="#__codelineno-0-525">525</a></span>
+<span class="normal"><a href="#__codelineno-0-526">526</a></span>
+<span class="normal"><a href="#__codelineno-0-527">527</a></span>
+<span class="normal"><a href="#__codelineno-0-528">528</a></span>
+<span class="normal"><a href="#__codelineno-0-529">529</a></span>
+<span class="normal"><a href="#__codelineno-0-530">530</a></span>
+<span class="normal"><a href="#__codelineno-0-531">531</a></span>
+<span class="normal"><a href="#__codelineno-0-532">532</a></span>
+<span class="normal"><a href="#__codelineno-0-533">533</a></span>
+<span class="normal"><a href="#__codelineno-0-534">534</a></span>
+<span class="normal"><a href="#__codelineno-0-535">535</a></span>
+<span class="normal"><a href="#__codelineno-0-536">536</a></span>
+<span class="normal"><a href="#__codelineno-0-537">537</a></span>
+<span class="normal"><a href="#__codelineno-0-538">538</a></span>
+<span class="normal"><a href="#__codelineno-0-539">539</a></span>
+<span class="normal"><a href="#__codelineno-0-540">540</a></span>
+<span class="normal"><a href="#__codelineno-0-541">541</a></span>
+<span class="normal"><a href="#__codelineno-0-542">542</a></span>
+<span class="normal"><a href="#__codelineno-0-543">543</a></span>
+<span class="normal"><a href="#__codelineno-0-544">544</a></span>
+<span class="normal"><a href="#__codelineno-0-545">545</a></span>
+<span class="normal"><a href="#__codelineno-0-546">546</a></span>
+<span class="normal"><a href="#__codelineno-0-547">547</a></span>
+<span class="normal"><a href="#__codelineno-0-548">548</a></span>
+<span class="normal"><a href="#__codelineno-0-549">549</a></span>
+<span class="normal"><a href="#__codelineno-0-550">550</a></span>
+<span class="normal"><a href="#__codelineno-0-551">551</a></span>
+<span class="normal"><a href="#__codelineno-0-552">552</a></span>
+<span class="normal"><a href="#__codelineno-0-553">553</a></span>
+<span class="normal"><a href="#__codelineno-0-554">554</a></span>
+<span class="normal"><a href="#__codelineno-0-555">555</a></span>
+<span class="normal"><a href="#__codelineno-0-556">556</a></span>
+<span class="normal"><a href="#__codelineno-0-557">557</a></span>
+<span class="normal"><a href="#__codelineno-0-558">558</a></span>
+<span class="normal"><a href="#__codelineno-0-559">559</a></span>
+<span class="normal"><a href="#__codelineno-0-560">560</a></span>
+<span class="normal"><a href="#__codelineno-0-561">561</a></span>
+<span class="normal"><a href="#__codelineno-0-562">562</a></span>
+<span class="normal"><a href="#__codelineno-0-563">563</a></span>
+<span class="normal"><a href="#__codelineno-0-564">564</a></span>
+<span class="normal"><a href="#__codelineno-0-565">565</a></span>
+<span class="normal"><a href="#__codelineno-0-566">566</a></span>
+<span class="normal"><a href="#__codelineno-0-567">567</a></span>
+<span class="normal"><a href="#__codelineno-0-568">568</a></span>
+<span class="normal"><a href="#__codelineno-0-569">569</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-502"><a id="__codelineno-0-502" name="__codelineno-0-502"></a><span class="k">def</span><span class="w"> </span><span class="nf">extract_ridge</span><span class="p">(</span>
+</span><span id="__span-0-503"><a id="__codelineno-0-503" name="__codelineno-0-503"></a>    <span class="n">scaleogram_result</span><span class="p">:</span> <span class="n">ScaleogramResult</span><span class="p">,</span>
+</span><span id="__span-0-504"><a id="__codelineno-0-504" name="__codelineno-0-504"></a>    <span class="n">constants</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ConstantsT</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-505"><a id="__codelineno-0-505" name="__codelineno-0-505"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RidgeResult</span><span class="p">:</span>
+</span><span id="__span-0-506"><a id="__codelineno-0-506" name="__codelineno-0-506"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract the per-frame ridge from a :class:`ScaleogramResult`.</span>
+</span><span id="__span-0-507"><a id="__codelineno-0-507" name="__codelineno-0-507"></a>
+</span><span id="__span-0-508"><a id="__codelineno-0-508" name="__codelineno-0-508"></a><span class="sd">    For each frame, the ridge is the scale index where ``|scaleogram|`` is</span>
+</span><span id="__span-0-509"><a id="__codelineno-0-509" name="__codelineno-0-509"></a><span class="sd">    maximized. Per-frame ``np.argmax`` is deterministic via numpy&#39;s</span>
+</span><span id="__span-0-510"><a id="__codelineno-0-510" name="__codelineno-0-510"></a><span class="sd">    documented tie-breaking (smallest index on equal values).</span>
+</span><span id="__span-0-511"><a id="__codelineno-0-511" name="__codelineno-0-511"></a>
+</span><span id="__span-0-512"><a id="__codelineno-0-512" name="__codelineno-0-512"></a><span class="sd">    Known limitation (Mallat 1999 §4.4.2): per-frame independence can</span>
+</span><span id="__span-0-513"><a id="__codelineno-0-513" name="__codelineno-0-513"></a><span class="sd">    produce spurious jitter at frames where two harmonics have similar</span>
+</span><span id="__span-0-514"><a id="__codelineno-0-514" name="__codelineno-0-514"></a><span class="sd">    amplitude. PR #6 may add a continuity post-filter (median-window or</span>
+</span><span id="__span-0-515"><a id="__codelineno-0-515" name="__codelineno-0-515"></a><span class="sd">    ridge-following) if its ``T_nutation_iqr`` accuracy spec demands it.</span>
+</span><span id="__span-0-516"><a id="__codelineno-0-516" name="__codelineno-0-516"></a>
+</span><span id="__span-0-517"><a id="__codelineno-0-517" name="__codelineno-0-517"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-518"><a id="__codelineno-0-518" name="__codelineno-0-518"></a><span class="sd">        scaleogram_result: A :class:`ScaleogramResult` instance.</span>
+</span><span id="__span-0-519"><a id="__codelineno-0-519" name="__codelineno-0-519"></a><span class="sd">        constants: Optional :class:`ConstantsT` override-bag. Accepted for</span>
+</span><span id="__span-0-520"><a id="__codelineno-0-520" name="__codelineno-0-520"></a><span class="sd">            forward-compatibility (e.g., future parabolic-refinement</span>
+</span><span id="__span-0-521"><a id="__codelineno-0-521" name="__codelineno-0-521"></a><span class="sd">            threshold); currently unused but type-validated.</span>
+</span><span id="__span-0-522"><a id="__codelineno-0-522" name="__codelineno-0-522"></a>
+</span><span id="__span-0-523"><a id="__codelineno-0-523" name="__codelineno-0-523"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-524"><a id="__codelineno-0-524" name="__codelineno-0-524"></a><span class="sd">        A frozen :class:`RidgeResult` with per-frame ridge fields.</span>
+</span><span id="__span-0-525"><a id="__codelineno-0-525" name="__codelineno-0-525"></a>
+</span><span id="__span-0-526"><a id="__codelineno-0-526" name="__codelineno-0-526"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-527"><a id="__codelineno-0-527" name="__codelineno-0-527"></a><span class="sd">        TypeError: If ``scaleogram_result`` is not a ``ScaleogramResult``;</span>
+</span><span id="__span-0-528"><a id="__codelineno-0-528" name="__codelineno-0-528"></a><span class="sd">            if ``constants`` is not ``None`` and not a ``ConstantsT`` instance.</span>
+</span><span id="__span-0-529"><a id="__codelineno-0-529" name="__codelineno-0-529"></a><span class="sd">        ValueError: If ``scaleogram_result`` has ``n_scales == 0`` or</span>
+</span><span id="__span-0-530"><a id="__codelineno-0-530" name="__codelineno-0-530"></a><span class="sd">            ``n_frames == 0`` (empty scaleogram).</span>
+</span><span id="__span-0-531"><a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-532"><a id="__codelineno-0-532" name="__codelineno-0-532"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scaleogram_result</span><span class="p">,</span> <span class="n">ScaleogramResult</span><span class="p">):</span>
+</span><span id="__span-0-533"><a id="__codelineno-0-533" name="__codelineno-0-533"></a>        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+</span><span id="__span-0-534"><a id="__codelineno-0-534" name="__codelineno-0-534"></a>            <span class="sa">f</span><span class="s2">&quot;extract_ridge requires a ScaleogramResult, got &quot;</span>
+</span><span id="__span-0-535"><a id="__codelineno-0-535" name="__codelineno-0-535"></a>            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">scaleogram_result</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">scaleogram_result</span><span class="si">!r}</span><span class="s2">&quot;</span>
+</span><span id="__span-0-536"><a id="__codelineno-0-536" name="__codelineno-0-536"></a>        <span class="p">)</span>
+</span><span id="__span-0-537"><a id="__codelineno-0-537" name="__codelineno-0-537"></a>    <span class="n">_check_constants</span><span class="p">(</span><span class="n">constants</span><span class="p">)</span>
+</span><span id="__span-0-538"><a id="__codelineno-0-538" name="__codelineno-0-538"></a>
+</span><span id="__span-0-539"><a id="__codelineno-0-539" name="__codelineno-0-539"></a>    <span class="n">n_scales</span><span class="p">,</span> <span class="n">n_frames</span> <span class="o">=</span> <span class="n">scaleogram_result</span><span class="o">.</span><span class="n">scaleogram</span><span class="o">.</span><span class="n">shape</span>
+</span><span id="__span-0-540"><a id="__codelineno-0-540" name="__codelineno-0-540"></a>    <span class="k">if</span> <span class="n">n_scales</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-0-541"><a id="__codelineno-0-541" name="__codelineno-0-541"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-0-542"><a id="__codelineno-0-542" name="__codelineno-0-542"></a>            <span class="s2">&quot;extract_ridge received an empty ScaleogramResult (n_scales == 0); &quot;</span>
+</span><span id="__span-0-543"><a id="__codelineno-0-543" name="__codelineno-0-543"></a>            <span class="s2">&quot;cannot derive a ridge from an empty scale axis&quot;</span>
+</span><span id="__span-0-544"><a id="__codelineno-0-544" name="__codelineno-0-544"></a>        <span class="p">)</span>
+</span><span id="__span-0-545"><a id="__codelineno-0-545" name="__codelineno-0-545"></a>    <span class="k">if</span> <span class="n">n_frames</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-0-547"><a id="__codelineno-0-547" name="__codelineno-0-547"></a>            <span class="s2">&quot;extract_ridge received an empty ScaleogramResult (n_frames == 0); &quot;</span>
+</span><span id="__span-0-548"><a id="__codelineno-0-548" name="__codelineno-0-548"></a>            <span class="s2">&quot;cannot derive a ridge from an empty frame axis&quot;</span>
+</span><span id="__span-0-549"><a id="__codelineno-0-549" name="__codelineno-0-549"></a>        <span class="p">)</span>
+</span><span id="__span-0-550"><a id="__codelineno-0-550" name="__codelineno-0-550"></a>
+</span><span id="__span-0-551"><a id="__codelineno-0-551" name="__codelineno-0-551"></a>    <span class="c1"># Lazy %-style formatting per /copilot-review round-2 C7.</span>
+</span><span id="__span-0-552"><a id="__codelineno-0-552" name="__codelineno-0-552"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;extract_ridge(n_scales=</span><span class="si">%d</span><span class="s2">, n_frames=</span><span class="si">%d</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">n_scales</span><span class="p">,</span> <span class="n">n_frames</span><span class="p">)</span>
+</span><span id="__span-0-553"><a id="__codelineno-0-553" name="__codelineno-0-553"></a>
+</span><span id="__span-0-554"><a id="__codelineno-0-554" name="__codelineno-0-554"></a>    <span class="n">abs_scaleogram</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">scaleogram_result</span><span class="o">.</span><span class="n">scaleogram</span><span class="p">)</span>
+</span><span id="__span-0-555"><a id="__codelineno-0-555" name="__codelineno-0-555"></a>    <span class="n">ridge_scale_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">abs_scaleogram</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+</span><span id="__span-0-556"><a id="__codelineno-0-556" name="__codelineno-0-556"></a>    <span class="n">frame_arange</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_frames</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+</span><span id="__span-0-557"><a id="__codelineno-0-557" name="__codelineno-0-557"></a>
+</span><span id="__span-0-558"><a id="__codelineno-0-558" name="__codelineno-0-558"></a>    <span class="n">periods_s</span> <span class="o">=</span> <span class="n">scaleogram_result</span><span class="o">.</span><span class="n">periods_s</span><span class="p">[</span><span class="n">ridge_scale_idx</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+</span><span id="__span-0-559"><a id="__codelineno-0-559" name="__codelineno-0-559"></a>    <span class="n">amplitudes</span> <span class="o">=</span> <span class="n">abs_scaleogram</span><span class="p">[</span><span class="n">ridge_scale_idx</span><span class="p">,</span> <span class="n">frame_arange</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+</span><span id="__span-0-560"><a id="__codelineno-0-560" name="__codelineno-0-560"></a>    <span class="n">powers</span> <span class="o">=</span> <span class="n">amplitudes</span><span class="o">**</span><span class="mi">2</span>
+</span><span id="__span-0-561"><a id="__codelineno-0-561" name="__codelineno-0-561"></a>    <span class="n">in_coi</span> <span class="o">=</span> <span class="n">scaleogram_result</span><span class="o">.</span><span class="n">coi_mask</span><span class="p">[</span><span class="n">ridge_scale_idx</span><span class="p">,</span> <span class="n">frame_arange</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+</span><span id="__span-0-562"><a id="__codelineno-0-562" name="__codelineno-0-562"></a>
+</span><span id="__span-0-563"><a id="__codelineno-0-563" name="__codelineno-0-563"></a>    <span class="k">return</span> <span class="n">RidgeResult</span><span class="p">(</span>
+</span><span id="__span-0-564"><a id="__codelineno-0-564" name="__codelineno-0-564"></a>        <span class="n">frame_indices</span><span class="o">=</span><span class="n">frame_arange</span><span class="p">,</span>
+</span><span id="__span-0-565"><a id="__codelineno-0-565" name="__codelineno-0-565"></a>        <span class="n">periods_s</span><span class="o">=</span><span class="n">periods_s</span><span class="p">,</span>
+</span><span id="__span-0-566"><a id="__codelineno-0-566" name="__codelineno-0-566"></a>        <span class="n">amplitudes</span><span class="o">=</span><span class="n">amplitudes</span><span class="p">,</span>
+</span><span id="__span-0-567"><a id="__codelineno-0-567" name="__codelineno-0-567"></a>        <span class="n">powers</span><span class="o">=</span><span class="n">powers</span><span class="p">,</span>
+</span><span id="__span-0-568"><a id="__codelineno-0-568" name="__codelineno-0-568"></a>        <span class="n">in_coi</span><span class="o">=</span><span class="n">in_coi</span><span class="p">,</span>
+</span><span id="__span-0-569"><a id="__codelineno-0-569" name="__codelineno-0-569"></a>    <span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
