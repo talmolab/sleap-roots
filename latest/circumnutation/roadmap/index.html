@@ -3025,9 +3025,9 @@
 <tr>
 <td>5</td>
 <td><code>add-circumnutation-temporal-cwt-machinery</code></td>
-<td><code>temporal_cwt.compute_scaleogram</code> + <code>extract_ridge</code> + COI mask; deterministic per CC-6; no trait emission.</td>
-<td>⬜</td>
-<td>⬜</td>
+<td><code>temporal_cwt.compute_scaleogram</code> + <code>extract_ridge</code> + COI mask; deterministic per CC-6; no trait emission. Wavelet-aware <code>COI_EFOLDING_FACTOR = math.sqrt(1.5)</code> for cmor1.5-1.0 (empirically verified via step-response across cmor0.5/1.0/1.5/2.0). <a href="https://github.com/talmolab/sleap-roots/issues/212">#212</a> · <a href="https://github.com/talmolab/sleap-roots/pull/213">PR #213</a> · follow-up <a href="https://github.com/talmolab/sleap-roots/issues/214">#214</a> (ridge-tracking continuity per Mallat 1999 §4.4.2, deferred to PR #6)</td>
+<td>✅</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>6</td>
