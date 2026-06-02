@@ -35,6 +35,10 @@ import pytest
 # PR #5 (add-circumnutation-temporal-cwt-machinery) further reduces the stub
 # count from 7 to 6 and the STUBS_WITH_CONSTANTS_KWARG count from 5 to 4,
 # since temporal_cwt is now an implementation module.
+# PR #6 (add-circumnutation-tier1-derr-faithful) adds nutation as the 5th
+# implementation module (newly created, NOT a stub transition; stub count
+# stays at 6) and bumps _CONSTANTS_VERSION 4 → 5 by adding 6 Tier 1 /
+# threshold defaults. IMPLEMENTATIONS_WITH_CONSTANTS_KWARG grows 4 → 5.
 STUB_MODULES = [
     ("psi_g", "compute_psi_g", 7),
     ("midline", "reconstruct", 8),
@@ -203,14 +207,14 @@ def test_valid_unit_vocabulary_is_union_of_pipeline_and_converted():
     assert VALID_UNIT_VOCABULARY == PIPELINE_UNIT_VOCABULARY | CONVERTED_UNIT_VOCABULARY
 
 
-def test_schema_version_is_1_and_constants_version_is_4():
-    """`_SCHEMA_VERSION` is 1 (PR #1); `_CONSTANTS_VERSION` is 4 (bumped in PR #5)."""
+def test_schema_version_is_1_and_constants_version_is_5():
+    """`_SCHEMA_VERSION` is 1 (PR #1); `_CONSTANTS_VERSION` is 5 (bumped in PR #6)."""
     from sleap_roots.circumnutation import _constants
 
     assert isinstance(_constants._SCHEMA_VERSION, int)
     assert _constants._SCHEMA_VERSION == 1
     assert isinstance(_constants._CONSTANTS_VERSION, int)
-    assert _constants._CONSTANTS_VERSION == 4
+    assert _constants._CONSTANTS_VERSION == 5
 
 
 # ---------------------------------------------------------------------------
@@ -754,6 +758,11 @@ def test_constants_snapshot_reflects_override():
         # STUB_MODULES above (preventing the same Copilot regression
         # that PR #4 hit for synthetic).
         "temporal_cwt",
+        # Added in PR #6: nutation (newly created implementation module;
+        # never a stub). The logger-namespace assertion must list it
+        # explicitly because nutation is NOT in STUB_MODULES (PR #6
+        # grows the implementation set by ADDITION, not transition).
+        "nutation",
     ],
 )
 def test_module_logger_is_namespaced(module_name):
@@ -842,6 +851,7 @@ IMPLEMENTATIONS_WITH_CONSTANTS_KWARG = [
     ("qc", "compute"),
     ("synthetic", "generate_trajectory"),  # added by PR #4
     ("temporal_cwt", "compute_scaleogram"),  # added by PR #5
+    ("nutation", "compute"),  # added by PR #6
 ]
 
 
@@ -887,6 +897,32 @@ def test_implementation_accepts_constants_kwarg(module_name, callable_name):
         x = np.linspace(0.0, 100.0, 16, dtype=np.float64)
         result = fn(x, 300.0, constants=ConstantsT())
         assert isinstance(result, ScaleogramResult)
+    elif module_name == "nutation":
+        # nutation.compute(trajectory_df, cadence_s, coordinate, constants).
+        # PR #6 (add-circumnutation-tier1-derr-faithful) — S8' round-2
+        # explicit cadence_s positional parameter. Build a minimal valid
+        # 64-frame, 1-track trajectory inline (n_frames > SG_WINDOW_DETREND=23
+        # so the SG-detrend doesn't short-circuit).
+        rows = []
+        for frame in range(64):
+            rows.append(
+                {
+                    "series": "test",
+                    "sample_uid": "test",
+                    "timepoint": "T0",
+                    "plate_id": "test",
+                    "plant_id": 0,
+                    "track_id": 0,
+                    "genotype": np.nan,
+                    "treatment": np.nan,
+                    "frame": frame,
+                    "tip_x": float(frame),
+                    "tip_y": 0.0,
+                }
+            )
+        df = pd.DataFrame(rows)
+        result = fn(df, 300.0, constants=ConstantsT())
+        assert isinstance(result, pd.DataFrame)
     else:
         # kinematics.compute / qc.compute take a positional trajectory_df.
         # Build a minimal valid 10-frame, 1-track trajectory inline.

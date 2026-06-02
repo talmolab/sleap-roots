@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 _SCHEMA_VERSION: int = 1
 """Bumped when the per-plant CSV row-identity columns or sidecar JSON shapes change."""
 
-_CONSTANTS_VERSION: int = 4
+_CONSTANTS_VERSION: int = 5
 """Bumped when any default in this module changes.
 
 PR #3 (``add-circumnutation-qc-tier``) bumped this 1 → 2 by adding four
@@ -52,6 +52,17 @@ The ``COI_EFOLDING_FACTOR`` default of ``math.sqrt(1.5)`` = ``√B`` for
 cmor1.5-1.0 was empirically verified across cmor0.5/1.0/1.5/2.0 via
 step-response measurement (see ``openspec/changes/add-circumnutation-
 temporal-cwt-machinery/design.md`` D3).
+
+PR #6 (``add-circumnutation-tier1-derr-faithful``) bumped this 4 → 5 by
+adding six new Tier 1 / threshold default constants
+(``RIDGE_CONTINUITY_FILTER_WINDOW``, ``NOISE_FLOOR_OUT_OF_BAND_FACTOR``,
+``BAND_POWER_BAND_LOW_FACTOR``, ``BAND_POWER_BAND_HIGH_FACTOR``,
+``DERR_EXPECTED_PERIOD_S``, ``TEMPORAL_NYQUIST_RATIO_MAX``) to the
+overridable defaults set. ``TEMPORAL_NYQUIST_RATIO_MAX = 0.25`` is the
+TEMPORAL sibling of the existing :data:`NYQUIST_RATIO_MAX` (SPATIAL);
+both default to ``0.25`` per theory.md §6.5's "10-min still works"
+empirical anchor — the dimensional separation lives in the constant
+NAMES + docstrings, not in different values.
 """
 
 
@@ -66,17 +77,26 @@ LGZ_STEADY_STATE_RESIDUAL_MAX: float = 0.2
 """Threshold on `L_gz_steady_state_residual / L_gz_estimate` (theory.md §7.4)."""
 
 NYQUIST_RATIO_MAX: float = 0.25
-"""Maximum tolerated per-frame-step / spatial-wavelength ratio for spatial CWT (theory.md §6.5).
+"""Maximum tolerated per-frame-step / spatial-wavelength ratio for SPATIAL CWT (theory.md §6.5).
 
-Cross-reference (PR #5): numerically equal to :data:`CWT_PERIOD_MAX_SIGNAL_FRACTION`
-(both default to ``0.25``) but semantically distinct. ``NYQUIST_RATIO_MAX`` is a
-QC alias-protection threshold for PR #6's ``cadence_nyquist_ratio`` trait
-(theory.md §6.5 — the per-frame-step / spatial-wavelength ratio for spatial CWT
-must stay below this to avoid spatial aliasing). ``CWT_PERIOD_MAX_SIGNAL_FRACTION``
-is the CWT scale-range upper bound used by ``compute_scaleogram`` to derive
-``period_max_s = fraction * n_frames * cadence_s``. The two constants happen to
-share the same numeric default ``0.25`` by coincidence; future tuning may change
-either independently.
+This is the SPATIAL cadence-Nyquist threshold (px/px, DPI-independent).
+The TEMPORAL sibling is :data:`TEMPORAL_NYQUIST_RATIO_MAX`. Both default
+to ``0.25`` per theory.md §6.5's empirical anchor ("5-min comfortable,
+10-min still works, 30-min aliases"); the dimensional separation lives
+in the constant NAMES + docstrings, NOT in different values. PR #9
+spatial-CWT machinery consumes this constant; PR #6 (``nutation``
+module) consumes ``TEMPORAL_NYQUIST_RATIO_MAX`` for the temporal
+``cadence_nyquist_ratio`` trait.
+
+Cross-reference (PR #5): numerically equal to
+:data:`CWT_PERIOD_MAX_SIGNAL_FRACTION` (both default to ``0.25``) but
+semantically distinct. ``CWT_PERIOD_MAX_SIGNAL_FRACTION`` is the CWT
+scale-range upper bound used by ``compute_scaleogram`` to derive
+``period_max_s = fraction * n_frames * cadence_s``. The three constants
+(``NYQUIST_RATIO_MAX``, ``TEMPORAL_NYQUIST_RATIO_MAX``,
+``CWT_PERIOD_MAX_SIGNAL_FRACTION``) happen to share the same numeric
+default ``0.25`` by coincidence; future tuning may change each
+independently.
 """
 
 SG_D2_AGREEMENT_MAX: float = 1.5
@@ -176,6 +196,108 @@ distinction. ``CWT_PERIOD_MAX_SIGNAL_FRACTION`` is the CWT-scale-range upper
 bound used by ``compute_scaleogram``; ``NYQUIST_RATIO_MAX`` is the QC alias-
 protection threshold for PR #6's ``cadence_nyquist_ratio`` trait. Future
 tuning may change either independently.
+"""
+
+
+# ---------------------------------------------------------------------------
+# Tier 1 / threshold defaults (PR #6; design.md D4/D7/D8/D9)
+# ---------------------------------------------------------------------------
+
+RIDGE_CONTINUITY_FILTER_WINDOW: int = 5
+"""Median-filter window for ``temporal_cwt.smooth_ridge``, in frames (PR #6).
+
+Issue #214: PR #5's per-frame argmax ridge can hop discontinuously between
+adjacent CWT scales when two harmonics have similar amplitude, producing
+spurious ``T_nutation_iqr`` inflation. ``smooth_ridge`` applies
+``scipy.ndimage.median_filter(periods_s, size=window, mode='nearest')``
+to suppress this. Default 5 frames = 25 minutes at plate-001's 300 s
+cadence (~0.75% of the 3333 s nutation period) — tightens without
+smearing biological signal.
+
+For the empirical acceptance criterion (post-filter IQR < raw IQR on
+≥5 of 6 plate-001 tracks), see the spec scenario "GitHub issue #214
+acceptance" in the PR #6 spec delta.
+"""
+
+NOISE_FLOOR_OUT_OF_BAND_FACTOR: float = 5.0
+"""Out-of-band frequency cutoff factor for ``compute_fourier_noise_floor`` (PR #6, CC-8).
+
+The noise floor is the median Fourier amplitude over frequencies
+``f > factor / T_nutation_median`` — i.e., the "well above the
+candidate-nutation-frequency" region of the spectrum. Default 5.0 per
+``roadmap.md`` CC-8 verbatim.
+
+GREEN-phase empirical decision: PR #6 §2.E.7 sensitivity test parametrizes
+factor ∈ {3, 5, 7} on plate-001; the empirically-robust value will be
+recorded in the GREEN-phase Reconciliation Appendix. If GREEN-phase
+empirical work shows factor=5 puts BM2016-predicted second/third harmonics
+INSIDE the noise band (inflating the floor and falsely depressing
+``band_power_ratio``), a follow-up roadmap revision may lower this.
+"""
+
+BAND_POWER_BAND_LOW_FACTOR: float = 0.5
+"""Lower band-edge factor for ``band_power_ratio`` (PR #6, theory.md §7.2).
+
+``f_low = factor / T_nutation_median``. With factor=0.5, the corresponding
+PERIOD edge is ``2 * T_nutation_median`` (half the candidate nutation
+frequency). Per theory.md §7.2 "spectral power in [0.5T, 2T] band /
+total spectral power" — the [0.5T, 2T] period band maps to the
+frequency band [1/(2T), 2/T] = [factor_low/T, factor_high/T].
+"""
+
+BAND_POWER_BAND_HIGH_FACTOR: float = 2.0
+"""Upper band-edge factor for ``band_power_ratio`` (PR #6, theory.md §7.2).
+
+``f_high = factor / T_nutation_median``. With factor=2.0, the
+corresponding PERIOD edge is ``T_nutation_median / 2`` (2× the candidate
+nutation frequency). Per theory.md §7.2 — see the lower-edge factor
+docstring for the period-vs-frequency mapping.
+"""
+
+DERR_EXPECTED_PERIOD_S: float = 3333.0
+"""Reference rice nutation period (s) for ``period_residual_vs_derr_reference`` (PR #6).
+
+Sourced from Derr Sept-2025 pilot
+``5minutes_average_period=3333s.pdf`` (spectral peak at f ≈ 0.0003 Hz,
+T ≈ 3333 s ≈ 55.5 min). The trait
+``period_residual_vs_derr_reference = (T_nutation_median - DERR_EXPECTED_PERIOD_S) / DERR_EXPECTED_PERIOD_S``
+is the FRACTIONAL deviation from this rice-specific reference.
+
+For non-rice species (e.g., Arabidopsis, sunflower per Rivière 2022 §1.2
+with nutation period in 5400-14400 s range), override via
+``ConstantsT(DERR_EXPECTED_PERIOD_S=<species-appropriate value>)``.
+Multi-plate empirical validation of the rice value is tracked in a
+follow-up GitHub issue ("circumnutation: validate
+DERR_EXPECTED_PERIOD_S and TEMPORAL_NYQUIST_RATIO_MAX from literature
++ multi-plate data") filed alongside PR #6.
+
+When Derr provides raw scaleogram numerics (currently PDF/PNG only),
+a future PR may upgrade the trait algorithm from this constant-anchored
+residual to a richer spectral-shape distance. The trait CSV column
+stays a single float; only the algorithm behind it gets richer.
+"""
+
+TEMPORAL_NYQUIST_RATIO_MAX: float = 0.25
+"""Maximum tolerated cadence_s / T_nutation_median ratio for TEMPORAL CWT (PR #6).
+
+Conservative cushion below the strict Nyquist limit (0.5) for the
+temporal cadence-Nyquist check. The TEMPORAL sibling of
+:data:`NYQUIST_RATIO_MAX` (SPATIAL). Both default to ``0.25`` per
+theory.md §6.5's empirical anchor: "5-min cadence is comfortable
+(ratio ≈ 0.09); 10-min would still work (ratio ≈ 0.18); 30-min would
+alias the nutation (ratio ≈ 0.54)". 0.25 sits between "still works"
+(0.18) and "aliases" (0.54), biased conservative. The dimensional
+separation from ``NYQUIST_RATIO_MAX`` lives in the constant NAMES +
+docstrings, not in different values.
+
+PR #6's ``nutation`` module emits the ``cadence_nyquist_ratio`` trait
+(``cadence_s / T_nutation_median``) and downstream QC tier will compare
+it against this constant. The interim default ``0.25`` is conservative-
+defensible per §6.5 but lacks multi-plate empirical validation; the
+follow-up GitHub issue "circumnutation: validate
+TEMPORAL_NYQUIST_RATIO_MAX from literature + multi-plate data" (filed
+alongside PR #6 mirroring the #205-#208 pattern) bundles with the
+multi-plate sweep that resolves #202.
 """
 
 
@@ -385,6 +507,13 @@ class ConstantsT:
     CWT_SCALE_COUNT_DEFAULT: int = CWT_SCALE_COUNT_DEFAULT
     CWT_PERIOD_MIN_NYQUIST_FACTOR: float = CWT_PERIOD_MIN_NYQUIST_FACTOR
     CWT_PERIOD_MAX_SIGNAL_FRACTION: float = CWT_PERIOD_MAX_SIGNAL_FRACTION
+    # PR #6 — Tier 1 / threshold defaults
+    RIDGE_CONTINUITY_FILTER_WINDOW: int = RIDGE_CONTINUITY_FILTER_WINDOW
+    NOISE_FLOOR_OUT_OF_BAND_FACTOR: float = NOISE_FLOOR_OUT_OF_BAND_FACTOR
+    BAND_POWER_BAND_LOW_FACTOR: float = BAND_POWER_BAND_LOW_FACTOR
+    BAND_POWER_BAND_HIGH_FACTOR: float = BAND_POWER_BAND_HIGH_FACTOR
+    DERR_EXPECTED_PERIOD_S: float = DERR_EXPECTED_PERIOD_S
+    TEMPORAL_NYQUIST_RATIO_MAX: float = TEMPORAL_NYQUIST_RATIO_MAX
 
 
 def _default_constants_snapshot() -> dict:
@@ -429,4 +558,11 @@ def _default_constants_snapshot() -> dict:
         "CWT_SCALE_COUNT_DEFAULT": CWT_SCALE_COUNT_DEFAULT,
         "CWT_PERIOD_MIN_NYQUIST_FACTOR": CWT_PERIOD_MIN_NYQUIST_FACTOR,
         "CWT_PERIOD_MAX_SIGNAL_FRACTION": CWT_PERIOD_MAX_SIGNAL_FRACTION,
+        # PR #6 — Tier 1 / threshold defaults
+        "RIDGE_CONTINUITY_FILTER_WINDOW": RIDGE_CONTINUITY_FILTER_WINDOW,
+        "NOISE_FLOOR_OUT_OF_BAND_FACTOR": NOISE_FLOOR_OUT_OF_BAND_FACTOR,
+        "BAND_POWER_BAND_LOW_FACTOR": BAND_POWER_BAND_LOW_FACTOR,
+        "BAND_POWER_BAND_HIGH_FACTOR": BAND_POWER_BAND_HIGH_FACTOR,
+        "DERR_EXPECTED_PERIOD_S": DERR_EXPECTED_PERIOD_S,
+        "TEMPORAL_NYQUIST_RATIO_MAX": TEMPORAL_NYQUIST_RATIO_MAX,
     }

@@ -36,6 +36,7 @@ Theory references:
 import logging
 
 import numpy as np
+import scipy.fft
 from scipy.signal import savgol_filter
 
 
@@ -196,3 +197,120 @@ def compute_msd_residual_xy(
     diffs_sq = (x_res[lag:] - x_res[:-lag]) ** 2 + (y_res[lag:] - y_res[:-lag]) ** 2
     msd = float(np.mean(diffs_sq))
     return float(np.sqrt(msd / 4.0))
+
+
+def compute_sg_detrended(
+    x: np.ndarray, window: int, polynomial_order: int
+) -> np.ndarray:
+    """Return the 1D Savitzky-Golay residual ``x - savgol(x)`` (PR #6, S1 round-1).
+
+    Implements the SG-detrending prescription from ``preliminary_results
+    _2026-05-07.md`` §3.4: "Detrend the lateral coordinate ℓ(t) with a
+    long-window Savitzky-Golay filter (window = 23 frames ≈ 2 nutation
+    periods, polynomial order 3). This suppresses the oscillation and
+    retains slow centerline drift" — i.e., the SG-smoothed output captures
+    the SLOW drift, and the RESIDUAL (raw - smoothed) is the OSCILLATION
+    component that downstream CWT/FFT acts on.
+
+    PR #6's ``nutation.compute`` applies this helper to the lateral
+    signal AFTER ``_geometry.project_to_growth_axis_perpendicular`` and
+    BEFORE the temporal CWT + Fourier noise floor + band-power
+    computations. Without this detrending, low-frequency centerline
+    drift contaminates the spectral analysis (PR #5's GREEN-phase
+    observation: ~70-170 px drift on plate-001).
+
+    Args:
+        x: 1-D float array. Must be longer than ``window``.
+        window: Window length in frames (must be odd, > 0, and >
+            ``polynomial_order``). The PR #6 default sourced via
+            ``constants.SG_WINDOW_DETREND = 23``.
+        polynomial_order: Polynomial degree for the SG filter (must be
+            < ``window``). The PR #6 default sourced via
+            ``constants.SG_DEGREE = 3``.
+
+    Returns:
+        Length-``len(x)`` 1-D ``float64`` residual array (raw minus
+        SG-smoothed-low-pass = oscillation component). Returns
+        ``np.full(len(x), np.nan, dtype=np.float64)`` when ``len(x) <
+        window`` (boundary conditions undefined for short inputs).
+
+    Notes:
+        Uses ``mode='nearest'`` for boundary handling: the filter
+        replicates the nearest valid value at the array edges. This is
+        the recommended scipy boundary policy for non-periodic signals.
+    """
+    x = np.asarray(x, dtype=np.float64)
+    if len(x) < window:
+        logger.debug(
+            "compute_sg_detrended: len(x)=%d < window=%d, returning all-NaN",
+            len(x),
+            window,
+        )
+        return np.full(len(x), np.nan, dtype=np.float64)
+    smoothed = savgol_filter(
+        x,
+        window_length=window,
+        polyorder=polynomial_order,
+        mode="nearest",
+    )
+    residual = x - smoothed
+    return residual.astype(np.float64, copy=False)
+
+
+def compute_fourier_noise_floor(
+    x: np.ndarray,
+    cadence_s: float,
+    t_nutation_median_s: float,
+    factor: float,
+) -> float:
+    """Median Fourier amplitude over the out-of-band region (PR #6, CC-8).
+
+    Per ``docs/circumnutation/roadmap.md`` CC-8 verbatim: the noise floor
+    estimate is the median of ``|scipy.fft.rfft(x)|`` over frequencies
+    ``f > factor / t_nutation_median_s`` — i.e., the "well above the
+    candidate-nutation-frequency" region of the spectrum. This is
+    PR #6's noise-floor estimator consumed by ``nutation.compute`` for
+    the ``noise_floor_estimate`` trait and the ``is_nutating`` gate.
+
+    Args:
+        x: 1-D float array (typically the SG-detrended lateral signal).
+            Must have ``len(x) >= 2`` for the rfft to be defined.
+        cadence_s: Frame cadence in seconds. Positive finite.
+        t_nutation_median_s: Candidate nutation period in seconds. The
+            out-of-band frequency cutoff is computed as
+            ``factor / t_nutation_median_s``.
+        factor: Out-of-band cutoff factor. The PR #6 default sourced
+            via ``constants.NOISE_FLOOR_OUT_OF_BAND_FACTOR = 5.0``.
+
+    Returns:
+        Median amplitude (a single ``float``) over the out-of-band
+        region of the Fourier spectrum. Returns ``np.nan`` when the
+        input is too short (``len(x) < 2``) or when the out-of-band
+        region is empty (cutoff exceeds the Nyquist frequency).
+    """
+    x = np.asarray(x, dtype=np.float64)
+    if len(x) < 2:
+        logger.debug(
+            "compute_fourier_noise_floor: len(x)=%d < 2, returning NaN",
+            len(x),
+        )
+        return float("nan")
+    spectrum = np.abs(scipy.fft.rfft(x))
+    freqs = scipy.fft.rfftfreq(len(x), d=cadence_s)
+    if not np.isfinite(t_nutation_median_s) or t_nutation_median_s <= 0:
+        logger.debug(
+            "compute_fourier_noise_floor: invalid t_nutation_median_s=%r, returning NaN",
+            t_nutation_median_s,
+        )
+        return float("nan")
+    f_cut = factor / t_nutation_median_s
+    band_mask = freqs > f_cut
+    if not band_mask.any():
+        logger.debug(
+            "compute_fourier_noise_floor: empty out-of-band region "
+            "(f_cut=%.6f Hz > nyquist=%.6f Hz), returning NaN",
+            f_cut,
+            freqs[-1] if len(freqs) > 0 else 0.0,
+        )
+        return float("nan")
+    return float(np.median(spectrum[band_mask]))

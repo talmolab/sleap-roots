@@ -752,11 +752,11 @@ def test_2G1_constants_snapshot_contains_7_new_keys_and_preserves_pr3_qc_keys():
     assert snapshot["D2_MSD_AGREEMENT_MAX"] == 1.5
 
 
-def test_2G2_constants_version_is_4():
-    """2.G.2 — _CONSTANTS_VERSION current value (bumped 2 → 3 in PR #4, 3 → 4 in PR #5)."""
+def test_2G2_constants_version_is_5():
+    """2.G.2 — _CONSTANTS_VERSION current value (bumped 2 → 3 in PR #4, 3 → 4 in PR #5, 4 → 5 in PR #6)."""
     from sleap_roots.circumnutation import _constants
 
-    assert _constants._CONSTANTS_VERSION == 4
+    assert _constants._CONSTANTS_VERSION == 5
 
 
 def test_2G3_constantsT_extended_with_7_new_fields():
