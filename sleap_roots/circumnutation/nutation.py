@@ -155,13 +155,109 @@ def _check_coordinate(coordinate: Any) -> str:
 
 
 def _check_constants(constants: Any) -> ConstantsT:
-    """Validate constants as None or ConstantsT; return resolved instance."""
+    """Validate constants as None or ConstantsT; return resolved instance.
+
+    B2 round-3 (self-review): calls `_validate_nutation_constants` on the
+    resolved instance so user-supplied invalid override values surface
+    with field-named errors at the boundary rather than crashing mid-
+    pipeline (e.g., `ConstantsT(RIDGE_CONTINUITY_FILTER_WINDOW=4)` used
+    to fail deep inside `temporal_cwt._validate_smooth_ridge_window`
+    without naming the user-facing ConstantsT field).
+    """
     if constants is None:
-        return ConstantsT()
+        return _validate_nutation_constants(ConstantsT())
     if not isinstance(constants, ConstantsT):
         raise TypeError(
             f"constants must be None or a ConstantsT instance, got "
             f"{type(constants).__name__}"
+        )
+    return _validate_nutation_constants(constants)
+
+
+def _validate_nutation_constants(constants: ConstantsT) -> ConstantsT:
+    """Validate `nutation.compute`-relevant constants with field-named errors.
+
+    B2 round-3 (self-review). Symmetric with
+    `temporal_cwt._validate_cwt_constants`. Fails fast at the
+    `nutation.compute` boundary instead of deep in the per-track loop.
+
+    Validates:
+
+    - `RIDGE_CONTINUITY_FILTER_WINDOW` — positive odd int (median_filter
+      requires odd size for symmetric neighborhood).
+    - `SG_WINDOW_DETREND` — positive odd int, > `SG_DEGREE`
+      (savgol_filter requires odd window > polyorder).
+    - `SG_DEGREE` — non-negative int.
+    - `NOISE_FLOOR_OUT_OF_BAND_FACTOR` — positive finite float.
+    - `BAND_POWER_BAND_LOW_FACTOR` — positive finite float.
+    - `BAND_POWER_BAND_HIGH_FACTOR` — positive finite float, >
+      `BAND_POWER_BAND_LOW_FACTOR`.
+    - `DERR_EXPECTED_PERIOD_S` — positive finite float.
+    - `BAND_POWER_NOISE_RATIO` — positive finite float (used by the
+      dimensionally-consistent gate per GREEN-phase Sci-I1 reconciliation).
+    """
+    rcfw = constants.RIDGE_CONTINUITY_FILTER_WINDOW
+    if (
+        not isinstance(rcfw, (int, np.integer))
+        or isinstance(rcfw, bool)
+        or int(rcfw) < 1
+        or int(rcfw) % 2 == 0
+    ):
+        raise ValueError(
+            f"constants.RIDGE_CONTINUITY_FILTER_WINDOW must be a positive "
+            f"odd int (scipy.ndimage.median_filter requires odd-size for "
+            f"symmetric neighborhood); got "
+            f"RIDGE_CONTINUITY_FILTER_WINDOW={rcfw!r}"
+        )
+    swd = constants.SG_WINDOW_DETREND
+    sgd = constants.SG_DEGREE
+    if (
+        not isinstance(swd, (int, np.integer))
+        or isinstance(swd, bool)
+        or int(swd) < 1
+        or int(swd) % 2 == 0
+    ):
+        raise ValueError(
+            f"constants.SG_WINDOW_DETREND must be a positive odd int "
+            f"(scipy.signal.savgol_filter requires odd window_length); got "
+            f"SG_WINDOW_DETREND={swd!r}"
+        )
+    if not isinstance(sgd, (int, np.integer)) or isinstance(sgd, bool) or int(sgd) < 0:
+        raise ValueError(
+            f"constants.SG_DEGREE must be a non-negative int; got " f"SG_DEGREE={sgd!r}"
+        )
+    if int(swd) <= int(sgd):
+        raise ValueError(
+            f"constants.SG_WINDOW_DETREND ({swd}) must be greater than "
+            f"constants.SG_DEGREE ({sgd}) "
+            f"(scipy.signal.savgol_filter requires window_length > polyorder)"
+        )
+    for name in (
+        "NOISE_FLOOR_OUT_OF_BAND_FACTOR",
+        "BAND_POWER_BAND_LOW_FACTOR",
+        "BAND_POWER_BAND_HIGH_FACTOR",
+        "DERR_EXPECTED_PERIOD_S",
+        "BAND_POWER_NOISE_RATIO",
+    ):
+        value = getattr(constants, name)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float, np.integer, np.floating))
+            or not math.isfinite(float(value))
+            or float(value) <= 0
+        ):
+            raise ValueError(
+                f"constants.{name} must be a positive finite float; got "
+                f"{name}={value!r}"
+            )
+    if float(constants.BAND_POWER_BAND_HIGH_FACTOR) <= float(
+        constants.BAND_POWER_BAND_LOW_FACTOR
+    ):
+        raise ValueError(
+            f"constants.BAND_POWER_BAND_HIGH_FACTOR "
+            f"({constants.BAND_POWER_BAND_HIGH_FACTOR}) must be greater than "
+            f"constants.BAND_POWER_BAND_LOW_FACTOR "
+            f"({constants.BAND_POWER_BAND_LOW_FACTOR})"
         )
     return constants
 
@@ -272,7 +368,19 @@ def _compute_one_track(
       9. NaN-gate 3 traits when is_nutating==False (S4 round-1)
     """
     # Step 1: project to signal axis.
-    raw_signal = _select_signal(group, coordinate)
+    # B1 round-3 (self-review): catch ValueError from
+    # _geometry.project_to_growth_axis_perpendicular on per-row NaN/inf
+    # tip_x/tip_y. The foundation spec (CircumnutationInputs data class
+    # scenario) explicitly says per-row finiteness of tip_x/tip_y is NOT
+    # validated at the foundation — it is a tier-PR concern. kinematics.py
+    # drops NaN rows before diffing; qc.py emits NaN traits. nutation.py
+    # now mirrors the graceful-degradation precedent: a NaN/inf in any
+    # track emits an all-NaN trait row for THAT track without crashing
+    # the other tracks' results.
+    try:
+        raw_signal = _select_signal(group, coordinate)
+    except ValueError:
+        return _all_nan_trait_dict(is_nutating_value=False)
 
     # Step 0 (MEC9 round-1): all-NaN short-circuit BEFORE SG-detrend.
     # _geometry.project_to_growth_axis_perpendicular returns all-NaN on
@@ -304,9 +412,12 @@ def _compute_one_track(
     smoothed_ridge = temporal_cwt.smooth_ridge(raw_ridge, constants=constants)
 
     # Step 3: COI-masked period statistics from SMOOTHED ridge.
+    # I2 round-3 (self-review): empty AND all-NaN interior slice both
+    # collapse to candidate=NaN without np.nanmedian RuntimeWarning. The
+    # spec scenario "handles stationary tracks gracefully" forbids
+    # `RuntimeWarning("All-NaN slice encountered")` on the all-NaN path.
     interior_periods = smoothed_ridge.periods_s[~smoothed_ridge.in_coi]
-    if interior_periods.size == 0:
-        # Entire ridge in COI — period statistics undefined.
+    if interior_periods.size == 0 or np.all(np.isnan(interior_periods)):
         T_nutation_median_candidate = float("nan")
         T_nutation_iqr_candidate = float("nan")
     else:
@@ -369,6 +480,12 @@ def _compute_one_track(
     else:
         period_residual_candidate = float("nan")
     if math.isfinite(T_nutation_median_candidate) and T_nutation_median_candidate > 0:
+        # I4 round-3 (self-review): trait emitted as raw cadence_s / T ratio.
+        # Threshold comparison against constants.TEMPORAL_NYQUIST_RATIO_MAX is
+        # downstream QC-tier work — PR #6 emits the trait; a future PR
+        # extending qc.py compares it against the threshold for the
+        # `is_cadence_adequate` flag. This is the standard "trait/threshold
+        # separation" pattern used across the circumnutation pipeline.
         cadence_nyquist_ratio_candidate = float(cadence_s / T_nutation_median_candidate)
     else:
         cadence_nyquist_ratio_candidate = float("nan")
@@ -495,13 +612,23 @@ def compute(
         order (7 ``float64`` + 1 ``bool``).
 
     Raises:
-        ValueError: If ``trajectory_df`` is invalid (delegates to
-            ``_validate_trajectory_df``); if ``cadence_s`` is non-positive
+        ValueError: If ``trajectory_df`` is not a ``pd.DataFrame``; if
+            ``trajectory_df`` is invalid per ``_validate_trajectory_df``
+            (missing columns, empty); if ``cadence_s`` is non-positive
             or non-finite; if ``coordinate`` is not in {'lateral', 'x',
-            'y'}.
-        TypeError: If ``trajectory_df`` is not a ``pd.DataFrame``; if
-            ``cadence_s`` is bool/str/list/etc; if ``constants`` is not
-            ``None`` or a ``ConstantsT`` instance.
+            'y'}; if any ``constants`` field has an invalid value (per
+            ``_validate_nutation_constants``).
+        TypeError: If ``cadence_s`` is bool/str/list/etc; if ``constants``
+            is not ``None`` or a ``ConstantsT`` instance.
+
+    Notes:
+        Per-row finiteness of ``tip_x`` / ``tip_y`` is NOT validated at
+        the foundation level (the foundation spec scenario explicitly
+        defers per-row finiteness to tier PRs). nutation.compute catches
+        the ``ValueError`` from the lateral-projection helper when a
+        track contains NaN/±inf tip coordinates, and emits an all-NaN
+        trait row for that track without crashing the other tracks'
+        results.
     """
     # Input validation.
     if not isinstance(trajectory_df, pd.DataFrame):
@@ -547,20 +674,37 @@ def compute(
     # detection), stable sort, and dtype coercions for identity columns. Coerce
     # trait_df's identity dtypes to match the template's int64 keys BEFORE merge
     # so merges don't silently fall through to all-NaN on numeric-string IDs.
+    # I1 round-3 (self-review): raise immediately on dtype-coerce failure
+    # rather than swallowing with `except: pass`. A silent failure would
+    # cause the merge keys to mismatch → all-NaN is_nutating → silently True
+    # via downstream `.astype(bool)`. Fail loudly with field-named ValueError.
     template = _build_per_plant_template_from_df(trajectory_df)
     for col in ("track_id", "plant_id"):
         if col in trait_df.columns and col in template.columns:
             try:
                 trait_df[col] = trait_df[col].astype(template[col].dtype)
-            except (TypeError, ValueError):
-                pass
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"trait_df[{col!r}] cannot be cast to template dtype "
+                    f"{template[col].dtype!r}; this would silently break the "
+                    f"per-plant merge and produce all-NaN traits. Upstream "
+                    f"trajectory_df must have consistent {col} dtype across "
+                    f"the per-plant template and the per-track groupby keys."
+                ) from exc
 
     result = template.merge(trait_df, on=list(_IDENTITY_5_TUPLE), how="left")
 
     # Enforce trait dtypes: 7 float64 + 1 bool.
+    # I1 round-3 (self-review): `is_nutating` may be NaN if the left-merge
+    # produced template rows without a matching trait_rows entry. NaN →
+    # `astype(bool)` silently converts to True. Use `fillna(False)` first to
+    # preserve the "no trait emitted for this plant" semantic as False rather
+    # than silent True. The path is currently unreachable when the upstream
+    # 5-tuple invariant holds, but the defensive fillna prevents a silent
+    # data-integrity violation if the invariant ever breaks.
     for col in _NUTATION_TRAIT_COLUMNS:
         if col == "is_nutating":
-            result[col] = result[col].astype(bool)
+            result[col] = result[col].fillna(False).astype(bool)
         else:
             result[col] = result[col].astype(np.float64)
 
