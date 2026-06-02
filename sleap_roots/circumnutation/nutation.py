@@ -54,7 +54,10 @@ import scipy.stats
 
 from sleap_roots.circumnutation import _geometry, _noise, temporal_cwt
 from sleap_roots.circumnutation._constants import ConstantsT
-from sleap_roots.circumnutation._io import _IDENTITY_5_TUPLE
+from sleap_roots.circumnutation._io import (
+    _IDENTITY_5_TUPLE,
+    _build_per_plant_template_from_df,
+)
 from sleap_roots.circumnutation._types import (
     ROW_IDENTITY_COLUMNS,
     _validate_trajectory_df,
@@ -421,8 +424,18 @@ def compute(
     - ``noise_floor_estimate``: median Fourier amplitude over
       ``f > NOISE_FLOOR_OUT_OF_BAND_FACTOR / T`` (amplitude units);
       always populated.
-    - ``is_nutating``: ``band_power_ratio > BAND_POWER_NOISE_RATIO *
+    - ``is_nutating``: ``in_band_mean_amplitude > BAND_POWER_NOISE_RATIO *
       noise_floor_estimate`` (bool); the gate; always populated.
+      GREEN-phase Sci-I1 reconciliation: the comparison uses
+      ``in_band_mean_amplitude`` (mean of ``|rfft(signal)|`` over the
+      ``[BAND_POWER_BAND_LOW_FACTOR/T, BAND_POWER_BAND_HIGH_FACTOR/T]``
+      band) for dimensional consistency with ``noise_floor_estimate``
+      (both amplitude units). theory.md §7.6's literal formula
+      ``band_power_ratio > BAND_POWER_NOISE_RATIO * noise_floor_estimate``
+      is dimensionally inconsistent (ratio vs amplitude×constant) and was
+      empirically refuted on a pure sinusoid. The emitted
+      ``band_power_ratio`` trait remains spec-defined; only the internal
+      gate uses ``in_band_mean_amplitude``.
     - ``period_residual_vs_derr_reference``:
       ``(T - DERR_EXPECTED_PERIOD_S) / DERR_EXPECTED_PERIOD_S``
       (dimensionless); ridge-of-noise diagnostic, always populated.
@@ -432,9 +445,16 @@ def compute(
     NaN-gating policy (S4 round-1 + Sci-I3 round-2): when ``is_nutating
     == False``, 3 strictly biological-meaning-dependent traits become
     NaN (T_nutation_median, T_nutation_iqr, A_nutation_envelope_max).
-    The 5 always-populated traits remain finite so QC investigations
-    can distinguish "no oscillation" from "cadence aliasing" from
-    "ridge-of-noise".
+    The 5 always-populated traits (``is_nutating``,
+    ``band_power_ratio``, ``noise_floor_estimate``,
+    ``period_residual_vs_derr_reference``, ``cadence_nyquist_ratio``)
+    are NOT NaN-gated by ``is_nutating`` — but they MAY still be NaN
+    when the underlying diagnostic is undefined (e.g., stationary
+    tracks, all-COI ridge, empty out-of-band Fourier region). The
+    semantic is "not gated by ``is_nutating``", not "guaranteed finite".
+    This split lets QC investigations distinguish "no oscillation"
+    from "cadence aliasing" from "ridge-of-noise" when the diagnostics
+    are defined.
 
     Pipeline (per design.md D5):
 
@@ -520,25 +540,20 @@ def compute(
         columns=list(_IDENTITY_5_TUPLE) + list(_NUTATION_TRAIT_COLUMNS),
     )
 
-    # Coerce identity dtypes (consistent with kinematics.py).
+    # Per-plant template via the shared `_io._build_per_plant_template_from_df`
+    # helper (Copilot review on PR #216, comments at nutation.py:529 + 541):
+    # mirrors kinematics.compute / qc.compute precedent. Inherits the helper's
+    # validations (NaN track_id rejection + conflicting-per-frame-metadata
+    # detection), stable sort, and dtype coercions for identity columns. Coerce
+    # trait_df's identity dtypes to match the template's int64 keys BEFORE merge
+    # so merges don't silently fall through to all-NaN on numeric-string IDs.
+    template = _build_per_plant_template_from_df(trajectory_df)
     for col in ("track_id", "plant_id"):
-        if col in trait_df.columns and not trait_df[col].empty:
+        if col in trait_df.columns and col in template.columns:
             try:
-                trait_df[col] = trait_df[col].astype("int64")
+                trait_df[col] = trait_df[col].astype(template[col].dtype)
             except (TypeError, ValueError):
-                pass  # Keep object dtype if non-coercible (e.g., NaN keys).
-
-    # Per-plant template for the full 8-column row-identity output.
-    # We build it from the unique 5-tuples + first-seen values of the
-    # remaining 3 row-identity columns (timepoint, genotype, treatment).
-    identity_cols_in_df = [
-        col for col in ROW_IDENTITY_COLUMNS if col in trajectory_df.columns
-    ]
-    template = (
-        trajectory_df[identity_cols_in_df]
-        .drop_duplicates(subset=list(_IDENTITY_5_TUPLE))
-        .reset_index(drop=True)
-    )
+                pass
 
     result = template.merge(trait_df, on=list(_IDENTITY_5_TUPLE), how="left")
 

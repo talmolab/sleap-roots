@@ -237,7 +237,10 @@ def _make_hand_crafted_ridge_with_scale_hopping(
     spikes (since the neighborhood is 4 stable + 1 spike → median =
     stable), reducing IQR materially. A pure alternating pattern
     (period 2) would NOT be smoothable by median because the
-    neighborhood has equal counts of each value.
+    neighborhood has equal counts of each value (Copilot review on
+    PR #216 noted that a prior version of this comment incorrectly said
+    "alternating between 3000.0 / 3500.0" — the actual pattern is
+    `3333.0` mostly + `5000.0` spikes per the implementation below).
     """
     periods_s = np.full(n_frames, 3333.0, dtype=np.float64)
     spike_indices = np.arange(8, n_frames - 8, 8)
@@ -340,21 +343,35 @@ def test_2A5_row_identity_5_tuple_uniqueness():
 
 
 def test_2A6_debug_log_token_containment(caplog):
-    """§2.A.6: nutation.compute emits one DEBUG record starting with 'nutation.compute('."""
+    """§2.A.6: nutation.compute emits EXACTLY ONE DEBUG record from its logger.
+
+    Per Copilot review on PR #216: the spec scenario requires "exactly one
+    DEBUG record" from `sleap_roots.circumnutation.nutation` on the happy
+    path; the test now counts only records from `NUTATION_LOGGER` and
+    asserts the count is exactly 1, locking the logging contract tightly.
+    """
     df = _minimal_trajectory_df()
     with caplog.at_level(logging.DEBUG, logger=NUTATION_LOGGER):
         nutation.compute(df, cadence_s=300.0)
-    debug_records = [r for r in caplog.records if r.levelno == logging.DEBUG]
-    assert any(r.message.startswith("nutation.compute(") for r in debug_records)
-    # Token containment per spec scenario.
-    nutation_debug_msgs = [
-        r.message for r in debug_records if r.message.startswith("nutation.compute(")
+    # Filter to the nutation logger's DEBUG records only (excludes any
+    # cascaded DEBUG emissions from downstream temporal_cwt / _geometry /
+    # _noise modules that may also log at DEBUG level).
+    nutation_debug_records = [
+        r
+        for r in caplog.records
+        if r.levelno == logging.DEBUG and r.name == NUTATION_LOGGER
     ]
-    combined_msg = " ".join(nutation_debug_msgs)
+    assert len(nutation_debug_records) == 1, (
+        f"Expected exactly one DEBUG record from {NUTATION_LOGGER}; "
+        f"got {len(nutation_debug_records)}: "
+        f"{[r.message for r in nutation_debug_records]}"
+    )
+    msg = nutation_debug_records[0].message
+    assert msg.startswith(
+        "nutation.compute("
+    ), f"DEBUG message must start with 'nutation.compute('; got: {msg!r}"
     for token in ("n_tracks=", "coordinate=", "cadence_s="):
-        assert (
-            token in combined_msg
-        ), f"DEBUG message missing token {token!r}; got: {combined_msg!r}"
+        assert token in msg, f"DEBUG message missing token {token!r}; got: {msg!r}"
 
 
 def test_2A7_no_warning_or_error_on_happy_path(caplog):
