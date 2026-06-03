@@ -3032,9 +3032,9 @@
 <tr>
 <td>6</td>
 <td><code>add-circumnutation-tier1-derr-faithful</code></td>
-<td>Tier 1 trait emission (theory.md §7.2); <code>coordinate=</code> parameter (CC-7); <code>noise_floor_estimate</code> definition (CC-8); Layer-2 Derr regression; <strong><code>cadence_nyquist_ratio</code> (moved from PR #3; depends on Tier 1's <code>T_nutation_median</code>)</strong> per theory.md §6.5.</td>
-<td>⬜</td>
-<td>⬜</td>
+<td>Tier 1 trait emission (theory.md §7.2); <code>coordinate=</code> parameter (CC-7); <code>noise_floor_estimate</code> definition (CC-8); Layer-2 Derr regression; <strong><code>cadence_nyquist_ratio</code> (moved from PR #3; depends on Tier 1's <code>T_nutation_median</code>)</strong> per theory.md §6.5. <strong>Closes #214</strong> via <code>temporal_cwt.smooth_ridge</code> median-filter post-filter (Mallat 1999 §4.4.2). <a href="https://github.com/talmolab/sleap-roots/issues/215">#215</a> · <a href="https://github.com/talmolab/sleap-roots/pull/216">PR #216</a> · follow-ups <a href="https://github.com/talmolab/sleap-roots/issues/217">#217</a> (Derr forensic-match upgrade pending raw scaleogram numerics) · <a href="https://github.com/talmolab/sleap-roots/issues/218">#218</a> (TEMPORAL_NYQUIST_RATIO_MAX + DERR_EXPECTED_PERIOD_S multi-plate validation) · <a href="https://github.com/talmolab/sleap-roots/issues/219">#219</a> (Layer-2 ±2% acceptance preprocessing improvements) · <a href="https://github.com/talmolab/sleap-roots/issues/220">#220</a> (#214 multi-plate empirical validation) · <a href="https://github.com/talmolab/sleap-roots/issues/222">#222</a> (program-wide <code>_px</code>/<code>_s</code>/<code>_rad</code> suffix convention + 6 deferred round-2 review findings)</td>
+<td>✅</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>7</td>
