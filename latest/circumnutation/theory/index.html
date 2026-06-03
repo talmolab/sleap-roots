@@ -3317,8 +3317,8 @@
 <td>Rivière 2022 §"Elongation and bending are localized" mentions amplitude modulation</td>
 </tr>
 <tr>
-<td><code>A_nutation_envelope_max</code></td>
-<td>px or rad <code>[—]</code></td>
+<td><code>A_nutation_envelope_max_px</code></td>
+<td>px <code>[—]</code></td>
 <td>Peak of $</td>
 <td>C(t)</td>
 </tr>
@@ -3329,10 +3329,10 @@
 <td>New trait, used for <code>is_nutating</code> boolean</td>
 </tr>
 <tr>
-<td><code>derr_match_residual</code></td>
+<td><code>period_residual_vs_derr_reference</code></td>
 <td>— <code>[—]</code></td>
-<td>Residual between this pipeline's scaleogram and Derr's PNG on identical input</td>
-<td>Regression test against Derr 2025 oracle</td>
+<td>Fractional period residual <code>(T - DERR_EXPECTED_PERIOD_S) / DERR_EXPECTED_PERIOD_S</code> (positive = slower than Derr reference); <code>DERR_EXPECTED_PERIOD_S = 3333.0</code> is rice-specific (override via <code>ConstantsT</code> for other species)</td>
+<td>Derr 2025 pilot (Sept-2025 oracle)</td>
 </tr>
 </tbody>
 </table>
