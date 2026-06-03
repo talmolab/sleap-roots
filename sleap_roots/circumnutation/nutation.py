@@ -29,15 +29,19 @@ CC-7 (lateral coordinate) + CC-8 (Fourier noise floor);
 ``docs/circumnutation/preliminary_results_2026-05-07.md`` §3.4
 (SG-detrend prescription) + §4.4 (T_nutation ≈ 3333 s on plate-001).
 
-NaN-gating semantics (S4 round-1 + Sci-I3 round-2): when ``is_nutating ==
-False``, 3 strictly biological-meaning-dependent traits become NaN
-(``T_nutation_median``, ``T_nutation_iqr``, ``A_nutation_envelope_max``).
-5 always-populated traits remain finite: ``is_nutating`` (the gate),
+NaN-gating semantics (S4 round-1 + Sci-I3 round-2 + Copilot round-2):
+when ``is_nutating == False``, 3 strictly biological-meaning-dependent
+traits become NaN (``T_nutation_median``, ``T_nutation_iqr``,
+``A_nutation_envelope_max``). 5 always-populated traits are NOT
+NaN-gated by ``is_nutating``: ``is_nutating`` (the gate boolean),
 ``band_power_ratio`` + ``noise_floor_estimate`` (precursors),
 ``period_residual_vs_derr_reference`` (ridge-of-noise diagnostic),
-``cadence_nyquist_ratio`` (engineering diagnostic: "could we have
-observed nutation if it were present?" — answerable regardless of
-biological nutation presence).
+``cadence_nyquist_ratio`` (engineering diagnostic). The 5
+not-NaN-gated traits MAY still be NaN when the underlying diagnostic
+is undefined (e.g., stationary tracks where lateral projection
+returns all-NaN; all-COI ridge; empty out-of-band Fourier region).
+The semantic is "not gated by ``is_nutating``", not "guaranteed
+finite". See design.md GREEN-phase Reconciliation Appendix.
 
 Closes GitHub issue #214 (ridge-tracking continuity post-filter via
 the new :func:`temporal_cwt.smooth_ridge` primitive).
@@ -585,9 +589,14 @@ def compute(
     5. ``temporal_cwt.smooth_ridge`` → ridge-continuity post-filter
        (closes #214)
     6. ``_noise.compute_fourier_noise_floor`` (CC-8) → noise_floor
-    7. Internal band-power FFT integration → band_power_ratio
-    8. ``is_nutating = band_power_ratio > BAND_POWER_NOISE_RATIO *
-       noise_floor_estimate``
+    7. Internal band-power FFT integration → band_power_ratio (trait,
+       dimensionless) AND ``in_band_mean_amplitude`` (gate-only,
+       amplitude units)
+    8. ``is_nutating = in_band_mean_amplitude > BAND_POWER_NOISE_RATIO *
+       noise_floor_estimate`` (GREEN-phase Sci-I1: dimensionally-
+       consistent gate uses ``in_band_mean_amplitude`` not the spec-
+       defined ``band_power_ratio``; both sides are amplitude units;
+       the emitted ``band_power_ratio`` trait remains spec-defined)
     9. Derived traits (period_residual_vs_derr_reference,
        cadence_nyquist_ratio) ALWAYS computed; 3 NaN-gated when
        is_nutating==False

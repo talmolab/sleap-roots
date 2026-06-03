@@ -234,23 +234,69 @@ def compute_sg_detrended(
         ``np.full(len(x), np.nan, dtype=np.float64)`` when ``len(x) <
         window`` (boundary conditions undefined for short inputs).
 
+    Raises:
+        TypeError: If ``window`` or ``polynomial_order`` is not an int.
+        ValueError: If ``window`` is non-positive or even; if
+            ``polynomial_order`` is negative; if ``polynomial_order >=
+            window``.
+
     Notes:
         Uses ``mode='nearest'`` for boundary handling: the filter
         replicates the nearest valid value at the array edges. This is
         the recommended scipy boundary policy for non-periodic signals.
+
+        Copilot review on PR #216 round-2: validates ``window`` and
+        ``polynomial_order`` at the helper boundary (rather than
+        relying on ``scipy.signal.savgol_filter`` to raise) so callers
+        get field-named error messages consistent with the rest of
+        circumnutation's boundary validation pattern.
     """
+    if isinstance(window, bool) or not isinstance(window, (int, np.integer)):
+        raise TypeError(
+            f"window must be a positive odd int, got {type(window).__name__}"
+        )
+    window_int = int(window)
+    if window_int < 1:
+        raise ValueError(
+            f"window must be a positive odd int (>= 1), got window={window_int}"
+        )
+    if window_int % 2 == 0:
+        raise ValueError(
+            f"window must be a positive ODD int "
+            f"(scipy.signal.savgol_filter requires odd window_length), "
+            f"got window={window_int}"
+        )
+    if isinstance(polynomial_order, bool) or not isinstance(
+        polynomial_order, (int, np.integer)
+    ):
+        raise TypeError(
+            f"polynomial_order must be a non-negative int, got "
+            f"{type(polynomial_order).__name__}"
+        )
+    polyorder_int = int(polynomial_order)
+    if polyorder_int < 0:
+        raise ValueError(
+            f"polynomial_order must be a non-negative int, got "
+            f"polynomial_order={polyorder_int}"
+        )
+    if polyorder_int >= window_int:
+        raise ValueError(
+            f"polynomial_order ({polyorder_int}) must be < window "
+            f"({window_int}); scipy.signal.savgol_filter requires "
+            f"polyorder < window_length"
+        )
     x = np.asarray(x, dtype=np.float64)
-    if len(x) < window:
+    if len(x) < window_int:
         logger.debug(
             "compute_sg_detrended: len(x)=%d < window=%d, returning all-NaN",
             len(x),
-            window,
+            window_int,
         )
         return np.full(len(x), np.nan, dtype=np.float64)
     smoothed = savgol_filter(
         x,
-        window_length=window,
-        polyorder=polynomial_order,
+        window_length=window_int,
+        polyorder=polyorder_int,
         mode="nearest",
     )
     residual = x - smoothed

@@ -228,11 +228,14 @@ candidate-nutation-frequency" region of the spectrum. Default 5.0 per
 ``roadmap.md`` CC-8 verbatim.
 
 GREEN-phase empirical decision: PR #6 §2.E.7 sensitivity test parametrizes
-factor ∈ {3, 5, 7} on plate-001; the empirically-robust value will be
-recorded in the GREEN-phase Reconciliation Appendix. If GREEN-phase
-empirical work shows factor=5 puts BM2016-predicted second/third harmonics
-INSIDE the noise band (inflating the floor and falsely depressing
-``band_power_ratio``), a follow-up roadmap revision may lower this.
+factor ∈ {3, 5} on plate-001 (factor=7 was removed during GREEN-phase
+because at cadence=300 s + T≈3333 s the cutoff 7/3333 ≈ 2.1e-3 Hz
+exceeds the Nyquist frequency 1.67e-3 Hz → empty out-of-band → NaN
+noise floor by design). The empirically-robust value is recorded in the
+GREEN-phase Reconciliation Appendix. If multi-plate work shows factor=5
+puts BM2016-predicted second/third harmonics INSIDE the noise band
+(inflating the floor and falsely depressing ``band_power_ratio``), a
+follow-up roadmap revision may lower this.
 """
 
 BAND_POWER_BAND_LOW_FACTOR: float = 0.5
