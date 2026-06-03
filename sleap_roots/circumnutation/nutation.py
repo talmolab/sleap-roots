@@ -1,7 +1,7 @@
 """Tier 1 nutation trait emission (PR #6, ``add-circumnutation-tier1-derr-faithful``).
 
 Public callable: :func:`compute` — emits 8 trait columns per track
-(``T_nutation_median``, ``T_nutation_iqr``, ``A_nutation_envelope_max``,
+(``T_nutation_median``, ``T_nutation_iqr``, ``A_nutation_envelope_max_px``,
 ``band_power_ratio``, ``noise_floor_estimate``, ``is_nutating``,
 ``period_residual_vs_derr_reference``, ``cadence_nyquist_ratio``) by
 composing PR #5 CWT primitives with PR #6's new helpers:
@@ -32,7 +32,7 @@ CC-7 (lateral coordinate) + CC-8 (Fourier noise floor);
 NaN-gating semantics (S4 round-1 + Sci-I3 round-2 + Copilot round-2):
 when ``is_nutating == False``, 3 strictly biological-meaning-dependent
 traits become NaN (``T_nutation_median``, ``T_nutation_iqr``,
-``A_nutation_envelope_max``). 5 always-populated traits are NOT
+``A_nutation_envelope_max_px``). 5 always-populated traits are NOT
 NaN-gated by ``is_nutating``: ``is_nutating`` (the gate boolean),
 ``band_power_ratio`` + ``noise_floor_estimate`` (precursors),
 ``period_residual_vs_derr_reference`` (ridge-of-noise diagnostic),
@@ -82,7 +82,7 @@ logger = logging.getLogger(__name__)
 _NUTATION_TRAIT_COLUMNS: tuple = (
     "T_nutation_median",
     "T_nutation_iqr",
-    "A_nutation_envelope_max",
+    "A_nutation_envelope_max_px",
     "band_power_ratio",
     "noise_floor_estimate",
     "is_nutating",
@@ -94,7 +94,7 @@ _NUTATION_TRAIT_COLUMNS: tuple = (
 _NAN_GATED_TRAITS: tuple = (
     "T_nutation_median",
     "T_nutation_iqr",
-    "A_nutation_envelope_max",
+    "A_nutation_envelope_max_px",
 )
 
 # Per-frame columns required on trajectory_df (alongside
@@ -199,6 +199,10 @@ def _validate_nutation_constants(constants: ConstantsT) -> ConstantsT:
     - `DERR_EXPECTED_PERIOD_S` — positive finite float.
     - `BAND_POWER_NOISE_RATIO` — positive finite float (used by the
       dimensionally-consistent gate per GREEN-phase Sci-I1 reconciliation).
+    - `TEMPORAL_NYQUIST_RATIO_MAX` — positive finite float (round-2
+      self-review I3; emitted ratio is raw `cadence_s / T_nut`, threshold
+      comparison deferred to a future QC PR, but reject obviously broken
+      overrides up front for symmetry with the other 5 fields).
     """
     rcfw = constants.RIDGE_CONTINUITY_FILTER_WINDOW
     if (
@@ -242,6 +246,7 @@ def _validate_nutation_constants(constants: ConstantsT) -> ConstantsT:
         "BAND_POWER_BAND_HIGH_FACTOR",
         "DERR_EXPECTED_PERIOD_S",
         "BAND_POWER_NOISE_RATIO",
+        "TEMPORAL_NYQUIST_RATIO_MAX",
     ):
         value = getattr(constants, name)
         if (
@@ -288,6 +293,9 @@ def _compute_band_power_traits(
     cadence_s: float,
     t_nutation_median_s: float,
     constants: ConstantsT,
+    *,
+    _precomputed_spectrum: Optional[np.ndarray] = None,
+    _precomputed_freqs: Optional[np.ndarray] = None,
 ) -> tuple:
     """Compute (band_power_ratio, in_band_mean_amplitude) for trait + gate.
 
@@ -315,8 +323,14 @@ def _compute_band_power_traits(
         return float("nan"), float("nan")
     if not math.isfinite(t_nutation_median_s) or t_nutation_median_s <= 0:
         return float("nan"), float("nan")
-    spectrum = np.abs(scipy.fft.rfft(x))
-    freqs = scipy.fft.rfftfreq(len(x), d=cadence_s)
+    # Round-2 self-review I5: accept caller-precomputed spectrum + freqs.
+    # See `_noise.compute_fourier_noise_floor` for the symmetric optimization.
+    if _precomputed_spectrum is not None and _precomputed_freqs is not None:
+        spectrum = _precomputed_spectrum
+        freqs = _precomputed_freqs
+    else:
+        spectrum = np.abs(scipy.fft.rfft(x))
+        freqs = scipy.fft.rfftfreq(len(x), d=cadence_s)
     f_low = constants.BAND_POWER_BAND_LOW_FACTOR / t_nutation_median_s
     f_high = constants.BAND_POWER_BAND_HIGH_FACTOR / t_nutation_median_s
     in_band_mask = (freqs >= f_low) & (freqs <= f_high)
@@ -340,7 +354,7 @@ def _all_nan_trait_dict(is_nutating_value: bool = False) -> Dict[str, Any]:
     return {
         "T_nutation_median": float("nan"),
         "T_nutation_iqr": float("nan"),
-        "A_nutation_envelope_max": float("nan"),
+        "A_nutation_envelope_max_px": float("nan"),
         "band_power_ratio": float("nan"),
         "noise_floor_estimate": float("nan"),
         "is_nutating": bool(is_nutating_value),
@@ -363,7 +377,7 @@ def _compute_one_track(
       1b. SG-detrend per preliminary_results §3.4 (S1 round-1)
       2. CWT primitives: compute_scaleogram → extract_ridge → smooth_ridge
       3. T_nutation_median + T_nutation_iqr from COI-masked smoothed periods
-      4. A_nutation_envelope_max from COI-masked raw ridge amplitudes
+      4. A_nutation_envelope_max_px from COI-masked raw ridge amplitudes
          (MEC8 round-1: empty-slice fallback)
       5. noise_floor_estimate via FFT (CC-8)
       6. band_power_ratio via FFT
@@ -434,9 +448,22 @@ def _compute_one_track(
     # with empty-slice fallback.
     interior_amps = raw_ridge.amplitudes[~raw_ridge.in_coi]
     if interior_amps.size == 0:
-        A_nutation_envelope_max_candidate = float("nan")
+        A_nutation_envelope_max_px_candidate = float("nan")
     else:
-        A_nutation_envelope_max_candidate = float(np.max(interior_amps))
+        A_nutation_envelope_max_px_candidate = float(np.max(interior_amps))
+
+    # Steps 5+6 (round-2 self-review I5): compute FFT spectrum + freqs ONCE
+    # and share between the noise-floor and band-power helpers (both consume
+    # the same `signal` with the same `cadence_s`; the prior implementation
+    # ran rfft twice per track). Helpers accept precomputed spectrum/freqs
+    # via private `_precomputed_*` kwargs and fall back to computing
+    # internally when called standalone from outside the pipeline.
+    if len(signal) >= 2:
+        _shared_spectrum = np.abs(scipy.fft.rfft(signal))
+        _shared_freqs = scipy.fft.rfftfreq(len(signal), d=cadence_s)
+    else:
+        _shared_spectrum = None
+        _shared_freqs = None
 
     # Step 5: noise_floor_estimate via FFT (CC-8). Uses the CANDIDATE T
     # (pre-NaN-gating) so the noise floor is well-defined regardless of
@@ -446,6 +473,8 @@ def _compute_one_track(
         cadence_s=cadence_s,
         t_nutation_median_s=T_nutation_median_candidate,
         factor=float(constants.NOISE_FLOOR_OUT_OF_BAND_FACTOR),
+        _precomputed_spectrum=_shared_spectrum,
+        _precomputed_freqs=_shared_freqs,
     )
 
     # Step 6: band_power_ratio (trait) + in_band_mean_amplitude (gate).
@@ -457,6 +486,8 @@ def _compute_one_track(
         cadence_s=cadence_s,
         t_nutation_median_s=T_nutation_median_candidate,
         constants=constants,
+        _precomputed_spectrum=_shared_spectrum,
+        _precomputed_freqs=_shared_freqs,
     )
 
     # Step 7: is_nutating gate (dimensionally-consistent variant per
@@ -496,20 +527,22 @@ def _compute_one_track(
 
     # Step 9: NaN-gate the 3 strictly biological-meaning-dependent traits
     # when is_nutating == False (S4 round-1 + TDD-B1 round-2). The 5
-    # always-populated traits remain finite.
+    # always-populated traits are NOT is_nutating-gated but may still be NaN
+    # when undefined (e.g., stationary tracks, all-COI ridge, empty out-of-band
+    # Fourier region); see module docstring for the load-bearing semantic.
     if is_nutating:
         T_nutation_median = T_nutation_median_candidate
         T_nutation_iqr = T_nutation_iqr_candidate
-        A_nutation_envelope_max = A_nutation_envelope_max_candidate
+        A_nutation_envelope_max_px = A_nutation_envelope_max_px_candidate
     else:
         T_nutation_median = float("nan")
         T_nutation_iqr = float("nan")
-        A_nutation_envelope_max = float("nan")
+        A_nutation_envelope_max_px = float("nan")
 
     return {
         "T_nutation_median": T_nutation_median,
         "T_nutation_iqr": T_nutation_iqr,
-        "A_nutation_envelope_max": A_nutation_envelope_max,
+        "A_nutation_envelope_max_px": A_nutation_envelope_max_px,
         "band_power_ratio": float(band_power_ratio),
         "noise_floor_estimate": float(noise_floor_estimate),
         "is_nutating": is_nutating,
@@ -537,7 +570,7 @@ def compute(
       ``is_nutating==False``.
     - ``T_nutation_iqr``: IQR of nutation period (s); NaN-gated when
       ``is_nutating==False``.
-    - ``A_nutation_envelope_max``: peak envelope amplitude (px);
+    - ``A_nutation_envelope_max_px``: peak envelope amplitude (px);
       NaN-gated when ``is_nutating==False``.
     - ``band_power_ratio``: spectral power in
       ``[BAND_POWER_BAND_LOW_FACTOR/T, BAND_POWER_BAND_HIGH_FACTOR/T]``
@@ -560,12 +593,20 @@ def compute(
     - ``period_residual_vs_derr_reference``:
       ``(T - DERR_EXPECTED_PERIOD_S) / DERR_EXPECTED_PERIOD_S``
       (dimensionless); ridge-of-noise diagnostic, always populated.
+      Sign convention (round-2 self-review I9): **positive = slower than
+      Derr reference** (T > DERR_EXPECTED_PERIOD_S; e.g., +0.1 → 10%
+      longer period than Derr's 3333 s rice reference). Default
+      ``DERR_EXPECTED_PERIOD_S = 3333.0`` is **rice-specific**; override
+      via ``ConstantsT(DERR_EXPECTED_PERIOD_S=...)`` for non-rice species
+      so the residual remains biologically interpretable (round-2
+      self-review I8 — file follow-up if your species lacks a published
+      reference period).
     - ``cadence_nyquist_ratio``: ``cadence_s / T_nutation_median``
       (dimensionless); engineering diagnostic, always populated.
 
     NaN-gating policy (S4 round-1 + Sci-I3 round-2): when ``is_nutating
     == False``, 3 strictly biological-meaning-dependent traits become
-    NaN (T_nutation_median, T_nutation_iqr, A_nutation_envelope_max).
+    NaN (T_nutation_median, T_nutation_iqr, A_nutation_envelope_max_px).
     The 5 always-populated traits (``is_nutating``,
     ``band_power_ratio``, ``noise_floor_estimate``,
     ``period_residual_vs_derr_reference``, ``cadence_nyquist_ratio``)

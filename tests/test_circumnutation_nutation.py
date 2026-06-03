@@ -134,7 +134,7 @@ _PROOFREAD_FIXTURE_PATH = Path(
 _NUTATION_TRAIT_COLUMNS: tuple = (
     "T_nutation_median",
     "T_nutation_iqr",
-    "A_nutation_envelope_max",
+    "A_nutation_envelope_max_px",
     "band_power_ratio",
     "noise_floor_estimate",
     "is_nutating",
@@ -146,7 +146,7 @@ _NUTATION_TRAIT_COLUMNS: tuple = (
 _NAN_GATED_TRAITS: tuple = (
     "T_nutation_median",
     "T_nutation_iqr",
-    "A_nutation_envelope_max",
+    "A_nutation_envelope_max_px",
 )
 
 # S4 round-1: always-populated diagnostic + precursor traits.
@@ -320,7 +320,7 @@ def test_2A3_8_identity_columns_in_declared_order():
     [
         ("T_nutation_median", np.float64),
         ("T_nutation_iqr", np.float64),
-        ("A_nutation_envelope_max", np.float64),
+        ("A_nutation_envelope_max_px", np.float64),
         ("band_power_ratio", np.float64),
         ("noise_floor_estimate", np.float64),
         ("is_nutating", bool),
@@ -402,7 +402,7 @@ def test_2B1_same_input_bit_identical_in_process():
     for col in (
         "T_nutation_median",
         "T_nutation_iqr",
-        "A_nutation_envelope_max",
+        "A_nutation_envelope_max_px",
         "band_power_ratio",
         "noise_floor_estimate",
         "period_residual_vs_derr_reference",
@@ -568,7 +568,7 @@ def test_2C3_noise_only_gates_is_nutating_false():
     # The 3 NaN-gated traits should be NaN per S4 round-1.
     assert np.isnan(result["T_nutation_median"].iloc[0])
     assert np.isnan(result["T_nutation_iqr"].iloc[0])
-    assert np.isnan(result["A_nutation_envelope_max"].iloc[0])
+    assert np.isnan(result["A_nutation_envelope_max_px"].iloc[0])
 
 
 # ===========================================================================
@@ -805,7 +805,7 @@ def test_2E7_noise_floor_factor_sensitivity_runs(factor):
 
 
 def test_2E8_empty_coi_interior_returns_nan_envelope():
-    """§2.E.8 (MEC8 round-1 fix): all-COI ridge produces NaN A_nutation_envelope_max.
+    """§2.E.8 (MEC8 round-1 fix): all-COI ridge produces NaN A_nutation_envelope_max_px.
 
     When every frame is inside COI (e.g., very short tracks at long periods),
     `interior_amps` is empty → `np.max` would raise ValueError. The
@@ -827,7 +827,7 @@ def test_2E8_empty_coi_interior_returns_nan_envelope():
     # is_nutating==False expected on noise-only short signal; the 3 NaN-gated
     # traits are NaN regardless of whether the ridge is fully in COI.
     assert bool(result["is_nutating"].iloc[0]) is False
-    assert np.isnan(result["A_nutation_envelope_max"].iloc[0])
+    assert np.isnan(result["A_nutation_envelope_max_px"].iloc[0])
 
 
 # ===========================================================================
@@ -932,6 +932,8 @@ def test_2F4_invalid_constants(invalid_constants):
         ("DERR_EXPECTED_PERIOD_S", 0.0, "DERR_EXPECTED_PERIOD_S"),
         ("BAND_POWER_BAND_LOW_FACTOR", 0.0, "BAND_POWER_BAND_LOW_FACTOR"),
         ("BAND_POWER_NOISE_RATIO", 0.0, "BAND_POWER_NOISE_RATIO"),
+        ("TEMPORAL_NYQUIST_RATIO_MAX", 0.0, "TEMPORAL_NYQUIST_RATIO_MAX"),
+        ("TEMPORAL_NYQUIST_RATIO_MAX", -1.0, "TEMPORAL_NYQUIST_RATIO_MAX"),
     ],
 )
 def test_2F4b_constants_field_validation_self_review_B2(field, value, error_token):
@@ -955,6 +957,39 @@ def test_2F4c_band_power_band_high_must_exceed_low_self_review_B2():
     custom = ConstantsT(BAND_POWER_BAND_LOW_FACTOR=2.0, BAND_POWER_BAND_HIGH_FACTOR=0.5)
     with pytest.raises(ValueError, match=r"BAND_POWER_BAND_HIGH_FACTOR"):
         nutation.compute(df, cadence_s=300.0, constants=custom)
+
+
+@pytest.mark.parametrize(
+    "window, polynomial_order, error_type, error_token",
+    [
+        # window: non-int (string), even, non-positive, length-too-short relative to x
+        ("5", 3, TypeError, "window"),
+        (4, 3, ValueError, "window"),
+        (-1, 3, ValueError, "window"),
+        # polynomial_order: non-int, negative, ≥ window
+        (5, "3", TypeError, "polynomial_order"),
+        (5, -1, ValueError, "polynomial_order"),
+        (5, 5, ValueError, "polynomial_order"),
+    ],
+)
+def test_2F4d_compute_sg_detrended_boundary_validation_round2_I2(
+    window, polynomial_order, error_type, error_token
+):
+    """§2.F.4d (round-2 self-review I2): direct boundary tests for compute_sg_detrended.
+
+    The Copilot-round-2 substantive fix (commit 0160a6f) added input validation
+    branches to `_noise.compute_sg_detrended` for window type/parity/positivity
+    and polynomial_order type/sign/ordering. These are reachable indirectly via
+    `_validate_nutation_constants` (test_2F4b above), but the helper is also
+    a public-ish primitive that other tier PRs may consume — direct boundary
+    tests at the helper layer prevent regressions if a future caller bypasses
+    the constants validation.
+    """
+    from sleap_roots.circumnutation import _noise
+
+    x = np.zeros(20, dtype=np.float64)
+    with pytest.raises(error_type, match=error_token):
+        _noise.compute_sg_detrended(x, window=window, polynomial_order=polynomial_order)
 
 
 def test_2F7b_nan_tip_x_in_one_track_does_not_crash_self_review_B1():
@@ -999,7 +1034,7 @@ def test_2F7b_nan_tip_x_in_one_track_does_not_crash_self_review_B1():
     assert bool(track_1["is_nutating"].iloc[0]) is False
     assert np.isnan(track_1["T_nutation_median"].iloc[0])
     assert np.isnan(track_1["T_nutation_iqr"].iloc[0])
-    assert np.isnan(track_1["A_nutation_envelope_max"].iloc[0])
+    assert np.isnan(track_1["A_nutation_envelope_max_px"].iloc[0])
 
 
 def test_2F5_geometry_length_mismatch():
@@ -1083,7 +1118,7 @@ def test_2F7_stationary_track_fallback_no_warnings():
     # 3 NaN-gated traits should be NaN.
     assert np.isnan(result["T_nutation_median"].iloc[0])
     assert np.isnan(result["T_nutation_iqr"].iloc[0])
-    assert np.isnan(result["A_nutation_envelope_max"].iloc[0])
+    assert np.isnan(result["A_nutation_envelope_max_px"].iloc[0])
     assert bool(result["is_nutating"].iloc[0]) is False
 
 
@@ -1108,13 +1143,17 @@ def test_2F9_smooth_ridge_invalid_window(invalid_window):
 
 
 def test_2G1_module_default_equals_ConstantsT_default():
-    """§2.G.1: constants=None equals constants=ConstantsT() (2-tier resolution)."""
+    """§2.G.1: constants=None equals constants=ConstantsT() (2-tier resolution).
+
+    Iterates all 8 ``_NUTATION_TRAIT_COLUMNS`` (7 floats + ``is_nutating`` bool);
+    the prior ``[:-1]`` slice silently skipped ``cadence_nyquist_ratio`` (round-2
+    self-review I7).
+    """
     df = _minimal_trajectory_df(noise_sigma_px=0.5)
     r1 = nutation.compute(df, cadence_s=300.0)
     r2 = nutation.compute(df, cadence_s=300.0, constants=ConstantsT())
-    for col in _NUTATION_TRAIT_COLUMNS[:-1]:  # all 7 float cols
+    for col in _NUTATION_TRAIT_COLUMNS:
         npt.assert_array_equal(r1[col].to_numpy(), r2[col].to_numpy())
-    npt.assert_array_equal(r1["is_nutating"].to_numpy(), r2["is_nutating"].to_numpy())
 
 
 @pytest.mark.parametrize("window", [1, 11])
@@ -1208,18 +1247,21 @@ def test_2G8_default_constants_snapshot_includes_pr6_keys():
 
 
 def test_2G9_coordinate_default_is_lateral():
-    """§2.G.9: coordinate=None default == coordinate='lateral'."""
+    """§2.G.9: coordinate=None default == coordinate='lateral'.
+
+    Iterates all 8 ``_NUTATION_TRAIT_COLUMNS`` (round-2 self-review I7).
+    """
     df = _minimal_trajectory_df(noise_sigma_px=0.5)
     r1 = nutation.compute(df, cadence_s=300.0)
     r2 = nutation.compute(df, cadence_s=300.0, coordinate="lateral")
-    for col in _NUTATION_TRAIT_COLUMNS[:-1]:
+    for col in _NUTATION_TRAIT_COLUMNS:
         npt.assert_array_equal(r1[col].to_numpy(), r2[col].to_numpy())
 
 
 def test_2G10_coordinate_x_differs_from_lateral_on_diagonal_track():
     """§2.G.10 (TDD-I3 round-2): on a diagonal growth axis, x vs lateral differ.
 
-    Compares A_nutation_envelope_max rather than T_nutation_median: on a
+    Compares A_nutation_envelope_max_px rather than T_nutation_median: on a
     pure-sinusoid signal both coordinates pick up the SAME period (3333s
     is the oscillation period regardless of projection axis), but raw
     x mixes the lateral component (sin(π/4) fraction) with the
@@ -1236,8 +1278,8 @@ def test_2G10_coordinate_x_differs_from_lateral_on_diagonal_track():
     r_x = nutation.compute(df, cadence_s=300.0, coordinate="x")
     # Different coordinates pick up different amplitudes.
     assert not np.isclose(
-        r_lat["A_nutation_envelope_max"].iloc[0],
-        r_x["A_nutation_envelope_max"].iloc[0],
+        r_lat["A_nutation_envelope_max_px"].iloc[0],
+        r_x["A_nutation_envelope_max_px"].iloc[0],
         rtol=0.05,
     )
 

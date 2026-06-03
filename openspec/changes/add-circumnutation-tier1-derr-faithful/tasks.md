@@ -35,7 +35,7 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
 
 - [ ] 2.A.1 Test `nutation_compute_returns_dataframe`: `df = nutation.compute(_minimal_trajectory_df(), cadence_s=300.0); assert isinstance(df, pd.DataFrame)`.
 
-- [ ] 2.A.2 Test `nutation_compute_returns_8_trait_columns_in_declared_order`: assert `list(df.columns[8:]) == ["T_nutation_median", "T_nutation_iqr", "A_nutation_envelope_max", "band_power_ratio", "noise_floor_estimate", "is_nutating", "period_residual_vs_derr_reference", "cadence_nyquist_ratio"]`.
+- [ ] 2.A.2 Test `nutation_compute_returns_8_trait_columns_in_declared_order`: assert `list(df.columns[8:]) == ["T_nutation_median", "T_nutation_iqr", "A_nutation_envelope_max_px", "band_power_ratio", "noise_floor_estimate", "is_nutating", "period_residual_vs_derr_reference", "cadence_nyquist_ratio"]`.
 
 - [ ] 2.A.3 Test `nutation_compute_includes_identity_columns_in_declared_order`: assert `list(df.columns[:8]) == list(ROW_IDENTITY_COLUMNS)`.
 
@@ -67,7 +67,7 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
 
   **TDD-I1 round-2 note:** synthetic generator produces a pure sinusoid with no growth-axis drift, so SG-detrend on this signal removes a fraction of the signal amplitude. If GREEN-phase observes T recovery failing, switch to either (a) `constants=ConstantsT(SG_WINDOW_DETREND=1)` to bypass detrending on the synth oracle, or (b) larger `noise_sigma_px` so the residual carries the period. Record in GREEN-phase Reconciliation Appendix.
 
-- [ ] 2.C.3 Test `noise_only_input_gates_is_nutating_to_false` (TDD-B1 round-1): `df_synth = synthetic.generate_trajectory(amplitude_px=0.0, noise_sigma_px=1.0, n_frames=1024, cadence_s=300, random_state=0)`; convert to `trajectory_df`; call `nutation.compute(trajectory_df, cadence_s=300.0)`; assert `result.is_nutating.iloc[0] == False`; assert `np.isnan(result.T_nutation_median.iloc[0])` AND `np.isnan(result.T_nutation_iqr.iloc[0])` AND `np.isnan(result.A_nutation_envelope_max.iloc[0])` (the 3 NaN-gated traits per S4 round-1). 2 ids.
+- [ ] 2.C.3 Test `noise_only_input_gates_is_nutating_to_false` (TDD-B1 round-1): `df_synth = synthetic.generate_trajectory(amplitude_px=0.0, noise_sigma_px=1.0, n_frames=1024, cadence_s=300, random_state=0)`; convert to `trajectory_df`; call `nutation.compute(trajectory_df, cadence_s=300.0)`; assert `result.is_nutating.iloc[0] == False`; assert `np.isnan(result.T_nutation_median.iloc[0])` AND `np.isnan(result.T_nutation_iqr.iloc[0])` AND `np.isnan(result.A_nutation_envelope_max_px.iloc[0])` (the 3 NaN-gated traits per S4 round-1). 2 ids.
 
   **Rationale (TDD-B1 round-1):** original draft used `T_nutation_s=None`, but synthetic.py:415-416 resolves `None` to default 3333.0 s → produces a sinusoid, NOT noise-only. Correct noise-only path is `amplitude_px=0.0` (synthetic.py:329 docstring confirms 0.0 is valid).
 
@@ -93,7 +93,7 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
 
 - [ ] 2.E.4 Test `band_power_ratio_finite_and_in_unit_interval`: assert `np.isfinite(result.band_power_ratio.iloc[0])` AND `0 <= result.band_power_ratio.iloc[0] <= 1`. 1 id.
 
-- [ ] 2.E.5 Test `nan_gating_when_is_nutating_false` (parametrize over the 3 NaN-gated traits per S4 round-1 + TDD-B1 round-2): on the noise-only input, assert each of `T_nutation_median`, `T_nutation_iqr`, `A_nutation_envelope_max` is NaN. 3 ids.
+- [ ] 2.E.5 Test `nan_gating_when_is_nutating_false` (parametrize over the 3 NaN-gated traits per S4 round-1 + TDD-B1 round-2): on the noise-only input, assert each of `T_nutation_median`, `T_nutation_iqr`, `A_nutation_envelope_max_px` is NaN. 3 ids.
 
 - [ ] 2.E.6 Test `always_populated_when_is_nutating_false` (5 traits per S4 round-1): assert `is_nutating`, `band_power_ratio`, `noise_floor_estimate`, `period_residual_vs_derr_reference`, `cadence_nyquist_ratio` are all finite (NOT NaN) on the noise-only input. 1 id with 5-column finite-value check.
 
@@ -235,12 +235,12 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
     1. Project + SG-detrend
     2. CWT compute_scaleogram + extract_ridge + smooth_ridge
     3. T_nutation_median + T_nutation_iqr from COI-masked smoothed periods
-    4. A_nutation_envelope_max from COI-masked raw ridge amplitudes
+    4. A_nutation_envelope_max_px from COI-masked raw ridge amplitudes
     5. noise_floor_estimate from FFT
     6. band_power_ratio from FFT
     7. is_nutating gate
     8. Derived traits (period_residual_vs_derr_reference, cadence_nyquist_ratio) — both ALWAYS computed (S4 round-2)
-    9. NaN-gate 3 traits ONLY (T_nutation_median, T_nutation_iqr, A_nutation_envelope_max) when is_nutating==False
+    9. NaN-gate 3 traits ONLY (T_nutation_median, T_nutation_iqr, A_nutation_envelope_max_px) when is_nutating==False
   - Public `compute(trajectory_df, cadence_s, coordinate="lateral", constants=None) -> pd.DataFrame`:
     - Validate inputs (delegate to `_validate_trajectory_df` for trajectory_df; explicit `_check_cadence_s` + `_check_coordinate` + `_check_constants`)
     - Resolve `constants = _check_constants(constants)`
@@ -267,7 +267,7 @@ TDD-ordered. Tests precede implementation per `superpowers:test-driven-developme
 
 - [ ] 4.1 Update `docs/changelog.md` under `## [Unreleased]` / `### Added`:
   ```markdown
-  - **circumnutation**: Tier 1 nutation trait emission (`sleap_roots.circumnutation.nutation.compute`) producing 8 traits per `theory.md` §7.2 + §7.6 + §6.5: `T_nutation_median`, `T_nutation_iqr`, `A_nutation_envelope_max`, `band_power_ratio`, `noise_floor_estimate`, `is_nutating`, `period_residual_vs_derr_reference`, `cadence_nyquist_ratio`. Composes PR #5 CWT primitives + new `_geometry.project_to_growth_axis_perpendicular` (CC-7 lateral projection) + new `_noise.compute_sg_detrended` (per `preliminary_results §3.4`) + new `_noise.compute_fourier_noise_floor` (CC-8) + new `temporal_cwt.smooth_ridge` (closes #214, ridge-tracking continuity post-filter). `is_nutating` boolean gates NaN-emission of 3 strictly biological traits per scientific-honesty principle (S4); 5 diagnostic traits remain populated. Layer-2 Derr forensic-match enforced on Nipponbare plate-001 proofread fixture via two-part assertion: median across 6 tracks within ±2% AND ≥4 of 6 tracks within ±5%. 6 new defaults in `_constants.py` + `ConstantsT`; `_CONSTANTS_VERSION` 4 → 5. See `openspec/changes/add-circumnutation-tier1-derr-faithful/`.
+  - **circumnutation**: Tier 1 nutation trait emission (`sleap_roots.circumnutation.nutation.compute`) producing 8 traits per `theory.md` §7.2 + §7.6 + §6.5: `T_nutation_median`, `T_nutation_iqr`, `A_nutation_envelope_max_px`, `band_power_ratio`, `noise_floor_estimate`, `is_nutating`, `period_residual_vs_derr_reference`, `cadence_nyquist_ratio`. Composes PR #5 CWT primitives + new `_geometry.project_to_growth_axis_perpendicular` (CC-7 lateral projection) + new `_noise.compute_sg_detrended` (per `preliminary_results §3.4`) + new `_noise.compute_fourier_noise_floor` (CC-8) + new `temporal_cwt.smooth_ridge` (closes #214, ridge-tracking continuity post-filter). `is_nutating` boolean gates NaN-emission of 3 strictly biological traits per scientific-honesty principle (S4); 5 diagnostic traits remain populated. Layer-2 Derr forensic-match enforced on Nipponbare plate-001 proofread fixture via two-part assertion: median across 6 tracks within ±2% AND ≥4 of 6 tracks within ±5%. 6 new defaults in `_constants.py` + `ConstantsT`; `_CONSTANTS_VERSION` 4 → 5. See `openspec/changes/add-circumnutation-tier1-derr-faithful/`.
   ```
 
 - [ ] 4.2 No `docs/circumnutation/theory.md` or `docs/circumnutation/roadmap.md` edits inside this PR. Roadmap row #6 status `⬜ → ✅` happens post-merge during `cleanup-merged` per §8.

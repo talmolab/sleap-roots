@@ -12,7 +12,7 @@ The 6 emitted traits:
 |---|---|---|---|
 | `T_nutation_median` | theory.md §7.2 | s (NaN if `is_nutating==False`) | float |
 | `T_nutation_iqr` | theory.md §7.2 | s (NaN if `is_nutating==False`) | float |
-| `A_nutation_envelope_max` | theory.md §7.2 | px (NaN if `is_nutating==False`) | float |
+| `A_nutation_envelope_max_px` | theory.md §7.2 | px (NaN if `is_nutating==False`) | float |
 | `band_power_ratio` | theory.md §7.2 + §7.6 | dimensionless (always populated) | float |
 | `noise_floor_estimate` | theory.md §7.6 + CC-8 | amplitude units (always populated) | float |
 | `is_nutating` | theory.md §7.6 (`band_power_ratio > 3·noise_floor_estimate`) | bool (always populated) | bool |
@@ -53,7 +53,7 @@ theory.md §7.2 names 5 Tier 1 traits and §7.6 names 3 QC traits (`coi_fraction
 | Trait | Owning PR | PR #6's contribution |
 |---|---|---|
 | `T_nutation_median`, `T_nutation_iqr` | PR #6 | Both: median + IQR of `smooth_ridge(extract_ridge(scaleogram)).periods_s[~in_coi]` |
-| `A_nutation_envelope_max` | PR #6 | `max(extract_ridge(scaleogram).amplitudes[~in_coi])` |
+| `A_nutation_envelope_max_px` | PR #6 | `max(extract_ridge(scaleogram).amplitudes[~in_coi])` |
 | `band_power_ratio` | PR #6 | `power_in_[0.5T, 2T]_band / total_power` from FFT amplitude spectrum |
 | `noise_floor_estimate` | PR #6 | `compute_fourier_noise_floor` helper output |
 | `is_nutating` | PR #6 | `band_power_ratio > BAND_POWER_NOISE_RATIO * noise_floor_estimate` |
@@ -89,12 +89,12 @@ def compute(
 
     Returns one row per (series, sample_uid, plate_id, plant_id, track_id),
     with 8 trait columns: T_nutation_median, T_nutation_iqr,
-    A_nutation_envelope_max, band_power_ratio, noise_floor_estimate,
+    A_nutation_envelope_max_px, band_power_ratio, noise_floor_estimate,
     is_nutating, period_residual_vs_derr_reference, cadence_nyquist_ratio.
 
     Per D5 NaN-gating semantics: when is_nutating == False, the 5
     meaning-dependent traits (T_nutation_median, T_nutation_iqr,
-    A_nutation_envelope_max, period_residual_vs_derr_reference, cadence_nyquist_ratio)
+    A_nutation_envelope_max_px, period_residual_vs_derr_reference, cadence_nyquist_ratio)
     are emitted as NaN.
 
     Parameters
@@ -122,7 +122,7 @@ def compute(
 _NUTATION_TRAIT_COLUMNS: tuple[str, ...] = (
     "T_nutation_median",
     "T_nutation_iqr",
-    "A_nutation_envelope_max",
+    "A_nutation_envelope_max_px",
     "band_power_ratio",
     "noise_floor_estimate",
     "is_nutating",
@@ -368,7 +368,7 @@ def smooth_ridge(
 **Why smooth `periods_s` only:**
 
 - Issue #214 is specifically about period-IQR being polluted by ridge scale-hopping — the load-bearing acceptance criterion is `T_nutation_iqr_post_filter < T_nutation_iqr_raw`.
-- `amplitudes` and `powers` are computed at the ridge cell regardless of which scale it's at. Smoothing amplitudes would lower the peak that `A_nutation_envelope_max` measures — distorting a downstream trait without a corresponding accuracy benefit.
+- `amplitudes` and `powers` are computed at the ridge cell regardless of which scale it's at. Smoothing amplitudes would lower the peak that `A_nutation_envelope_max_px` measures — distorting a downstream trait without a corresponding accuracy benefit.
 - `in_coi` is a function of ridge_scale_idx, which is implicit in the smoothed periods. Recomputing `in_coi` from the smoothed periods would require access to the COI mask grid — we don't have it from a RidgeResult alone (it lives on ScaleogramResult). Decision: pass `in_coi` through unchanged. The smoothing window is small (5 frames) so the in-coi-vs-out-of-coi boundary stays accurate within ±2 frames.
 - `frame_indices` and `powers = amplitudes²` are tautologies that don't change under period-smoothing.
 
@@ -411,7 +411,7 @@ def smooth_ridge(ridge_result, window=None, constants=None):
 - *Inline median_filter in nutation.py*. Rejected per Q2 (Elizabeth's preference for modular / reusable / testable functions).
 - *`smooth_window` parameter on `extract_ridge`*. Rejected per Q4: bumps PR #5 spec-locked contract; couples ridge extraction to smoothing.
 - *Mallat 1999 §4.4.2 ridge-following algorithm*. Rejected per Q4 (YAGNI for PR #6; complexity is unjustified until median-filter is empirically shown to fail). Tracked as a future-possible-issue.
-- *Smooth both periods AND amplitudes*. Rejected per the design note above (would distort `A_nutation_envelope_max`).
+- *Smooth both periods AND amplitudes*. Rejected per the design note above (would distort `A_nutation_envelope_max_px`).
 - *Recompute `in_coi` from smoothed periods*. Rejected — requires access to the COI mask grid that lives on ScaleogramResult; pass-through is correct within smoothing-window precision.
 
 ### D5. `is_nutating` ownership in nutation.py + NaN-gating semantics
@@ -422,7 +422,7 @@ Per Q5 (NaN-gate ownership) and S4 round-1 reconciliation (which traits actually
 |---|---|---|---|
 | `T_nutation_median` | NaN | computed | biological-meaning-dependent |
 | `T_nutation_iqr` | NaN | computed | biological-meaning-dependent |
-| `A_nutation_envelope_max` | NaN | computed | biological-meaning-dependent |
+| `A_nutation_envelope_max_px` | NaN | computed | biological-meaning-dependent |
 | `period_residual_vs_derr_reference` | populated | populated | diagnostic: "where would the spectral peak land if trusted" |
 | `cadence_nyquist_ratio` | populated | populated | diagnostic: engineering-question "could we have observed nutation?" — answer-able regardless of biology (per S4 round-1 reviewer Sci-I3) |
 | `band_power_ratio` | populated | populated | precursor to `is_nutating` gate |
@@ -466,7 +466,7 @@ def _compute_one_track(group, cadence_s, coordinate, constants):
 
     # 4. COI-masked amplitude peak.
     interior_amps = raw_ridge.amplitudes[~raw_ridge.in_coi]
-    A_nutation_envelope_max = float(np.max(interior_amps))  # candidate value
+    A_nutation_envelope_max_px = float(np.max(interior_amps))  # candidate value
 
     # 5. FFT noise floor (CC-8).
     noise_floor_estimate = _noise.compute_fourier_noise_floor(
@@ -507,12 +507,12 @@ def _compute_one_track(group, cadence_s, coordinate, constants):
     if not is_nutating:
         T_nutation_median = float("nan")
         T_nutation_iqr = float("nan")
-        A_nutation_envelope_max = float("nan")
+        A_nutation_envelope_max_px = float("nan")
 
     return {
         "T_nutation_median": T_nutation_median,
         "T_nutation_iqr": T_nutation_iqr,
-        "A_nutation_envelope_max": A_nutation_envelope_max,
+        "A_nutation_envelope_max_px": A_nutation_envelope_max_px,
         "band_power_ratio": float(band_power_ratio),
         "noise_floor_estimate": float(noise_floor_estimate),
         "is_nutating": is_nutating,
@@ -553,7 +553,7 @@ Internal validation: a private helper `_check_cadence_s(cadence_s)` (mirroring `
 **Alternatives considered:**
 
 - *Always populate all traits regardless of `is_nutating`*. Rejected per Q5: violates scientific-honesty principle (raw CWT-ridge values on noise-only signals are not meaningfully periods).
-- *NaN-gate only T_nutation_*\* (keep cadence/derr raw)*. **ACCEPTED via S4 round-1 reconciliation** (reviewer Sci-I3 surfaced that cadence_nyquist_ratio is an engineering-diagnostic for *why* is_nutating failed; period_residual_vs_derr_reference is a "where would the peak land if trusted" diagnostic; both useful regardless of biological nutation). Q5's original Tier 1 NaN-gating of all 5 was refined: NaN-gate only T_nutation_median, T_nutation_iqr, A_nutation_envelope_max (the strictly biological-meaning-dependent traits); keep cadence_nyquist_ratio + period_residual_vs_derr_reference + the 3 precursors always populated.
+- *NaN-gate only T_nutation_*\* (keep cadence/derr raw)*. **ACCEPTED via S4 round-1 reconciliation** (reviewer Sci-I3 surfaced that cadence_nyquist_ratio is an engineering-diagnostic for *why* is_nutating failed; period_residual_vs_derr_reference is a "where would the peak land if trusted" diagnostic; both useful regardless of biological nutation). Q5's original Tier 1 NaN-gating of all 5 was refined: NaN-gate only T_nutation_median, T_nutation_iqr, A_nutation_envelope_max_px (the strictly biological-meaning-dependent traits); keep cadence_nyquist_ratio + period_residual_vs_derr_reference + the 3 precursors always populated.
 - *QC tier owns `is_nutating`*. Rejected per Q5: cross-tier ownership for a gate that nutation.py needs to honor is architecturally awkward.
 
 ### D6. `period_residual_vs_derr_reference` algorithm — fractional period residual
@@ -751,7 +751,7 @@ Mirror PR #5's 8-section structure. Target: ~85-100 parametrized ids total. Test
 
 - §2.A.1 `nutation.compute` returns `pd.DataFrame` (1 id)
 - §2.A.2 Return DataFrame has 8 identity columns + 8 trait columns in declared order (1 id; parametrized by trait name → 8 ids per-column; OR single id with explicit column-list assertion)
-- §2.A.3 Trait dtypes: `T_nutation_median, T_nutation_iqr, A_nutation_envelope_max, band_power_ratio, noise_floor_estimate, period_residual_vs_derr_reference, cadence_nyquist_ratio` all `float64`; `is_nutating` is `bool` (8 ids parametrized by column → dtype)
+- §2.A.3 Trait dtypes: `T_nutation_median, T_nutation_iqr, A_nutation_envelope_max_px, band_power_ratio, noise_floor_estimate, period_residual_vs_derr_reference, cadence_nyquist_ratio` all `float64`; `is_nutating` is `bool` (8 ids parametrized by column → dtype)
 - §2.A.4 Row identity 5-tuple uniqueness (1 id)
 - §2.A.5 Logger emits one DEBUG at start of `compute` per the token-containment contract (1 id)
 - §2.A.6 No WARNING/ERROR emissions on happy path (1 id; caplog-based)
@@ -769,7 +769,7 @@ Mirror PR #5's 8-section structure. Target: ~85-100 parametrized ids total. Test
   - **TDD-B2 round-1**: Removed T=1000 (only 1.67× the CWT period_min floor of 600 s at PR #5's `CWT_PERIOD_MIN_NYQUIST_FACTOR=2.0`; would fail recovery the way PR #5 R3-B2 did).
   - **Sci-B1 round-2**: Replaced T=6666 with T=4500. S1's SG-detrending step uses window=23 frames × cadence=300 s = 6900 s smoothing window. T=6666 sits at 96% of that window (T=4500 at 65%); SG-detrend partially suppresses the test signal at the cutoff, dropping `is_nutating` to False even though the period is recovered correctly. T=4500 stays safely below the cutoff while keeping 3-test-point low/mid/high coverage.
 - §2.C.2 Synthetic-generator Layer-1: `synthetic.generate_trajectory(T_nutation_s=3333, noise_sigma_px=0.5, n_frames=575)` via the multi-track-style pipeline. Assert `T_nutation_median ≈ 3333 ±10%` (looser tolerance for the noisier synth input) (1 id)
-- §2.C.3 Noise-only Layer-1 (TDD-B1 round-1 reconciliation): `synthetic.generate_trajectory(amplitude_px=0.0, noise_sigma_px=1.0, n_frames=1024, cadence_s=300.0, random_state=0)` produces `is_nutating == False`, and the **3** biological-meaning-dependent traits (T_nutation_median, T_nutation_iqr, A_nutation_envelope_max) are NaN per the S4-revised gating (2 ids). Rationale: `T_nutation_s=None` (original draft) resolves to default 3333.0 s in synthetic.py:415-416 — produces a strong sinusoid, NOT noise-only. `amplitude_px=0.0` is the documented noise-only path (synthetic.py:329 docstring confirms 0.0 is valid).
+- §2.C.3 Noise-only Layer-1 (TDD-B1 round-1 reconciliation): `synthetic.generate_trajectory(amplitude_px=0.0, noise_sigma_px=1.0, n_frames=1024, cadence_s=300.0, random_state=0)` produces `is_nutating == False`, and the **3** biological-meaning-dependent traits (T_nutation_median, T_nutation_iqr, A_nutation_envelope_max_px) are NaN per the S4-revised gating (2 ids). Rationale: `T_nutation_s=None` (original draft) resolves to default 3333.0 s in synthetic.py:415-416 — produces a strong sinusoid, NOT noise-only. `amplitude_px=0.0` is the documented noise-only path (synthetic.py:329 docstring confirms 0.0 is valid).
 - §2.C.4 Cross-coordinate sanity: on Layer-1 synthetic, `coordinate="lateral"` recovers period; `coordinate="x"` (raw) recovers period (synth is unrotated so raw == lateral up to noise) — verify both pass (2 ids)
 
 **§2.D Ridge-continuity post-filter sanity** (#214 acceptance, ~6 ids):
@@ -783,8 +783,8 @@ Mirror PR #5's 8-section structure. Target: ~85-100 parametrized ids total. Test
 - §2.E.2 Pure-sinusoid input → `is_nutating == True` (1 id)
 - §2.E.3 `noise_floor_estimate` is always finite and ≥ 0 (1 id)
 - §2.E.4 `band_power_ratio` is always finite and in `[0, 1]` (1 id)
-- §2.E.5 NaN-gating semantics (S4 round-1 + TDD-B1 round-2 reconciliation): when `is_nutating == False`, the **3** strictly biological-meaning-dependent traits are NaN: `T_nutation_median`, `T_nutation_iqr`, `A_nutation_envelope_max`. Parametrized by trait name (3 ids).
-- §2.E.6 Always-populated traits — when `is_nutating == False`, the **5** always-populated traits remain finite: `is_nutating` (False), `band_power_ratio`, `noise_floor_estimate`, `cadence_nyquist_ratio` (engineering diagnostic per Sci-I3), `period_residual_vs_derr_reference` (ridge-of-noise diagnostic per S4). 1 id with 5-column finite-value check.
+- §2.E.5 NaN-gating semantics (S4 round-1 + TDD-B1 round-2 reconciliation): when `is_nutating == False`, the **3** strictly biological-meaning-dependent traits are NaN: `T_nutation_median`, `T_nutation_iqr`, `A_nutation_envelope_max_px`. Parametrized by trait name (3 ids).
+- §2.E.6 Always-populated traits — when `is_nutating == False`, the **5** always-populated traits are NOT is_nutating-gated: `is_nutating` (False), `band_power_ratio`, `noise_floor_estimate`, `cadence_nyquist_ratio` (engineering diagnostic per Sci-I3), `period_residual_vs_derr_reference` (ridge-of-noise diagnostic per S4). May still be NaN when undefined (stationary tracks, all-COI ridge, empty out-of-band Fourier region) — GREEN-phase Reconciliation softened scenario asserts populated-or-NaN, not finite. 1 id with 5-column populated-or-NaN check.
 
 **§2.F Validation/errors** (~24 ids):
 
@@ -1048,7 +1048,7 @@ Five blocks:
 
 **`docs/changelog.md` updates** (under `[Unreleased] / ### Added`):
 
-- "circumnutation: Tier 1 nutation trait emission (`sleap_roots.circumnutation.nutation.compute`) producing 8 traits per theory.md §7.2 + §7.6 + §6.5 (T_nutation_median, T_nutation_iqr, A_nutation_envelope_max, band_power_ratio, noise_floor_estimate, is_nutating, period_residual_vs_derr_reference, cadence_nyquist_ratio); composes PR #5 CWT primitives + new `_geometry.project_to_growth_axis_perpendicular` lateral-projection helper + new `_noise.compute_fourier_noise_floor` (CC-8) + new `temporal_cwt.smooth_ridge` ridge-continuity post-filter (closes #214 — Mallat 1999 §4.4.2 inspired); `is_nutating` boolean gates NaN-emission of 5 meaning-dependent traits per scientific-honesty principle; Layer-2 Derr forensic match verified at ±2% on Nipponbare plate-001 proofread fixture. 5 new defaults in `_constants.py` + `ConstantsT`; `_CONSTANTS_VERSION` 4 → 5."
+- "circumnutation: Tier 1 nutation trait emission (`sleap_roots.circumnutation.nutation.compute`) producing 8 traits per theory.md §7.2 + §7.6 + §6.5 (T_nutation_median, T_nutation_iqr, A_nutation_envelope_max_px, band_power_ratio, noise_floor_estimate, is_nutating, period_residual_vs_derr_reference, cadence_nyquist_ratio); composes PR #5 CWT primitives + new `_geometry.project_to_growth_axis_perpendicular` lateral-projection helper + new `_noise.compute_fourier_noise_floor` (CC-8) + new `temporal_cwt.smooth_ridge` ridge-continuity post-filter (closes #214 — Mallat 1999 §4.4.2 inspired); `is_nutating` boolean gates NaN-emission of 5 meaning-dependent traits per scientific-honesty principle; Layer-2 Derr forensic match verified at ±2% on Nipponbare plate-001 proofread fixture. 5 new defaults in `_constants.py` + `ConstantsT`; `_CONSTANTS_VERSION` 4 → 5."
 
 **`sleap_roots/circumnutation/__init__.py`:**
 
@@ -1123,7 +1123,7 @@ Three parallel critical-review subagents (scientific-rigor / architecture / TDD-
 - **S1 — SG-detrending of lateral signal**: ADD new `_noise.compute_sg_detrended(x, window, polynomial_order) -> np.ndarray` helper; reuse existing `SG_WINDOW_DETREND=23` + `SG_DEGREE=3` constants from PR #2/#3. Pipeline becomes: `project_to_growth_axis_perpendicular → compute_sg_detrended → CWT/FFT`. Addresses Sci-B1 ("Detrending omitted — directly contradicts preliminary_results §3.4"). Inline at D5 pseudocode step 1b + Migration Plan `_noise.py` section.
 - **S2 — cadence-Nyquist dimensional rework**: ADD new `TEMPORAL_NYQUIST_RATIO_MAX = 0.25` constant per theory.md §1.2's "5-10 samples/period" rule. Existing `NYQUIST_RATIO_MAX = 0.25` stays as the SPATIAL check (per theory.md §6.5); clarifying docstring distinguishes. Formula stays raw `cadence_s / T_nutation_median`. New constant count: 6 (not 5). Addresses Sci-B2. Inline at D8 + Migration Plan `_constants.py` section + Migration Plan spec delta #2.
 - **S3 — derr trait rename**: `derr_match_residual` → `period_residual_vs_derr_reference` (more self-documenting; survives `DERR_EXPECTED_PERIOD_S` override on non-rice species). Addresses Sci-B4. Inline at every D-section + §2 test + Migration Plan + Test-file imports (~30 occurrences, applied via `replace_all`).
-- **S4 — NaN-gating revision**: NaN-gate ONLY 3 strictly biological-meaning-dependent traits (T_nutation_median, T_nutation_iqr, A_nutation_envelope_max) when `is_nutating==False`. Always populate `cadence_nyquist_ratio` (engineering diagnostic), `period_residual_vs_derr_reference` (spectral-peak diagnostic), `band_power_ratio`, `noise_floor_estimate`, `is_nutating`. Addresses Sci-I3. Inline at D5 NaN-gating table + `_compute_one_track` pseudocode + Context-section trait table.
+- **S4 — NaN-gating revision**: NaN-gate ONLY 3 strictly biological-meaning-dependent traits (T_nutation_median, T_nutation_iqr, A_nutation_envelope_max_px) when `is_nutating==False`. Always populate `cadence_nyquist_ratio` (engineering diagnostic), `period_residual_vs_derr_reference` (spectral-peak diagnostic), `band_power_ratio`, `noise_floor_estimate`, `is_nutating`. Addresses Sci-I3. Inline at D5 NaN-gating table + `_compute_one_track` pseudocode + Context-section trait table.
 - **S5 — Layer-2 ±2% strictness**: SOFTEN UPFRONT to "≥4 of 6 tracks within ±5%". Avoids the GREEN-phase reconciliation event PR #5's R3-B2 precedent showed is otherwise guaranteed (scale-grid discreteness alone gives ~5% floor at n_frames=575). Addresses TDD-B3. Inline at §2.H.3.
 - **S6 — Canary atol cross-OS**: SET 1e-6 upfront (loosened from PR #5's 1e-9) because PR #6 adds 3 unverified scipy paths (fft/ndimage/stats) on top of PR #5's verified pywt path; 1e-6 cushion is scientifically irrelevant for these traits per CC-6. Addresses TDD-B4. Inline at §2.B.2.
 - **S7 — `NOISE_FLOOR_OUT_OF_BAND_FACTOR` default**: KEEP factor=5.0 per CC-8 verbatim in RED-phase; DEFER empirical sensitivity decision to GREEN-phase (measure noise_floor/band_power on plate-001 across factor ∈ {3, 5, 7}, pick value maximizing `is_nutating==True` robustness, record in GREEN-phase Reconciliation Appendix). Addresses Sci-B3. Inline at D4 + R2 + §2.E (sensitivity test parametrize added).

@@ -34,6 +34,7 @@ Theory references:
 """
 
 import logging
+from typing import Optional
 
 import numpy as np
 import scipy.fft
@@ -308,6 +309,9 @@ def compute_fourier_noise_floor(
     cadence_s: float,
     t_nutation_median_s: float,
     factor: float,
+    *,
+    _precomputed_spectrum: Optional[np.ndarray] = None,
+    _precomputed_freqs: Optional[np.ndarray] = None,
 ) -> float:
     """Median Fourier amplitude over the out-of-band region (PR #6, CC-8).
 
@@ -341,8 +345,16 @@ def compute_fourier_noise_floor(
             len(x),
         )
         return float("nan")
-    spectrum = np.abs(scipy.fft.rfft(x))
-    freqs = scipy.fft.rfftfreq(len(x), d=cadence_s)
+    # Round-2 self-review I5: accept caller-precomputed spectrum + freqs to
+    # avoid redundant rfft when `nutation._compute_one_track` also passes the
+    # SAME signal to `_compute_band_power_traits`. Underscore prefix marks the
+    # kwargs as internal-optimization-only; public callers omit them.
+    if _precomputed_spectrum is not None and _precomputed_freqs is not None:
+        spectrum = _precomputed_spectrum
+        freqs = _precomputed_freqs
+    else:
+        spectrum = np.abs(scipy.fft.rfft(x))
+        freqs = scipy.fft.rfftfreq(len(x), d=cadence_s)
     if not np.isfinite(t_nutation_median_s) or t_nutation_median_s <= 0:
         logger.debug(
             "compute_fourier_noise_floor: invalid t_nutation_median_s=%r, returning NaN",

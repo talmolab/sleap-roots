@@ -608,7 +608,7 @@ def smooth_ridge(
 
     - The acceptance criterion is period-IQR-focused (``T_nutation_iqr
       _post_filter < T_nutation_iqr_raw`` on ≥5 of 6 plate-001 tracks).
-    - ``A_nutation_envelope_max`` is a PEAK statistic computed from
+    - ``A_nutation_envelope_max_px`` is a PEAK statistic computed from
       ``amplitudes`` and would be distorted by smoothing.
     - ``in_coi`` is a function of the original ridge scale indices and
       would require access to the COI mask grid to recompute (not
