@@ -464,7 +464,7 @@ Each trait has: symbol, units, computation source, calibration flag, and literat
 | `T_nutation_iqr` | hr `[—]` | Inter-quartile range of $T(t)$, indicates period drift | Rivière 2022 §"Elongation and bending are localized" mentions amplitude modulation |
 | `A_nutation_envelope_max_px` | px `[—]` | Peak of $|C(t)|$ ridge envelope from CWT (px-units, calibration-independent for relative amplitude); `_px` suffix marks unit per program convention | Derr 2025 pilot |
 | `band_power_ratio` | — `[—]` | Spectral power in $[0.5T, 2T]$ band / total spectral power | New trait, used for `is_nutating` boolean |
-| `derr_match_residual` | — `[—]` | Residual between this pipeline's scaleogram and Derr's PNG on identical input | Regression test against Derr 2025 oracle |
+| `period_residual_vs_derr_reference` | — `[—]` | Fractional period residual `(T - DERR_EXPECTED_PERIOD_S) / DERR_EXPECTED_PERIOD_S` (positive = slower than Derr reference); `DERR_EXPECTED_PERIOD_S = 3333.0` is rice-specific (override via `ConstantsT` for other species) | Derr 2025 pilot (Sept-2025 oracle) |
 
 ### 7.3 Tier 2 — Bastien-Meroz $\psi_g$
 

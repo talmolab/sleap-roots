@@ -131,10 +131,12 @@ def project_to_growth_axis_perpendicular(x: np.ndarray, y: np.ndarray) -> np.nda
         >>> lateral = project_to_growth_axis_perpendicular(x, y)
         >>> lateral.shape == (101,)
         True
-        >>> # Stationary track returns all-NaN.
-        >>> stat_x = np.array([1.0, 1.5, 2.0, 1.5, 1.0])
-        >>> stat_y = np.array([0.0, 0.5, 1.0, 0.5, 0.0])
-        >>> result = project_to_growth_axis_perpendicular(stat_x, stat_y)
+        >>> # Zero-net-displacement track (returns to start) yields all-NaN.
+        >>> # The gate is on net displacement, NOT stationarity — a closed-
+        >>> # loop trajectory like this one fails it even though it moves.
+        >>> closed_x = np.array([1.0, 1.5, 2.0, 1.5, 1.0])
+        >>> closed_y = np.array([0.0, 0.5, 1.0, 0.5, 0.0])
+        >>> result = project_to_growth_axis_perpendicular(closed_x, closed_y)
         >>> np.all(np.isnan(result))
         True
     """

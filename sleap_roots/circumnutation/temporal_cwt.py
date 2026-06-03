@@ -606,8 +606,12 @@ def smooth_ridge(
 
     Rationale (closes #214):
 
-    - The acceptance criterion is period-IQR-focused (``T_nutation_iqr
-      _post_filter < T_nutation_iqr_raw`` on ≥5 of 6 plate-001 tracks).
+    - The acceptance criterion is period-IQR-focused. PR #6's
+      GREEN-phase reconciliation softened the plate-001 threshold to
+      "no track worsens + ≥1 improves" (was originally "≥5 of 6
+      improve"); plate-001's clean ridge means the median filter is
+      mostly a no-op there. Multi-plate empirical validation tracked
+      in a follow-up issue (see ``design.md`` Appendix).
     - ``A_nutation_envelope_max_px`` is a PEAK statistic computed from
       ``amplitudes`` and would be distorted by smoothing.
     - ``in_coi`` is a function of the original ridge scale indices and
@@ -652,10 +656,11 @@ def smooth_ridge(
     Notes:
         Closes GitHub issue #214 (Mallat 1999 §4.4.2 ridge-continuity
         post-filter). PR #6's Nipponbare plate-001 6-track acceptance
-        is "≥5 of 6 tracks show ``T_nutation_iqr_post_filter <
-        T_nutation_iqr_raw``" — verified by ``test_2H4_issue_214_
-        acceptance_aggregate`` in ``tests/test_circumnutation_
-        nutation.py``.
+        is GREEN-phase softened to "no track worsens + ≥1 improves"
+        — verified by ``test_2H4_issue_214_acceptance_aggregate`` in
+        ``tests/test_circumnutation_nutation.py``. The original ≥5-of-6
+        target remains the long-term goal; multi-plate empirical
+        validation tracked in a follow-up issue.
     """
     if not isinstance(ridge_result, RidgeResult):
         raise TypeError(
