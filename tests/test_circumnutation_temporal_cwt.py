@@ -905,9 +905,9 @@ def test_2G3_override_COI_EFOLDING_FACTOR_approximately_doubles_mask():
     )
 
 
-def test_2G4_constants_version_is_4():
-    """§2.G.4: _CONSTANTS_VERSION == 4 (bumped from 3 in PR #5)."""
-    assert _CONSTANTS_VERSION == 4
+def test_2G4_constants_version_is_5():
+    """§2.G.4: _CONSTANTS_VERSION == 5 (bumped from 3 in PR #5, then 4 → 5 in PR #6)."""
+    assert _CONSTANTS_VERSION == 5
     assert _SCHEMA_VERSION == 1
 
 
