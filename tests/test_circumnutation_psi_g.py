@@ -255,3 +255,74 @@ def test_3_invalid_sg_window_override_raises_valueerror_naming_field(bad_window)
     override = ConstantsT(SG_WINDOW_DETREND=bad_window)
     with pytest.raises(ValueError, match="SG_WINDOW_DETREND"):
         psi_g.compute(df, cadence_s=300.0, constants=override)
+
+
+# ===========================================================================
+# §4 — raw, CWT-free traits (handedness, delta_E, helix) + conditioning isolation
+# ===========================================================================
+
+from sleap_roots.circumnutation import synthetic  # noqa: E402
+from sleap_roots.circumnutation._constants import ConstantsT  # noqa: E402
+
+
+@pytest.mark.parametrize("planted", [+1, -1])
+def test_4_handedness_equals_planted_generator_handedness(planted):
+    """§4: psi_g.compute handedness equals the generator's planted ±1 convention."""
+    df = synthetic.generate_trajectory(
+        handedness=planted, amplitude_px=10.0, noise_sigma_px=0.0, n_frames=575
+    )
+    result = psi_g.compute(df, cadence_s=300.0)
+    assert int(result["handedness"].iloc[0]) == planted
+
+
+@pytest.mark.parametrize("planted", [+1, -1])
+def test_4_helix_sign_agrees_with_handedness(planted):
+    """§4: sign(helix_signed_area_px2) == handedness (independent confirmation)."""
+    df = synthetic.generate_trajectory(
+        handedness=planted, amplitude_px=10.0, noise_sigma_px=0.0, n_frames=575
+    )
+    result = psi_g.compute(df, cadence_s=300.0)
+    h = int(result["handedness"].iloc[0])
+    area = float(result["helix_signed_area_px2"].iloc[0])
+    assert int(np.sign(area)) == h == planted
+
+
+def test_4_delta_E_recovers_constant_step_speed():
+    """§4: delta_E = median(√(dx²+dy²)) recovers the constant per-frame speed.
+
+    A pure-growth track (amplitude 0, no noise) advances a fixed step per
+    frame along the growth axis, so the median velocity magnitude equals the
+    growth rate exactly.
+    """
+    df = synthetic.generate_trajectory(
+        amplitude_px=0.0,
+        growth_rate_px_per_frame=2.0,
+        noise_sigma_px=0.0,
+        n_frames=64,
+    )
+    result = psi_g.compute(df, cadence_s=300.0)
+    assert result["delta_E_amplitude_proxy_px_per_frame"].iloc[0] == pytest.approx(
+        2.0, abs=1e-9
+    )
+
+
+def test_4_conditioning_isolation_raw_traits_invariant_to_sg_override():
+    """§4.3: handedness/delta_E/helix are identical under an SG_WINDOW_DETREND override.
+
+    Only T_psig_median_s uses the SG-detrended CWT; the 3 raw traits must be
+    bit-identical whether the conditioning window is the default 23 or an
+    override 31.
+    """
+    df = synthetic.generate_trajectory(
+        handedness=+1, amplitude_px=10.0, noise_sigma_px=0.0, n_frames=575
+    )
+    r_default = psi_g.compute(df, cadence_s=300.0)
+    r_override = psi_g.compute(
+        df, cadence_s=300.0, constants=ConstantsT(SG_WINDOW_DETREND=31)
+    )
+    for col in (
+        "handedness",
+        "delta_E_amplitude_proxy_px_per_frame",
+        "helix_signed_area_px2",
+    ):
+        assert r_default[col].iloc[0] == r_override[col].iloc[0]
