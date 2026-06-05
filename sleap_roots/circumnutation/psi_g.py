@@ -301,6 +301,9 @@ def compute(
     cadence_float = temporal_cwt._validate_cadence_s(cadence_s)
     resolved_constants = _check_constants(constants)
 
+    n_tracks = trajectory_df[list(_IDENTITY_5_TUPLE)].drop_duplicates().shape[0]
+    logger.debug("psi_g.compute(n_tracks=%d, cadence_s=%.6f)", n_tracks, cadence_float)
+
     # Per-track loop (mirrors kinematics.py / qc.py / nutation.py precedent).
     trait_rows: list = []
     for key, group in trajectory_df.groupby(
