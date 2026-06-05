@@ -186,3 +186,72 @@ def test_2_trait_units_all_in_pipeline_vocabulary():
     }
     for col, unit in units.items():
         assert unit in PIPELINE_UNIT_VOCABULARY, f"{col} unit {unit!r} not in vocab"
+
+
+# ===========================================================================
+# §3 — input-validation boundary
+# ===========================================================================
+
+
+def test_3_non_dataframe_trajectory_df_raises_valueerror():
+    """§3: a non-DataFrame trajectory_df raises ValueError."""
+    import pytest
+
+    with pytest.raises(ValueError):
+        psi_g.compute([1, 2, 3], cadence_s=300.0)
+
+
+def test_3_invalid_trajectory_df_missing_tip_column_raises():
+    """§3: a trajectory_df missing tip_x raises ValueError (via _validate_trajectory_df)."""
+    import pytest
+
+    df = _make_track_df(n_frames=32).drop(columns=["tip_x"])
+    with pytest.raises(ValueError):
+        psi_g.compute(df, cadence_s=300.0)
+
+
+def test_3_empty_trajectory_df_raises():
+    """§3: an empty trajectory_df raises ValueError."""
+    import pytest
+
+    df = _make_track_df(n_frames=32).iloc[0:0]
+    with pytest.raises(ValueError):
+        psi_g.compute(df, cadence_s=300.0)
+
+
+import pytest  # noqa: E402
+
+
+@pytest.mark.parametrize("bad", [0, -1.0, float("nan"), float("inf"), float("-inf")])
+def test_3_invalid_cadence_s_value_raises_valueerror_naming_field(bad):
+    """§3: non-positive / non-finite cadence_s raises ValueError naming cadence_s."""
+    df = _make_track_df(n_frames=32)
+    with pytest.raises(ValueError, match="cadence_s"):
+        psi_g.compute(df, cadence_s=bad)
+
+
+@pytest.mark.parametrize("bad", [True, np.bool_(True), "300", [300.0]])
+def test_3_invalid_cadence_s_type_raises_typeerror_naming_field(bad):
+    """§3: bool/str/list cadence_s raises TypeError naming cadence_s."""
+    df = _make_track_df(n_frames=32)
+    with pytest.raises(TypeError, match="cadence_s"):
+        psi_g.compute(df, cadence_s=bad)
+
+
+@pytest.mark.parametrize("bad", [42, "default", []])
+def test_3_invalid_constants_type_raises_typeerror_naming_field(bad):
+    """§3: a non-ConstantsT constants argument raises TypeError naming constants."""
+    df = _make_track_df(n_frames=32)
+    with pytest.raises(TypeError, match="constants"):
+        psi_g.compute(df, cadence_s=300.0, constants=bad)
+
+
+@pytest.mark.parametrize("bad_window", [24, 2])
+def test_3_invalid_sg_window_override_raises_valueerror_naming_field(bad_window):
+    """§3: an even / too-small SG_WINDOW_DETREND override raises ValueError naming it."""
+    from sleap_roots.circumnutation._constants import ConstantsT
+
+    df = _make_track_df(n_frames=32)
+    override = ConstantsT(SG_WINDOW_DETREND=bad_window)
+    with pytest.raises(ValueError, match="SG_WINDOW_DETREND"):
+        psi_g.compute(df, cadence_s=300.0, constants=override)
