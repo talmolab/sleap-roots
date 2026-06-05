@@ -326,3 +326,43 @@ def test_4_conditioning_isolation_raw_traits_invariant_to_sg_override():
         "helix_signed_area_px2",
     ):
         assert r_default[col].iloc[0] == r_override[col].iloc[0]
+
+
+# ===========================================================================
+# §5 — T_psig_median_s CWT path (±10% recovery; min-length + zero-energy guards)
+# ===========================================================================
+
+import warnings  # noqa: E402
+
+
+@pytest.mark.parametrize("T_s", [3333.0, 4500.0])
+def test_5_T_psig_recovers_planted_period_within_10pct(T_s):
+    """§5: T_psig_median_s recovers a planted nutation period within ±10%.
+
+    SG-detrend distorts noise-free recovery to ~5% (nutation test_2C2 uses the
+    identical ±10% bar on the same SG-detrend→CWT path); periods are chosen
+    from the in-band set {3333, 4500}.
+    """
+    df = synthetic.generate_trajectory(
+        T_nutation_s=T_s,
+        n_frames=575,
+        cadence_s=300.0,
+        amplitude_px=10.0,
+        noise_sigma_px=0.0,
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        result = psi_g.compute(df, cadence_s=300.0)
+    t_psig = float(result["T_psig_median_s"].iloc[0])
+    assert abs(t_psig - T_s) / T_s < 0.10
+
+
+def test_5_T_psig_no_runtimewarning_on_clean_track():
+    """§5: a clean nutating track produces T_psig with no numpy RuntimeWarning."""
+    df = synthetic.generate_trajectory(
+        T_nutation_s=3333.0, n_frames=575, cadence_s=300.0, noise_sigma_px=0.0
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        result = psi_g.compute(df, cadence_s=300.0)
+    assert np.isfinite(result["T_psig_median_s"].iloc[0])
