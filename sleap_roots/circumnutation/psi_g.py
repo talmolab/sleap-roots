@@ -65,6 +65,15 @@ _PSIG_TRAIT_COLUMNS: tuple = (
 _TIP_X_COLUMN: str = "tip_x"
 _TIP_Y_COLUMN: str = "tip_y"
 
+# Minimum finite frames for a non-degenerate ψ_g (needs ≥ 2 velocity samples).
+_MIN_FINITE_FRAMES: int = 3
+
+# Numerical-zero guard for handedness (CC-6 determinism hygiene, NOT a physical
+# deadband): a |net ψ_g| below this radian threshold collapses to 0. The
+# net-rotation endpoint difference is a raw atan2 quantity (~1e-12 reproducible
+# cross-OS), well clear of 1e-9.
+_HANDEDNESS_ZERO_EPS_RAD: float = 1e-9
+
 
 # ---------------------------------------------------------------------------
 # Input validation helpers
@@ -145,9 +154,53 @@ def _compute_one_track(
 ) -> Dict[str, Any]:
     """Compute the 4 Tier 2 ψ_g traits for one track (per design §3.1).
 
-    Placeholder pending the §4/§5 RED tests: returns the all-degenerate row.
+    Conditioning affects ONLY ``T_psig_median_s``; ``handedness`` (raw
+    unwrapped ψ_g endpoints), ``delta_E_amplitude_proxy_px_per_frame`` (raw
+    velocity samples), and ``helix_signed_area_px2`` (raw coordinates) are
+    CWT-free.
     """
-    return _all_degenerate_traits()
+    # Frame-order then drop non-finite tip rows (ordering is load-bearing for
+    # the diff-based ψ_g; mirrors kinematics.py:171, extended to ±inf since
+    # _geometry.compute_psi_g has no finite guard).
+    ordered = group.sort_values("frame")
+    tip_x = ordered[_TIP_X_COLUMN].to_numpy(dtype=np.float64)
+    tip_y = ordered[_TIP_Y_COLUMN].to_numpy(dtype=np.float64)
+    finite = np.isfinite(tip_x) & np.isfinite(tip_y)
+    x = tip_x[finite]
+    y = tip_y[finite]
+    n = int(x.size)
+
+    # Degenerate short-circuit: ψ_g needs ≥ 2 velocity samples (≥ 3 frames).
+    if n < _MIN_FINITE_FRAMES:
+        return _all_degenerate_traits()
+
+    psi = _geometry.compute_psi_g(x, y)  # length n-1, unwrapped
+
+    # handedness: sign of the net unwrapped rotation over all finite frames
+    # (COI-free). 1e-9 rad zero-guard collapses straight/stationary float dust.
+    net = float(psi[-1] - psi[0])
+    if abs(net) < _HANDEDNESS_ZERO_EPS_RAD:
+        handedness = 0
+    else:
+        handedness = int(np.sign(net))
+
+    # delta_E: median velocity magnitude (px/frame; no COI, no /cadence_s).
+    dx = np.diff(x)
+    dy = np.diff(y)
+    delta_E = float(np.median(np.sqrt(dx * dx + dy * dy)))
+
+    # helix: y-down signed area; sign agrees with handedness.
+    helix = _geometry.compute_signed_area(x, y)
+
+    # T_psig_median_s: CWT path — implemented in §5 (NaN for now).
+    t_psig = float("nan")
+
+    return {
+        "T_psig_median_s": t_psig,
+        "delta_E_amplitude_proxy_px_per_frame": delta_E,
+        "handedness": handedness,
+        "helix_signed_area_px2": helix,
+    }
 
 
 # ---------------------------------------------------------------------------
