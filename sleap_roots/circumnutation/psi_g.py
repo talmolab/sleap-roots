@@ -28,7 +28,6 @@ design at ``openspec/changes/add-circumnutation-tier2-psi-g/design.md`` +
 """
 
 import logging
-import math
 from typing import Any, Dict, Optional
 
 import numpy as np
