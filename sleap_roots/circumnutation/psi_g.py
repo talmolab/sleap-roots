@@ -147,6 +147,57 @@ def _all_degenerate_traits() -> Dict[str, Any]:
     }
 
 
+def _compute_t_psig_median_s(
+    psi: np.ndarray,
+    cadence_s: float,
+    constants: ConstantsT,
+) -> float:
+    """COI-masked median period of the SG-detrended ψ_g via the temporal CWT.
+
+    Composes ``compute_scaleogram → extract_ridge → smooth_ridge`` on the
+    SG-detrended ψ_g and returns ``nanmedian`` of the smoothed-ridge periods
+    over COI-interior frames (``~smooth_ridge.in_coi``). Returns NaN — without
+    a ``RuntimeWarning`` — when the track cannot yield a defined period:
+
+    - **Length guard:** ``len(ψ_g) < SG_WINDOW_DETREND`` (``compute_sg_detrended``
+      would return all-NaN → ``compute_scaleogram`` would raise).
+    - **Zero-energy guard:** a (near-)constant detrended signal (stationary or
+      perfectly straight growth). ``compute_scaleogram`` accepts an all-zero
+      signal without raising, and ``argmax``-over-zeros would otherwise yield a
+      spurious shortest-period ridge (``2·cadence_s``) with no warning.
+    - Empty / all-NaN COI interior.
+    """
+    window = int(constants.SG_WINDOW_DETREND)
+    if len(psi) < window:
+        return float("nan")
+    psi_detrended = _noise.compute_sg_detrended(
+        psi, window=window, polynomial_order=int(constants.SG_DEGREE)
+    )
+    if not np.isfinite(psi_detrended).any():  # pragma: no cover
+        # Defensive mirror of nutation.py:418 — unreachable here because the
+        # length guard above already excludes the all-NaN short-input path and
+        # compute_psi_g is finite for finite tips.
+        return float("nan")
+    if np.allclose(psi_detrended, 0.0):
+        # Zero-energy guard (stationary / straight-growth track).
+        return float("nan")
+    try:
+        scaleogram = temporal_cwt.compute_scaleogram(
+            psi_detrended, cadence_s=cadence_s, constants=constants
+        )
+    except ValueError:  # pragma: no cover
+        # Defensive mirror of nutation.py:422-428 — unreachable because
+        # len(psi) >= SG_WINDOW_DETREND=23 > MIN_FRAMES_REQUIRED=9 and the
+        # detrended signal is finite 1-D float64.
+        return float("nan")
+    raw_ridge = temporal_cwt.extract_ridge(scaleogram, constants=constants)
+    smoothed_ridge = temporal_cwt.smooth_ridge(raw_ridge, constants=constants)
+    interior = smoothed_ridge.periods_s[~smoothed_ridge.in_coi]
+    if interior.size == 0 or np.all(np.isnan(interior)):
+        return float("nan")
+    return float(np.nanmedian(interior))
+
+
 def _compute_one_track(
     group: pd.DataFrame,
     cadence_s: float,
@@ -192,8 +243,9 @@ def _compute_one_track(
     # helix: y-down signed area; sign agrees with handedness.
     helix = _geometry.compute_signed_area(x, y)
 
-    # T_psig_median_s: CWT path — implemented in §5 (NaN for now).
-    t_psig = float("nan")
+    # T_psig_median_s: CWT path on the SG-detrended ψ_g (the ONLY conditioned
+    # trait). Length + zero-energy + COI guards inside the helper.
+    t_psig = _compute_t_psig_median_s(psi, cadence_s, constants)
 
     return {
         "T_psig_median_s": t_psig,
