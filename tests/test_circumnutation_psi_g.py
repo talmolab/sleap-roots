@@ -437,3 +437,79 @@ def test_6_all_nonfinite_track_is_degenerate():
     row = _single_row_result(df)
     assert np.isnan(row["T_psig_median_s"])
     assert int(row["handedness"]) == 0
+
+
+# ===========================================================================
+# §7 — determinism (CC-6) + the one-DEBUG-record logging contract
+# ===========================================================================
+
+import logging  # noqa: E402
+
+
+def test_7_same_process_determinism_bit_identical():
+    """§7: same input → 3 float columns bit-identical (atol=0), handedness equal."""
+    df = synthetic.generate_trajectory(
+        random_state=0,
+        noise_sigma_px=0.5,
+        n_frames=575,
+        T_nutation_s=3333,
+        cadence_s=300,
+    )
+    a = psi_g.compute(df, cadence_s=300.0)
+    b = psi_g.compute(df, cadence_s=300.0)
+    for col in (
+        "T_psig_median_s",
+        "delta_E_amplitude_proxy_px_per_frame",
+        "helix_signed_area_px2",
+    ):
+        np.testing.assert_array_equal(a[col].to_numpy(), b[col].to_numpy())
+    np.testing.assert_array_equal(
+        a["handedness"].to_numpy(), b["handedness"].to_numpy()
+    )
+
+
+def test_7_cross_os_canary_at_atol_1e_6():
+    """§7: 3-value canary matches the captured sentinel at atol=1e-6 (CC-6).
+
+    Captured on Windows 11 + Python 3.11.13; Ubuntu/macOS verified in CI. The
+    canary is a regression-detection sentinel and MAY be re-captured (with a
+    cross-reference to this test) if upstream BLAS/scipy/pywt/numpy semantics
+    legitimately shift after merge. handedness is integer → exact equality.
+    """
+    df = synthetic.generate_trajectory(
+        random_state=0,
+        noise_sigma_px=0.5,
+        n_frames=575,
+        T_nutation_s=3333,
+        cadence_s=300,
+    )
+    row = psi_g.compute(df, cadence_s=300.0).iloc[0]
+    expected = np.array([3499.82238829379, 4.731402527735528, 5051.7188736809085])
+    got = np.array(
+        [
+            float(row["T_psig_median_s"]),
+            float(row["delta_E_amplitude_proxy_px_per_frame"]),
+            float(row["helix_signed_area_px2"]),
+        ]
+    )
+    np.testing.assert_allclose(got, expected, atol=1e-6, rtol=0)
+    assert int(row["handedness"]) == 1
+
+
+def test_7_emits_exactly_one_debug_record(caplog):
+    """§7: exactly one DEBUG record, prefix 'psi_g.compute(', tokens, no coordinate=."""
+    df = _make_multi_track_df(n_tracks=3, n_frames=64)
+    with caplog.at_level(logging.DEBUG, logger="sleap_roots.circumnutation.psi_g"):
+        psi_g.compute(df, cadence_s=300.0)
+    records = [
+        r
+        for r in caplog.records
+        if r.name == "sleap_roots.circumnutation.psi_g" and r.levelno == logging.DEBUG
+    ]
+    assert len(records) == 1
+    msg = records[0].getMessage()
+    assert msg.startswith("psi_g.compute(")
+    assert "n_tracks=" in msg
+    assert "cadence_s=" in msg
+    assert "coordinate=" not in msg
+    assert not any(r.levelno >= logging.INFO for r in caplog.records)
