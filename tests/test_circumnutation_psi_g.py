@@ -513,3 +513,124 @@ def test_7_emits_exactly_one_debug_record(caplog):
     assert "cadence_s=" in msg
     assert "coordinate=" not in msg
     assert not any(r.levelno >= logging.INFO for r in caplog.records)
+
+
+# ===========================================================================
+# §8 — cross-tier consistency vs Tier 0 principal_axis_angle
+# ===========================================================================
+
+import math  # noqa: E402
+
+
+def _wrap_to_pi(d: float) -> float:
+    """Wrap an angle difference to (-π, π] for branch-cut-safe comparison."""
+    return (d + math.pi) % (2.0 * math.pi) - math.pi
+
+
+def _circular_mean(angles: np.ndarray) -> float:
+    """Circular mean atan2(mean(sin), mean(cos)) — robust at the ±π branch cut."""
+    return float(np.arctan2(np.mean(np.sin(angles)), np.mean(np.cos(angles))))
+
+
+@pytest.mark.parametrize("theta", [0.3, -2.0])
+def test_8_convention_lock_angle_identity_amplitude_zero(theta):
+    """§8.1a: circular_mean(ψ_g) ≈ π/2 − θ for a non-oscillating planted axis.
+
+    amplitude_px=0 (pure straight growth → ψ_g constant) is the only regime
+    where the angle identity holds at 1e-6 (oscillation biases circular_mean).
+    θ=−2.0 places π/2−θ outside (−π, π], exercising the branch-cut wrap.
+    handedness is 0 for a non-rotating track (assert, do NOT assert ±1 here).
+    """
+    df = synthetic.generate_trajectory(
+        amplitude_px=0.0, growth_axis_angle_rad=theta, noise_sigma_px=0.0, n_frames=64
+    )
+    x = df["tip_x"].to_numpy()
+    y = df["tip_y"].to_numpy()
+    psi = compute_psi_g(x, y)
+    cm = _circular_mean(psi)
+    assert abs(_wrap_to_pi(cm - (math.pi / 2.0 - theta))) < 1e-6
+    result = psi_g.compute(df, cadence_s=300.0)
+    assert int(result["handedness"].iloc[0]) == 0
+
+
+@pytest.mark.parametrize("planted", [+1, -1])
+def test_8_convention_lock_handedness_amplitude_positive(planted):
+    """§8.1b: an oscillating planted-handedness track locks handedness == planted."""
+    df = synthetic.generate_trajectory(
+        handedness=planted, amplitude_px=10.0, noise_sigma_px=0.0, n_frames=575
+    )
+    result = psi_g.compute(df, cadence_s=300.0)
+    assert int(result["handedness"].iloc[0]) == planted
+
+
+# §8.3 — plate-001 GREEN-phase reconciliation -------------------------------
+
+from pathlib import Path  # noqa: E402
+
+_PROOFREAD_FIXTURE_PATH = Path(
+    "tests/data/circumnutation_nipponbare_plate_001/"
+    "plate_001_greyscale.tracked_proofread.slp"
+)
+
+# GREEN-phase reconciliation values captured from a real run (Windows 11 +
+# Python 3.11.13). Observed per-track |circmean(ψ_g) − (π/2 − principal_axis_angle)|
+# deviations on the 6 Nipponbare proofread tracks: max 0.0311 rad (1.8°), all 6
+# within 0.0311 rad — far inside the pre-committed floor (N≥2, tol≤0.35 rad). The
+# 0.10 rad tolerance keeps ~3× headroom; ≥5/6 allows one-track robustness to a
+# future fixture re-export. NOT a pre-known RED threshold.
+_PSIG_AXIS_RECONCILE_TOL_RAD = 0.10
+_PSIG_AXIS_RECONCILE_MIN_TRACKS = 5
+
+
+def _load_proofread_enriched() -> pd.DataFrame:
+    """Load the 6-track Nipponbare proofread fixture, enriched with identity columns."""
+    from sleap_roots.series import Series
+
+    s = Series.load(series_name="plate_001", primary_path=str(_PROOFREAD_FIXTURE_PATH))
+    df = s.get_tracked_tips()
+    df["track_id"] = df["track_id"].str.replace("track_", "", regex=False).astype(int)
+    df["series"] = "plate_001"
+    df["sample_uid"] = "plate_001"
+    df["timepoint"] = "T0"
+    df["plate_id"] = "plate_001"
+    df["plant_id"] = df["track_id"]
+    df["genotype"] = np.nan
+    df["treatment"] = np.nan
+    return df
+
+
+@pytest.mark.skipif(
+    not _PROOFREAD_FIXTURE_PATH.exists(),
+    reason=f"proofread fixture not present: {_PROOFREAD_FIXTURE_PATH}",
+)
+def test_8_cross_tier_plate001_reconciliation_green_phase():
+    """§8.3: circmean(ψ_g) ≈ π/2 − principal_axis_angle on plate-001 (GREEN-phase).
+
+    Skips tracks whose Tier 0 principal_axis_angle is NaN (growth_axis_unreliable
+    gate). Asserts ≥5 of 6 surviving tracks within _PSIG_AXIS_RECONCILE_TOL_RAD.
+    Observed: all 6 within 0.0311 rad (1.8°) — see the constants' docstring.
+    """
+    from sleap_roots.circumnutation import kinematics
+
+    df = _load_proofread_enriched()
+    k = kinematics.compute(df)
+    deviations = []
+    for tid in sorted(df["track_id"].unique()):
+        paa = float(k[k["track_id"] == tid]["principal_axis_angle"].iloc[0])
+        if np.isnan(paa):
+            continue  # growth_axis_unreliable gate fired → skip
+        sub = df[df["track_id"] == tid].sort_values("frame")
+        x = sub["tip_x"].to_numpy(float)
+        y = sub["tip_y"].to_numpy(float)
+        finite = np.isfinite(x) & np.isfinite(y)
+        psi = compute_psi_g(x[finite], y[finite])
+        dev = abs(_wrap_to_pi(_circular_mean(psi) - (math.pi / 2.0 - paa)))
+        deviations.append(dev)
+    deviations = np.array(deviations)
+    assert deviations.size >= 2, "too few surviving tracks for a meaningful check"
+    n_within = int((deviations < _PSIG_AXIS_RECONCILE_TOL_RAD).sum())
+    assert n_within >= _PSIG_AXIS_RECONCILE_MIN_TRACKS, (
+        f"only {n_within} tracks within {_PSIG_AXIS_RECONCILE_TOL_RAD} rad; "
+        f"deviations (rad) = {np.round(deviations, 4).tolist()} "
+        f"(max {deviations.max():.4f})"
+    )
