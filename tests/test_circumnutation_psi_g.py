@@ -366,3 +366,74 @@ def test_5_T_psig_no_runtimewarning_on_clean_track():
         warnings.simplefilter("error", RuntimeWarning)
         result = psi_g.compute(df, cadence_s=300.0)
     assert np.isfinite(result["T_psig_median_s"].iloc[0])
+
+
+# ===========================================================================
+# §6 — degenerate / edge cases (the spec degenerate table)
+# ===========================================================================
+
+
+def _single_row_result(df):
+    """Run psi_g.compute under a RuntimeWarning-as-error guard; return row 0."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        return psi_g.compute(df, cadence_s=300.0).iloc[0]
+
+
+def test_6_degenerate_two_frame_track_all_degenerate_row():
+    """§6: N<3 (2 frames) → T_psig/delta_E/helix NaN, handedness 0, no raise."""
+    df = _make_track_df(n_frames=2)
+    row = _single_row_result(df)
+    assert np.isnan(row["T_psig_median_s"])
+    assert np.isnan(row["delta_E_amplitude_proxy_px_per_frame"])
+    assert np.isnan(row["helix_signed_area_px2"])
+    assert int(row["handedness"]) == 0
+
+
+def test_6_short_track_3_to_23_frames_T_psig_nan_raw_defined():
+    """§6: 3≤N<24 → T_psig NaN (CWT skipped) while raw traits are finite/defined."""
+    df = _make_track_df(n_frames=15)
+    row = _single_row_result(df)
+    assert np.isnan(row["T_psig_median_s"])
+    assert np.isfinite(row["delta_E_amplitude_proxy_px_per_frame"])
+    assert np.isfinite(row["helix_signed_area_px2"])
+    assert int(row["handedness"]) in (-1, 0, 1)
+
+
+def test_6_stationary_track_N_ge_24_zero_energy_guard():
+    """§6: stationary N≥24 → T_psig NaN (zero-energy guard), delta_E/helix 0.0, handedness 0.
+
+    No spurious 2·cadence period; no RuntimeWarning.
+    """
+    df = synthetic.generate_trajectory(
+        amplitude_px=0.0,
+        growth_rate_px_per_frame=0.0,
+        noise_sigma_px=0.0,
+        n_frames=64,
+    )
+    row = _single_row_result(df)
+    assert np.isnan(row["T_psig_median_s"])
+    assert row["delta_E_amplitude_proxy_px_per_frame"] == 0.0
+    assert row["helix_signed_area_px2"] == 0.0
+    assert int(row["handedness"]) == 0
+
+
+def test_6_nan_injected_rows_dropped_before_diff():
+    """§6: non-finite tip rows are dropped before ψ_g; the track still computes."""
+    df = _make_track_df(n_frames=64).copy()
+    df.loc[5, "tip_x"] = float("nan")
+    df.loc[20, "tip_y"] = float("inf")
+    row = _single_row_result(df)
+    # 62 finite frames remain (>= 24) → all four traits defined.
+    assert np.isfinite(row["T_psig_median_s"])
+    assert np.isfinite(row["delta_E_amplitude_proxy_px_per_frame"])
+    assert int(row["handedness"]) in (-1, 0, 1)
+
+
+def test_6_all_nonfinite_track_is_degenerate():
+    """§6: a track whose every tip is non-finite → the all-degenerate row."""
+    df = _make_track_df(n_frames=64).copy()
+    df["tip_x"] = float("nan")
+    row = _single_row_result(df)
+    assert np.isnan(row["T_psig_median_s"])
+    assert int(row["handedness"]) == 0
