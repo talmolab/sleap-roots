@@ -39,8 +39,14 @@ import pytest
 # implementation module (newly created, NOT a stub transition; stub count
 # stays at 6) and bumps _CONSTANTS_VERSION 4 → 5 by adding 6 Tier 1 /
 # threshold defaults. IMPLEMENTATIONS_WITH_CONSTANTS_KWARG grows 4 → 5.
+# PR #7 (add-circumnutation-tier2-psi-g) graduates psi_g from a stub to the
+# 6th implementation module (the INVERSE of PR #6: stub count shrinks 6 → 5,
+# implementation count grows 5 → 6). The stub callable compute_psi_g is
+# RENAMED to compute, so psi_g is removed from STUB_MODULES and
+# STUBS_WITH_CONSTANTS_KWARG and added to IMPLEMENTATIONS_WITH_CONSTANTS_KWARG
+# + the explicit logger-namespace list. No _CONSTANTS_VERSION bump (no new
+# constants).
 STUB_MODULES = [
-    ("psi_g", "compute_psi_g", 7),
     ("midline", "reconstruct", 8),
     ("spatial_cwt", "compute_scaleogram", 9),
     ("parametric", "compute", 11),
@@ -763,6 +769,11 @@ def test_constants_snapshot_reflects_override():
         # explicitly because nutation is NOT in STUB_MODULES (PR #6
         # grows the implementation set by ADDITION, not transition).
         "nutation",
+        # Added in PR #7: psi_g (now an implementation module, not a stub).
+        # Must be listed explicitly because the
+        # add-circumnutation-tier2-psi-g change removes it from STUB_MODULES
+        # above (same Copilot regression PR #4/#5 hit for synthetic/temporal_cwt).
+        "psi_g",
     ],
 )
 def test_module_logger_is_namespaced(module_name):
@@ -836,7 +847,6 @@ def test_convert_to_mm_inf_rejected(bad):
 # but the implementation is exercised via `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG`
 # below (no NotImplementedError contract).
 STUBS_WITH_CONSTANTS_KWARG = [
-    ("psi_g", "compute_psi_g"),
     ("midline", "reconstruct"),
     ("spatial_cwt", "compute_scaleogram"),
     ("pipeline", "compute_traits"),
@@ -852,6 +862,7 @@ IMPLEMENTATIONS_WITH_CONSTANTS_KWARG = [
     ("synthetic", "generate_trajectory"),  # added by PR #4
     ("temporal_cwt", "compute_scaleogram"),  # added by PR #5
     ("nutation", "compute"),  # added by PR #6
+    ("psi_g", "compute"),  # added by PR #7 (stub→impl rename compute_psi_g→compute)
 ]
 
 
@@ -905,6 +916,36 @@ def test_implementation_accepts_constants_kwarg(module_name, callable_name):
         # so the SG-detrend doesn't short-circuit).
         rows = []
         for frame in range(64):
+            rows.append(
+                {
+                    "series": "test",
+                    "sample_uid": "test",
+                    "timepoint": "T0",
+                    "plate_id": "test",
+                    "plant_id": 0,
+                    "track_id": 0,
+                    "genotype": np.nan,
+                    "treatment": np.nan,
+                    "frame": frame,
+                    "tip_x": float(frame),
+                    "tip_y": 0.0,
+                }
+            )
+        df = pd.DataFrame(rows)
+        result = fn(df, 300.0, constants=ConstantsT())
+        assert isinstance(result, pd.DataFrame)
+    elif module_name == "psi_g":
+        # psi_g.compute(trajectory_df, cadence_s, constants). PR #7
+        # (add-circumnutation-tier2-psi-g). Build a minimal valid 32-frame,
+        # 1-track trajectory inline (n_frames >= 24 so ψ_g length >=
+        # SG_WINDOW_DETREND=23 reaches the CWT path). This branch proves
+        # CALLABILITY only (returns a DataFrame, does not raise) — a
+        # straight-line tip_y=0 df would trip the zero-energy guard and emit
+        # T_psig=NaN, which is fine here; real CWT-path value coverage lives
+        # in tests/test_circumnutation_psi_g.py §5. Do NOT add a T_psig value
+        # assertion here.
+        rows = []
+        for frame in range(32):
             rows.append(
                 {
                     "series": "test",
