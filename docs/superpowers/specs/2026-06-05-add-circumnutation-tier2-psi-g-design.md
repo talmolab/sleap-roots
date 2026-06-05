@@ -1,12 +1,17 @@
 # Design — `add-circumnutation-tier2-psi-g` (Program PR #7, Tier 2)
 
-**Status:** brainstorm draft, revised after 2 rounds of 4-reviewer critical pass (pre-OpenSpec-proposal)
+**Status:** brainstorm draft, revised after 3 rounds of multi-reviewer critical pass (pre-OpenSpec-proposal)
 **Date:** 2026-06-05
 **Branch:** `add-circumnutation-tier2-psi-g`
 **Epic:** #197 · **Roadmap row:** PR #7 (`docs/circumnutation/roadmap.md`)
 **Theory anchors:** `docs/circumnutation/theory.md` §3.5 (ψ_g, Bastien & Meroz 2016 Eq. 20), §6.3 (tier structure + SG conditioning), §7.3 (Tier 2 trait table), §3.7 (trochoid / H1-failure)
 
-> **Revision note.** §13 is the reconciliation log for both review rounds. Three
+> **Revision note.** §13 is the reconciliation log for all three review rounds.
+> Round 3 added a **zero-energy guard** (stationary/straight tracks were yielding
+> a spurious `T_psig`), **split the convention-lock test** into two fixtures (the
+> `1e-6` angle lock and `handedness=±1` cannot share one fixture), pragma'd two
+> now-dead defensive branches, and added a **theory.md §7.3 patch** to scope so
+> the deviation doesn't leave a spec↔theory contradiction. Three
 > brainstorm/round-1 decisions changed on evidence: (a) ψ_g conditioning →
 > **SG-detrend** (only a detrend primitive exists; smooth-only risks
 > gravitropic-drift bias); (b) `delta_E` → **px/frame** (px/s absent from the
@@ -44,8 +49,9 @@ signal — so a track too short for the CWT still yields all three.
 - New geometry helper `_geometry.compute_signed_area(x, y) -> float` (y-down-corrected Shoelace), sibling to `compute_psi_g`.
 - 4 Tier 2 trait columns (§4).
 - Cross-tier empirical consistency validation against Tier 0 `principal_axis_angle` (§6).
-- Min-length handling for the CWT/`T_psig` path (§3.1) — explicit, mirroring `nutation.py`'s two-layer guard.
+- Min-length handling + zero-energy guard for the CWT/`T_psig` path (§3.1).
 - Foundation-test migration (§9): move `psi_g` out of stub tables into the implementation tables.
+- **theory.md §7.3 patch** (round-3 — Reviewer-C r3-F3): update the `handedness` row to "net unwrapped ψ_g rotation over all finite frames (COI-free)" + an Appendix B (Corrections) line, so the theory anchor doesn't contradict the shipped spec. theory.md is a living doc (it already carries an Appendix B and `angular_amplitude` is already a COI-free raw-angle trait — precedent).
 
 ### Out of scope (explicit non-goals)
 - `psig_long_consistency` (§7.3 trait #2) — requires Tier 1's `T_nutation`; deferred to a pre-drafted follow-up issue (§7).
@@ -113,19 +119,36 @@ signal + CWT; the other three are raw and CWT-free.**
      (`dx,dy = np.diff` of finite tip coords).
    - `helix = _geometry.compute_signed_area(tip_x, tip_y)`.
 5. **`T_psig_median_s` (CWT path; needs `N ≥ 24` — see min-length note):**
-   - If `len(psi_g) < SG_WINDOW_DETREND (=23)` → `T_psig_median_s = NaN`
-     (skip the CWT entirely). `compute_sg_detrended` returns all-NaN for
-     `len < window` (`_noise.py`), and feeding all-NaN to `compute_scaleogram`
-     raises — so this guard is mandatory.
-   - Else: `psi_g_detrended = compute_sg_detrended(psi_g, window=SG_WINDOW_DETREND,
-     polynomial_order=SG_DEGREE)`. If `not np.isfinite(psi_g_detrended).any()` →
-     `T_psig_median_s = NaN` (mirrors `nutation.py:418-419`).
-   - Else `try`: `compute_scaleogram → extract_ridge → smooth_ridge`;
+   - **(5a) Length guard.** If `len(psi_g) < SG_WINDOW_DETREND (=23)` →
+     `T_psig_median_s = NaN` (skip the CWT entirely). `compute_sg_detrended`
+     returns all-NaN for `len < window` (`_noise.py`), and feeding all-NaN to
+     `compute_scaleogram` raises — so this guard is mandatory. **This is the only
+     reachable round-2 length branch** (covered by the `3 ≤ N < 24` test).
+   - Else `psi_g_detrended = compute_sg_detrended(psi_g, window=SG_WINDOW_DETREND,
+     polynomial_order=SG_DEGREE)`.
+   - **(5b) Zero-energy guard (round-3 fix — Reviewer-A r3-F1).** If the
+     detrended signal is (near-)constant —
+     `np.allclose(psi_g_detrended, 0.0)` (equivalently `np.nanstd < 1e-12`) →
+     `T_psig_median_s = NaN`, **skip the CWT**. This catches the
+     **stationary tip** *and* **perfectly straight growth (no wobble)** cases:
+     ψ_g is then constant → detrended ≡ 0 → `compute_scaleogram` does **not**
+     raise but `argmax` over an all-zero magnitude silently returns scale index 0,
+     yielding a spurious shortest-period ridge (`= 2·cadence_s`) with no warning.
+     `nutation.py`'s precedent does not need this guard (its
+     `project_to_growth_axis_perpendicular` returns all-NaN on zero displacement,
+     caught by its finite-check); `compute_psi_g` has no NaN escape hatch, so this
+     guard is psi_g-specific and **reachable** (covered by the stationary test).
+   - **(5c) CWT.** `try`: `compute_scaleogram → extract_ridge → smooth_ridge`;
      `T_psig_median_s = nanmedian` of `smooth_ridge.periods_s[~smooth_ridge.in_coi]`,
      **guarded** so an empty-interior **or** all-NaN slice → NaN with **no**
-     `RuntimeWarning` (mirrors `nutation.py:438-442`). `except ValueError` (signal
-     too short for the CWT scale grid) → `T_psig_median_s = NaN` (mirrors
-     `nutation.py:422-428`).
+     `RuntimeWarning` (mirrors `nutation.py:438-442`).
+   - **(5d) Defensive mirrors (round-3: UNREACHABLE via public API — `# pragma:
+     no cover`).** A post-detrend `if not np.isfinite(psi_g_detrended).any()`
+     check and the `except ValueError` around the CWT mirror `nutation.py:418-428`
+     for cross-tier symmetry, **but** given the (5a) length guard (`len ≥ 23 >
+     MIN_FRAMES_REQUIRED = 9`) and that `compute_psi_g` never returns non-finite
+     for finite tips, neither fires. They are pragma-excluded defensive mirrors,
+     not unit-tested branches (Reviewer-B r3-F2/F3).
 
 **Min-length note.** A finite `T_psig_median_s` requires `len(ψ_g)=N−1 ≥
 SG_WINDOW_DETREND=23`, i.e. **`N ≥ 24`**. The CWT itself also has a floor
@@ -166,9 +189,10 @@ over all finite frames is gap-immune, conditioning-independent, defined for
 are ~`1e-12` reproducible cross-OS, well below `1e-9`). Recorded as an
 intentional deviation in the proposal.
 
-**COI semantics.** Only `T_psig_median_s` uses COI — via the **per-frame**
-`RidgeResult.in_coi` (shape `(N−1,)`), exactly as `nutation.py` does, **not** the
-2-D `ScaleogramResult.coi_mask` `(n_scales, N−1)`.
+**COI semantics (`T_psig` only).** Only `T_psig_median_s` uses COI — via the
+**per-frame** `RidgeResult.in_coi` (shape `(N−1,)`), exactly as `nutation.py`
+does, **not** the 2-D `ScaleogramResult.coi_mask` `(n_scales, N−1)`. `handedness`,
+`delta_E`, and `helix` use no COI.
 
 **No `is_nutating`-style gate** (decision D1). Tier 2 is self-contained — never
 reads Tier 1's `is_nutating`. Traits emitted ungated; downstream QC `LEFT JOIN`s
@@ -187,13 +211,16 @@ questions → Tier 2 does not gate on `is_nutating`.
 |---|---|---|---|---|
 | `N < 3` finite frames (incl. all-NaN track) | NaN | NaN | 0 | NaN |
 | `3 ≤ N < 24` (too short to SG-detrend/CWT) | NaN | **defined** | **defined (±1/0)** | **defined** |
-| Stationary tip, `N ≥ 24` (zero displacement) | NaN | 0.0 | 0 | 0.0 |
+| Stationary tip, `N ≥ 24` (zero displacement) | NaN (5b zero-energy) | 0.0 | 0 | 0.0 |
+| Straight growth, no wobble, `N ≥ 24` (zero detrended energy) | NaN (5b zero-energy) | (defined >0) | 0 | 0.0 |
 | `N ≥ 24`, normal | (defined) | (defined) | (defined) | (defined) |
 | Unmatched per-plant template row | NaN (`fillna`) | NaN (`fillna`) | 0 (`fillna(0)`) | NaN (`fillna`) |
 
-NaN-vs-0.0 is deliberate: **too-short → NaN** (undefined); **stationary but
-long-enough → 0.0** (a genuinely measured zero). With handedness now COI-free,
-there is **no** "empty-interior" handedness failure mode.
+NaN-vs-0.0 is deliberate: **too-short or zero-energy → NaN** `T_psig` (undefined
+period); **measured zero displacement → 0.0** for `delta_E`/`helix`. With
+handedness now COI-free, there is **no** "empty-interior" handedness failure
+mode. The stationary/straight-growth `T_psig=NaN` is achieved by the **(5b)
+zero-energy guard** (§3.1), not by any CWT exception.
 
 **dtype enforcement.** psi_g's enforcement loop is `int64` for `handedness`,
 `float64` for the other three (replaces nutation's `is_nutating→bool`
@@ -246,15 +273,25 @@ a `|distance| < tol` check).
 
 Two tests with **distinct honesty levels**:
 
-1. **Synthetic convention-lock — the true RED test.** `generate_trajectory` with
-   a *planted* growth-axis angle θ and planted `handedness`; on a noise-free
-   trajectory assert `abs(wrap_to_pi(circular_mean(ψ_g) − (π/2 − θ))) < 1e-6`
-   **(angle identity only)** and `handedness == planted sign`. Include a fixture
-   with θ ≈ −2.0 rad so `π/2 − θ` lands outside `[−π, π)` and exercises the wrap.
-   Tests call `generate_trajectory(handedness=±1, growth_axis_angle_rad=θ)`
-   directly (the shared `_minimal_trajectory_df` hard-codes `handedness=+1`).
-   **The `1e-6` atol applies ONLY to the angle identity + handedness sign — NOT
-   to any period magnitude.**
+1. **Synthetic convention-lock — the true RED test, TWO fixtures (round-3 fix —
+   Reviewer-B r3-F1).** The angle identity and the handedness sign **cannot share
+   one fixture**: `circular_mean(ψ_g)` of an *oscillating* ψ_g is biased by the
+   sinusoidal sweep (≈`1.7e-3` at `amplitude_px=10`, → 0 only as amplitude → 0),
+   while a nonzero `handedness=±1` *requires* amplitude > 0. So:
+   - **(1a) Angle-identity lock** — `generate_trajectory(amplitude_px=0.0,
+     growth_axis_angle_rad=θ, noise_sigma_px=0.0)` (pure straight growth, ψ_g
+     constant): assert `abs(wrap_to_pi(circular_mean(ψ_g) − (π/2 − θ))) < 1e-6`.
+     `handedness` is `0` here (no rotation — assert that, do **not** assert ±1).
+     Include θ ≈ −2.0 rad so `π/2 − θ` lands outside `[−π, π)` and exercises the
+     wrap. This is the exact convention lock.
+   - **(1b) Handedness lock** — `generate_trajectory(amplitude_px=10.0,
+     handedness=±1, growth_axis_angle_rad=θ, noise_sigma_px=0.0)`: assert
+     `handedness == planted ±1` (and the angle identity only at a realistic
+     `< 1e-2`, documented as the oscillation-bias floor).
+   Tests call `generate_trajectory(...)` directly (the shared
+   `_minimal_trajectory_df` hard-codes `handedness=+1`). **The `1e-6` atol applies
+   ONLY to the (1a) angle identity — NOT to handedness, and NOT to any period
+   magnitude.**
 2. **Real plate-001 — GREEN-phase fixture-sanity / reconciliation.** Over the 6
    tracks of `…proofread.slp` (mirror the test-local `_load_proofread_track_df`
    loader pattern; tracks are 575 frames ≫ 24), run `kinematics.compute` for
@@ -312,7 +349,12 @@ Graduating `psi_g` stub→impl touches the foundation contract:
 - The stub-`NotImplementedError` scenarios no longer enumerate `psi_g` (§11). No
   executable stub-count assertion exists to update (only comments) — verified.
 - Add a cheap unit test asserting all 4 psi_g trait units ∈
-  `PIPELINE_UNIT_VOCABULARY` (RED guard for the §4 units claim).
+  `PIPELINE_UNIT_VOCABULARY` (RED guard for the §4 units claim; all 4 confirmed
+  present: `s`, `px/frame`, `int`, `px²`).
+- On rename, **fix the stale stub docstring** in `psi_g.py` (it currently reads
+  `atan2(dy/dt, dx/dt)` — the *reversed* convention; the implementation reuses
+  `_geometry.compute_psi_g`'s locked `atan2(dx, dy)`, so the wrong-order docstring
+  must not survive — round-3 minor).
 
 ## 10. TDD plan (RED → GREEN commit pairs, per #222 retrospective)
 
@@ -333,14 +375,19 @@ Commit-pair units (ordered; red-greenable):
    `generate_trajectory(handedness=±1)`), `delta_E` (known constant-speed
    synthetic), handedness↔area agreement. These pass for `N ≥ 3`.
 5. `T_psig_median_s` pipeline: `compute_psi_g → compute_sg_detrended → CWT chain`
-   on a clean known-period synthetic (`N ≥ 24`); assert recovered period within
-   **±10 %** (cite nutation `test_2C2`: SG-detrend distorts noise-free recovery to
-   ~5 %, so ±5 % is too tight — ±10 % keeps it honest RED→GREEN, **not**
-   TDD-after). Assert **no** `RuntimeWarning` on the all-COI path.
-6. Degenerate/edge cases (the §4 table) via **direct construction** — incl. a
-   `3 ≤ N < 24` track (e.g. 15 frames) asserting `T_psig=NaN` while
-   `handedness`/`delta_E`/`helix` are finite **and no exception is raised**; a
-   2-row track; NaN-injection (à la `test_2F7b`); a stationary `N≥24` track.
+   on a clean known-period synthetic; use `T_nutation_s ∈ {3333, 4500}` and
+   `n_frames ≥ 575` (the in-band, surviving periods from nutation `test_2C2` —
+   periods near the ~6900 s detrend cutoff exceed the bar) and assert recovered
+   period within **±10 %** (cite nutation `test_2C2`, which asserts `err < 0.10`
+   on the identical SG-detrend→CWT path: a true falsifiable RED bar, **not**
+   TDD-after). Assert **no** `RuntimeWarning`.
+6. Degenerate/edge cases (the §4 table) — incl. a `3 ≤ N < 24` track (e.g. 15
+   frames) asserting `T_psig=NaN` while `handedness`/`delta_E`/`helix` are finite
+   **and no exception is raised**; a 2-row track; NaN-injection (à la
+   `test_2F7b`); a **stationary `N≥24`** track via
+   `generate_trajectory(amplitude_px=0.0, growth_rate_px_per_frame=0.0,
+   noise_sigma_px=0.0)` asserting `T_psig=NaN` (exercises the **(5b) zero-energy
+   guard**) AND **no `RuntimeWarning`** (the spurious-600 s path must not fire).
 7. Cross-tier: (a) synthetic convention-lock RED (incl. the θ≈−2.0 branch-cut
    fixture, `1e-6` on the angle identity only); (b) plate-001 GREEN-phase
    reconciliation with NaN-skip + `≥N/6` count.
@@ -348,11 +395,16 @@ Commit-pair units (ordered; red-greenable):
    integration test.
 
 **Coverage.** Target ≥ 90 % on `psi_g.py` and the new `_geometry` helper; project
-gate ≥ 84 %. The `fillna`/identity-dtype-coerce branches are unreachable via the
-public API (template derives from the same `trajectory_df`); mirror `nutation.py`
-— `# pragma: no cover` citing the invariant, or a direct unit test on the
-merge/coerce path. The new min-length / `try-except` branches **are** reachable
-and are covered by unit 6.
+gate ≥ 84 %. Reachable-vs-pragma map (round-3 audit):
+- **Reachable (covered by tests):** the **(5a)** `len(psi_g) < 23` branch (unit 6,
+  `3 ≤ N < 24`); the **(5b)** zero-energy branch (unit 6, stationary `N≥24`).
+- **Unreachable defensive mirrors (`# pragma: no cover`):** the **(5d)** post-detrend
+  `not np.isfinite(...)` check and the `except ValueError` block (the (5a) guard +
+  `compute_psi_g`'s always-finite output make them dead — Reviewer-B r3-F2/F3); and
+  the `fillna`/identity-dtype-coerce paths (template derives from the same
+  `trajectory_df`). Each pragma carries a comment citing the invariant; mirror
+  `nutation.py`. Optionally cover the merge/coerce path with a direct unit test on
+  a hand-built mismatched template.
 
 ## 11. Spec deltas (preview for `/openspec:proposal`)
 
@@ -368,9 +420,15 @@ and are covered by unit 6.
   The `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG` + logger-namespace migrations (§9)
   are part of this delta.
 - **ADDED** `Requirement: Tier 2 ψ_g trait emission API` — `psi_g.compute` (the 4
-  traits, conditioning isolation, no cross-tier input, min-length behavior) and
-  `_geometry.compute_signed_area`. **Each topic rendered as a discrete
-  `#### Scenario:`** (this is a large set — budget it in tasks.md):
+  traits, conditioning isolation, no cross-tier input, min-length + zero-energy
+  behavior) and `_geometry.compute_signed_area`. The requirement's rationale MUST
+  carry an explicit **"Deviation from theory.md §7.3"** note (handedness is
+  COI-free) so the archived spec self-documents the divergence (round-3 — the
+  theory.md patch alone is not enough; the spec must own it too).
+  **Each topic rendered as a discrete `#### Scenario:`** (this is a large set —
+  budget it in tasks.md; render WHEN/THEN concretely, esp. CC-6 determinism and
+  the logging contract; re-confirm the 6-impl/5-stub counts against the live
+  `Package layout` text at scaffolding time):
   schema/order/dtypes; each trait's definition; the degenerate table
   (parametrized over its rows, incl. the `3≤N<24` band); the handedness↔area
   **absolute-anchor** lock AND the agreement lock (two scenarios, §5); the
@@ -449,10 +507,40 @@ CC-9 logging §11; pre-drafted follow-up §7).
 - R2 *"raw ψ_g" imprecision*: partitioned — handedness/cross-tier use raw ψ_g,
   delta_E uses raw velocities, helix uses raw coords. **Fixed** §1/§3.1.
 
-**Confirmed correct (no change)**: Shoelace negation formula (abs anchor `−1.0`);
-`compute_psi_g→compute` rename has no dangling refs (`_geometry.compute_psi_g` is
-a different, retained symbol); §9 foundation edit list exact & complete; dtype
-loop shape; §6 atan2/NaN-gate/`generate_trajectory(growth_axis_angle_rad, handedness)`
-verified; validator reuse; no `compute_signed_area` collision; `_CONSTANTS_VERSION`
-5 untouched; SG-detrend passband; spec-delta MODIFIED+ADDED split; CC-3 pure-pixel;
-no 5th-trait leakage.
+**Round-3 BLOCKING/IMPORTANT**
+- R3 *stationary/straight-growth spurious `T_psig`* (BLOCKING): all-zero ψ_g →
+  all-zero detrend (finite) → `compute_scaleogram` accepts it → `argmax`-of-zeros
+  → spurious `T_psig = 2·cadence_s` with **no** warning (verified numerically).
+  The round-2 finite/`ValueError` guards miss it. **Fixed** §3.1 step 5b
+  zero-energy guard + degenerate-table rows + unit-6 stationary test asserting
+  NaN and no `RuntimeWarning`.
+- R3 *convention-lock test non-constructible* (CRITICAL): `1e-6` angle atol and
+  `handedness=±1` cannot coexist on one fixture (`circular_mean(ψ_g)` oscillation
+  bias ≈`1.7e-3` at amplitude 10). **Fixed** §6 → two fixtures: (1a) angle lock at
+  `amplitude_px=0` (handedness 0); (1b) handedness lock at `amplitude_px>0`
+  (angle identity only `<1e-2`).
+- R3 *2 of 3 round-2 branches are dead code*: guard ordering makes the
+  post-detrend finite-check and `except ValueError` unreachable. **Fixed** §3.1
+  step 5d + §10 coverage map → `# pragma: no cover` defensive mirrors; only (5a)
+  and (5b) are reachable/tested.
+- R3 *spec↔theory contradiction* (MUST): theory §7.3 still says handedness is
+  "COI-masked." **Fixed** by (i) §2 scope: patch theory.md §7.3 row + Appendix B
+  this PR; (ii) §11: the ADDED requirement's rationale records the deviation so
+  the archived spec self-documents it.
+
+**Round-3 MINOR**: ±10 % `test_2C2` precedent is `err<0.10` exact (use
+`T∈{3333,4500}`, `n≥575`); stale `atan2(dy,dx)` stub docstring fixed on rename
+(§9); "COI semantics" retitled `(T_psig only)` (§4); stationary track is
+`generate_trajectory`-constructible (no direct-build needed).
+
+**Confirmed correct (no change)**: Shoelace negation formula (abs anchor `−1.0`,
+re-verified r3); handedness `np.sign`+`1e-9` guard + planted CW/CCW sign
+(re-verified r3); `delta_E` finite-masked, no NaN leak (r3); `compute_psi_g→compute`
+rename has no dangling refs (`_geometry.compute_psi_g` is a different, retained
+symbol); §9 foundation edit list exact & complete; dtype loop shape; §6
+atan2/NaN-gate/`generate_trajectory(growth_axis_angle_rad, handedness)` verified;
+validator reuse; no `compute_signed_area` collision; `_CONSTANTS_VERSION` 5
+untouched; SG-detrend passband; min-length short-track reasoning (r3 F2);
+unit-4/5 incremental-green separation (r3); all degenerate rows constructible
+(r3); spec-delta MODIFIED+ADDED split; CC-3/CC-6/CC-9 all pass (r3); no
+5th-trait leakage; zero stale COI/handedness references after the rewrite (r3).
