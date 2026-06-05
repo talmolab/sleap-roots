@@ -30,10 +30,15 @@ cross-checks ψ_g recovery against Tier 0's spatial `principal_axis_angle`.
 - Cross-tier consistency validation against `principal_axis_angle` on the
   Nipponbare plate-001 fixture (GREEN-phase reconciliation) + a synthetic
   convention-lock (RED).
-- **Deviation from theory.md §7.3** (recorded): `handedness` drops §7.3's literal
-  "COI-masked range" (COI is a CWT-edge concept that mis-applies to a raw
-  angular displacement and introduced a sign-flip bug). theory.md §7.3 is patched
-  in this PR to match.
+- **Three recorded deviations from theory.md §7.3 / §6.3** (theory.md is patched
+  in this PR to match, preserving the original wording in an Appendix B
+  correction note): (1) `handedness` drops §7.3's literal "COI-masked range" (COI
+  is a CWT-edge concept that mis-applies to a raw angular displacement and
+  introduced a sign-flip bug); (2) `delta_E` is **px/frame**, not §7.3's
+  px·hr⁻¹ (drops the cadence factor — Tier 0 velocity convention; `px/s` ∉ the
+  units vocabulary); (3) ψ_g conditioning is **SG-detrend** (the SG residual),
+  not §6.3's literal "smooth" (the residual is the oscillation a period-CWT
+  needs; no public smoothing primitive exists; reuses Tier 1's primitive).
 
 ## Impact
 
@@ -43,7 +48,13 @@ cross-checks ψ_g recovery against Tier 0's spatial `principal_axis_angle`.
 - **Affected code:** `sleap_roots/circumnutation/psi_g.py` (stub → impl),
   `sleap_roots/circumnutation/_geometry.py` (new `compute_signed_area`),
   `tests/test_circumnutation_psi_g.py` (new), `tests/test_circumnutation_foundation.py`
-  (stub-table migration), `docs/circumnutation/theory.md` (§7.3 handedness row +
-  Appendix B note).
-- **Follow-up issue (to file):** `psig_long_consistency` cross-tier correlation
-  (Tier 1 × Tier 2 CWT co-registration).
+  (stub-table migration), `docs/circumnutation/theory.md` (§7.3 handedness +
+  delta_E rows, §6.3 conditioning note, + Appendix B corrections preserving the
+  original wording).
+- **Consumed test fixture (read-only, Git LFS):**
+  `tests/data/circumnutation_nipponbare_plate_001/plate_001_greyscale.tracked_proofread.slp`
+  for the cross-tier reconciliation test.
+- **Follow-up issue (to file, draft in vault first):** `psig_long_consistency`
+  cross-tier correlation (Tier 1 × Tier 2 CWT co-registration) — reconcile
+  against the roadmap's planned PR #13 Layer-3 `T_nutation ↔ T_psig` work so a
+  duplicate issue is not created.

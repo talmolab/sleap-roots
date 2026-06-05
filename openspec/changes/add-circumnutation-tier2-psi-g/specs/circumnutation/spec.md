@@ -69,6 +69,12 @@ The `_noise` and `_geometry` modules are private (underscore-prefixed) shared in
 - **THEN** the call returns a `pandas.DataFrame` (the Tier 1 per-plant nutation trait output) without raising `NotImplementedError`
 - **AND** since `nutation` is a NEW module introduced by PR #6 (not a transition from a prior stub), it does not appear in the stub-callable table — its callability contract is locked here in the MODIFIED Package layout requirement for symmetry with `kinematics.compute`, `qc.compute`, `synthetic.generate_trajectory`, and `temporal_cwt.compute_scaleogram`
 
+#### Scenario: `temporal_cwt.smooth_ridge` is callable on a valid RidgeResult without raising
+- **GIVEN** a valid `RidgeResult` produced by `extract_ridge(compute_scaleogram(x, 300.0))` on a length-≥9 finite array
+- **WHEN** `sleap_roots.circumnutation.temporal_cwt.smooth_ridge(ridge_result)` is invoked
+- **THEN** the call returns a `RidgeResult` (with smoothed `periods_s`) without raising any exception
+- **AND** since `smooth_ridge` is a NEW public symbol introduced by PR #6 (closing GitHub issue #214 — ridge-tracking continuity post-filter; not a transition from a prior stub), it does not appear in the stub-callable table — its callability contract is locked here in the MODIFIED Package layout requirement for symmetry with `compute_scaleogram` and `extract_ridge`
+
 #### Scenario: `psi_g.compute` is callable on a valid trajectory_df without raising
 - **GIVEN** a valid `trajectory_df` (8 row-identity columns + `frame`, `tip_x`, `tip_y`; ≥ 24 rows for at least one track) and a positive finite `cadence_s` (e.g., 300.0)
 - **WHEN** `sleap_roots.circumnutation.psi_g.compute(trajectory_df, cadence_s=300.0)` is invoked
@@ -102,10 +108,14 @@ The four traits SHALL be defined as follows, on the finite-masked tip coordinate
 
 - `T_psig_median_s`: `np.nanmedian` of the COI-interior smoothed-ridge periods, computed by composing `temporal_cwt.compute_scaleogram → extract_ridge → smooth_ridge` on the **SG-detrended** ψ_g (`_noise.compute_sg_detrended(psi_g, window=SG_WINDOW_DETREND=23, polynomial_order=SG_DEGREE=3)`), masked by `~smooth_ridge.in_coi` (the per-frame boolean, NOT the 2-D `ScaleogramResult.coi_mask`). It is the ONLY trait that uses the conditioned signal and the CWT.
 - `delta_E_amplitude_proxy_px_per_frame`: `np.median(√(dx² + dy²))` over all finite velocity samples (`dx, dy = np.diff` of finite tip coords); no COI mask, no `/cadence_s` (px/frame, matching Tier 0's velocity convention). Corresponds to `(L/2R)·ΔĖ` (Eq. 21).
-- `handedness`: `int(np.sign(psi_g[-1] − psi_g[0]))` — the sign of the **net unwrapped ψ_g rotation over all finite frames**, with a determinism zero-guard `|psi_g[-1] − psi_g[0]| < 1e-9 rad → 0`. `+1` = counterclockwise; `0` = no net rotation / degenerate. This is COI-FREE (a deliberate deviation from theory.md §7.3's literal "sign of mean dψ_g/dt over COI-masked range" — see deviation note below).
+- `handedness`: `int(np.sign(psi_g[-1] − psi_g[0]))` — the sign of the **net unwrapped ψ_g rotation over all finite frames**, with a determinism zero-guard `|psi_g[-1] − psi_g[0]| < 1e-9 rad → 0`. **Sign convention (anchored to avoid the "counterclockwise" ambiguity):** `+1` ⇔ ψ_g increasing ⇔ **positive mean `dψ_g/dt`** — identical to `synthetic.generate_trajectory(handedness=+1)`'s locked convention (Requirement: Synthetic trajectory generator, scenario "handedness=+1 yields positive mean dψ_g/dt"). In physical terms this is clockwise in standard (y-up) math axes and counterclockwise as displayed in the y-down image frame; the program anchors on the `dψ_g/dt` sign, NOT the word "counterclockwise". `0` = no net rotation / degenerate. This is COI-FREE (a deliberate deviation from theory.md §7.3's literal "sign of mean dψ_g/dt over COI-masked range" — see deviation note below).
 - `helix_signed_area_px2`: `_geometry.compute_signed_area(tip_x, tip_y)` — the y-down-corrected Shoelace area `0.5·Σ(x_{i+1}·y_i − x_i·y_{i+1})` (the negation of the standard formula), so that `sign(helix_signed_area_px2) == handedness` (independent confirmation of handedness).
 
-**Deviation from theory.md §7.3 (recorded).** theory.md §7.3 specifies `handedness` as "sign of mean dψ_g/dt over COI-masked range". PR #7 emits `handedness` COI-free because (a) the COI mask is a function of the SG-detrended CWT ridge, so COI-masking would couple a raw kinematic sign to the conditioned signal and to the CWT min-length floor; (b) the per-frame `ridge.in_coi` interior is not contiguous (per-frame argmax scale selection creates COI gaps), so an endpoint difference across a masked gap can report the wrong sign; and (c) COI is a CWT-edge-reliability concept that does not apply to a raw angular displacement (`atan2` of velocity has no edge contamination) — §7.3 itself omits COI for the sibling `delta_E` kinematic median, and the COI-free `angular_amplitude` (§7.1) is precedent. theory.md §7.3's `handedness` row is patched in this PR to match.
+**Deviations from theory.md §7.3 / §6.3 (all recorded; theory.md is patched in this PR to match, preserving the original wording in an Appendix B correction note rather than silently overwriting):**
+
+1. **`handedness` is COI-free** — theory.md §7.3 specifies "sign of mean dψ_g/dt over COI-masked range". PR #7 emits it COI-free because (a) the COI mask is a function of the SG-detrended CWT ridge, so COI-masking would couple a raw kinematic sign to the conditioned signal and to the CWT min-length floor; (b) the per-frame `ridge.in_coi` interior is not contiguous (per-frame argmax scale selection creates COI gaps), so an endpoint difference across a masked gap can report the wrong sign; and (c) COI is a CWT-edge-reliability concept that does not apply to a raw angular displacement (`atan2` of velocity has no edge contamination) — §7.3 itself omits COI for the sibling `delta_E` kinematic median, and the COI-free `angular_amplitude` (§7.1) is precedent.
+2. **`delta_E` is px/frame, not px·hr⁻¹** — §7.3 specifies "Median of √(ẋ²+ẏ²) × (frames/hr)" in px·hr⁻¹. PR #7 emits `median(√(dx²+dy²))` in **px/frame** (drops the `(frames/hr)` cadence factor), because `px/s`/`px·hr⁻¹` is not the pipeline's velocity convention (Tier 0 emits all velocities in px/frame; `px/s` ∉ `PIPELINE_UNIT_VOCABULARY`). As a per-track *amplitude proxy* the prefactor-free, cadence-free magnitude preserves the shape and relative magnitude of `Δ·Ė` (R, L, cadence are per-track constants), which is all the proxy needs; the "`= (L/2R)·ΔĖ`" proportionality (Eq. 21 solved for the measured speed) still holds.
+3. **ψ_g conditioning is SG-detrend, not §6.3's literal "smooth"** — `T_psig_median_s` feeds the CWT the SG **residual** (`compute_sg_detrended` = raw − SG-smooth), not the SG-smoothed signal. §6.3 says "pre-smoothed via Savitzky-Golay"; the residual is the oscillation component and is what a period-extracting CWT needs (smoothing-only would retain gravitropic drift biasing `T_psig`), and reuses the exact primitive Tier 1 uses. No public SG-smoothing primitive exists.
 
 The function SHALL NOT consume Tier 1 output (no `nutation_df` / `is_nutating` input). Traits are emitted ungated; downstream consumers compose a `LEFT JOIN` of Tier 1's `is_nutating` on the shared 5-tuple to mask non-nutating tracks.
 
@@ -139,12 +149,11 @@ The system SHALL ALSO provide `_geometry.compute_signed_area(x: np.ndarray, y: n
 - **THEN** the recovered `T_psig_median_s` satisfies `abs(T_psig_median_s − T) / T < 0.10`
 - **AND** no `np.RuntimeWarning` is emitted
 
-#### Scenario: handedness is the sign of net ψ_g rotation and agrees with helix_signed_area sign
-- **GIVEN** synthetic CCW and CW orbits via `synthetic.generate_trajectory(handedness=+1, amplitude_px=10, noise_sigma_px=0.0)` and `handedness=-1`
+#### Scenario: handedness tracks the generator's planted handedness and agrees with helix_signed_area sign
+- **GIVEN** two synthetic orbits via `synthetic.generate_trajectory(handedness=+1, amplitude_px=10, noise_sigma_px=0.0)` and the same with `handedness=-1` (the generator's `handedness` is the locked `dψ_g/dt`-sign convention, NOT a screen-orientation label)
 - **WHEN** `psi_g.compute(...)` is invoked for each
-- **THEN** the CCW track yields `handedness == +1` and `helix_signed_area_px2 > 0`
-- **AND** the CW track yields `handedness == -1` and `helix_signed_area_px2 < 0`
-- **AND** in both cases `int(np.sign(helix_signed_area_px2)) == handedness`
+- **THEN** the `handedness=+1` track yields output `handedness == +1`; the `handedness=-1` track yields output `handedness == -1` (the emitted `handedness` equals the planted sign)
+- **AND** in both cases the sign-agreement invariant holds: `int(np.sign(helix_signed_area_px2)) == handedness` (so the `+1` track has `helix_signed_area_px2 > 0` and the `-1` track has `helix_signed_area_px2 < 0`)
 
 #### Scenario: compute_signed_area sign is pinned to an absolute hand-built orbit
 - **WHEN** `_geometry.compute_signed_area(np.array([0.,1.,1.,0.]), np.array([0.,0.,1.,1.]))` is invoked
@@ -190,6 +199,11 @@ The system SHALL ALSO provide `_geometry.compute_signed_area(x: np.ndarray, y: n
 - **THEN** `TypeError` is raised
 - **AND** the exception message contains the substring `"cadence_s"`
 
+#### Scenario: psi_g.compute rejects a non-ConstantsT constants argument with TypeError
+- **WHEN** `psi_g.compute(trajectory_df, cadence_s=300.0, constants=v)` is invoked for any of `v ∈ {42, "default", [ ]}`
+- **THEN** `TypeError` is raised
+- **AND** the exception message contains the substring `"constants"`
+
 #### Scenario: psi_g.compute rejects an invalid SG constants override with ValueError naming the field
 - **GIVEN** a `ConstantsT` override with an even `SG_WINDOW_DETREND` (e.g. 24) or `SG_WINDOW_DETREND ≤ SG_DEGREE`
 - **WHEN** `psi_g.compute(trajectory_df, cadence_s=300.0, constants=override)` is invoked
@@ -221,4 +235,5 @@ The system SHALL ALSO provide `_geometry.compute_signed_area(x: np.ndarray, y: n
 - **GIVEN** the 6 tracks of `tests/data/circumnutation_nipponbare_plate_001/plate_001_greyscale.tracked_proofread.slp` loaded via `Series.load(...).get_tracked_tips()` filtered by `track_id ∈ {0..5}`, and `cadence_s = 300.0`
 - **WHEN** for each track `circular_mean(ψ_g)` (Tier 2) and `principal_axis_angle` (from `kinematics.compute`, Tier 0) are computed
 - **THEN** tracks whose `principal_axis_angle` is NaN (the `growth_axis_unreliable` gate fired) are SKIPPED
-- **AND** at least `N`-of-6 surviving tracks satisfy `abs(wrap_to_pi(circular_mean(ψ_g) − (π/2 − principal_axis_angle))) < _PSIG_AXIS_RECONCILE_TOL_RAD`, where both the count `N` and the tolerance constant are documented GREEN-phase reconciliation values captured from a real run (mirroring the `_DERR_MATCH_*` precedent), NOT pre-known RED thresholds
+- **AND** at least `N`-of-6 surviving tracks satisfy `abs(wrap_to_pi(circular_mean(ψ_g) − (π/2 − principal_axis_angle))) < _PSIG_AXIS_RECONCILE_TOL_RAD`, where the count `N` and the tolerance constant are documented GREEN-phase reconciliation values captured from a real run (mirroring the `_DERR_MATCH_*` precedent)
+- **AND** the captured values MUST clear a pre-committed floor that the implementation cannot trivially satisfy: `N ≥ 2` AND `_PSIG_AXIS_RECONCILE_TOL_RAD ≤ 0.35 rad` (if a real run cannot meet this floor, that is a genuine RED signal to investigate, not a tolerance to widen); the GREEN commit SHALL also record the observed per-track angular deviations (max + distribution), not only the chosen tolerance, so headroom is auditable

@@ -35,10 +35,14 @@ all reconciled below.
   `psig_long_consistency` deferred. *Alternative considered:* ship all 5 with an
   internal T_nutation recompute or an optional `nutation_df` — rejected as
   cross-tier coupling beyond a single-tier PR.
-- **D3 — Units:** period in seconds (`s`, matches Tier 1); speed proxy in
-  **px/frame** (Tier 0's cadence-independent velocity convention). *Alternative:*
-  px/s — rejected (`px/s` ∉ `PIPELINE_UNIT_VOCABULARY`; would force a foundation
-  change). All 4 units already in the vocabulary.
+- **D3 — Units:** period in seconds (`s`); speed proxy in **px/frame** (Tier 0's
+  cadence-independent velocity convention). Column names adopt the **#222** target
+  suffix convention (`_s`, `_px_per_frame`, `_px2`) — note this *knowingly differs*
+  from merged Tier 1's un-suffixed `T_nutation_median` (also seconds), i.e. PR #7
+  adopts the #222 suffix style ahead of the program-wide retrofit rather than
+  copying Tier 1's current naming. *Alternative:* px/s — rejected (`px/s` ∉
+  `PIPELINE_UNIT_VOCABULARY`; would force a foundation change). All 4 units already
+  in the vocabulary.
 - **D4 — ψ_g conditioning = SG-detrend** (`compute_sg_detrended`, window 23) for
   the `T_psig` CWT path only. *Alternative:* SG-smooth-only (theory §6.3 literal)
   — rejected: no public smoothing primitive exists, and smooth-only leaves
@@ -55,9 +59,15 @@ all reconciled below.
   reproducible).
 - **D6 — `helix_signed_area_px2`:** new `_geometry.compute_signed_area`, y-down
   **negated** Shoelace `0.5·Σ(x_{i+1}·y_i − x_i·y_{i+1})` so `sign(area) ==
-  handedness` (verified numerically: screen-CCW → handedness +1, standard Shoelace
-  −3.14, negation +3.14). Pinned by an absolute hand-built-orbit anchor test
-  (`[0,1,1,0],[0,0,1,1] → −1.0`) AND an agreement test.
+  handedness`. The load-bearing fact is the **sign-agreement invariant**, not any
+  single orbit's chirality label (the word "counterclockwise" is frame-ambiguous —
+  anchor on the `dψ_g/dt` sign instead). Two worked anchors, both verified against
+  the real `compute_psi_g`/`compute_signed_area`: (i) the orbit `x=cos t,
+  y=−sin t` → net `dψ_g/dt > 0` → `handedness=+1`, standard Shoelace `−3.14`,
+  negated area `+3.14` → `sign(area)=+1=handedness`; (ii) the absolute hand-built
+  anchor `[0,1,1,0],[0,0,1,1]` → net `Δψ_g=−π` → `handedness=−1`, negated area
+  `−1.0` → `sign(area)=−1=handedness`. Pinned by the absolute-anchor test
+  (`compute_signed_area([0,1,1,0],[0,0,1,1]) == −1.0`) AND an agreement test.
 - **D7 — Min-length + zero-energy guards:** `T_psig` requires `N ≥ 24` (ψ_g len ≥
   `SG_WINDOW_DETREND=23`); `3 ≤ N < 24` → `T_psig=NaN`, raw traits defined.
   Stationary/straight-growth (zero detrended energy) → `T_psig=NaN` via a
@@ -98,6 +108,10 @@ migration).
 ## Open Questions
 
 - The plate-001 GREEN-phase tolerance + pass-count are captured at GREEN, not
-  pre-known (documented as reconciliation, mirroring `_DERR_MATCH_*`).
+  pre-known (documented as reconciliation, mirroring `_DERR_MATCH_*`), but MUST
+  clear a pre-committed floor (`N ≥ 2`, `tol ≤ 0.35 rad`) and record the observed
+  deviation distribution so the pass is auditable, not self-fulfilling.
 - `psig_long_consistency` ownership (new cross-tier module vs `psi_g.compute`
-  optional `nutation_df`) is deferred to the follow-up issue.
+  optional `nutation_df`) is deferred to the follow-up issue — which must be
+  reconciled against the roadmap's already-planned PR #13 Layer-3 `T_nutation ↔
+  T_psig ±5%` work to avoid a duplicate.
