@@ -12,11 +12,11 @@ the stub→impl rename so the foundation tests never go red.
 
 ## 0. Pre-flight
 - [ ] 0.1 Confirm branch `add-circumnutation-tier2-psi-g`; `uv sync`; baseline `uv run pytest tests/ -q` green.
-- [ ] 0.2 Draft the **PR #7 tracking issue** AND the `psig_long_consistency` follow-up issue in the vault (`c:\vaults\sleap-roots\circumnutation\`); the follow-up must cross-reference the roadmap's planned PR #13 Layer-3 `T_nutation ↔ T_psig` work to avoid a duplicate. Show the user; do NOT post until OK.
+- [ ] 0.2 Draft the **PR #7 tracking issue** in the vault (`c:\vaults\sleap-roots\circumnutation\`); show the user; do NOT post until OK. **Do NOT file a separate `psig_long_consistency` issue** — it is redundant with the already-roadmapped **PR #13** Layer-3 (`T_nutation ↔ T_psig ±5%`). Instead: (a) annotate the roadmap PR #13 row so it owns BOTH the deferred §7.3 `psig_long_consistency` trait emission AND the consistency test (single-sourced ownership), and (b) record the deferral pointer in this PR's ADDED-requirement spec rationale.
 
 ## 1. `_geometry.compute_signed_area` (commit pair — no foundation coupling, safe first)
 - [ ] 1.1 RED: **absolute anchor** — `compute_signed_area([0,1,1,0],[0,0,1,1]) == -1.0` exactly (y-down negation of standard Shoelace `+1.0`); `< 3` points → `0.0`; non-finite → NaN.
-- [ ] 1.2 GREEN: implement `compute_signed_area(x, y)` in `_geometry.py` next to `compute_psi_g`; Google docstring documenting the sign convention anchored on the `dψ_g/dt` sign (NOT the ambiguous word "counterclockwise"): `sign(area) == handedness`.
+- [ ] 1.2 GREEN: implement `compute_signed_area(x, y)` in `_geometry.py` next to `compute_psi_g`; Google docstring documenting the sign convention anchored on the `dψ_g/dt` sign (NOT the ambiguous word "counterclockwise"): `sign(area) == handedness`. Also fix the legacy un-anchored "+1 = counterclockwise" phrasing in the `_geometry.py` MODULE docstring (lines ~17-18) so the locked helper, spec, and theory all use the `dψ_g/dt`-anchored wording.
 
 ## 2. `psi_g.compute` schema/structure **+ foundation-test migration (ATOMIC pair)**
 > The moment `psi_g.compute` stops raising `NotImplementedError` AND the stub
@@ -27,7 +27,7 @@ the stub→impl rename so the foundation tests never go red.
 > `psi_g.compute` MUST land in the SAME commit pair.
 - [ ] 2.1 RED (one commit, two coordinated edits):
   - `tests/test_circumnutation_psi_g.py`: returns `pd.DataFrame`; 8 identity + 4 trait columns in declared order; dtypes 3×float64 + 1×int64; 5-tuple uniqueness. Stub emits the degenerate-row defaults.
-  - `tests/test_circumnutation_foundation.py`: remove `psi_g` from `STUB_MODULES` + `STUBS_WITH_CONSTANTS_KWARG`; add `("psi_g","compute")` to `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG` + the matching `elif module_name == "psi_g":` branch (build a **≥24-frame** single-track df — mirror nutation's 64-frame inline branch — and call `fn(df, 300.0, constants=ConstantsT())`); add `psi_g` to the explicit `test_module_logger_is_namespaced` list (removing it from `STUB_MODULES` de-covers it otherwise); the "Calling each remaining stub" enumeration becomes the 5 stubs.
+  - `tests/test_circumnutation_foundation.py`: remove `psi_g` from `STUB_MODULES` + `STUBS_WITH_CONSTANTS_KWARG`; add `("psi_g","compute")` to `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG` + the matching `elif module_name == "psi_g":` branch (build a **≥24-frame** single-track df and call `fn(df, 300.0, constants=ConstantsT())`). NOTE: this branch only proves **callability** (returns a DataFrame, does not raise) — a straight-line inline df like nutation's would hit the zero-energy guard and emit `T_psig=NaN`, which is fine here; real CWT-path value coverage lives in §5.1. Do NOT add a `T_psig` value assertion to this foundation branch. Also add `psi_g` to the explicit `test_module_logger_is_namespaced` list (removing it from `STUB_MODULES` de-covers it otherwise); the "Calling each remaining stub" enumeration becomes the 5 stubs.
 - [ ] 2.2 GREEN (one commit): implement the `compute` shell (rename the stub callable) — `groupby` 5-tuple → `_compute_one_track` (returns the degenerate-row defaults for now) → per-plant template merge → declared column order → dtype-enforcement loop (`handedness → fillna(0).astype(int64)`, others `float64`). Suite is GREEN after this pair.
 - [ ] 2.3 RED+GREEN: units-vocabulary guard test (all 4 trait units ∈ `PIPELINE_UNIT_VOCABULARY`); fix the stale `atan2(dy/dt, dx/dt)` docstring carried by the old stub.
 
@@ -49,8 +49,8 @@ the stub→impl rename so the foundation tests never go red.
 - [ ] 6.2 GREEN: implement step-1/2 finite-mask + `N<3` short-circuit; confirm the zero-energy and length guards cover the table.
 
 ## 7. Determinism + logging (commit pair)
-- [ ] 7.1 RED: **determinism** — same-process `psi_g.compute` twice: 3 float columns bit-identical at `atol=0`, `handedness` exactly equal; a captured 3-value canary at `atol=1e-6` (cross-OS floor; nutation `test_2B2` precedent). **Logging** — `caplog` at DEBUG: exactly one DEBUG record from `sleap_roots.circumnutation.psi_g`, message starts `"psi_g.compute("`, contains `n_tracks=` and `cadence_s=`, has **no** `coordinate=` token, no INFO/WARNING/ERROR.
-- [ ] 7.2 GREEN: add the single `logger.debug(...)` at the start of `compute` (after validation); confirm determinism (no `Math.random`/ordering nondeterminism).
+- [ ] 7.1 RED: **determinism** — same-process `psi_g.compute` twice: 3 float columns bit-identical at `atol=0`, `handedness` exactly equal; a captured 3-value canary at `atol=1e-6` (cross-OS floor) on a **fixed-seed, noisy** fixture `generate_trajectory(random_state=0, noise_sigma_px=0.5, n_frames=575, T_nutation_s=3333, cadence_s=300)` so the canary actually exercises the scipy float stack (nutation `test_2B2` precedent — `noise_sigma_px=0` would test nothing). **Logging** — `caplog` at DEBUG: exactly one DEBUG record from `sleap_roots.circumnutation.psi_g`, message starts `"psi_g.compute("`, contains `n_tracks=` and `cadence_s=`, has **no** `coordinate=` token, no INFO/WARNING/ERROR.
+- [ ] 7.2 GREEN: add the single `logger.debug(...)` at the start of `compute` (after validation) — `psi_g.py` already declares `logger = logging.getLogger(__name__)`, so only the call body is new; confirm determinism (no random/ordering nondeterminism).
 
 ## 8. Cross-tier consistency (commit pair)
 - [ ] 8.1 RED: synthetic convention-lock — define `wrap_to_pi`/`circular_mean` as **test-local** helpers (mirror nutation's `_make_hand_crafted_ridge` test-local pattern). Angle-identity fixture (`amplitude_px=0`, θ ∈ {0.3, −2.0}) asserts `abs(wrap_to_pi(circular_mean(ψ_g) − (π/2 − θ))) < 1e-6` and `handedness == 0`; handedness fixture (`amplitude_px>0`, `handedness=±1`) asserts the planted sign.
@@ -72,4 +72,4 @@ the stub→impl rename so the foundation tests never go red.
 - [ ] 10.7 `/copilot-review` + `/review-pr` findings reconciled or deferred to tracked issues.
 
 ## 11. Quick gate (run after EVERY commit pair, not just at the end)
-- [ ] 11.x `uv run pytest tests/test_circumnutation_psi_g.py tests/test_circumnutation_foundation.py -q && uv run black --check sleap_roots tests && uv run pydocstyle --convention=google sleap_roots/circumnutation/` — catches the §2 atomicity hazard and cross-cutting breakage early.
+- [ ] 11.x `uv run pytest tests/test_circumnutation_psi_g.py tests/test_circumnutation_foundation.py -q && uv run black --check sleap_roots tests && uv run pydocstyle --convention=google sleap_roots/circumnutation/` — catches the §2 atomicity hazard and cross-cutting breakage early. After the §1 `_geometry` pair specifically, ALSO run `tests/test_circumnutation_kinematics.py tests/test_circumnutation_synthetic.py` (they exercise `_geometry.compute_psi_g`) — or just run the full suite — so a stray `_geometry.py` edit can't slip through.

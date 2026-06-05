@@ -111,7 +111,9 @@ migration).
   pre-known (documented as reconciliation, mirroring `_DERR_MATCH_*`), but MUST
   clear a pre-committed floor (`N ≥ 2`, `tol ≤ 0.35 rad`) and record the observed
   deviation distribution so the pass is auditable, not self-fulfilling.
-- `psig_long_consistency` ownership (new cross-tier module vs `psi_g.compute`
-  optional `nutation_df`) is deferred to the follow-up issue — which must be
-  reconciled against the roadmap's already-planned PR #13 Layer-3 `T_nutation ↔
-  T_psig ±5%` work to avoid a duplicate.
+- `psig_long_consistency` is deferred to the already-roadmapped **PR #13**
+  Layer-3 (`T_nutation ↔ T_psig ±5%`), which is resolved to own **both** the §7.3
+  trait emission AND the cross-tier consistency test (single-sourced — no separate
+  follow-up issue, to avoid fragmenting ownership). The implementation home (new
+  cross-tier module vs `psi_g.compute` optional `nutation_df`) is PR #13's
+  decision.

@@ -54,7 +54,8 @@ cross-checks ψ_g recovery against Tier 0's spatial `principal_axis_angle`.
 - **Consumed test fixture (read-only, Git LFS):**
   `tests/data/circumnutation_nipponbare_plate_001/plate_001_greyscale.tracked_proofread.slp`
   for the cross-tier reconciliation test.
-- **Follow-up issue (to file, draft in vault first):** `psig_long_consistency`
-  cross-tier correlation (Tier 1 × Tier 2 CWT co-registration) — reconcile
-  against the roadmap's planned PR #13 Layer-3 `T_nutation ↔ T_psig` work so a
-  duplicate issue is not created.
+- **Deferred trait ownership:** `psig_long_consistency` (the 5th §7.3 trait,
+  cross-tier Tier 1 × Tier 2 correlation) is folded into the already-roadmapped
+  **PR #13** Layer-3 work (`T_nutation ↔ T_psig ±5%`), which owns both the trait
+  and the consistency test — **no separate follow-up issue** (avoids a duplicate
+  of PR #13). This PR only files the **PR #7 tracking issue**.
