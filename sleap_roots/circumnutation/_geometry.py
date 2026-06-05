@@ -6,17 +6,22 @@ Single source of truth for the per-frame velocity-direction angle
 
 - Tier 0 (``kinematics.py``, PR #2) — uses the peak-to-peak extent of
   ``ψ_g(t)`` as ``angular_amplitude``.
-- Tier 2 (``psi_g.py``, PR #7 — not yet implemented) — will apply CWT
-  to ``ψ_g(t)`` to extract ``T_psig_median`` and compose the
-  ``handedness`` trait.
+- Tier 2 (``psi_g.py``, PR #7) — applies CWT to ``ψ_g(t)`` to extract
+  ``T_psig_median_s`` and composes the ``handedness`` /
+  ``helix_signed_area_px2`` traits (the latter via
+  :func:`compute_signed_area`).
 
 The argument order in ``np.arctan2(dx, dy)`` (``dx`` first, then ``dy``)
 is convention-critical. The reversed order ``atan2(dy, dx)`` would
 offset every ``ψ_g`` value by ``π/2`` AND flip the sign of
-``mean dψ_g/dt``, silently inverting PR #7's ``handedness`` trait
-(which by Bastien-Meroz 2016 §"Constant principal direction of growth"
-assigns ``+1 = counterclockwise``). **Always use** ``arctan2(dx, dy)``
-in this module; the docstring on :func:`compute_psi_g` reiterates this.
+``mean dψ_g/dt``, silently inverting PR #7's ``handedness`` trait.
+**Sign convention (anchored on the sign, not the word):**
+``handedness = +1`` ⇔ ``ψ_g`` increasing ⇔ **positive** ``mean dψ_g/dt``;
+:func:`compute_signed_area` is negated so ``sign(area) == handedness``.
+In physical terms ``+1`` is clockwise in standard (y-up) math axes and
+counterclockwise as displayed in the y-down image frame — the program
+anchors on the ``dψ_g/dt`` sign, NOT the ambiguous word
+"counterclockwise". **Always use** ``arctan2(dx, dy)`` in this module.
 
 Theory reference:
 
@@ -172,3 +177,61 @@ def project_to_growth_axis_perpendicular(x: np.ndarray, y: np.ndarray) -> np.nda
     y_centered = y - np.mean(y)
     lateral = x_centered * u_perp_x + y_centered * u_perp_y
     return lateral.astype(np.float64, copy=False)
+
+
+def compute_signed_area(x: np.ndarray, y: np.ndarray) -> float:
+    """Signed area enclosed by the tip trajectory (y-down Shoelace; PR #7).
+
+    Computes the **y-down-corrected** Shoelace signed area
+
+    ``A = 0.5 * Σ_i (x_{i+1}·y_i − x_i·y_{i+1})``  (cyclic)
+
+    which is the **negation** of the standard
+    ``0.5 * Σ_i (x_i·y_{i+1} − x_{i+1}·y_i)``. The negation makes the sign
+    agree with PR #7's ``handedness`` trait under the same image-y-down
+    ``atan2(dx, dy)`` convention :func:`compute_psi_g` encodes:
+
+    ``sign(compute_signed_area(x, y)) == handedness ==
+    int(np.sign(ψ_g[-1] − ψ_g[0]))``.
+
+    **Sign is load-bearing** and anchored on the ``dψ_g/dt`` sign, NOT the
+    ambiguous word "counterclockwise": a positive area corresponds to
+    ``handedness = +1`` (``ψ_g`` increasing). Verified by the absolute
+    hand-built anchor ``x=[0,1,1,0], y=[0,0,1,1] → −1.0`` (standard Shoelace
+    ``+1.0``), whose net ``ψ_g`` change is ``−π`` (``handedness = −1``).
+
+    Used by ``psi_g.compute`` (PR #7) to emit ``helix_signed_area_px2`` — an
+    independent confirmation of ``handedness``.
+
+    Args:
+        x: 1-D array of x-coordinates.
+        y: 1-D array of y-coordinates (same length as ``x``).
+
+    Returns:
+        The signed area as a Python ``float`` (px² when ``x``/``y`` are in
+        pixels). Returns ``0.0`` for inputs of fewer than 3 points (a
+        degenerate polygon has no area). Propagates ``NaN`` when any
+        coordinate is non-finite (the ``psi_g.compute`` caller short-circuits
+        non-finite tracks before calling, so the trait reports NaN rather
+        than ``0.0`` for too-short tracks).
+
+    Examples:
+        >>> import numpy as np
+        >>> # Unit square traversed [0,1,1,0]/[0,0,1,1]: y-down area = -1.0.
+        >>> float(compute_signed_area(np.array([0.0, 1.0, 1.0, 0.0]),
+        ...                           np.array([0.0, 0.0, 1.0, 1.0])))
+        -1.0
+        >>> # Fewer than 3 points → 0.0 (degenerate polygon).
+        >>> compute_signed_area(np.array([0.0, 1.0]), np.array([0.0, 1.0]))
+        0.0
+    """
+    x = np.asarray(x, dtype=np.float64)
+    y = np.asarray(y, dtype=np.float64)
+    if len(x) < 3:
+        return 0.0
+    x_next = np.roll(x, -1)
+    y_next = np.roll(y, -1)
+    # y-down-corrected (negated) Shoelace — see docstring; positive area ↔
+    # handedness +1 (ψ_g increasing) under the atan2(dx, dy) image-y-down
+    # convention compute_psi_g encodes.
+    return 0.5 * float(np.sum(x_next * y - x * y_next))
