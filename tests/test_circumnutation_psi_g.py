@@ -22,7 +22,8 @@ theory.md §3.5 (BM2016 Eq. 20 — ψ_g) + §7.3 (Tier 2 trait table).
 import numpy as np
 import pandas as pd
 
-from sleap_roots.circumnutation import psi_g
+from sleap_roots.circumnutation import psi_g, synthetic
+from sleap_roots.circumnutation._constants import ConstantsT
 from sleap_roots.circumnutation._geometry import compute_psi_g, compute_signed_area
 from sleap_roots.circumnutation._types import ROW_IDENTITY_COLUMNS
 
@@ -248,9 +249,13 @@ def test_3_invalid_constants_type_raises_typeerror_naming_field(bad):
 
 @pytest.mark.parametrize("bad_window", [24, 2])
 def test_3_invalid_sg_window_override_raises_valueerror_naming_field(bad_window):
-    """§3: an even / too-small SG_WINDOW_DETREND override raises ValueError naming it."""
-    from sleap_roots.circumnutation._constants import ConstantsT
+    """§3: an even / too-small SG_WINDOW_DETREND override raises ValueError naming it.
 
+    NOTE: ``ConstantsT`` is imported at module level (binding the same class
+    object ``psi_g.py`` holds). A function-local re-import would fetch a fresh
+    class object after ``test_no_root_handlers_added_at_import`` reloads
+    ``sleap_roots.circumnutation.*``, breaking ``isinstance`` in full-suite runs.
+    """
     df = _make_track_df(n_frames=32)
     override = ConstantsT(SG_WINDOW_DETREND=bad_window)
     with pytest.raises(ValueError, match="SG_WINDOW_DETREND"):
@@ -260,9 +265,6 @@ def test_3_invalid_sg_window_override_raises_valueerror_naming_field(bad_window)
 # ===========================================================================
 # §4 — raw, CWT-free traits (handedness, delta_E, helix) + conditioning isolation
 # ===========================================================================
-
-from sleap_roots.circumnutation import synthetic  # noqa: E402
-from sleap_roots.circumnutation._constants import ConstantsT  # noqa: E402
 
 
 @pytest.mark.parametrize("planted", [+1, -1])
