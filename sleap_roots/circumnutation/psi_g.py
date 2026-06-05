@@ -28,11 +28,13 @@ design at ``openspec/changes/add-circumnutation-tier2-psi-g/design.md`` +
 """
 
 import logging
+import math
 from typing import Any, Dict, Optional
 
 import numpy as np
 import pandas as pd
 
+from sleap_roots.circumnutation import _geometry, _noise, temporal_cwt
 from sleap_roots.circumnutation._constants import ConstantsT
 from sleap_roots.circumnutation._io import (
     _IDENTITY_5_TUPLE,
@@ -62,6 +64,64 @@ _PSIG_TRAIT_COLUMNS: tuple = (
 # ROW_IDENTITY_COLUMNS).
 _TIP_X_COLUMN: str = "tip_x"
 _TIP_Y_COLUMN: str = "tip_y"
+
+
+# ---------------------------------------------------------------------------
+# Input validation helpers
+# ---------------------------------------------------------------------------
+
+
+def _validate_psig_constants(constants: ConstantsT) -> ConstantsT:
+    """Validate the SG-conditioning fields psi_g consumes, with field-named errors.
+
+    psi_g.compute SG-detrends ψ_g with ``SG_WINDOW_DETREND`` / ``SG_DEGREE``
+    (``scipy.signal.savgol_filter`` requires an odd ``window_length >
+    polyorder``). The CWT-machinery fields are validated downstream by
+    :func:`temporal_cwt.compute_scaleogram` (``_validate_cwt_constants``), so
+    this checker is deliberately limited to the SG fields — it does NOT call
+    ``_validate_nutation_constants`` (Tier-1 fields psi_g does not use).
+    """
+    swd = constants.SG_WINDOW_DETREND
+    sgd = constants.SG_DEGREE
+    if (
+        not isinstance(swd, (int, np.integer))
+        or isinstance(swd, bool)
+        or int(swd) < 1
+        or int(swd) % 2 == 0
+    ):
+        raise ValueError(
+            f"constants.SG_WINDOW_DETREND must be a positive odd int "
+            f"(scipy.signal.savgol_filter requires odd window_length); got "
+            f"SG_WINDOW_DETREND={swd!r}"
+        )
+    if not isinstance(sgd, (int, np.integer)) or isinstance(sgd, bool) or int(sgd) < 0:
+        raise ValueError(
+            f"constants.SG_DEGREE must be a non-negative int; got SG_DEGREE={sgd!r}"
+        )
+    if int(swd) <= int(sgd):
+        raise ValueError(
+            f"constants.SG_WINDOW_DETREND ({swd}) must be greater than "
+            f"constants.SG_DEGREE ({sgd}) "
+            f"(scipy.signal.savgol_filter requires window_length > polyorder)"
+        )
+    return constants
+
+
+def _check_constants(constants: Any) -> ConstantsT:
+    """Validate constants as None or ConstantsT; return the resolved instance.
+
+    Mirrors ``nutation._check_constants`` but defers CWT-field validation to
+    :func:`temporal_cwt.compute_scaleogram` and validates only the SG fields
+    psi_g consumes (via :func:`_validate_psig_constants`).
+    """
+    if constants is None:
+        return _validate_psig_constants(ConstantsT())
+    if not isinstance(constants, ConstantsT):
+        raise TypeError(
+            f"constants must be None or a ConstantsT instance, got "
+            f"{type(constants).__name__}"
+        )
+    return _validate_psig_constants(constants)
 
 
 def _all_degenerate_traits() -> Dict[str, Any]:
@@ -125,7 +185,16 @@ def compute(
         Columns: 8 row-identity columns + 4 trait columns in declared order
         (3 ``float64`` + 1 ``int64``).
     """
-    resolved_constants = constants if constants is not None else ConstantsT()
+    # Input validation (mirrors nutation.compute boundary). cadence_s reuses
+    # the importable temporal_cwt._validate_cadence_s rather than a private copy.
+    if not isinstance(trajectory_df, pd.DataFrame):
+        raise ValueError(
+            f"trajectory_df must be a pandas DataFrame, got "
+            f"{type(trajectory_df).__name__}"
+        )
+    _validate_trajectory_df(None, None, trajectory_df)
+    cadence_float = temporal_cwt._validate_cadence_s(cadence_s)
+    resolved_constants = _check_constants(constants)
 
     # Per-track loop (mirrors kinematics.py / qc.py / nutation.py precedent).
     trait_rows: list = []
@@ -133,7 +202,7 @@ def compute(
         list(_IDENTITY_5_TUPLE), dropna=False, sort=False
     ):
         traits = _compute_one_track(
-            group, cadence_s=cadence_s, constants=resolved_constants
+            group, cadence_s=cadence_float, constants=resolved_constants
         )
         identity = dict(zip(_IDENTITY_5_TUPLE, key))
         trait_rows.append({**identity, **traits})
