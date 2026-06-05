@@ -634,3 +634,55 @@ def test_8_cross_tier_plate001_reconciliation_green_phase():
         f"deviations (rad) = {np.round(deviations, 4).tolist()} "
         f"(max {deviations.max():.4f})"
     )
+
+
+# ===========================================================================
+# §9 — multi-track integration (heterogeneous track lengths)
+# ===========================================================================
+
+
+def test_9_multi_track_mixed_lengths_no_cross_contamination():
+    """§9: a df mixing a <24-frame track and ≥24-frame tracks yields correct rows.
+
+    The short track gets T_psig=NaN (CWT skipped) while its raw traits and the
+    long tracks' full traits are computed independently — no cross-track bleed.
+    The sign-asserted tracks use ``synthetic.generate_trajectory`` (which plants
+    a genuine net rotation via its locked handedness convention); a hand-rolled
+    symmetric wobble would have near-zero, phase-dependent net rotation.
+    """
+    long_a = synthetic.generate_trajectory(
+        handedness=+1,
+        amplitude_px=10.0,
+        noise_sigma_px=0.0,
+        n_frames=64,
+        track_id=0,
+        plant_id=0,
+    )
+    short = synthetic.generate_trajectory(
+        amplitude_px=10.0, noise_sigma_px=0.0, n_frames=15, track_id=1, plant_id=1
+    )
+    long_b = synthetic.generate_trajectory(
+        handedness=-1,
+        amplitude_px=10.0,
+        noise_sigma_px=0.0,
+        n_frames=575,
+        track_id=2,
+        plant_id=2,
+    )
+    df = pd.concat([long_a, short, long_b], ignore_index=True)
+
+    result = psi_g.compute(df, cadence_s=300.0)
+    assert len(result) == 3
+    assert list(result.columns) == list(ROW_IDENTITY_COLUMNS) + list(
+        _PSIG_TRAIT_COLUMNS
+    )
+
+    by_track = result.set_index("track_id")
+    # Short track (id 1): T_psig NaN, raw traits finite.
+    assert np.isnan(by_track.loc[1, "T_psig_median_s"])
+    assert np.isfinite(by_track.loc[1, "delta_E_amplitude_proxy_px_per_frame"])
+    # Long tracks (id 0, 2): T_psig finite; handedness matches each track's sweep.
+    assert np.isfinite(by_track.loc[0, "T_psig_median_s"])
+    assert np.isfinite(by_track.loc[2, "T_psig_median_s"])
+    assert int(by_track.loc[0, "handedness"]) == 1
+    assert int(by_track.loc[2, "handedness"]) == -1
