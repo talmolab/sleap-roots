@@ -12,7 +12,7 @@ the stub→impl rename so the foundation tests never go red.
 
 ## 0. Pre-flight
 - [x] 0.1 Confirm branch `add-circumnutation-tier2-psi-g`; `uv sync`; baseline `uv run pytest tests/ -q` green.
-- [ ] 0.2 Draft the **PR #7 tracking issue** in the vault (`c:\vaults\sleap-roots\circumnutation\`); show the user; do NOT post until OK. **Do NOT file a separate `psig_long_consistency` issue** — it is redundant with the already-roadmapped **PR #13** Layer-3 (`T_nutation ↔ T_psig ±5%`). Instead: (a) annotate the roadmap PR #13 row so it owns BOTH the deferred §7.3 `psig_long_consistency` trait emission AND the consistency test (single-sourced ownership), and (b) record the deferral pointer in this PR's ADDED-requirement spec rationale.
+- [x] 0.2 Draft the **PR #7 tracking issue** in the vault (`c:\vaults\sleap-roots\circumnutation\`); show the user; do NOT post until OK. **Do NOT file a separate `psig_long_consistency` issue** — it is redundant with the already-roadmapped **PR #13** Layer-3 (`T_nutation ↔ T_psig ±5%`). Instead: (a) annotate the roadmap PR #13 row so it owns BOTH the deferred §7.3 `psig_long_consistency` trait emission AND the consistency test (single-sourced ownership), and (b) record the deferral pointer in this PR's ADDED-requirement spec rationale.
 
 ## 1. `_geometry.compute_signed_area` (commit pair — no foundation coupling, safe first)
 - [x] 1.1 RED: **absolute anchor** — `compute_signed_area([0,1,1,0],[0,0,1,1]) == -1.0` exactly (y-down negation of standard Shoelace `+1.0`); `< 3` points → `0.0`; non-finite → NaN.
@@ -68,8 +68,8 @@ the stub→impl rename so the foundation tests never go red.
 - [x] 10.3 `uv run pydocstyle --convention=google sleap_roots/circumnutation/` clean.
 - [x] 10.4 `uv lock --check` clean; `uv run mkdocs build` builds.
 - [x] 10.5 `npx openspec validate add-circumnutation-tier2-psi-g --strict` valid.
-- [ ] 10.6 CI matrix Ubuntu/Windows/macOS green on the final commit.
-- [ ] 10.7 `/copilot-review` + `/review-pr` findings reconciled or deferred to tracked issues.
+- [x] 10.6 CI matrix Ubuntu/Windows/macOS green on the final commit.
+- [x] 10.7 `/copilot-review` + `/review-pr` findings reconciled or deferred to tracked issues.
 
 ## 11. Quick gate (run after EVERY commit pair, not just at the end)
 - [x] 11.x `uv run pytest tests/test_circumnutation_psi_g.py tests/test_circumnutation_foundation.py -q && uv run black --check sleap_roots tests && uv run pydocstyle --convention=google sleap_roots/circumnutation/` — catches the §2 atomicity hazard and cross-cutting breakage early. After the §1 `_geometry` pair specifically, ALSO run `tests/test_circumnutation_kinematics.py tests/test_circumnutation_synthetic.py` (they exercise `_geometry.compute_psi_g`) — or just run the full suite — so a stray `_geometry.py` edit can't slip through.
