@@ -337,8 +337,10 @@ Tier 1 — Derr-faithful temporal CWT
 
 Tier 2 — Bastien-Meroz ψ_g(t) CWT
   ψ_g(t) = atan2(dx/dt, dy/dt), unwrapped
-  Pre-smoothed via Savitzky-Golay (degree 3, window ≥ 5 frames)
-  CWT on ψ_g(t) → T_psig, A_psig, handedness from phase progression
+  SG-DETRENDED (residual = raw − SG-smooth, window 23) before CWT
+    (PR #7: detrend, not the literal "pre-smooth" — the residual is the
+     oscillation a period-CWT needs; reuses Tier 1's primitive — see Appendix B)
+  CWT on ψ_g(t) → T_psig (only conditioned trait); handedness/Δ_E/helix are raw
   Δ(ψ_g)·Ė(t) = (2R/L)|v(t)| → kinematic differential-growth proxy
 
 Tier 3 — Tip-trail spatial CWT (the QPB branch)
@@ -470,11 +472,11 @@ Each trait has: symbol, units, computation source, calibration flag, and literat
 
 | Symbol | Units | Description | Source / anchor |
 |---|---|---|---|
-| `T_psig_median` | hr `[—]` | Median period from CWT ridge of $\psi_g(t)$, COI-masked | Bastien & Meroz 2016 Eq. 20 |
-| `psig_long_consistency` | — `[—]` | Correlation between $T_\text{psig}$ and $T_\text{nutation}$ across CWT range; diagnostic for H1 | Bastien & Meroz 2016 §3.7 (trochoid signature) |
-| `delta_E_amplitude_proxy` | px·hr⁻¹ `[—]` | Median of $\sqrt{\dot{x}^2 + \dot{y}^2}$ × (frames/hr); $= (L/2R)\Delta\dot{E}$ | Bastien & Meroz 2016 Eq. 21 |
-| `handedness` | $\in \{-1, 0, +1\}$ `[—]` | Sign of mean $d\psi_g/dt$ over COI-masked range; $+1$ = counterclockwise (left-handed in image frame), $-1$ = clockwise | Bastien & Meroz 2016 §"Constant principal direction of growth" |
-| `helix_signed_area` | px² `[—]` | Signed area enclosed by tip trajectory (Shoelace formula); confirmation of handedness | Standard kinematic |
+| `T_psig_median_s` | s `[—]` | Median period from CWT ridge of $\psi_g(t)$, COI-masked. Emitted in **seconds** (PR #7; consistent with Tier 1 `T_nutation_median` — see Appendix B). | Bastien & Meroz 2016 Eq. 20 |
+| `psig_long_consistency` | — `[—]` | Correlation between $T_\text{psig}$ and $T_\text{nutation}$ across CWT range; diagnostic for H1. Deferred to PR #13 Layer-3 (owns both this trait and the cross-tier test). | Bastien & Meroz 2016 §3.7 (trochoid signature) |
+| `delta_E_amplitude_proxy_px_per_frame` | px·frame⁻¹ `[—]` | Median of $\sqrt{\dot{x}^2 + \dot{y}^2}$ in **px/frame** (PR #7: px/frame, not px·hr⁻¹ — Tier 0 velocity convention; see Appendix B); $\propto (L/2R)\Delta\dot{E}$ | Bastien & Meroz 2016 Eq. 21 |
+| `handedness` | $\in \{-1, 0, +1\}$ `[—]` | Sign of the **net unwrapped $\psi_g$ rotation over all finite frames** (**COI-free** — PR #7; see Appendix B); $+1$ = $\psi_g$ increasing (positive mean $d\psi_g/dt$) = counterclockwise as displayed in the y-down image, $-1$ = clockwise, $0$ = no net rotation | Bastien & Meroz 2016 §"Constant principal direction of growth" |
+| `helix_signed_area_px2` | px² `[—]` | Signed area enclosed by the **growth-detrended** tip trajectory (per-axis linear-trend removed, then y-down Shoelace); confirmation of handedness on 2-D-circulating data (PR #7 — raw Shoelace was growth-ribbon-dominated, 1/6 on plate-001; detrended ≥5/6 — see Appendix B) | Standard kinematic |
 
 ### 7.4 Tier 3 — Spatial wavelet (QPB branch)
 
@@ -564,6 +566,15 @@ The conversation that produced this doc contained two interpretive errors that s
 **(1) The "2:1 mode ratio" along the rachis is not two oscillators at different positions.** Earlier framing suggested QPB found a 2:1 ratio between basal $T_\text{nutation}$ and apical $T_\text{projection}$ representing two distinct physical oscillators. Reading the actual paper [Rivière 2022 §"The elongation profile in the growth zone is compatible with local contractions", Figure 3]: the two periods $\tau_f \approx 2.1$ h (basal) and $\tau_{2f} \approx 1.2$ h (apical) appear in the wavelet decomposition of *side-view-projected apparent elongation rate* $\dot{\varepsilon}(s_a, t)$, and the model demonstrates that the apical-end frequency-doubling is a projection artifact that appears only when local contractions occur (i.e. when $\dot{\delta}_0 > \dot{\varepsilon}_0/2$ in the model). It is **diagnostic of contraction**, not of two separate oscillators. The pipeline's top-view tip data does not have this projection structure; we cannot reproduce or look for this specific 2:1 signature directly.
 
 **(2) Bastien-Douady-Moulia (2013, 2014) vs. Bastien-Meroz (2016).** The earlier conversation initially attributed the curvature-with-proprioception equation $\partial\kappa/\partial t = -\beta\sin(\theta - \theta_p) - \gamma\kappa$ to "the Bastien-Meroz framework" and discussed fitting nutation traits to it. That equation is a **tropism** equation from Bastien-Douady-Moulia, restated in [Meroz 2026, Eq. 1] as such. The Bastien-Meroz 2016 paper extends it to nutation by adding the perpendicular-curvature equation [Eq. 14] and an oscillating $\psi_g$ — that is the actual nutation extension, and equations 20–21 from BM2016 are what give us the load-bearing $\psi_g(t) = \arctan(\dot{x}_a/\dot{y}_a)$ tip-only extraction. Phase 1 of the pipeline emits $L_c$ (= $\gamma/\beta$) only; full $(\beta, \gamma, \theta_p)$ identification is Phase 2 and requires a gravitropism stimulus experiment.
+
+**(3) Tier 2 §7.3 trait definitions corrected during PR #7 implementation.** Three §7.3 entries were revised (originals preserved here for provenance / reproducibility of any analysis citing the prior definitions):
+
+- **`handedness` is COI-free.** Original: *"Sign of mean $d\psi_g/dt$ over COI-masked range; $+1$ = counterclockwise (left-handed in image frame), $-1$ = clockwise."* Corrected: sign of the **net unwrapped $\psi_g$ rotation over all finite frames** (no COI mask). The COI is a CWT-edge-reliability concept derived from the SG-detrended ridge; COI-masking would (a) couple a raw kinematic sign to the conditioned signal and the CWT min-length floor, and (b) the per-frame `ridge.in_coi` interior is non-contiguous, so an endpoint difference across a masked gap can report the wrong sign. A raw `atan2`-velocity displacement has no edge contamination; §7.3 itself omits COI for the sibling `delta_E`, and `angular_amplitude` (§7.1) is a COI-free raw-angle precedent. The sign is anchored on the $d\psi_g/dt$ sign, not the frame-ambiguous word "counterclockwise" (which only holds in the y-down image sense).
+- **`delta_E_amplitude_proxy` is px/frame, not px·hr⁻¹.** Original units px·hr⁻¹ ("× (frames/hr)"). Corrected to **px/frame** (drops the cadence factor) to match Tier 0's cadence-independent velocity convention (`px/s` is also absent from the pipeline unit vocabulary). As a per-track amplitude proxy the prefactor-/cadence-free magnitude preserves the shape and relative magnitude of $\Delta\dot{E}$.
+- **`T_psig_median` is emitted in seconds (`T_psig_median_s`).** Original units "hr". Corrected to seconds for consistency with Tier 1 `T_nutation_median` (a future `psig_long_consistency` correlation then needs no unit conversion).
+- **`helix_signed_area` is computed on the growth-detrended trajectory.** Original: *"Signed area enclosed by tip trajectory (Shoelace formula); confirmation of handedness."* A PR #7 self-review on the real plate-001 fixture found the raw Shoelace area of an open growing root is dominated by the linear-growth ribbon, so `sign(raw_area) == handedness` held for only **1 of 6** tracks. Corrected to subtract the per-axis linear growth trend before the Shoelace, after which it holds for **≥5 of 6** — the enclosed area then reflects the nutation orbit, not the growth ribbon. (Note: a planar wobble-on-growth such as the synthetic generator's output has no true 2-D circulation, so its detrended area is ~0; the sign-confirmation is meaningful only for genuinely 2-D-circulating data.)
+
+Additionally, the §6.3 Tier 2 conditioning line was corrected from "Pre-smoothed via Savitzky-Golay" to **SG-detrended** (the residual = raw − SG-smooth): the residual is the oscillation component a period-extracting CWT requires (smoothing-only would retain gravitropic drift that biases $T_\text{psig}$), and reuses the exact `_noise.compute_sg_detrended` primitive Tier 1 uses. Full rationale + the 3-round review reconciliation: `docs/superpowers/specs/2026-06-05-add-circumnutation-tier2-psi-g-design.md` §13 and the OpenSpec change `add-circumnutation-tier2-psi-g`.
 
 ---
 
