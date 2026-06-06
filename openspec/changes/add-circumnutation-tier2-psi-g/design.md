@@ -58,7 +58,17 @@ all reconciled below.
   `T_psig`" literally true and the `1e-9` guard defensible (raw atan2 ~`1e-12`
   reproducible).
 - **D6 — `helix_signed_area_px2`:** new `_geometry.compute_signed_area`, y-down
-  **negated** Shoelace `0.5·Σ(x_{i+1}·y_i − x_i·y_{i+1})` so `sign(area) ==
+  **negated** Shoelace `0.5·Σ(x_{i+1}·y_i − x_i·y_{i+1})`, applied to the
+  **growth-detrended** tip trajectory (per-axis linear-trend subtraction in
+  `psi_g.compute`). *Why detrend (post-approval self-review fix):* the raw
+  Shoelace of an open growing root is dominated by the growth ribbon —
+  `sign(raw_area) == handedness` held only **1/6** on real plate-001; after the
+  per-axis linear growth-detrend it holds **≥5/6**. The helper itself stays a
+  pure raw Shoelace (closed-orbit sign pinned by the absolute anchor); the
+  detrend is applied by the caller. The synthetic generator is a planar
+  wobble-on-growth (no true 2-D circulation → ~0 detrended area), so the
+  sign-agreement is validated on real plate-001 data, not the synthetic. So
+  `sign(area) ==
   handedness`. The load-bearing fact is the **sign-agreement invariant**, not any
   single orbit's chirality label (the word "counterclockwise" is frame-ambiguous —
   anchor on the `dψ_g/dt` sign instead). Two worked anchors, both verified against

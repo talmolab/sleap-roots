@@ -13,8 +13,12 @@ columns per track from the unwrapped velocity-direction angle ``ψ_g(t)``
   finite velocity samples (Eq. 21 amplitude proxy; px/frame, no COI).
 - ``handedness`` — ``int(np.sign(ψ_g[-1] − ψ_g[0]))`` over all finite frames
   (net unwrapped rotation; COI-free). ``+1`` ⇔ positive ``dψ_g/dt``.
-- ``helix_signed_area_px2`` — ``_geometry.compute_signed_area`` (y-down
-  Shoelace); ``sign(area) == handedness``.
+- ``helix_signed_area_px2`` — y-down Shoelace area
+  (``_geometry.compute_signed_area``) of the **growth-detrended** tip
+  trajectory (per-axis linear detrend removes the growth ribbon so the
+  enclosed area reflects the nutation orbit). ``sign(area)`` confirms
+  ``handedness`` on genuinely 2-D-circulating real data (≥5/6 on plate-001;
+  raw un-detrended Shoelace agreed only 1/6 — the growth ribbon dominated).
 
 Tier 2 is self-contained: it does NOT consume Tier 1 output. The 5th §7.3
 trait ``psig_long_consistency`` (cross-tier ``T_psig ↔ T_nutation``) is
@@ -146,6 +150,23 @@ def _all_degenerate_traits() -> Dict[str, Any]:
     }
 
 
+def _linear_detrend(a: np.ndarray) -> np.ndarray:
+    """Subtract the least-squares linear trend from a 1-D array.
+
+    Removes the dominant linear growth component from a tip-coordinate axis so
+    that the residual reflects the nutation orbit rather than the growth ribbon.
+    Used by ``helix_signed_area_px2`` (per-axis) so the Shoelace sign confirms
+    handedness on real growing-root data. For ``len(a) < 2`` returns a copy
+    (no trend to remove).
+    """
+    n = len(a)
+    if n < 2:
+        return np.asarray(a, dtype=np.float64).copy()
+    t = np.arange(n, dtype=np.float64)
+    slope, intercept = np.polyfit(t, a, 1)
+    return a - (slope * t + intercept)
+
+
 def _compute_t_psig_median_s(
     psi: np.ndarray,
     cadence_s: float,
@@ -239,8 +260,15 @@ def _compute_one_track(
     dy = np.diff(y)
     delta_E = float(np.median(np.sqrt(dx * dx + dy * dy)))
 
-    # helix: y-down signed area; sign agrees with handedness.
-    helix = _geometry.compute_signed_area(x, y)
+    # helix: y-down signed area of the GROWTH-DETRENDED tip trajectory. The raw
+    # Shoelace area of an open growing root is dominated by the linear-growth
+    # ribbon (sign reflects growth+truncation geometry, not circulation —
+    # empirically only 1/6 plate-001 tracks agreed with handedness). Subtracting
+    # the per-axis linear growth trend isolates the nutation orbit, so the
+    # signed area's sign confirms handedness on genuinely 2-D-circulating data
+    # (≥5/6 on plate-001). Note: a planar wobble-on-growth (e.g. the synthetic
+    # generator) collapses to ~0 area after detrend (no true 2-D circulation).
+    helix = _geometry.compute_signed_area(_linear_detrend(x), _linear_detrend(y))
 
     # T_psig_median_s: CWT path on the SG-detrended ψ_g (the ONLY conditioned
     # trait). Length + zero-energy + COI guards inside the helper.

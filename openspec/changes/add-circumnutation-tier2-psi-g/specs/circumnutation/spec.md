@@ -109,7 +109,7 @@ The four traits SHALL be defined as follows, on the finite-masked tip coordinate
 - `T_psig_median_s`: `np.nanmedian` of the COI-interior smoothed-ridge periods, computed by composing `temporal_cwt.compute_scaleogram → extract_ridge → smooth_ridge` on the **SG-detrended** ψ_g (`_noise.compute_sg_detrended(psi_g, window=SG_WINDOW_DETREND=23, polynomial_order=SG_DEGREE=3)`), masked by `~smooth_ridge.in_coi` (the per-frame boolean, NOT the 2-D `ScaleogramResult.coi_mask`). It is the ONLY trait that uses the conditioned signal and the CWT.
 - `delta_E_amplitude_proxy_px_per_frame`: `np.median(√(dx² + dy²))` over all finite velocity samples (`dx, dy = np.diff` of finite tip coords); no COI mask, no `/cadence_s` (px/frame, matching Tier 0's velocity convention). Corresponds to `(L/2R)·ΔĖ` (Eq. 21).
 - `handedness`: `int(np.sign(psi_g[-1] − psi_g[0]))` — the sign of the **net unwrapped ψ_g rotation over all finite frames**, with a determinism zero-guard `|psi_g[-1] − psi_g[0]| < 1e-9 rad → 0`. **Sign convention (anchored to avoid the "counterclockwise" ambiguity):** `+1` ⇔ ψ_g increasing ⇔ **positive mean `dψ_g/dt`** — identical to `synthetic.generate_trajectory(handedness=+1)`'s locked convention (Requirement: Synthetic trajectory generator, scenario "handedness=+1 yields positive mean dψ_g/dt"). In physical terms this is clockwise in standard (y-up) math axes and counterclockwise as displayed in the y-down image frame; the program anchors on the `dψ_g/dt` sign, NOT the word "counterclockwise". `0` = no net rotation / degenerate. This is COI-FREE (a deliberate deviation from theory.md §7.3's literal "sign of mean dψ_g/dt over COI-masked range" — see deviation note below).
-- `helix_signed_area_px2`: `_geometry.compute_signed_area(tip_x, tip_y)` — the y-down-corrected Shoelace area `0.5·Σ(x_{i+1}·y_i − x_i·y_{i+1})` (the negation of the standard formula), so that `sign(helix_signed_area_px2) == handedness` (independent confirmation of handedness).
+- `helix_signed_area_px2`: `_geometry.compute_signed_area` applied to the **growth-detrended** tip trajectory (each of `tip_x`, `tip_y` has its per-axis least-squares linear trend subtracted before the y-down-corrected Shoelace `0.5·Σ(x_{i+1}·y_i − x_i·y_{i+1})`). The growth detrend removes the linear-growth ribbon so the enclosed area reflects the nutation orbit, making `sign(helix_signed_area_px2) == handedness` a meaningful confirmation on genuinely 2-D-circulating data. **Why growth-detrend (deviation from the originally-approved raw-coordinate Shoelace):** a self-review on the real plate-001 fixture found the raw Shoelace area is dominated by the growth ribbon for open growing roots — `sign(raw_area) == handedness` held for only **1 of 6** tracks. After the per-axis linear detrend it holds for **≥5 of 6**. (The helper `_geometry.compute_signed_area` itself is unchanged — pure raw Shoelace; the growth-detrend is applied by `psi_g.compute` before calling it. A planar wobble-on-growth such as the synthetic generator's output has no true 2-D circulation and collapses to ~0 area after the detrend, so the sign-agreement is validated only on real circulating data — see the plate-001 scenario below.)
 
 **Deviations from theory.md §7.3 / §6.3 (all recorded; theory.md is patched in this PR to match, preserving the original wording in an Appendix B correction note rather than silently overwriting):**
 
@@ -149,11 +149,16 @@ The system SHALL ALSO provide `_geometry.compute_signed_area(x: np.ndarray, y: n
 - **THEN** the recovered `T_psig_median_s` satisfies `abs(T_psig_median_s − T) / T < 0.10`
 - **AND** no `np.RuntimeWarning` is emitted
 
-#### Scenario: handedness tracks the generator's planted handedness and agrees with helix_signed_area sign
+#### Scenario: handedness tracks the generator's planted handedness
 - **GIVEN** two synthetic orbits via `synthetic.generate_trajectory(handedness=+1, amplitude_px=10, noise_sigma_px=0.0)` and the same with `handedness=-1` (the generator's `handedness` is the locked `dψ_g/dt`-sign convention, NOT a screen-orientation label)
 - **WHEN** `psi_g.compute(...)` is invoked for each
 - **THEN** the `handedness=+1` track yields output `handedness == +1`; the `handedness=-1` track yields output `handedness == -1` (the emitted `handedness` equals the planted sign)
-- **AND** in both cases the sign-agreement invariant holds: `int(np.sign(helix_signed_area_px2)) == handedness` (so the `+1` track has `helix_signed_area_px2 > 0` and the `-1` track has `helix_signed_area_px2 < 0`)
+- **AND** `helix_signed_area_px2` is finite for both (its sign is NOT asserted on the synthetic — a planar wobble-on-growth has no true 2-D circulation, so its growth-detrended area is ~0; sign-agreement is validated on real plate-001 data below)
+
+#### Scenario: helix_signed_area sign confirms handedness on real plate-001 data (GREEN-phase)
+- **GIVEN** the 6 tracks of `tests/data/circumnutation_nipponbare_plate_001/plate_001_greyscale.tracked_proofread.slp` (loaded + enriched with the row-identity columns) and `cadence_s = 300.0`
+- **WHEN** `psi_g.compute(trajectory_df, cadence_s=300.0)` is invoked
+- **THEN** `int(np.sign(helix_signed_area_px2)) == handedness` for **≥ 5 of the 6** tracks (GREEN-phase reconciliation: the growth-detrended Shoelace agrees with the independently-computed handedness on genuinely 2-D-circulating real data; the raw un-detrended Shoelace agreed only 1/6). The single non-agreeing track is weakly-circulating; the long-term 6/6 goal via a per-period orbit decomposition is tracked as a follow-up.
 
 #### Scenario: compute_signed_area sign is pinned to an absolute hand-built orbit
 - **WHEN** `_geometry.compute_signed_area(np.array([0.,1.,1.,0.]), np.array([0.,0.,1.,1.]))` is invoked
@@ -164,8 +169,8 @@ The system SHALL ALSO provide `_geometry.compute_signed_area(x: np.ndarray, y: n
 #### Scenario: conditioning affects only T_psig_median_s
 - **GIVEN** the same synthetic track conditioned identically
 - **WHEN** the pipeline is traced
-- **THEN** `handedness`, `delta_E_amplitude_proxy_px_per_frame`, and `helix_signed_area_px2` are computed from raw inputs (raw unwrapped ψ_g, raw velocity samples, raw coordinates respectively) and do NOT depend on `compute_sg_detrended` or the CWT
-- **AND** only `T_psig_median_s` uses the SG-detrended ψ_g and the `compute_scaleogram → extract_ridge → smooth_ridge` chain
+- **THEN** `handedness`, `delta_E_amplitude_proxy_px_per_frame`, and `helix_signed_area_px2` are computed from raw inputs (raw unwrapped ψ_g endpoints, raw velocity samples, and per-axis linearly-growth-detrended raw coordinates respectively) and do NOT depend on `compute_sg_detrended` or the CWT (the helix growth-detrend is a simple per-axis linear-trend subtraction, NOT the SG/CWT conditioning)
+- **AND** only `T_psig_median_s` uses the SG-detrended ψ_g and the `compute_scaleogram → extract_ridge → smooth_ridge` chain — confirmed by invariance under a `SG_WINDOW_DETREND` override
 
 #### Scenario: short track (3 ≤ N < 24) emits NaN T_psig but defined raw traits without raising
 - **GIVEN** a single-track `trajectory_df` with exactly 15 finite frames and `cadence_s = 300.0`
