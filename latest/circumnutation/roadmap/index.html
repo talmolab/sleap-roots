@@ -3039,9 +3039,9 @@
 <tr>
 <td>7</td>
 <td><code>add-circumnutation-tier2-psi-g</code></td>
-<td><code>ψ_g(t)</code> unwrap + smooth (theory.md §3.5); Tier 2 trait emission (theory.md §7.3); cross-tier consistency check.</td>
-<td>⬜</td>
-<td>⬜</td>
+<td><code>ψ_g(t)</code> via locked <code>_geometry.compute_psi_g</code> (theory.md §3.5); 4 self-contained Tier 2 traits (theory.md §7.3): <code>T_psig_median_s</code> (SG-detrend→CWT), <code>delta_E_amplitude_proxy_px_per_frame</code>, <code>handedness</code> (COI-free net rotation), <code>helix_signed_area_px2</code> (<strong>growth-detrended</strong> Shoelace — drift-robust fix found in pre-PR self-review, ≥5/6 vs 1/6 raw on plate-001); new <code>_geometry.compute_signed_area</code>; cross-tier consistency vs Tier 0 <code>principal_axis_angle</code> (all 6 plate-001 tracks within 1.8°). No new constants (<code>_CONSTANTS_VERSION</code> stays 5). 3 recorded theory deviations (handedness COI-free; delta_E px/frame; SG-detrend not literal "smooth") + theory.md §7.3/§6.3 patched (Appendix B). <code>psig_long_consistency</code> (5th §7.3 trait) <strong>deferred to PR #13</strong> (Layer-3 cross-tier, owns both trait + test). <a href="https://github.com/talmolab/sleap-roots/issues/224">#224</a> · <a href="https://github.com/talmolab/sleap-roots/pull/225">PR #225</a></td>
+<td>✅</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>8</td>
