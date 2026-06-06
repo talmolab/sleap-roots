@@ -21,6 +21,7 @@ theory.md §3.5 (BM2016 Eq. 20 — ψ_g) + §7.3 (Tier 2 trait table).
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from sleap_roots.circumnutation import psi_g, synthetic
 from sleap_roots.circumnutation._constants import ConstantsT
@@ -119,11 +120,24 @@ def test_1_signed_area_fewer_than_three_points_is_zero():
     assert compute_signed_area(np.array([]), np.array([])) == 0.0
 
 
-def test_1_signed_area_non_finite_propagates_nan():
-    """§1: a non-finite coordinate propagates to a NaN area (caller guards first)."""
-    x = np.array([0.0, 1.0, np.nan, 0.0])
+@pytest.mark.parametrize("bad", [np.nan, np.inf, -np.inf])
+def test_1_signed_area_non_finite_returns_nan(bad):
+    """§1: any non-finite coordinate (NaN or ±inf) deterministically returns NaN.
+
+    The explicit finite guard makes the contract independent of float-arithmetic
+    happenstance (an unguarded Shoelace over ±inf can evaluate to ±inf).
+    """
+    x = np.array([0.0, 1.0, bad, 0.0])
     y = np.array([0.0, 0.0, 1.0, 1.0])
     assert np.isnan(compute_signed_area(x, y))
+    # Also when the non-finite value is on the y-axis.
+    assert np.isnan(compute_signed_area(y, x))
+
+
+def test_1_signed_area_length_mismatch_raises():
+    """§1: mismatched x/y lengths raise ValueError (mirrors the sibling helper)."""
+    with pytest.raises(ValueError, match="same length"):
+        compute_signed_area(np.array([0.0, 1.0, 1.0]), np.array([0.0, 0.0]))
 
 
 def test_1_signed_area_sign_flips_with_traversal_direction():
@@ -218,9 +232,6 @@ def test_3_empty_trajectory_df_raises():
     df = _make_track_df(n_frames=32).iloc[0:0]
     with pytest.raises(ValueError):
         psi_g.compute(df, cadence_s=300.0)
-
-
-import pytest  # noqa: E402
 
 
 @pytest.mark.parametrize("bad", [0, -1.0, float("nan"), float("inf"), float("-inf")])
@@ -535,7 +546,11 @@ import math  # noqa: E402
 
 
 def _wrap_to_pi(d: float) -> float:
-    """Wrap an angle difference to (-π, π] for branch-cut-safe comparison."""
+    """Wrap an angle difference to the half-open interval [-π, π).
+
+    (Branch-cut-safe comparison: ``+π`` maps to ``-π``; immaterial for an
+    ``abs(distance) < tol`` check since both endpoints give the same |distance|.)
+    """
     return (d + math.pi) % (2.0 * math.pi) - math.pi
 
 

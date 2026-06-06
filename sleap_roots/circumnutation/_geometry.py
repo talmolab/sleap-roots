@@ -210,10 +210,13 @@ def compute_signed_area(x: np.ndarray, y: np.ndarray) -> float:
     Returns:
         The signed area as a Python ``float`` (px² when ``x``/``y`` are in
         pixels). Returns ``0.0`` for inputs of fewer than 3 points (a
-        degenerate polygon has no area). Propagates ``NaN`` when any
-        coordinate is non-finite (the ``psi_g.compute`` caller short-circuits
-        non-finite tracks before calling, so the trait reports NaN rather
-        than ``0.0`` for too-short tracks).
+        degenerate polygon has no area). Returns ``NaN`` when any coordinate
+        is non-finite (an explicit guard — the ``psi_g.compute`` caller
+        short-circuits non-finite tracks before calling, so the trait reports
+        NaN rather than ``0.0`` for too-short tracks).
+
+    Raises:
+        ValueError: If ``x`` and ``y`` have different lengths.
 
     Examples:
         >>> import numpy as np
@@ -227,8 +230,19 @@ def compute_signed_area(x: np.ndarray, y: np.ndarray) -> float:
     """
     x = np.asarray(x, dtype=np.float64)
     y = np.asarray(y, dtype=np.float64)
+    if len(x) != len(y):
+        raise ValueError(
+            f"x and y must have the same length; got len(x)={len(x)} "
+            f"len(y)={len(y)}"
+        )
     if len(x) < 3:
         return 0.0
+    # Explicit non-finite guard so the NaN contract is deterministic regardless
+    # of float-arithmetic happenstance (an unguarded Shoelace sum over ±inf can
+    # evaluate to ±inf rather than NaN). Mirrors the explicit finite validation
+    # in project_to_growth_axis_perpendicular.
+    if not (np.isfinite(x).all() and np.isfinite(y).all()):
+        return float("nan")
     x_next = np.roll(x, -1)
     y_next = np.roll(y, -1)
     # y-down-corrected (negated) Shoelace — see docstring; positive area ↔
