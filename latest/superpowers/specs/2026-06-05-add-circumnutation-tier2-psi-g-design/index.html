@@ -1,0 +1,3499 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Analysis tools for SLEAP-based plant root phenotyping">
+      
+      
+        <meta name="author" content="Talmo Lab">
+      
+      
+        <link rel="canonical" href="https://roots.sleap.ai/latest/superpowers/specs/2026-06-05-add-circumnutation-tier2-psi-g-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Design — add-circumnutation-tier2-psi-g (Program PR #7, Tier 2) - sleap-roots</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="light-green">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#design-add-circumnutation-tier2-psi-g-program-pr-7-tier-2" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="sleap-roots" class="md-header__button md-logo" aria-label="sleap-roots" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            sleap-roots
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Design — add-circumnutation-tier2-psi-g (Program PR #7, Tier 2)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="light-green"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="green" data-md-color-accent="light-green"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/talmolab/sleap-roots" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    talmolab/sleap-roots
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../tutorials/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../guides/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../dev/contributing/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../api/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../cookbook/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Cookbook
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../changelog/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="sleap-roots" class="md-nav__button md-logo" aria-label="sleap-roots" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    sleap-roots
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/talmolab/sleap-roots" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    talmolab/sleap-roots
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/what-is-sleap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    What is SLEAP?
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../tutorials/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/dicot-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dicot Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/younger-monocot-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Younger Monocot Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/older-monocot-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Older Monocot Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/multiple-dicot-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multiple Dicot Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/multiple-primary-root-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multiple Primary Root Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/primary-root-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Primary Root Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/lateral-root-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lateral Root Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../guides/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipelines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Pipelines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/pipelines/dicot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DicotPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/pipelines/younger-monocot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YoungerMonocotPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/pipelines/older-monocot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OlderMonocotPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/pipelines/multiple-primary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MultiplePrimaryRootPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/pipelines/multiple-dicot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MultipleDicotPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/pipelines/primary-root/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PrimaryRootPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/pipelines/lateral-root/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LateralRootPipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Formats
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Formats
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/data-formats/sleap-files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SLEAP Files (.slp)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/data-formats/hdf5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HDF5 Output
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/data-formats/csv-traits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CSV Traits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/trait-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trait Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/batch-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/custom-pipelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Pipelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/creating-pipelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating Pipelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/adding-traits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adding Traits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/code-style/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Style
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dev/release-process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../api/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Core
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/core/series/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Series
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/core/pipelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Traits
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Traits
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/lengths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lengths
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/angles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Angles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/tips/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tips
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/bases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/convhull/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Convex Hull
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/ellipse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ellipse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/networklength/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network Length
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/scanline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scanline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/traits/points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Points
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Utilities
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Utilities
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/utilities/summary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Summary Statistics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api/examples/common-workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Common Workflows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../cookbook/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cookbook
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7" id="__nav_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cookbook
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../cookbook/filtering-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Filtering Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../cookbook/custom-traits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Traits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../cookbook/batch-optimization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Optimization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../cookbook/exporting-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exporting Results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="design-add-circumnutation-tier2-psi-g-program-pr-7-tier-2">Design — <code>add-circumnutation-tier2-psi-g</code> (Program PR #7, Tier 2)<a class="headerlink" href="#design-add-circumnutation-tier2-psi-g-program-pr-7-tier-2" title="Permanent link">&para;</a></h1>
+<p><strong>Status:</strong> brainstorm draft, revised after 3 rounds of multi-reviewer critical pass (pre-OpenSpec-proposal)
+<strong>Date:</strong> 2026-06-05
+<strong>Branch:</strong> <code>add-circumnutation-tier2-psi-g</code>
+<strong>Epic:</strong> #197 · <strong>Roadmap row:</strong> PR #7 (<code>docs/circumnutation/roadmap.md</code>)
+<strong>Theory anchors:</strong> <code>docs/circumnutation/theory.md</code> §3.5 (ψ_g, Bastien &amp; Meroz 2016 Eq. 20), §6.3 (tier structure + SG conditioning), §7.3 (Tier 2 trait table), §3.7 (trochoid / H1-failure)</p>
+<blockquote>
+<p><strong>Revision note.</strong> §13 is the reconciliation log for all three review rounds.
+Round 3 added a <strong>zero-energy guard</strong> (stationary/straight tracks were yielding
+a spurious <code>T_psig</code>), <strong>split the convention-lock test</strong> into two fixtures (the
+<code>1e-6</code> angle lock and <code>handedness=±1</code> cannot share one fixture), pragma'd two
+now-dead defensive branches, and added a <strong>theory.md §7.3 patch</strong> to scope so
+the deviation doesn't leave a spec↔theory contradiction. Three
+brainstorm/round-1 decisions changed on evidence: (a) ψ_g conditioning →
+<strong>SG-detrend</strong> (only a detrend primitive exists; smooth-only risks
+gravitropic-drift bias); (b) <code>delta_E</code> → <strong>px/frame</strong> (px/s absent from the
+units vocabulary; Tier 0 convention); (c) <code>handedness</code> → <strong>net rotation over
+all finite frames, no COI</strong> (round-2: COI-masking coupled handedness to the
+conditioned CWT ridge and introduced a non-contiguity sign-flip bug — a
+deliberate deviation from §7.3's literal "COI-masked", justified in §4/§13).</p>
+</blockquote>
+<hr />
+<h2 id="1-purpose">1. Purpose<a class="headerlink" href="#1-purpose" title="Permanent link">&para;</a></h2>
+<p>Emit <strong>Tier 2 Bastien–Meroz ψ_g traits</strong> per track. ψ_g(t) is the unwrapped
+velocity-direction angle of the apical tip — under hypotheses H1–H3 it is the
+<em>direct estimator of the differential-growth oscillator</em> (theory §3.5). Applying
+the temporal CWT to ψ_g(t) recovers the spectral content of that oscillator.</p>
+<p>PR #7 ships a self-contained, single-tier module mirroring the merged Tier 1
+module (<code>nutation.py</code>, PR #6). It reuses the locked geometry helper
+<code>_geometry.compute_psi_g</code> (PR #2, atan2 convention) and the temporal-CWT
+primitives (<code>temporal_cwt</code>, PR #5). It introduces <strong>no new <code>ConstantsT</code> fields</strong>
+and emits <strong>4 of the 5</strong> §7.3 traits; <code>psig_long_consistency</code> is deferred (§7).</p>
+<p><strong>Conditioning isolation (now literally exact).</strong> Only <code>T_psig_median_s</code> uses the
+conditioned (SG-detrended) ψ_g and the CWT. The other three traits use <strong>raw</strong>
+inputs, and each a <em>different</em> raw input: <code>handedness</code> uses the raw unwrapped
+ψ_g; <code>delta_E</code> uses raw velocity samples <code>(dx, dy)</code>; <code>helix_signed_area</code> uses raw
+coordinates <code>(x, y)</code>. None of these three touches the CWT or the conditioned
+signal — so a track too short for the CWT still yields all three.</p>
+<h2 id="2-scope">2. Scope<a class="headerlink" href="#2-scope" title="Permanent link">&para;</a></h2>
+<h3 id="in-scope">In scope<a class="headerlink" href="#in-scope" title="Permanent link">&para;</a></h3>
+<ul>
+<li>New public API <code>sleap_roots.circumnutation.psi_g.compute(trajectory_df, cadence_s, constants=None) -&gt; pd.DataFrame</code>, <strong>graduating <code>psi_g</code> from stub to implementation</strong> (renames the stub callable <code>compute_psi_g</code> → <code>compute</code>, matching <code>kinematics.compute</code>/<code>qc.compute</code>/<code>nutation.compute</code>).</li>
+<li>New geometry helper <code>_geometry.compute_signed_area(x, y) -&gt; float</code> (y-down-corrected Shoelace), sibling to <code>compute_psi_g</code>.</li>
+<li>4 Tier 2 trait columns (§4).</li>
+<li>Cross-tier empirical consistency validation against Tier 0 <code>principal_axis_angle</code> (§6).</li>
+<li>Min-length handling + zero-energy guard for the CWT/<code>T_psig</code> path (§3.1).</li>
+<li>Foundation-test migration (§9): move <code>psi_g</code> out of stub tables into the implementation tables.</li>
+<li><strong>theory.md §7.3 patch</strong> (round-3 — Reviewer-C r3-F3): update the <code>handedness</code> row to "net unwrapped ψ_g rotation over all finite frames (COI-free)" + an Appendix B (Corrections) line, so the theory anchor doesn't contradict the shipped spec. theory.md is a living doc (it already carries an Appendix B and <code>angular_amplitude</code> is already a COI-free raw-angle trait — precedent).</li>
+</ul>
+<h3 id="out-of-scope-explicit-non-goals">Out of scope (explicit non-goals)<a class="headerlink" href="#out-of-scope-explicit-non-goals" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>psig_long_consistency</code> (§7.3 trait #2) — requires Tier 1's <code>T_nutation</code>; deferred to a pre-drafted follow-up issue (§7).</li>
+<li>Any new <code>ConstantsT</code> field / <code>_CONSTANTS_VERSION</code> bump (stays 5).</li>
+<li>Any <code>PIPELINE_UNIT_VOCABULARY</code> change — all 4 trait units (<code>s</code>, <code>px/frame</code>, <code>int</code>, <code>px²</code>) already exist in it.</li>
+<li>Spatial CWT, midline, parametric tiers (PRs #8+).</li>
+<li>Multi-plate empirical validation beyond plate-001 (cf. #220).</li>
+<li>Pipeline orchestration / CSV+sidecar emission wiring (later PRs).</li>
+</ul>
+<h2 id="3-public-api-module-shape">3. Public API &amp; module shape<a class="headerlink" href="#3-public-api-module-shape" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">trajectory_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">cadence_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">constants</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ConstantsT</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="o">...</span>
+</span></code></pre></div>
+<p>Differences from <code>nutation.compute</code>: <strong>no <code>coordinate</code> kwarg</strong> (and no
+<code>_check_coordinate</code>) — ψ_g comes from the raw 2D tip trajectory via
+<code>atan2(dx, dy)</code>; there is no 1D-projection choice.</p>
+<p>Shared with <code>nutation.compute</code>: per-track
+<code>groupby(list(_IDENTITY_5_TUPLE), dropna=False, sort=False)</code> →
+<code>_compute_one_track</code> → per-plant template merge via
+<code>_build_per_plant_template_from_df</code> → identity dtype coercion (loud <code>ValueError</code>)
+→ declared column order <code>ROW_IDENTITY_COLUMNS + _PSIG_TRAIT_COLUMNS</code>.</p>
+<p><strong>Validators (disclosed reuse vs new).</strong> <code>_validate_trajectory_df</code> is shared
+(<code>_types.py</code>) and reused; it already enforces <code>tip_x</code>/<code>tip_y</code> column <em>presence</em>
+for all callers (per-row finiteness is handled in §3.1). For <code>cadence_s</code>, reuse
+the importable <code>temporal_cwt._validate_cadence_s</code> (module-level) rather than
+copying nutation's private <code>_check_cadence_s</code>. For <code>constants</code>, <code>psi_g</code> defines a
+small <code>_check_constants</code> that accepts <code>None</code>/<code>ConstantsT</code>, validates the SG fields
+it consumes (<code>SG_WINDOW_DETREND</code> odd &amp; &gt; <code>SG_DEGREE</code>; <code>SG_DEGREE</code> ≥ 0) with
+field-named <code>ValueError</code>s, and defers CWT-field validation to <code>compute_scaleogram</code>
+(which runs <code>_validate_cwt_constants</code>). It does <strong>not</strong> call
+<code>_validate_nutation_constants</code> (Tier-1 fields psi_g doesn't use).</p>
+<p><code>constants</code> is threaded to <code>compute_sg_detrended</code> and <code>compute_scaleogram</code> so
+overrides propagate — hence <code>psi_g.compute</code> joins
+<code>IMPLEMENTATIONS_WITH_CONSTANTS_KWARG</code>.</p>
+<h3 id="31-_compute_one_track-pipeline">3.1 <code>_compute_one_track</code> pipeline<a class="headerlink" href="#31-_compute_one_track-pipeline" title="Permanent link">&para;</a></h3>
+<p>Operates on raw <code>tip_x</code>/<code>tip_y</code>. <strong>Only <code>T_psig_median_s</code> uses the conditioned
+signal + CWT; the other three are raw and CWT-free.</strong></p>
+<ol>
+<li><strong>Finite-frame extraction.</strong> Drop rows with non-finite <code>tip_x</code>/<code>tip_y</code>
+   (<code>compute_psi_g</code> has no NaN guard — Reviewer-2/r1-F7). Let <code>N</code> = count of
+   finite frames.</li>
+<li><strong>Degenerate short-circuit (<code>N &lt; 3</code>).</strong> ψ_g needs ≥2 velocity samples; return
+   the all-degenerate row <code>{T_psig_median_s=NaN,
+   delta_E_amplitude_proxy_px_per_frame=NaN, handedness=0,
+   helix_signed_area_px2=NaN}</code>. (<code>N=0</code>, the all-non-finite track, is this case.)
+   The <code>&lt;3</code> count is over <strong>post-finite-mask</strong> rows.</li>
+<li><strong>ψ_g(t).</strong> <code>psi_g = _geometry.compute_psi_g(tip_x, tip_y)</code> — length <code>N−1</code>,
+   unwrapped, locked <code>atan2(dx, dy)</code>. <strong>Reused, never redefined.</strong></li>
+<li><strong>Raw, CWT-free traits (always emitted for <code>N ≥ 3</code>):</strong></li>
+<li><code>handedness = int(np.sign(psi_g[-1] − psi_g[0]))</code> (net unwrapped rotation
+     over <strong>all</strong> finite frames; no COI), with the <code>1e-9 rad</code> zero-guard (§4).</li>
+<li><code>delta_E = np.median(√(dx² + dy²))</code> over finite velocity samples
+     (<code>dx,dy = np.diff</code> of finite tip coords).</li>
+<li><code>helix = _geometry.compute_signed_area(tip_x, tip_y)</code>.</li>
+<li><strong><code>T_psig_median_s</code> (CWT path; needs <code>N ≥ 24</code> — see min-length note):</strong></li>
+<li><strong>(5a) Length guard.</strong> If <code>len(psi_g) &lt; SG_WINDOW_DETREND (=23)</code> →
+     <code>T_psig_median_s = NaN</code> (skip the CWT entirely). <code>compute_sg_detrended</code>
+     returns all-NaN for <code>len &lt; window</code> (<code>_noise.py</code>), and feeding all-NaN to
+     <code>compute_scaleogram</code> raises — so this guard is mandatory. <strong>This is the only
+     reachable round-2 length branch</strong> (covered by the <code>3 ≤ N &lt; 24</code> test).</li>
+<li>Else <code>psi_g_detrended = compute_sg_detrended(psi_g, window=SG_WINDOW_DETREND,
+     polynomial_order=SG_DEGREE)</code>.</li>
+<li><strong>(5b) Zero-energy guard (round-3 fix — Reviewer-A r3-F1).</strong> If the
+     detrended signal is (near-)constant —
+     <code>np.allclose(psi_g_detrended, 0.0)</code> (equivalently <code>np.nanstd &lt; 1e-12</code>) →
+     <code>T_psig_median_s = NaN</code>, <strong>skip the CWT</strong>. This catches the
+     <strong>stationary tip</strong> <em>and</em> <strong>perfectly straight growth (no wobble)</strong> cases:
+     ψ_g is then constant → detrended ≡ 0 → <code>compute_scaleogram</code> does <strong>not</strong>
+     raise but <code>argmax</code> over an all-zero magnitude silently returns scale index 0,
+     yielding a spurious shortest-period ridge (<code>= 2·cadence_s</code>) with no warning.
+     <code>nutation.py</code>'s precedent does not need this guard (its
+     <code>project_to_growth_axis_perpendicular</code> returns all-NaN on zero displacement,
+     caught by its finite-check); <code>compute_psi_g</code> has no NaN escape hatch, so this
+     guard is psi_g-specific and <strong>reachable</strong> (covered by the stationary test).</li>
+<li><strong>(5c) CWT.</strong> <code>try</code>: <code>compute_scaleogram → extract_ridge → smooth_ridge</code>;
+     <code>T_psig_median_s = nanmedian</code> of <code>smooth_ridge.periods_s[~smooth_ridge.in_coi]</code>,
+     <strong>guarded</strong> so an empty-interior <strong>or</strong> all-NaN slice → NaN with <strong>no</strong>
+     <code>RuntimeWarning</code> (mirrors <code>nutation.py:438-442</code>).</li>
+<li><strong>(5d) Defensive mirrors (round-3: UNREACHABLE via public API — <code># pragma:
+     no cover</code>).</strong> A post-detrend <code>if not np.isfinite(psi_g_detrended).any()</code>
+     check and the <code>except ValueError</code> around the CWT mirror <code>nutation.py:418-428</code>
+     for cross-tier symmetry, <strong>but</strong> given the (5a) length guard (<code>len ≥ 23 &gt;
+     MIN_FRAMES_REQUIRED = 9</code>) and that <code>compute_psi_g</code> never returns non-finite
+     for finite tips, neither fires. They are pragma-excluded defensive mirrors,
+     not unit-tested branches (Reviewer-B r3-F2/F3).</li>
+</ol>
+<p><strong>Min-length note.</strong> A finite <code>T_psig_median_s</code> requires <code>len(ψ_g)=N−1 ≥
+SG_WINDOW_DETREND=23</code>, i.e. <strong><code>N ≥ 24</code></strong>. The CWT itself also has a floor
+(<code>compute_scaleogram</code> requires <code>len ≥ MIN_FRAMES_REQUIRED = 9</code> and raises
+otherwise). The two-layer guard above (finite-check + <code>try/except ValueError</code>) is
+the exact merged-Tier-1 precedent. For <code>3 ≤ N &lt; 24</code>, <code>T_psig_median_s</code> is NaN
+while <code>handedness</code>/<code>delta_E</code>/<code>helix</code> are fully defined (step 4 is CWT-free).</p>
+<h2 id="4-trait-set-73-restricted-to-the-4-self-contained-traits">4. Trait set (§7.3, restricted to the 4 self-contained traits)<a class="headerlink" href="#4-trait-set-73-restricted-to-the-4-self-contained-traits" title="Permanent link">&para;</a></h2>
+<p>Naming: explicit unit suffixes (#222). Period in seconds (matches Tier 1
+<code>T_nutation_median</code>); the speed proxy in <strong>px/frame</strong> (Tier 0's cadence-independent
+velocity convention). All four units (<code>s</code>, <code>px/frame</code>, <code>int</code>, <code>px²</code>) are already
+in <code>PIPELINE_UNIT_VOCABULARY</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>dtype</th>
+<th>Units</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>T_psig_median_s</code></td>
+<td>float64</td>
+<td>s</td>
+<td><code>np.nanmedian</code> of <code>smooth_ridge.periods_s</code> over <strong>COI-interior</strong> frames (<code>~smooth_ridge.in_coi</code>), mirroring <code>nutation.py</code>. Empty/all-NaN interior → NaN, no <code>RuntimeWarning</code>. NaN when <code>N &lt; 24</code> (§3.1).</td>
+</tr>
+<tr>
+<td><code>delta_E_amplitude_proxy_px_per_frame</code></td>
+<td>float64</td>
+<td>px·frame⁻¹</td>
+<td><code>np.median(√(dx²+dy²))</code> over <strong>all finite</strong> velocity samples. No COI; no <code>/cadence_s</code> (px/frame). <code>= (L/2R)·ΔĖ</code>, Eq. 21.</td>
+</tr>
+<tr>
+<td><code>handedness</code></td>
+<td>int64</td>
+<td>int</td>
+<td><code>int(np.sign(psi_g[-1] − psi_g[0]))</code> — sign of <strong>net unwrapped ψ_g rotation over all finite frames</strong> (= mean dψ_g/dt × span). Determinism zero-guard: <code>|psi_g[-1] − psi_g[0]| &lt; 1e-9 rad → 0</code>. <code>+1</code> = counterclockwise. <code>0</code> = no net rotation / degenerate. <strong>No COI</strong> (deviation from §7.3 — see note).</td>
+</tr>
+<tr>
+<td><code>helix_signed_area_px2</code></td>
+<td>float64</td>
+<td>px²</td>
+<td><code>_geometry.compute_signed_area(tip_x, tip_y)</code>; <strong>y-down-corrected</strong> Shoelace so <code>sign(area) == handedness</code> (§5). Independent confirmation of handedness.</td>
+</tr>
+</tbody>
+</table>
+<p>Declared order: 8 <code>ROW_IDENTITY_COLUMNS</code> then the 4 trait columns above.</p>
+<p><strong>Why <code>handedness</code> drops the §7.3 "COI-masked range" (round-2 deviation).</strong> §7.3
+reads "sign of mean dψ_g/dt over COI-masked range." Round-2 review showed the COI
+mask (a) is sourced from the CWT of the <em>detrended</em> signal, so COI-masking would
+couple <code>handedness</code> to conditioning (breaking the isolation in §1) and to the
+CWT min-length floor (short tracks with obvious curl would read <code>handedness=0</code>
+for a spectral reason); and (b) <code>ridge.in_coi</code> interior is <strong>not contiguous</strong>
+(per-frame argmax selects different scales → COI gaps), so an endpoint-difference
+across a masked gap can report the <em>wrong</em> sign (demonstrated counterexample).
+COI is a CWT-edge-reliability concept; a raw angular displacement (atan2 of
+velocity) has no edge contamination, so COI-masking it is a category error —
+§7.3 itself omits COI for the sibling <code>delta_E</code> kinematic median. Net rotation
+over all finite frames is gap-immune, conditioning-independent, defined for
+<code>N ≥ 3</code>, and makes the <code>1e-9 rad</code> zero-guard defensible (raw atan2 differences
+are ~<code>1e-12</code> reproducible cross-OS, well below <code>1e-9</code>). Recorded as an
+intentional deviation in the proposal.</p>
+<p><strong>COI semantics (<code>T_psig</code> only).</strong> Only <code>T_psig_median_s</code> uses COI — via the
+<strong>per-frame</strong> <code>RidgeResult.in_coi</code> (shape <code>(N−1,)</code>), exactly as <code>nutation.py</code>
+does, <strong>not</strong> the 2-D <code>ScaleogramResult.coi_mask</code> <code>(n_scales, N−1)</code>. <code>handedness</code>,
+<code>delta_E</code>, and <code>helix</code> use no COI.</p>
+<p><strong>No <code>is_nutating</code>-style gate</strong> (decision D1). Tier 2 is self-contained — never
+reads Tier 1's <code>is_nutating</code>. Traits emitted ungated; downstream QC <code>LEFT JOIN</code>s
+<code>is_nutating</code> on the shared 5-tuple — the same composition point as the deferred
+<code>psig_long_consistency</code>.</p>
+<h3 id="why-handedness-and-is_nutating-are-orthogonal">Why <code>handedness</code> and <code>is_nutating</code> are orthogonal<a class="headerlink" href="#why-handedness-and-is_nutating-are-orthogonal" title="Permanent link">&para;</a></h3>
+<p><code>is_nutating</code> is an <em>existence/SNR gate</em>; <code>handedness</code> is a <em>directional sign</em>. A
+non-nutating track can have <code>handedness=±1</code> (slow gravitropic curl); a clean
+back-and-forth wobble can have <code>handedness=0</code> (net-zero circulation). Different
+questions → Tier 2 does not gate on <code>is_nutating</code>.</p>
+<h3 id="degenerate-edge-case-table">Degenerate / edge-case table<a class="headerlink" href="#degenerate-edge-case-table" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th><code>T_psig_median_s</code></th>
+<th><code>delta_E…_px_per_frame</code></th>
+<th><code>handedness</code></th>
+<th><code>helix_signed_area_px2</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>N &lt; 3</code> finite frames (incl. all-NaN track)</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>0</td>
+<td>NaN</td>
+</tr>
+<tr>
+<td><code>3 ≤ N &lt; 24</code> (too short to SG-detrend/CWT)</td>
+<td>NaN</td>
+<td><strong>defined</strong></td>
+<td><strong>defined (±1/0)</strong></td>
+<td><strong>defined</strong></td>
+</tr>
+<tr>
+<td>Stationary tip, <code>N ≥ 24</code> (zero displacement)</td>
+<td>NaN (5b zero-energy)</td>
+<td>0.0</td>
+<td>0</td>
+<td>0.0</td>
+</tr>
+<tr>
+<td>Straight growth, no wobble, <code>N ≥ 24</code> (zero detrended energy)</td>
+<td>NaN (5b zero-energy)</td>
+<td>(defined &gt;0)</td>
+<td>0</td>
+<td>0.0</td>
+</tr>
+<tr>
+<td><code>N ≥ 24</code>, normal</td>
+<td>(defined)</td>
+<td>(defined)</td>
+<td>(defined)</td>
+<td>(defined)</td>
+</tr>
+<tr>
+<td>Unmatched per-plant template row</td>
+<td>NaN (<code>fillna</code>)</td>
+<td>NaN (<code>fillna</code>)</td>
+<td>0 (<code>fillna(0)</code>)</td>
+<td>NaN (<code>fillna</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>NaN-vs-0.0 is deliberate: <strong>too-short or zero-energy → NaN</strong> <code>T_psig</code> (undefined
+period); <strong>measured zero displacement → 0.0</strong> for <code>delta_E</code>/<code>helix</code>. With
+handedness now COI-free, there is <strong>no</strong> "empty-interior" handedness failure
+mode. The stationary/straight-growth <code>T_psig=NaN</code> is achieved by the <strong>(5b)
+zero-energy guard</strong> (§3.1), not by any CWT exception.</p>
+<p><strong>dtype enforcement.</strong> psi_g's enforcement loop is <code>int64</code> for <code>handedness</code>,
+<code>float64</code> for the other three (replaces nutation's <code>is_nutating→bool</code>
+special-case with a <code>handedness → fillna(0).astype(np.int64)</code> branch). <code>0</code> is a
+<em>meaningful</em> handedness value, so <code>fillna(0)</code> on unmatched rows is only safe under
+the documented 5-tuple merge invariant (template built from the same
+<code>trajectory_df</code> → no unmatched rows in practice; the path is defensive).</p>
+<h2 id="5-geometry-helper-_geometrycompute_signed_areax-y">5. Geometry helper: <code>_geometry.compute_signed_area(x, y)</code><a class="headerlink" href="#5-geometry-helper-_geometrycompute_signed_areax-y" title="Permanent link">&para;</a></h2>
+<p>Next to <code>compute_psi_g</code> in <code>_geometry.py</code> (single home for convention-critical
+geometry).</p>
+<ul>
+<li><strong>y-down-corrected Shoelace:</strong> <code>A = 0.5 * Σ_i (x_{i+1}·y_i − x_i·y_{i+1})</code>
+  (cyclic) — the <strong>negative</strong> of standard <code>0.5·Σ(x_i·y_{i+1} − x_{i+1}·y_i)</code>.
+  The negation makes positive area correspond to counterclockwise-as-a-viewer-sees
+  and therefore to <code>handedness=+1</code> under the same y-down <code>atan2(dx, dy)</code>
+  convention. <strong>Verified numerically (both rounds):</strong> a screen-CCW orbit gives
+  <code>handedness=+1</code> and standard Shoelace <code>−3.14</code>; the negation → <code>+3.14</code> so
+  <code>sign(area)==handedness</code>.</li>
+<li>Returns <code>float</code>. <code>&lt; 3</code> points → <code>0.0</code> (degenerate polygon) <strong>at the helper
+  level</strong>; <code>_compute_one_track</code> maps the <code>N&lt;3</code>-frame case to NaN <em>before</em> calling,
+  so the trait reports NaN for too-short tracks. (Helper-level scenario asserts
+  <code>0.0</code>; trait-level scenario asserts NaN — kept distinct, not collapsed.)</li>
+<li>NaN-robust: non-finite coords → NaN area (caller short-circuits first).</li>
+<li><strong>Sign is load-bearing</strong>, pinned by two <em>independent</em> tests (break the
+  joint-flip degeneracy):</li>
+<li><strong>Absolute anchor (concrete RED number):</strong> for the hand-built path
+     <code>x=[0,1,1,0], y=[0,0,1,1]</code>, assert <code>compute_signed_area(x, y) == -1.0</code>
+     exactly (standard Shoelace gives <code>+1.0</code>; the negation flips it). On that same
+     path <code>compute_psi_g</code> gives net <code>Δψ_g = −π</code> → <code>handedness=−1</code>, so
+     <code>sign(area)==handedness==−1</code>. Verified by review.</li>
+<li><strong>Agreement:</strong> a synthetic CCW orbit (<code>generate_trajectory(handedness=+1)</code>)
+     yields <strong>both</strong> <code>handedness=+1</code> <strong>and</strong> <code>helix_signed_area_px2 &gt; 0</code>.</li>
+</ul>
+<h2 id="6-cross-tier-consistency-check-validation-not-a-trait">6. Cross-tier consistency check (validation, not a trait)<a class="headerlink" href="#6-cross-tier-consistency-check-validation-not-a-trait" title="Permanent link">&para;</a></h2>
+<p>ψ_g = <code>atan2(dx, dy)</code>; <code>principal_axis_angle</code> = <code>atan2(uy, ux)</code>
+(<code>kinematics.py:269</code>). Via <code>atan2(a, b) = π/2 − atan2(b, a)</code>, a track growing
+along unit axis <strong>u</strong> satisfies:</p>
+<blockquote>
+<p><strong>circular_mean(ψ_g) ≈ π/2 − <code>principal_axis_angle</code>  (mod 2π)</strong></p>
+</blockquote>
+<p>with <code>circular_mean(ψ_g) = atan2(mean(sin ψ_g), mean(cos ψ_g))</code>.</p>
+<p><strong>Branch-cut-safe comparison.</strong> Assert on the <em>wrapped</em> distance:
+<code>abs(wrap_to_pi(circular_mean(ψ_g) − (π/2 − principal_axis_angle))) &lt; tol</code>,
+<code>wrap_to_pi(d) = (d + π) mod 2π − π</code> (realized interval <code>[−π, π)</code>; immaterial for
+a <code>|distance| &lt; tol</code> check).</p>
+<p>Two tests with <strong>distinct honesty levels</strong>:</p>
+<ol>
+<li><strong>Synthetic convention-lock — the true RED test, TWO fixtures (round-3 fix —
+   Reviewer-B r3-F1).</strong> The angle identity and the handedness sign <strong>cannot share
+   one fixture</strong>: <code>circular_mean(ψ_g)</code> of an <em>oscillating</em> ψ_g is biased by the
+   sinusoidal sweep (≈<code>1.7e-3</code> at <code>amplitude_px=10</code>, → 0 only as amplitude → 0),
+   while a nonzero <code>handedness=±1</code> <em>requires</em> amplitude &gt; 0. So:</li>
+<li><strong>(1a) Angle-identity lock</strong> — <code>generate_trajectory(amplitude_px=0.0,
+     growth_axis_angle_rad=θ, noise_sigma_px=0.0)</code> (pure straight growth, ψ_g
+     constant): assert <code>abs(wrap_to_pi(circular_mean(ψ_g) − (π/2 − θ))) &lt; 1e-6</code>.
+     <code>handedness</code> is <code>0</code> here (no rotation — assert that, do <strong>not</strong> assert ±1).
+     Include θ ≈ −2.0 rad so <code>π/2 − θ</code> lands outside <code>[−π, π)</code> and exercises the
+     wrap. This is the exact convention lock.</li>
+<li><strong>(1b) Handedness lock</strong> — <code>generate_trajectory(amplitude_px=10.0,
+     handedness=±1, growth_axis_angle_rad=θ, noise_sigma_px=0.0)</code>: assert
+     <code>handedness == planted ±1</code> (and the angle identity only at a realistic
+     <code>&lt; 1e-2</code>, documented as the oscillation-bias floor).
+   Tests call <code>generate_trajectory(...)</code> directly (the shared
+   <code>_minimal_trajectory_df</code> hard-codes <code>handedness=+1</code>). <strong>The <code>1e-6</code> atol applies
+   ONLY to the (1a) angle identity — NOT to handedness, and NOT to any period
+   magnitude.</strong></li>
+<li><strong>Real plate-001 — GREEN-phase fixture-sanity / reconciliation.</strong> Over the 6
+   tracks of <code>…proofread.slp</code> (mirror the test-local <code>_load_proofread_track_df</code>
+   loader pattern; tracks are 575 frames ≫ 24), run <code>kinematics.compute</code> for
+   <code>principal_axis_angle</code> and assert the reconciled identity. <strong>Guards:</strong></li>
+<li><strong>Skip NaN'd tracks:</strong> <code>principal_axis_angle</code> is NaN when
+     <code>growth_axis_unreliable</code> fires (<code>kinematics.py:218-221,284-290</code>); assert on
+     the surviving subset with a <code>≥ N-of-6</code> count clause (mirrors nutation's
+     <code>test_2H3</code> <code>≥3/6</code>), N pinned at GREEN.</li>
+<li><strong>Tolerance is a documented GREEN-phase constant</strong> (e.g.
+     <code>_PSIG_AXIS_RECONCILE_TOL_RAD</code>), captured from a real run, "GREEN-phase
+     Reconciliation" docstring — the <code>_DERR_MATCH_*</code> precedent
+     (<code>test_circumnutation_nutation.py:101-118</code>). Not a RED assertion against a
+     pre-known threshold.</li>
+</ol>
+<h2 id="7-deferred-psig_long_consistency-pre-drafted-follow-up-issue">7. Deferred: <code>psig_long_consistency</code> (pre-drafted follow-up issue)<a class="headerlink" href="#7-deferred-psig_long_consistency-pre-drafted-follow-up-issue" title="Permanent link">&para;</a></h2>
+<p>§7.3 trait #2, "correlation between <code>T_psig</code> and <code>T_nutation</code> across the CWT
+range" (H1 diagnostic, §3.7) — structurally couples Tier 2 to Tier 1's ridge.
+Deferring keeps PR #7 a clean single-tier module (decision D1).</p>
+<p><strong>Follow-up issue to stage in the vault during proposal:</strong>
+- <strong>Title:</strong> <code>circumnutation: psig_long_consistency cross-tier T_psig↔T_nutation correlation (Tier 1 × Tier 2 CWT co-registration)</code>
+- <strong>Scope bullets:</strong> (a) co-register the Tier 1 lateral-coordinate ridge and the
+  Tier 2 ψ_g ridge on a common frame/period grid; (b) emit
+  <code>psig_long_consistency</code> as their correlation over the COI-interior overlapping
+  period range; (c) H1-failure (§3.7) interpretation note; (d) ownership decision
+  (new cross-tier module vs <code>psi_g.compute</code> optional <code>nutation_df</code>).</p>
+<p>Until then, the downstream <code>LEFT JOIN</code> of <code>is_nutating</code> is the cross-tier
+composition mechanism.</p>
+<h2 id="8-constants-versioning">8. Constants &amp; versioning<a class="headerlink" href="#8-constants-versioning" title="Permanent link">&para;</a></h2>
+<p><strong>No new <code>ConstantsT</code> fields.</strong> Conditioning reuses <code>SG_WINDOW_DETREND=23</code>,
+<code>SG_DEGREE=3</code>; the CWT reuses the PR #5 fields. <code>handedness</code>/<code>delta_E</code>/<code>helix</code>
+need none. <strong><code>_CONSTANTS_VERSION</code> stays 5</strong>;
+<code>test_schema_version_is_1_and_constants_version_is_5</code> is <strong>untouched</strong> (no-op
+confirmation in tasks.md). No MODIFY to the <em>Module-level constants</em> requirement.</p>
+<h2 id="9-foundation-test-migration-pr-6-precedent">9. Foundation-test migration (PR #6 precedent)<a class="headerlink" href="#9-foundation-test-migration-pr-6-precedent" title="Permanent link">&para;</a></h2>
+<p>Graduating <code>psi_g</code> stub→impl touches the foundation contract:
+- <strong>Remove</strong> from <code>STUB_MODULES</code> (drop <code>("psi_g", "compute_psi_g", 7)</code>) and
+  <code>STUBS_WITH_CONSTANTS_KWARG</code> (drop <code>("psi_g", "compute_psi_g")</code>). Verified these
+  exact entries exist.
+- <strong>Add</strong> <code>("psi_g", "compute")</code> to <code>IMPLEMENTATIONS_WITH_CONSTANTS_KWARG</code>, <strong>and</strong>
+  the matching <code>elif module_name == "psi_g":</code> branch in
+  <code>test_implementation_accepts_constants_kwarg</code> (builds a valid <code>trajectory_df</code>,
+  asserts a DataFrame).
+- <strong>Add</strong> <code>psi_g</code> to the explicit <code>test_module_logger_is_namespaced</code> list — note
+  removing <code>psi_g</code> from <code>STUB_MODULES</code> <em>de-covers</em> it from that parametrization
+  (which derives from <code>STUB_MODULES</code>), so the explicit add is mandatory (same
+  regression PR #4/#5/#6 handled). Assert
+  <code>logger.name == "sleap_roots.circumnutation.psi_g"</code>.
+- The stub-<code>NotImplementedError</code> scenarios no longer enumerate <code>psi_g</code> (§11). No
+  executable stub-count assertion exists to update (only comments) — verified.
+- Add a cheap unit test asserting all 4 psi_g trait units ∈
+  <code>PIPELINE_UNIT_VOCABULARY</code> (RED guard for the §4 units claim; all 4 confirmed
+  present: <code>s</code>, <code>px/frame</code>, <code>int</code>, <code>px²</code>).
+- On rename, <strong>fix the stale stub docstring</strong> in <code>psi_g.py</code> (it currently reads
+  <code>atan2(dy/dt, dx/dt)</code> — the <em>reversed</em> convention; the implementation reuses
+  <code>_geometry.compute_psi_g</code>'s locked <code>atan2(dx, dy)</code>, so the wrong-order docstring
+  must not survive — round-3 minor).</p>
+<h2 id="10-tdd-plan-red-green-commit-pairs-per-222-retrospective">10. TDD plan (RED → GREEN commit pairs, per #222 retrospective)<a class="headerlink" href="#10-tdd-plan-red-green-commit-pairs-per-222-retrospective" title="Permanent link">&para;</a></h2>
+<p>Strict red-green-refactor: failing-test commit (<code>test: … (TDD red)</code>) then
+implementation commit (<code>feat:/fix: … (TDD green)</code>). No bundling impl + large test
+file. Fixup commits ship a test alongside any substantive code change.</p>
+<p>Commit-pair units (ordered; red-greenable):
+1. <code>_geometry.compute_signed_area</code> + the <strong>two</strong> sign tests (absolute anchor
+   asserting <code>== -1.0</code>; <code>&lt;3</code>-point/<code>NaN</code> edge), §5.
+2. <code>psi_g.compute</code> schema/structure: returns DataFrame, 8 identity + 4 trait
+   columns in declared order, dtypes (3 float64 + 1 int64). Stub emits the
+   degenerate-table default row (units 2 &amp; 6 share default-emission code).
+3. Input-validation boundary: non-DataFrame, invalid <code>trajectory_df</code>, bad
+   <code>cadence_s</code> (reuse <code>temporal_cwt._validate_cadence_s</code>), bad <code>constants</code>
+   (even-<code>SG_WINDOW_DETREND</code> override → field-named <code>ValueError</code>).
+4. Raw CWT-free traits: <code>handedness</code> (planted CW/CCW via
+   <code>generate_trajectory(handedness=±1)</code>), <code>delta_E</code> (known constant-speed
+   synthetic), handedness↔area agreement. These pass for <code>N ≥ 3</code>.
+5. <code>T_psig_median_s</code> pipeline: <code>compute_psi_g → compute_sg_detrended → CWT chain</code>
+   on a clean known-period synthetic; use <code>T_nutation_s ∈ {3333, 4500}</code> and
+   <code>n_frames ≥ 575</code> (the in-band, surviving periods from nutation <code>test_2C2</code> —
+   periods near the ~6900 s detrend cutoff exceed the bar) and assert recovered
+   period within <strong>±10 %</strong> (cite nutation <code>test_2C2</code>, which asserts <code>err &lt; 0.10</code>
+   on the identical SG-detrend→CWT path: a true falsifiable RED bar, <strong>not</strong>
+   TDD-after). Assert <strong>no</strong> <code>RuntimeWarning</code>.
+6. Degenerate/edge cases (the §4 table) — incl. a <code>3 ≤ N &lt; 24</code> track (e.g. 15
+   frames) asserting <code>T_psig=NaN</code> while <code>handedness</code>/<code>delta_E</code>/<code>helix</code> are finite
+   <strong>and no exception is raised</strong>; a 2-row track; NaN-injection (à la
+   <code>test_2F7b</code>); a <strong>stationary <code>N≥24</code></strong> track via
+   <code>generate_trajectory(amplitude_px=0.0, growth_rate_px_per_frame=0.0,
+   noise_sigma_px=0.0)</code> asserting <code>T_psig=NaN</code> (exercises the <strong>(5b) zero-energy
+   guard</strong>) AND <strong>no <code>RuntimeWarning</code></strong> (the spurious-600 s path must not fire).
+7. Cross-tier: (a) synthetic convention-lock RED (incl. the θ≈−2.0 branch-cut
+   fixture, <code>1e-6</code> on the angle identity only); (b) plate-001 GREEN-phase
+   reconciliation with NaN-skip + <code>≥N/6</code> count.
+8. Foundation-test migration (§9) + the units-vocabulary guard + a multi-track
+   integration test.</p>
+<p><strong>Coverage.</strong> Target ≥ 90 % on <code>psi_g.py</code> and the new <code>_geometry</code> helper; project
+gate ≥ 84 %. Reachable-vs-pragma map (round-3 audit):
+- <strong>Reachable (covered by tests):</strong> the <strong>(5a)</strong> <code>len(psi_g) &lt; 23</code> branch (unit 6,
+  <code>3 ≤ N &lt; 24</code>); the <strong>(5b)</strong> zero-energy branch (unit 6, stationary <code>N≥24</code>).
+- <strong>Unreachable defensive mirrors (<code># pragma: no cover</code>):</strong> the <strong>(5d)</strong> post-detrend
+  <code>not np.isfinite(...)</code> check and the <code>except ValueError</code> block (the (5a) guard +
+  <code>compute_psi_g</code>'s always-finite output make them dead — Reviewer-B r3-F2/F3); and
+  the <code>fillna</code>/identity-dtype-coerce paths (template derives from the same
+  <code>trajectory_df</code>). Each pragma carries a comment citing the invariant; mirror
+  <code>nutation.py</code>. Optionally cover the merge/coerce path with a direct unit test on
+  a hand-built mismatched template.</p>
+<h2 id="11-spec-deltas-preview-for-openspecproposal">11. Spec deltas (preview for <code>/openspec:proposal</code>)<a class="headerlink" href="#11-spec-deltas-preview-for-openspecproposal" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>MODIFIED</strong> <code>Requirement: Package layout</code> — <strong>full-paste the entire updated
+  requirement</strong> (the archiver replaces the whole requirement; partial deltas drop
+  detail). Edits: move <code>psi_g</code> from the stub set to the implementation set
+  (recount <strong>6 implementation / 5 stub</strong> — the <em>inverse</em> of PR #6, which grew impl
+  without shrinking the stub set differently); delete the <code>psi_g</code> row from the
+  stub-callable table; keep <code>psi_g</code> in the "imports cleanly" scenario (still
+  importable, now as impl); drop <code>psi_g</code> from the "Calling each remaining stub
+  raises NotImplementedError" scenario (now <strong>5</strong> remaining stubs); add a
+  <code>psi_g.compute callable without raising</code> scenario mirroring <code>nutation.compute</code>.
+  The <code>IMPLEMENTATIONS_WITH_CONSTANTS_KWARG</code> + logger-namespace migrations (§9)
+  are part of this delta.</li>
+<li><strong>ADDED</strong> <code>Requirement: Tier 2 ψ_g trait emission API</code> — <code>psi_g.compute</code> (the 4
+  traits, conditioning isolation, no cross-tier input, min-length + zero-energy
+  behavior) and <code>_geometry.compute_signed_area</code>. The requirement's rationale MUST
+  carry an explicit <strong>"Deviation from theory.md §7.3"</strong> note (handedness is
+  COI-free) so the archived spec self-documents the divergence (round-3 — the
+  theory.md patch alone is not enough; the spec must own it too).
+  <strong>Each topic rendered as a discrete <code>#### Scenario:</code></strong> (this is a large set —
+  budget it in tasks.md; render WHEN/THEN concretely, esp. CC-6 determinism and
+  the logging contract; re-confirm the 6-impl/5-stub counts against the live
+  <code>Package layout</code> text at scaffolding time):
+  schema/order/dtypes; each trait's definition; the degenerate table
+  (parametrized over its rows, incl. the <code>3≤N&lt;24</code> band); the handedness↔area
+  <strong>absolute-anchor</strong> lock AND the agreement lock (two scenarios, §5); the
+  synthetic convention-lock RED <strong>with the branch-cut fixture</strong>; the plate-001
+  GREEN with NaN-skip + <code>≥N/6</code>; validation errors (bad <code>cadence_s</code>, even
+  <code>SG_WINDOW_DETREND</code>); the <strong>one-DEBUG-record logging contract</strong>; the
+  no-<code>RuntimeWarning</code> all-COI scenario; CC-6 determinism; the helper-level <code>0.0</code>
+  vs trait-level <code>NaN</code> distinction.</li>
+<li><strong>No MODIFY</strong> to <em>Module-level constants</em> (§8) or <em>Per-module logger
+  convention</em> (the logging scenario lives inside the new Tier-2 requirement).</li>
+</ul>
+<p><strong>Logging contract (CC-9).</strong> <code>psi_g.compute</code> emits exactly one <code>DEBUG</code> record on
+the happy path, prefixed <code>"psi_g.compute("</code> with tokens <code>n_tracks=</code> and
+<code>cadence_s=</code> (no <code>coordinate=</code> token — psi_g has no such kwarg), and <strong>no</strong>
+<code>INFO</code>/<code>WARNING</code> — mirroring <code>nutation.compute</code> (<code>nutation.py:697-702</code>).</p>
+<h2 id="12-open-risks-reviewer-flags-confirmed-across-both-rounds">12. Open risks / reviewer flags (confirmed across both rounds)<a class="headerlink" href="#12-open-risks-reviewer-flags-confirmed-across-both-rounds" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>ψ_g ramp degeneracy</strong> (confirmed numerically). A <em>pure</em> circular orbit makes
+  ψ_g ramp monotonically → no oscillatory period; <code>T_psig</code> ill-defined. Real
+  growth-dominated roots give an <em>oscillating</em> ψ_g (zero net ramp for symmetric
+  wobble) → CWT recovers the period; near-circular-but-drifting orbits give
+  ramp-with-ripple → CWT recovers a period <strong>and</strong> <code>handedness=±1</code> (intended).
+  Documented as the H1 regime assumption (§3.4).</li>
+<li><strong>Off-by-one bookkeeping.</strong> ψ_g is length <code>N−1</code>. <code>handedness</code> uses ψ_g
+  <strong>endpoints</strong> (no second diff, no <code>N−2</code> array). <code>T_psig</code> uses <code>ridge.in_coi</code>
+  (also length <code>N−1</code>). No length mismatch anywhere.</li>
+<li><strong>SG-detrend passband</strong> (confirmed numerically). Window 23 at cadence 300 s ≈
+  2× the Derr 3333 s period: retention ≈1.22 at the nutation period, ≈0.009 at 5×
+  (gravitropic drift). The nutation band survives; drift is removed.</li>
+<li><strong>Cross-OS determinism (CC-6).</strong> Float traits (<code>T_psig</code>, <code>delta_E</code>, <code>helix</code>)
+  inherit Tier 1's <strong><code>atol=1e-6</code></strong> cross-OS floor (the SG-detrend→scipy-CWT stack;
+  spec.md:1163). <code>handedness</code> is integer and CWT-free — its <code>1e-9 rad</code> zero-guard
+  is safe because the net-rotation endpoint difference is a raw-atan2 quantity
+  (~<code>1e-12</code> reproducible), well clear of <code>1e-9</code>; zeroing <code>&lt;1e-9 rad</code> of net
+  angular drift is scientifically harmless (numerical-zero hygiene, not a physical
+  deadband). <code>np.nanmedian</code> of an even-length array is deterministic.</li>
+<li><strong>Sign-convention drift.</strong> <code>compute_signed_area</code>'s negation and
+  <code>compute_psi_g</code>'s atan2 order are jointly load-bearing; the <em>absolute-anchor</em>
+  test (§5, <code>== -1.0</code>) — not just the agreement test — guards a silent joint flip.</li>
+</ul>
+<h2 id="13-reconciliation-log-2-rounds-4-reviewers">13. Reconciliation log (2 rounds × 4 reviewers)<a class="headerlink" href="#13-reconciliation-log-2-rounds-4-reviewers" title="Permanent link">&para;</a></h2>
+<p><strong>Decisions changed on review evidence</strong>
+- <em>Conditioning</em> smooth-only → <strong>SG-detrend</strong> (<code>compute_sg_detrended</code>, win 23).
+  R1 (gravitropic-drift bias; no smooth primitive exists). Verified.
+- <em>delta_E unit</em> px/s → <strong>px/frame</strong>. R1 (px/s ∉ vocabulary; Tier 0 convention).
+  Verified.
+- <em>handedness</em> COI-masked → <strong>net rotation over all finite frames, no COI</strong>. R2
+  (COI coupled handedness to the conditioned ridge + non-contiguity sign-flip bug
+  + short-track coupling). Deliberate §7.3 deviation, justified §4.</p>
+<p><strong>Round-1 BLOCKING/IMPORTANT</strong> — all reconciled (Shoelace y-down negation §5;
+SG-detrend replaces nonexistent smooth primitive; plate-001 NaN-skip + GREEN-phase
+relabel §6; <code>MODIFY Package layout</code> §11; branch-cut wrap §6; validator reuse §3;
+per-frame <code>ridge.in_coi</code> not 2-D mask §4; all-NaN nanmedian guard §3.1; raw-tip
+NaN mask §3.1; degenerate direct-construction tests §10; unreachable-branch
+coverage policy §10; absolute + agreement sign tests §5; CC-6 <code>1e-9</code> guard §12;
+CC-9 logging §11; pre-drafted follow-up §7).</p>
+<p><strong>Round-2 BLOCKING/IMPORTANT</strong>
+- R2 <em>min-length gap</em> (3 of 4 reviewers): SG-detrend all-NaN for <code>N&lt;24</code> →
+  <code>compute_scaleogram</code> raises → uncaught crash for <code>3≤N&lt;24</code>. <strong>Fixed</strong> §3.1 step 5
+  (finite-check + <code>try/except ValueError</code>, mirroring <code>nutation.py:418-428</code>) +
+  degenerate-table row + unit-6 test.
+- R2 <em>handedness COI provenance contradiction + non-contiguity sign-flip</em>: fixed
+  by the all-finite-frames redefinition (above).
+- R2 <em>T_psig synthetic tolerance</em>: noise-free recovery ≈5 % error through
+  SG-detrend → unit-5 tolerance <strong>±10 %</strong> (not <code>1e-6</code>); <code>1e-6</code> applies only to the
+  angle identity. <strong>Fixed</strong> §6/§10.
+- R2 <em>determinism anchor</em>: float floor is <code>1e-6</code> (Tier 1), not <code>1e-9</code>; handedness
+  <code>1e-9</code> defensible because it's CWT-free raw atan2. <strong>Fixed</strong> §12.
+- R2 <em>spec-delta completeness</em>: ADDED requirement needs per-trait scenarios
+  rendered; MODIFIED Package layout must full-paste with 6-impl/5-stub recount.
+  <strong>Captured</strong> §11.
+- R2 <em>"raw ψ_g" imprecision</em>: partitioned — handedness/cross-tier use raw ψ_g,
+  delta_E uses raw velocities, helix uses raw coords. <strong>Fixed</strong> §1/§3.1.</p>
+<p><strong>Round-3 BLOCKING/IMPORTANT</strong>
+- R3 <em>stationary/straight-growth spurious <code>T_psig</code></em> (BLOCKING): all-zero ψ_g →
+  all-zero detrend (finite) → <code>compute_scaleogram</code> accepts it → <code>argmax</code>-of-zeros
+  → spurious <code>T_psig = 2·cadence_s</code> with <strong>no</strong> warning (verified numerically).
+  The round-2 finite/<code>ValueError</code> guards miss it. <strong>Fixed</strong> §3.1 step 5b
+  zero-energy guard + degenerate-table rows + unit-6 stationary test asserting
+  NaN and no <code>RuntimeWarning</code>.
+- R3 <em>convention-lock test non-constructible</em> (CRITICAL): <code>1e-6</code> angle atol and
+  <code>handedness=±1</code> cannot coexist on one fixture (<code>circular_mean(ψ_g)</code> oscillation
+  bias ≈<code>1.7e-3</code> at amplitude 10). <strong>Fixed</strong> §6 → two fixtures: (1a) angle lock at
+  <code>amplitude_px=0</code> (handedness 0); (1b) handedness lock at <code>amplitude_px&gt;0</code>
+  (angle identity only <code>&lt;1e-2</code>).
+- R3 <em>2 of 3 round-2 branches are dead code</em>: guard ordering makes the
+  post-detrend finite-check and <code>except ValueError</code> unreachable. <strong>Fixed</strong> §3.1
+  step 5d + §10 coverage map → <code># pragma: no cover</code> defensive mirrors; only (5a)
+  and (5b) are reachable/tested.
+- R3 <em>spec↔theory contradiction</em> (MUST): theory §7.3 still says handedness is
+  "COI-masked." <strong>Fixed</strong> by (i) §2 scope: patch theory.md §7.3 row + Appendix B
+  this PR; (ii) §11: the ADDED requirement's rationale records the deviation so
+  the archived spec self-documents it.</p>
+<p><strong>Round-3 MINOR</strong>: ±10 % <code>test_2C2</code> precedent is <code>err&lt;0.10</code> exact (use
+<code>T∈{3333,4500}</code>, <code>n≥575</code>); stale <code>atan2(dy,dx)</code> stub docstring fixed on rename
+(§9); "COI semantics" retitled <code>(T_psig only)</code> (§4); stationary track is
+<code>generate_trajectory</code>-constructible (no direct-build needed).</p>
+<p><strong>Confirmed correct (no change)</strong>: Shoelace negation formula (abs anchor <code>−1.0</code>,
+re-verified r3); handedness <code>np.sign</code>+<code>1e-9</code> guard + planted CW/CCW sign
+(re-verified r3); <code>delta_E</code> finite-masked, no NaN leak (r3); <code>compute_psi_g→compute</code>
+rename has no dangling refs (<code>_geometry.compute_psi_g</code> is a different, retained
+symbol); §9 foundation edit list exact &amp; complete; dtype loop shape; §6
+atan2/NaN-gate/<code>generate_trajectory(growth_axis_angle_rad, handedness)</code> verified;
+validator reuse; no <code>compute_signed_area</code> collision; <code>_CONSTANTS_VERSION</code> 5
+untouched; SG-detrend passband; min-length short-track reasoning (r3 F2);
+unit-4/5 incremental-green separation (r3); all degenerate rows constructible
+(r3); spec-delta MODIFIED+ADDED split; CC-3/CC-6/CC-9 all pass (r3); no
+5th-trait leakage; zero stale COI/handedness references after the rewrite (r3).</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 Talmo Lab
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/talmolab/sleap-roots" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://pypi.org/project/sleap-roots/" target="_blank" rel="noopener" title="pypi.org" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.follow", "toc.integrate", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

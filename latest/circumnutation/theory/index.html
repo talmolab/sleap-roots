@@ -3103,30 +3103,32 @@
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>Tier 2 — Bastien-Meroz ψ_g(t) CWT
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>  ψ_g(t) = atan2(dx/dt, dy/dt), unwrapped
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>  Pre-smoothed via Savitzky-Golay (degree 3, window ≥ 5 frames)
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>  CWT on ψ_g(t) → T_psig, A_psig, handedness from phase progression
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>  Δ(ψ_g)·Ė(t) = (2R/L)|v(t)| → kinematic differential-growth proxy
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>Tier 3 — Tip-trail spatial CWT (the QPB branch)
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>  Reconstruct midline via tip-trail-as-midline (§6.1)
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>  Compute κ(s) along the trail (smoothing required, see §7 QC)
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>  |κ(s)| envelope → peak location estimates L_gz
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>  Spatial CWT on κ(s) basal of the peak → λ(s), L_c, decay length
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>  Steady-traveling-wave check: λ_spatial vs v·T
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>Tier 4 — Bastien-Meroz parametric fit
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>  From Tier 3 outputs: L_gz, L_c → B = L_gz/L_c
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>  From Eq. 4.4: δ̇₀ = ωR·Δφ / (2ΔL)
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>  From Eq. 5.2: L_c = γ/β; one constraint, two unknowns —
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>    needs an additional measurement (e.g., decay rate during transient)
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    to disentangle β and γ individually. Phase 1 emits L_c only;
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    β and γ are Phase 2 with stimulus experiments.
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>QC tier — runs alongside all above
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>  Tracking quality (SG residual, 2nd-diff noise, outlier step rate)
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>  Cone-of-influence masks per CWT
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>  Calibration presence flag
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>  Nutation-presence boolean (band power vs noise floor)
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>  SG-DETRENDED (residual = raw − SG-smooth, window 23) before CWT
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    (PR #7: detrend, not the literal &quot;pre-smooth&quot; — the residual is the
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>     oscillation a period-CWT needs; reuses Tier 1&#39;s primitive — see Appendix B)
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>  CWT on ψ_g(t) → T_psig (only conditioned trait); handedness/Δ_E/helix are raw
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>  Δ(ψ_g)·Ė(t) = (2R/L)|v(t)| → kinematic differential-growth proxy
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>Tier 3 — Tip-trail spatial CWT (the QPB branch)
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>  Reconstruct midline via tip-trail-as-midline (§6.1)
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>  Compute κ(s) along the trail (smoothing required, see §7 QC)
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>  |κ(s)| envelope → peak location estimates L_gz
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>  Spatial CWT on κ(s) basal of the peak → λ(s), L_c, decay length
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>  Steady-traveling-wave check: λ_spatial vs v·T
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>Tier 4 — Bastien-Meroz parametric fit
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>  From Tier 3 outputs: L_gz, L_c → B = L_gz/L_c
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>  From Eq. 4.4: δ̇₀ = ωR·Δφ / (2ΔL)
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>  From Eq. 5.2: L_c = γ/β; one constraint, two unknowns —
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    needs an additional measurement (e.g., decay rate during transient)
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>    to disentangle β and γ individually. Phase 1 emits L_c only;
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>    β and γ are Phase 2 with stimulus experiments.
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>QC tier — runs alongside all above
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>  Tracking quality (SG residual, 2nd-diff noise, outlier step rate)
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>  Cone-of-influence masks per CWT
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>  Calibration presence flag
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>  Nutation-presence boolean (band power vs noise floor)
 </span></code></pre></div>
 <h3 id="64-feasibility-numbers-reference-data">6.4 Feasibility numbers (reference data)<a class="headerlink" href="#64-feasibility-numbers-reference-data" title="Permanent link">&para;</a></h3>
 <blockquote>
@@ -3348,33 +3350,33 @@
 </thead>
 <tbody>
 <tr>
-<td><code>T_psig_median</code></td>
-<td>hr <code>[—]</code></td>
-<td>Median period from CWT ridge of <span class="arithmatex">\(\psi_g(t)\)</span>, COI-masked</td>
+<td><code>T_psig_median_s</code></td>
+<td>s <code>[—]</code></td>
+<td>Median period from CWT ridge of <span class="arithmatex">\(\psi_g(t)\)</span>, COI-masked. Emitted in <strong>seconds</strong> (PR #7; consistent with Tier 1 <code>T_nutation_median</code> — see Appendix B).</td>
 <td>Bastien &amp; Meroz 2016 Eq. 20</td>
 </tr>
 <tr>
 <td><code>psig_long_consistency</code></td>
 <td>— <code>[—]</code></td>
-<td>Correlation between <span class="arithmatex">\(T_\text{psig}\)</span> and <span class="arithmatex">\(T_\text{nutation}\)</span> across CWT range; diagnostic for H1</td>
+<td>Correlation between <span class="arithmatex">\(T_\text{psig}\)</span> and <span class="arithmatex">\(T_\text{nutation}\)</span> across CWT range; diagnostic for H1. Deferred to PR #13 Layer-3 (owns both this trait and the cross-tier test).</td>
 <td>Bastien &amp; Meroz 2016 §3.7 (trochoid signature)</td>
 </tr>
 <tr>
-<td><code>delta_E_amplitude_proxy</code></td>
-<td>px·hr⁻¹ <code>[—]</code></td>
-<td>Median of <span class="arithmatex">\(\sqrt{\dot{x}^2 + \dot{y}^2}\)</span> × (frames/hr); <span class="arithmatex">\(= (L/2R)\Delta\dot{E}\)</span></td>
+<td><code>delta_E_amplitude_proxy_px_per_frame</code></td>
+<td>px·frame⁻¹ <code>[—]</code></td>
+<td>Median of <span class="arithmatex">\(\sqrt{\dot{x}^2 + \dot{y}^2}\)</span> in <strong>px/frame</strong> (PR #7: px/frame, not px·hr⁻¹ — Tier 0 velocity convention; see Appendix B); <span class="arithmatex">\(\propto (L/2R)\Delta\dot{E}\)</span></td>
 <td>Bastien &amp; Meroz 2016 Eq. 21</td>
 </tr>
 <tr>
 <td><code>handedness</code></td>
 <td><span class="arithmatex">\(\in \{-1, 0, +1\}\)</span> <code>[—]</code></td>
-<td>Sign of mean <span class="arithmatex">\(d\psi_g/dt\)</span> over COI-masked range; <span class="arithmatex">\(+1\)</span> = counterclockwise (left-handed in image frame), <span class="arithmatex">\(-1\)</span> = clockwise</td>
+<td>Sign of the <strong>net unwrapped <span class="arithmatex">\(\psi_g\)</span> rotation over all finite frames</strong> (<strong>COI-free</strong> — PR #7; see Appendix B); <span class="arithmatex">\(+1\)</span> = <span class="arithmatex">\(\psi_g\)</span> increasing (positive mean <span class="arithmatex">\(d\psi_g/dt\)</span>) = counterclockwise as displayed in the y-down image, <span class="arithmatex">\(-1\)</span> = clockwise, <span class="arithmatex">\(0\)</span> = no net rotation</td>
 <td>Bastien &amp; Meroz 2016 §"Constant principal direction of growth"</td>
 </tr>
 <tr>
-<td><code>helix_signed_area</code></td>
+<td><code>helix_signed_area_px2</code></td>
 <td>px² <code>[—]</code></td>
-<td>Signed area enclosed by tip trajectory (Shoelace formula); confirmation of handedness</td>
+<td>Signed area enclosed by the <strong>growth-detrended</strong> tip trajectory (per-axis linear-trend removed, then y-down Shoelace); confirmation of handedness on 2-D-circulating data (PR #7 — raw Shoelace was growth-ribbon-dominated, 1/6 on plate-001; detrended ≥5/6 — see Appendix B)</td>
 <td>Standard kinematic</td>
 </tr>
 </tbody>
@@ -3576,6 +3578,14 @@
 <p>The conversation that produced this doc contained two interpretive errors that should not propagate to the implementing session. Recording them here so the implementing Claude inherits the corrected understanding.</p>
 <p><strong>(1) The "2:1 mode ratio" along the rachis is not two oscillators at different positions.</strong> Earlier framing suggested QPB found a 2:1 ratio between basal <span class="arithmatex">\(T_\text{nutation}\)</span> and apical <span class="arithmatex">\(T_\text{projection}\)</span> representing two distinct physical oscillators. Reading the actual paper [Rivière 2022 §"The elongation profile in the growth zone is compatible with local contractions", Figure 3]: the two periods <span class="arithmatex">\(\tau_f \approx 2.1\)</span> h (basal) and <span class="arithmatex">\(\tau_{2f} \approx 1.2\)</span> h (apical) appear in the wavelet decomposition of <em>side-view-projected apparent elongation rate</em> <span class="arithmatex">\(\dot{\varepsilon}(s_a, t)\)</span>, and the model demonstrates that the apical-end frequency-doubling is a projection artifact that appears only when local contractions occur (i.e. when <span class="arithmatex">\(\dot{\delta}_0 &gt; \dot{\varepsilon}_0/2\)</span> in the model). It is <strong>diagnostic of contraction</strong>, not of two separate oscillators. The pipeline's top-view tip data does not have this projection structure; we cannot reproduce or look for this specific 2:1 signature directly.</p>
 <p><strong>(2) Bastien-Douady-Moulia (2013, 2014) vs. Bastien-Meroz (2016).</strong> The earlier conversation initially attributed the curvature-with-proprioception equation <span class="arithmatex">\(\partial\kappa/\partial t = -\beta\sin(\theta - \theta_p) - \gamma\kappa\)</span> to "the Bastien-Meroz framework" and discussed fitting nutation traits to it. That equation is a <strong>tropism</strong> equation from Bastien-Douady-Moulia, restated in [Meroz 2026, Eq. 1] as such. The Bastien-Meroz 2016 paper extends it to nutation by adding the perpendicular-curvature equation [Eq. 14] and an oscillating <span class="arithmatex">\(\psi_g\)</span> — that is the actual nutation extension, and equations 20–21 from BM2016 are what give us the load-bearing <span class="arithmatex">\(\psi_g(t) = \arctan(\dot{x}_a/\dot{y}_a)\)</span> tip-only extraction. Phase 1 of the pipeline emits <span class="arithmatex">\(L_c\)</span> (= <span class="arithmatex">\(\gamma/\beta\)</span>) only; full <span class="arithmatex">\((\beta, \gamma, \theta_p)\)</span> identification is Phase 2 and requires a gravitropism stimulus experiment.</p>
+<p><strong>(3) Tier 2 §7.3 trait definitions corrected during PR #7 implementation.</strong> Three §7.3 entries were revised (originals preserved here for provenance / reproducibility of any analysis citing the prior definitions):</p>
+<ul>
+<li><strong><code>handedness</code> is COI-free.</strong> Original: <em>"Sign of mean <span class="arithmatex">\(d\psi_g/dt\)</span> over COI-masked range; <span class="arithmatex">\(+1\)</span> = counterclockwise (left-handed in image frame), <span class="arithmatex">\(-1\)</span> = clockwise."</em> Corrected: sign of the <strong>net unwrapped <span class="arithmatex">\(\psi_g\)</span> rotation over all finite frames</strong> (no COI mask). The COI is a CWT-edge-reliability concept derived from the SG-detrended ridge; COI-masking would (a) couple a raw kinematic sign to the conditioned signal and the CWT min-length floor, and (b) the per-frame <code>ridge.in_coi</code> interior is non-contiguous, so an endpoint difference across a masked gap can report the wrong sign. A raw <code>atan2</code>-velocity displacement has no edge contamination; §7.3 itself omits COI for the sibling <code>delta_E</code>, and <code>angular_amplitude</code> (§7.1) is a COI-free raw-angle precedent. The sign is anchored on the <span class="arithmatex">\(d\psi_g/dt\)</span> sign, not the frame-ambiguous word "counterclockwise" (which only holds in the y-down image sense).</li>
+<li><strong><code>delta_E_amplitude_proxy</code> is px/frame, not px·hr⁻¹.</strong> Original units px·hr⁻¹ ("× (frames/hr)"). Corrected to <strong>px/frame</strong> (drops the cadence factor) to match Tier 0's cadence-independent velocity convention (<code>px/s</code> is also absent from the pipeline unit vocabulary). As a per-track amplitude proxy the prefactor-/cadence-free magnitude preserves the shape and relative magnitude of <span class="arithmatex">\(\Delta\dot{E}\)</span>.</li>
+<li><strong><code>T_psig_median</code> is emitted in seconds (<code>T_psig_median_s</code>).</strong> Original units "hr". Corrected to seconds for consistency with Tier 1 <code>T_nutation_median</code> (a future <code>psig_long_consistency</code> correlation then needs no unit conversion).</li>
+<li><strong><code>helix_signed_area</code> is computed on the growth-detrended trajectory.</strong> Original: <em>"Signed area enclosed by tip trajectory (Shoelace formula); confirmation of handedness."</em> A PR #7 self-review on the real plate-001 fixture found the raw Shoelace area of an open growing root is dominated by the linear-growth ribbon, so <code>sign(raw_area) == handedness</code> held for only <strong>1 of 6</strong> tracks. Corrected to subtract the per-axis linear growth trend before the Shoelace, after which it holds for <strong>≥5 of 6</strong> — the enclosed area then reflects the nutation orbit, not the growth ribbon. (Note: a planar wobble-on-growth such as the synthetic generator's output has no true 2-D circulation, so its detrended area is ~0; the sign-confirmation is meaningful only for genuinely 2-D-circulating data.)</li>
+</ul>
+<p>Additionally, the §6.3 Tier 2 conditioning line was corrected from "Pre-smoothed via Savitzky-Golay" to <strong>SG-detrended</strong> (the residual = raw − SG-smooth): the residual is the oscillation component a period-extracting CWT requires (smoothing-only would retain gravitropic drift that biases <span class="arithmatex">\(T_\text{psig}\)</span>), and reuses the exact <code>_noise.compute_sg_detrended</code> primitive Tier 1 uses. Full rationale + the 3-round review reconciliation: <code>docs/superpowers/specs/2026-06-05-add-circumnutation-tier2-psi-g-design.md</code> §13 and the OpenSpec change <code>add-circumnutation-tier2-psi-g</code>.</p>
 <hr />
 <h2 id="11-references">11. References<a class="headerlink" href="#11-references" title="Permanent link">&para;</a></h2>
 <p>Bastien, R., Bohr, T., Moulia, B., Douady, S. (2013). Unifying model of shoot gravitropism reveals proprioception as a central feature of posture control in plants. <em>PNAS</em> 110(2):755–760.</p>
