@@ -222,6 +222,16 @@ Round 1: five reviewers (numerical/sign, API/dataclass, degenerate/edge, scope/m
 
 **CONFIRMED OK (no change):** no `_CONSTANTS_VERSION` bump; §9 items 1–5 line-accurate; counts impl 6→7 / stub 5→4; `_geometry` 4-derivative pure-geometry split; trapezoid-vs-segment immaterial; `frame_indices` int64; circle-canary recovery ≈1.78e-5 + bit-identical repeat; §9b 8-edit enumeration complete (line-32 import scenario correctly needs no edit); theory §6.2 patch well-scoped; `_noise.py` scipy-import conversion adequately scoped.
 
+### Round 3 — /openspec-review (5-subagent proposal review)
+
+Verdict across reviewers: APPROVE / 9-of-10 / implementation-ready; the PR #7 BLOCKING (dropped sibling scenarios) is ABSENT (all 13 preserved, counts correct), `--strict` valid. **No BLOCKING.** IMPORTANT findings reconciled into the OpenSpec change files (proposal/design/tasks/spec):
+- **R5-sign-collision (highest, publication-risk):** ψ_g family's swapped `atan2(dx,dy)` ⇒ `sign(κ) == −handedness`. *Resolution:* spec `compute_path_curvature` paragraph + a new cross-helper sign scenario + tasks §2.1 cross-helper test + theory §6.2 patch (§9.1) all now state `sign(κ) == −handedness`.
+- **R4-cadence-independence-test-gap:** spec scenario had no test. *Resolution:* added the RED cadence-independence test to tasks §5.1.
+- **R4/R5-canary chicken-and-egg + tolerance conflation:** *Resolution:* tasks §7.1 hardcodes `_MIDLINE_CANARY_EXPECTED` (à la `_CANARY_EXPECTED_VALUES`) and SEPARATES the oracle `κ≈1/R` (loose `atol≈1e-3`) from the cross-OS reproducibility `atol=1e-9`; spec determinism scenario updated.
+- **R4-mask-band-headroom:** 0.75 upper bound too thin. *Resolution:* widened to 0.85 in spec + tasks §8.1.
+- **R5-mask-over-rationalization / R5-cross-tier-data-dependence:** *Resolution:* softened spec + design D7/Risks prose (data-specific, SNR-insensitive, not a general identity); spec cross-tier scenario gained the robust `arc ≤ L` invariant + `σ_pos` recording.
+- MINOR: tasks corrected "5 call sites across 3 functions"; elif line ref ~937 (not 967) + explicit `cadence_s=300.0`; §1 gate → full suite (kinematics is a `_noise` consumer); §8 `skipif(fixture.exists())`; §1.1 `deriv=0` + `deriv==order` cases; §6.1 parametrize `n∈{0..5}`; `sg_window/sg_degree/noise_mask_k` value asserts; §5/§6 RED-vs-contract-locking note; spatial_cwt extra-kwargs drift noted as informational. `openspec validate --strict` re-passed after edits.
+
 ## 14. Open questions
 
 - Real plate-001 cross-tier tolerance + mask-fraction band are captured/asserted at GREEN against pre-committed floors (finite, monotonic, `max|κ[~mask]|<1`, `0.1<frac<0.75`, arc within ~5%) and the observed values recorded — auditable, not self-fulfilling (PR #7 GREEN-phase discipline).
