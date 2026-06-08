@@ -216,3 +216,66 @@ def test_compute_path_curvature_sign_is_opposite_handedness():
     assert int(np.sign(kappa[0])) == 1
     assert handedness == -1
     assert int(np.sign(kappa[0])) == -handedness
+
+
+# ---------------------------------------------------------------------------
+# §3 — MidlineResult + reconstruct (fields / dtypes / arc-length contract)
+# ---------------------------------------------------------------------------
+
+
+def _wobble_track(n=32, growth=1.0, amp=3.0, period=8.0):
+    """A non-degenerate growth+lateral-wobble track (x growth, y sinusoid)."""
+    t = np.arange(n, dtype=np.float64)
+    x = growth * t
+    y = amp * np.sin(2.0 * np.pi * t / period)
+    return x, y
+
+
+def test_reconstruct_returns_midline_result_with_fields_and_dtypes():
+    """reconstruct returns a MidlineResult with the documented arrays + dtypes."""
+    from sleap_roots.circumnutation.midline import MidlineResult, reconstruct
+
+    x, y = _wobble_track(n=32)
+    result = reconstruct(x, y, cadence_s=300.0)
+    assert isinstance(result, MidlineResult)
+
+    n = 32
+    assert result.frame_indices.shape == (n,)
+    assert result.frame_indices.dtype == np.int64
+    np.testing.assert_array_equal(result.frame_indices, np.arange(n))
+    for name in (
+        "x_smooth_px",
+        "y_smooth_px",
+        "speed_px_per_frame",
+        "arc_length_px",
+        "curvature_px_inv",
+    ):
+        arr = getattr(result, name)
+        assert arr.shape == (n,), name
+        assert arr.dtype == np.float64, name
+    assert result.velocity_sub_noise_mask.shape == (n,)
+    assert result.velocity_sub_noise_mask.dtype == np.bool_
+
+
+def test_reconstruct_provenance_scalars_take_default_values():
+    """The resolved provenance scalars carry the documented defaults."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x, y = _wobble_track(n=32)
+    result = reconstruct(x, y, cadence_s=300.0)
+    assert result.cadence_s == 300.0
+    assert result.sg_window == 5
+    assert result.sg_degree == 3
+    assert result.noise_mask_k == 2
+    assert result.is_degenerate is False
+    assert isinstance(result.sigma_v_px_per_frame, float)
+
+
+def test_reconstruct_arc_length_starts_at_zero_and_is_monotonic():
+    """arc_length_px[0] == 0 and the arc length is monotonic non-decreasing."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x, y = _wobble_track(n=40)
+    result = reconstruct(x, y, cadence_s=300.0)
+    assert result.arc_length_px[0] == 0.0
+    assert np.all(np.diff(result.arc_length_px) >= -1e-12)

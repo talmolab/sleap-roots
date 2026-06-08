@@ -46,8 +46,15 @@ import pytest
 # STUBS_WITH_CONSTANTS_KWARG and added to IMPLEMENTATIONS_WITH_CONSTANTS_KWARG
 # + the explicit logger-namespace list. No _CONSTANTS_VERSION bump (no new
 # constants).
+# PR #8 (add-circumnutation-tier3a-midline) graduates midline from a stub to the
+# 7th implementation module (same stub→impl shape as PR #7: stub count shrinks
+# 5 → 4, implementation count grows 6 → 7). The stub callable reconstruct KEEPS
+# its name (no rename, unlike psi_g), so midline is removed from STUB_MODULES and
+# STUBS_WITH_CONSTANTS_KWARG and added to IMPLEMENTATIONS_WITH_CONSTANTS_KWARG
+# + the explicit logger-namespace list. No _CONSTANTS_VERSION bump (no new
+# constants; the two new helpers compute_sg_derivative / compute_path_curvature
+# are functions, not ConstantsT fields).
 STUB_MODULES = [
-    ("midline", "reconstruct", 8),
     ("spatial_cwt", "compute_scaleogram", 9),
     ("parametric", "compute", 11),
     ("plotting", "scaleogram", 16),
@@ -774,6 +781,11 @@ def test_constants_snapshot_reflects_override():
         # add-circumnutation-tier2-psi-g change removes it from STUB_MODULES
         # above (same Copilot regression PR #4/#5 hit for synthetic/temporal_cwt).
         "psi_g",
+        # Added in PR #8: midline (now an implementation module, not a stub).
+        # Must be listed explicitly because the
+        # add-circumnutation-tier3a-midline change removes it from STUB_MODULES
+        # above (same Copilot regression PR #4/#5/#7 hit).
+        "midline",
     ],
 )
 def test_module_logger_is_namespaced(module_name):
@@ -847,7 +859,6 @@ def test_convert_to_mm_inf_rejected(bad):
 # but the implementation is exercised via `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG`
 # below (no NotImplementedError contract).
 STUBS_WITH_CONSTANTS_KWARG = [
-    ("midline", "reconstruct"),
     ("spatial_cwt", "compute_scaleogram"),
     ("pipeline", "compute_traits"),
 ]
@@ -863,6 +874,7 @@ IMPLEMENTATIONS_WITH_CONSTANTS_KWARG = [
     ("temporal_cwt", "compute_scaleogram"),  # added by PR #5
     ("nutation", "compute"),  # added by PR #6
     ("psi_g", "compute"),  # added by PR #7 (stub→impl rename compute_psi_g→compute)
+    ("midline", "reconstruct"),  # added by PR #8 (stub→impl, no rename)
 ]
 
 
@@ -964,6 +976,19 @@ def test_implementation_accepts_constants_kwarg(module_name, callable_name):
         df = pd.DataFrame(rows)
         result = fn(df, 300.0, constants=ConstantsT())
         assert isinstance(result, pd.DataFrame)
+    elif module_name == "midline":
+        # midline.reconstruct(x, y, cadence_s, sg_window, constants). PR #8
+        # (add-circumnutation-tier3a-midline). UNLIKE every other branch above,
+        # reconstruct takes RAW 1-D float64 ARRAYS (not a DataFrame) — it is the
+        # first array-typed implementation in this table. Build n=8 finite
+        # non-stationary arrays (n >= SG_WINDOW_SHORT=5) and require the
+        # cadence_s=300.0 positional. Returns a MidlineResult, not a DataFrame.
+        from sleap_roots.circumnutation.midline import MidlineResult
+
+        x = np.arange(8, dtype=np.float64)
+        y = np.linspace(0.0, 3.0, 8, dtype=np.float64)
+        result = fn(x, y, 300.0, constants=ConstantsT())
+        assert isinstance(result, MidlineResult)
     else:
         # kinematics.compute / qc.compute take a positional trajectory_df.
         # Build a minimal valid 10-frame, 1-track trajectory inline.
