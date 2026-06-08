@@ -279,3 +279,108 @@ def test_reconstruct_arc_length_starts_at_zero_and_is_monotonic():
     result = reconstruct(x, y, cadence_s=300.0)
     assert result.arc_length_px[0] == 0.0
     assert np.all(np.diff(result.arc_length_px) >= -1e-12)
+
+
+# ---------------------------------------------------------------------------
+# §4 — input-validation boundary (raise, field-named; non-finite rejected)
+# ---------------------------------------------------------------------------
+
+
+def test_reconstruct_non_ndarray_x_raises_type_error():
+    """x not an ndarray → TypeError."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    with pytest.raises(TypeError):
+        reconstruct([0.0, 1.0, 2.0, 3.0, 4.0], np.arange(5.0), cadence_s=300.0)
+
+
+@pytest.mark.parametrize(
+    "bad_x",
+    [
+        np.zeros((5, 2), dtype=np.float64),  # not 1-D
+        np.arange(5).astype(np.complex128),  # complex dtype
+        np.array(["a", "b", "c", "d", "e"], dtype=object),  # object dtype
+    ],
+)
+def test_reconstruct_bad_x_array_raises_value_error(bad_x):
+    """Non-1-D / complex / object-dtype x → ValueError."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    y = np.arange(len(bad_x) if bad_x.ndim == 1 else bad_x.shape[0], dtype=np.float64)
+    with pytest.raises(ValueError):
+        reconstruct(bad_x, y, cadence_s=300.0)
+
+
+def test_reconstruct_length_mismatch_raises_value_error():
+    """len(x) != len(y) → ValueError naming the lengths."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    with pytest.raises(ValueError, match="length"):
+        reconstruct(np.arange(8.0), np.arange(7.0), cadence_s=300.0)
+
+
+@pytest.mark.parametrize("bad", [np.nan, np.inf, -np.inf])
+def test_reconstruct_non_finite_is_rejected_not_dropped(bad):
+    """A NaN/±inf in x or y RAISES ValueError (rejected, not dropped)."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x = np.arange(8.0)
+    x[3] = bad
+    with pytest.raises(ValueError):
+        reconstruct(x, np.linspace(0.0, 3.0, 8), cadence_s=300.0)
+
+
+def test_reconstruct_non_finite_precedes_length_gate():
+    """A 3 ≤ n < sg_window all-NaN track RAISES (validation before the degenerate gate)."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x = np.full(3, np.nan)  # n=3 < sg_window=5, AND non-finite
+    with pytest.raises(ValueError):
+        reconstruct(x, np.full(3, np.nan), cadence_s=300.0)
+
+
+@pytest.mark.parametrize("bad", [0, -1.0, np.nan, np.inf, -np.inf])
+def test_reconstruct_invalid_cadence_value_raises_value_error(bad):
+    """Invalid cadence_s value → ValueError naming cadence_s."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x, y = _wobble_track(n=8)
+    with pytest.raises(ValueError, match="cadence_s"):
+        reconstruct(x, y, cadence_s=bad)
+
+
+@pytest.mark.parametrize("bad", [True, np.bool_(True), "300", [300.0]])
+def test_reconstruct_invalid_cadence_type_raises_type_error(bad):
+    """Invalid cadence_s type (bool/np.bool_/str/list) → TypeError naming cadence_s."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x, y = _wobble_track(n=8)
+    with pytest.raises(TypeError, match="cadence_s"):
+        reconstruct(x, y, cadence_s=bad)
+
+
+def test_reconstruct_validation_precedes_degenerate_gate():
+    """n == 0 with an invalid cadence_s RAISES (validation wins over graceful path)."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    with pytest.raises((ValueError, TypeError)):
+        reconstruct(np.array([]), np.array([]), cadence_s=-1.0)
+
+
+@pytest.mark.parametrize("bad_window", [4, 3, 5.0])  # even, <=SG_DEGREE, non-int
+def test_reconstruct_invalid_sg_window_raises_naming_field(bad_window):
+    """Even / ≤ SG_DEGREE / non-int sg_window → ValueError|TypeError naming the field."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x, y = _wobble_track(n=16)
+    with pytest.raises((ValueError, TypeError)):
+        reconstruct(x, y, cadence_s=300.0, sg_window=bad_window)
+
+
+def test_reconstruct_non_constantst_constants_raises_type_error():
+    """constants not None and not a ConstantsT → TypeError naming constants."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x, y = _wobble_track(n=8)
+    with pytest.raises(TypeError, match="constants"):
+        reconstruct(x, y, cadence_s=300.0, constants=object())
