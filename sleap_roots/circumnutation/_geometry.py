@@ -249,3 +249,79 @@ def compute_signed_area(x: np.ndarray, y: np.ndarray) -> float:
     # handedness +1 (ψ_g increasing) under the atan2(dx, dy) image-y-down
     # convention compute_psi_g encodes.
     return 0.5 * float(np.sum(x_next * y - x * y_next))
+
+
+def compute_path_curvature(
+    x_dot: np.ndarray,
+    y_dot: np.ndarray,
+    x_ddot: np.ndarray,
+    y_ddot: np.ndarray,
+) -> np.ndarray:
+    r"""Per-frame trajectory curvature ``κ`` from velocity/acceleration (PR #8, Tier 3a).
+
+    Computes the standard differential-geometry curvature (theory.md §6.2):
+
+    .. math:: \kappa = \frac{\dot{x}\,\ddot{y} - \dot{y}\,\ddot{x}}{(\dot{x}^2 + \dot{y}^2)^{3/2}}
+
+    in inverse pixels (px⁻¹). Used by ``midline.reconstruct`` (Tier 3a), which
+    feeds it the Savitzky-Golay analytic derivatives of the smoothed tip
+    coordinates (``_noise.compute_sg_derivative`` with ``deriv=1`` and
+    ``deriv=2``).
+
+    **Sign convention (load-bearing — anchored on the FORMULA sign, NOT the
+    frame-ambiguous word "left turn").** This is the literal standard y-up math
+    curvature formula. Anchored (like :func:`compute_signed_area`'s
+    ``[0,1,1,0]/[0,0,1,1] → −1.0`` anchor) by the absolute hand-built input
+    ``compute_path_curvature([1],[0],[0],[1]) == +1.0`` (unit velocity ``+x``,
+    unit acceleration ``+y``). A counterclockwise (y-up math) circle of radius
+    ``R`` gives ``κ = +1/R``; a clockwise circle gives ``−1/R``. theory.md §6.2
+    labels ``κ > 0`` a "left turn" — that is the standard y-up math convention;
+    in the **y-down image frame** the pipeline runs in, ``+κ`` is a
+    clockwise / visual-right turn as displayed (so we anchor on the sign, not
+    the word — the same discipline :func:`compute_signed_area` uses).
+
+    **Cross-helper sign relationship (publication-trait-inversion guard).**
+    Because the ψ_g family (:func:`compute_psi_g`, :func:`compute_signed_area`,
+    the ``handedness`` trait) uses the deliberately swapped ``atan2(dx, dy)``
+    argument order, the exact per-frame identity is ``dψ_g/dt = −κ·|v|``, so
+    ``sign(dψ_g/dt) = −sign(κ)`` frame-by-frame wherever ``|v| > 0``. For a loop
+    traversed with a SINGLE sense of rotation (single-signed ``κ`` — a
+    circle/ellipse/arc) this collapses to the scalar ``sign(κ) == −handedness``
+    (e.g. a y-up-math-CCW circle gives ``κ = +1/R`` but ``handedness = −1``).
+    A consumer composing curvature chirality with ``handedness`` (PR #9/#10)
+    MUST account for this opposite polarity.
+
+    Args:
+        x_dot: 1-D array of ẋ (first derivative of x).
+        y_dot: 1-D array of ẏ (same length as ``x_dot``).
+        x_ddot: 1-D array of ẍ (second derivative of x; same length).
+        y_ddot: 1-D array of ÿ (same length).
+
+    Returns:
+        Length-``len(x_dot)`` 1-D ``float64`` array of curvature in px⁻¹.
+        Frames where ``|v| = √(ẋ² + ẏ²) = 0`` (the curvature denominator
+        vanishes) are set to ``NaN``. The computation is guarded by
+        ``np.errstate(divide, invalid, over)`` so no ``np.RuntimeWarning`` is
+        emitted and no ``±inf`` is returned at the exact-zero denominator; the
+        caller (``midline.reconstruct``) additionally sweeps any non-finite
+        curvature at the near-zero-denominator corner to ``NaN``.
+
+    Raises:
+        ValueError: If the four input arrays do not all have the same length.
+    """
+    x_dot = np.asarray(x_dot, dtype=np.float64)
+    y_dot = np.asarray(y_dot, dtype=np.float64)
+    x_ddot = np.asarray(x_ddot, dtype=np.float64)
+    y_ddot = np.asarray(y_ddot, dtype=np.float64)
+    if not (len(x_dot) == len(y_dot) == len(x_ddot) == len(y_ddot)):
+        raise ValueError(
+            f"x_dot, y_dot, x_ddot, y_ddot must have the same length; got "
+            f"{len(x_dot)}, {len(y_dot)}, {len(x_ddot)}, {len(y_ddot)}"
+        )
+    denom = (x_dot**2 + y_dot**2) ** 1.5
+    with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+        kappa = (x_dot * y_ddot - y_dot * x_ddot) / denom
+    kappa = np.asarray(kappa, dtype=np.float64)
+    # Exact zero-velocity frames (vanishing denominator) → NaN, never ±inf.
+    kappa[denom == 0.0] = np.nan
+    return kappa
