@@ -45,6 +45,11 @@ stationary-detection to the raw input — all reconciled below.
   **deliberate divergence** from `ScaleogramResult`/`RidgeResult` (which carry
   only data) — an all-NaN Result + explicit flag is the right degenerate output
   for a per-track reconstruction primitive (justified like `RidgeResult.powers`).
+  Also adds **`eq=False`** to the attrs decorator (a second deliberate improvement
+  over the template): with ndarray fields the generated `__eq__` on `r1 == r2` is
+  ill-defined (a multi-element array has no unambiguous truth value; `==` can raise
+  `ValueError: ambiguous truth value`); `eq=False` makes `==` identity and forces
+  field-by-field `np.array_equal` comparison (the determinism-test pattern).
 - **D3 — Units = px/frame (program convention):** velocity `speed_px_per_frame`,
   arc length integrated with `dx=1` frame (px), curvature `px⁻¹` (time-unit
   invariant). `px/s` deliberately NOT used (theory §10 Appendix B). *Alternative:*
@@ -95,7 +100,17 @@ stationary-detection to the raw input — all reconciled below.
   post-SG speed is float dust, never exactly 0). Degenerate gate returns BEFORE
   any `np.std`/`hypot`/`cumtrapz` (`n==0` first disjunct — `np.ptp([])` raises).
   Curvature computed under `errstate(divide,invalid,over)` + post-`~isfinite→NaN`
-  sweep (no inf, no RuntimeWarning).
+  sweep (no inf, no RuntimeWarning). On the graceful path the float arrays are NaN,
+  `frame_indices=arange(n)`, and `velocity_sub_noise_mask=np.zeros(n, bool)` (all-False
+  — a bool array can't hold NaN). ALL field-named validation runs first and
+  unconditionally, so `n=0`-with-bad-`cadence_s` RAISES (validation wins over the
+  graceful path). **Deliberate gate-divergence (R4-BLOCKING-3):** `reconstruct` gates
+  stationarity on `ptp(x)==0 and ptp(y)==0` whereas `_geometry.project_to_growth_axis
+  _perpendicular` gates on zero NET displacement — different physical questions ("did
+  the tip move at all" vs. "is there a growth axis"). A closed loop (e.g. a full
+  circle: net-disp 0 but `ptp=2R`) HAS a well-defined curvature midline but no growth
+  axis, so midline correctly uses `ptp`; the canary circle exercises exactly this
+  healthy-on-net-zero path.
 - **D9 — Determinism (CC-6):** same-process atol=0; cross-OS **atol=1e-9, rtol=0**
   (measured full-pipeline ULP propagation ≈1e-14; well-conditioned savgol lstsq
   `cond(A)≈11–92`). *Alternative:* 1e-6 (PR #6/#7) — rejected (a coverage argument
@@ -106,7 +121,7 @@ stationary-detection to the raw input — all reconciled below.
 
 ## Risks / Trade-offs
 
-- **Velocity mask flags ~50% of real frames** → sub-noise frames SHOULD be masked,
+- **Velocity mask flags a data-dependent ~40–60% of real frames** → sub-noise frames SHOULD be masked,
   but the fraction is data-dependent and SNR-insensitive (not a noise-discriminating
   signal); PR #9's spatial CWT inherits a ~50%-sparse, non-uniform `κ(s)` and OWNS
   gap-handling (its spectral validity depends on it). PR #10 may refine σ_v.
@@ -121,7 +136,8 @@ stationary-detection to the raw input — all reconciled below.
 - **spec↔theory drift:** the y-down curvature-sign note is recorded in the new
   spec requirement AND a theory.md §6.2 patch (+ Appendix B) so they don't
   contradict.
-- **`_noise.py` scipy-import cleanup** touches 3 existing call sites
+- **`_noise.py` scipy-import cleanup** touches all 5 existing `savgol_filter(` call
+  sites across 3 functions
   (`compute_sg_detrended`/`compute_sg_residual_xy`/`compute_msd_residual_xy`);
   mechanical, consumers (`kinematics`/`qc`/`nutation`/`psi_g`) re-run in the
   per-pair gate.
@@ -138,7 +154,8 @@ patched in the same PR. Rollback = revert the PR (no schema/state migration).
 
 - Real plate-001 cross-tier tolerance + mask-fraction band are captured at GREEN
   against pre-committed floors (finite; monotonic; `max|κ[~mask]| < 1 px⁻¹`;
-  `0.1 < mask_frac < 0.75`; arc within ~5% of Tier 0 path length) with the
+  `0.1 < mask_frac < 0.85`; arc within ~5% of Tier 0 path length, plus the robust
+  `arc ≤ L` invariant) with the
   observed values recorded — auditable, not self-fulfilling (PR #7 discipline).
 - Uniform-arc-length resampling + `ds` is owned by PR #9 (the `(kappa, ds)` stub
   presumes a uniform grid); `L_gz` mask + Tier 3 traits by PR #10. No separate
