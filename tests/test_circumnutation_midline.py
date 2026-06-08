@@ -384,3 +384,71 @@ def test_reconstruct_non_constantst_constants_raises_type_error():
     x, y = _wobble_track(n=8)
     with pytest.raises(TypeError, match="constants"):
         reconstruct(x, y, cadence_s=300.0, constants=object())
+
+
+# ---------------------------------------------------------------------------
+# §5 — arc / speed / curvature numerics + cadence-independence
+# (contract-locking: the happy-path orchestration was built in §3)
+# ---------------------------------------------------------------------------
+
+
+def _circle_xy(radius, n):
+    """A densely-sampled circle of the given radius (closed loop, endpoint=False)."""
+    t = np.linspace(0.0, 2.0 * np.pi, n, endpoint=False)
+    return radius * np.cos(t), radius * np.sin(t)
+
+
+def test_reconstruct_circle_numerics():
+    """On a dense circle: speed ≈ constant, curvature ≈ +1/R, arc length grows."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    R, n = 50.0, 200
+    x, y = _circle_xy(R, n)
+    result = reconstruct(x, y, cadence_s=300.0)
+
+    # Per-frame arc step of a circle sampled at n points ≈ 2πR/n (constant speed).
+    expected_speed = 2.0 * np.pi * R / n
+    interior = slice(5, -5)  # avoid SG edge frames
+    np.testing.assert_allclose(
+        result.speed_px_per_frame[interior], expected_speed, rtol=1e-3
+    )
+    # Interior curvature ≈ +1/R (loose physical tolerance — SG discretization).
+    np.testing.assert_allclose(
+        result.curvature_px_inv[interior], 1.0 / R, atol=1e-3
+    )
+    # Arc length is monotonic, starts at 0, and ≈ the cumulative speed sum.
+    assert result.arc_length_px[0] == 0.0
+    assert result.arc_length_px[-1] > 0.0
+
+
+def test_reconstruct_mask_polarity_and_sigma_v_definition():
+    """velocity_sub_noise_mask is exactly (speed ≤ noise_mask_k·σ_v); σ_v = std(speed, ddof=0)."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x, y = _wobble_track(n=40, growth=1.0, amp=6.0, period=8.0)
+    result = reconstruct(x, y, cadence_s=300.0)
+
+    expected_sigma_v = float(np.std(result.speed_px_per_frame, ddof=0))
+    assert result.sigma_v_px_per_frame == expected_sigma_v
+    expected_mask = result.speed_px_per_frame <= (
+        result.noise_mask_k * result.sigma_v_px_per_frame
+    )
+    np.testing.assert_array_equal(result.velocity_sub_noise_mask, expected_mask)
+
+
+def test_reconstruct_is_cadence_independent():
+    """arc / curvature / speed / mask are bit-identical for cadence_s=300 vs 1."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x, y = _wobble_track(n=48, amp=4.0)
+    r300 = reconstruct(x, y, cadence_s=300.0)
+    r1 = reconstruct(x, y, cadence_s=1.0)
+
+    np.testing.assert_array_equal(r300.arc_length_px, r1.arc_length_px)
+    np.testing.assert_array_equal(r300.curvature_px_inv, r1.curvature_px_inv)
+    np.testing.assert_array_equal(r300.speed_px_per_frame, r1.speed_px_per_frame)
+    np.testing.assert_array_equal(
+        r300.velocity_sub_noise_mask, r1.velocity_sub_noise_mask
+    )
+    # Only the provenance scalar differs.
+    assert r300.cadence_s == 300.0 and r1.cadence_s == 1.0
