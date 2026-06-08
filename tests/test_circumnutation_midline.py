@@ -8,7 +8,10 @@ Covers the two new shared helpers (`_noise.compute_sg_derivative`,
 Requirement: Tier 3a midline reconstruction API.
 """
 
+from pathlib import Path
+
 import numpy as np
+import pandas as pd
 import pytest
 
 
@@ -660,3 +663,124 @@ def test_reconstruct_emits_one_debug_record(caplog):
     assert "n_frames=" in msg
     assert "sg_window=" in msg
     assert not any(r.levelno >= logging.INFO for r in records)
+
+
+# ---------------------------------------------------------------------------
+# §8 — real plate-001 Nipponbare validation + cross-tier (GREEN-phase)
+# ---------------------------------------------------------------------------
+
+_PROOFREAD_FIXTURE = Path(
+    "tests/data/circumnutation_nipponbare_plate_001/"
+    "plate_001_greyscale.tracked_proofread.slp"
+)
+
+
+def _load_proofread_enriched():
+    """Load the 6-track Nipponbare proofread fixture, enriched + int track_id."""
+    from sleap_roots.series import Series
+
+    series = Series.load(series_name="plate_001", primary_path=str(_PROOFREAD_FIXTURE))
+    df = series.get_tracked_tips()
+    df["track_id"] = df["track_id"].str.replace("track_", "", regex=False).astype(int)
+    df["series"] = "plate_001"
+    df["sample_uid"] = "plate_001"
+    df["timepoint"] = "T0"
+    df["plate_id"] = "plate_001"
+    df["plant_id"] = df["track_id"]
+    df["genotype"] = np.nan
+    df["treatment"] = np.nan
+    return df
+
+
+def _track_xy(df, track_id):
+    """Sorted, finite tip (x, y) float64 arrays for one track."""
+    sub = df[df.track_id == track_id].dropna(subset=["tip_x", "tip_y"])
+    sub = sub.sort_values("frame")
+    return (
+        sub.tip_x.to_numpy(dtype=np.float64),
+        sub.tip_y.to_numpy(dtype=np.float64),
+    )
+
+
+@pytest.mark.skipif(
+    not _PROOFREAD_FIXTURE.exists(),
+    reason=f"Git-LFS proofread fixture not present: {_PROOFREAD_FIXTURE}",
+)
+def test_reconstruct_real_plate001_is_physically_plausible():
+    """Per real track: arc monotonic, curvature finite + bounded on unmasked frames.
+
+    GREEN-phase observed (recorded for auditability): max|κ[~mask]| ≈ 0.09–0.17
+    px⁻¹ (the unmasked array is the plausible one — the full raw array has
+    near-stall blow-up); mask fraction ≈ 0.38–0.61 (the rice tip moves only ~3×
+    the localization-noise floor, so ~half the frames are genuinely sub-noise —
+    NOT "flags ~nothing"; the fraction is data-dependent).
+    """
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    df = _load_proofread_enriched()
+    observed = {}
+    for track_id in sorted(df.track_id.unique()):
+        x, y = _track_xy(df, track_id)
+        result = reconstruct(x, y, cadence_s=300.0)
+        assert not result.is_degenerate, track_id
+
+        assert result.arc_length_px[0] == 0.0
+        assert np.all(np.diff(result.arc_length_px) >= -1e-9), track_id
+
+        unmasked = ~result.velocity_sub_noise_mask
+        kappa_unmasked = result.curvature_px_inv[unmasked]
+        assert np.isfinite(kappa_unmasked).all(), track_id
+        max_abs_kappa = float(np.max(np.abs(kappa_unmasked)))
+        mask_frac = float(result.velocity_sub_noise_mask.mean())
+
+        # The unmasked curvature is physically plausible (< 1 px⁻¹; ~6x headroom).
+        assert max_abs_kappa < 1.0, (track_id, max_abs_kappa)
+        # The mask fraction sits in a sane, data-dependent band (NOT ~0).
+        assert 0.1 < mask_frac < 0.85, (track_id, mask_frac)
+        observed[int(track_id)] = (round(max_abs_kappa, 4), round(mask_frac, 3))
+
+    # Record the observed per-track (max|κ[~mask]|, mask_frac) for auditability.
+    print(f"\nplate-001 midline observed (max_abs_kappa, mask_frac): {observed}")
+
+
+@pytest.mark.skipif(
+    not _PROOFREAD_FIXTURE.exists(),
+    reason=f"Git-LFS proofread fixture not present: {_PROOFREAD_FIXTURE}",
+)
+def test_reconstruct_real_plate001_arc_length_agrees_with_tier0():
+    """Cross-tier: midline arc_length[-1] vs Tier 0 path length L = ratio·D.
+
+    Primary ROBUST invariant: arc_length_px[-1] ≤ L (SG smoothing never
+    lengthens the path; SNR-independent). Secondary magnitude tolerance ≤ ~5%
+    (GREEN-phase observed 2.1–3.1%, data-SNR-dependent; σ_pos recorded). Tier 0
+    NaN-drops gap frames before summing, so the agreement holds only on the
+    gap-free plate-001 tracks.
+    """
+    from sleap_roots.circumnutation import kinematics
+    from sleap_roots.circumnutation._noise import compute_sg_residual_xy
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    df = _load_proofread_enriched()
+    tier0 = kinematics.compute(df)
+
+    observed = {}
+    for track_id in sorted(df.track_id.unique()):
+        x, y = _track_xy(df, track_id)
+        # Tier 0 path length L = path_displacement_ratio * D (D = net displacement).
+        ratio = float(
+            tier0.loc[tier0.track_id == track_id, "path_displacement_ratio"].iloc[0]
+        )
+        net_disp = float(np.hypot(x[-1] - x[0], y[-1] - y[0]))
+        L = ratio * net_disp
+
+        arc_last = float(reconstruct(x, y, cadence_s=300.0).arc_length_px[-1])
+        sigma_pos = compute_sg_residual_xy(x, y, 5, 3)
+
+        # Robust SNR-independent invariant: smoothed arc never exceeds the raw sum.
+        assert arc_last <= L + 1e-6, (track_id, arc_last, L)
+        # Secondary magnitude tolerance (data-SNR-dependent).
+        rel = abs(arc_last - L) / L
+        assert rel <= 0.05, (track_id, rel)
+        observed[int(track_id)] = (round(rel, 4), round(float(sigma_pos), 3))
+
+    print(f"\nplate-001 cross-tier observed (rel_err, sigma_pos): {observed}")
