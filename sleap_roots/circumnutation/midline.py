@@ -23,7 +23,7 @@ mask and is NOT the per-arc-length ``L_gz`` mask.
 """
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 import attrs
 import numpy as np
@@ -31,10 +31,87 @@ import scipy.integrate
 
 from sleap_roots.circumnutation._constants import ConstantsT
 from sleap_roots.circumnutation._geometry import compute_path_curvature
-from sleap_roots.circumnutation._noise import compute_sg_derivative
+from sleap_roots.circumnutation._noise import (
+    _validate_sg_window_polyorder,
+    compute_sg_derivative,
+)
+from sleap_roots.circumnutation.temporal_cwt import _validate_cadence_s
 
 
 logger = logging.getLogger(__name__)
+
+
+def _check_constants(value: Any) -> Optional[ConstantsT]:
+    """Validate ``constants`` is ``None`` or a :class:`ConstantsT` instance."""
+    if value is None:
+        return None
+    if not isinstance(value, ConstantsT):
+        raise TypeError(
+            f"constants must be None or a ConstantsT instance, "
+            f"got {type(value).__name__}: {value!r}"
+        )
+    return value
+
+
+def _validate_xy(x: Any, y: Any) -> tuple:
+    """Validate ``x``/``y`` are finite 1-D numeric ndarrays of equal length.
+
+    Mirrors :func:`~sleap_roots.circumnutation.temporal_cwt._validate_x`: rejects
+    non-ndarray (``TypeError``), non-1-D / complex / object / non-numeric dtype /
+    non-finite (``ValueError``). Non-finite is REJECTED, not dropped, because the
+    Savitzky-Golay differentiation and ``cumulative_trapezoid`` integration both
+    assume uniform frame spacing (dropping NaN frames would silently break it).
+    Returns the coerced ``(x_float64, y_float64)``.
+    """
+    for name, arr in (("x", x), ("y", y)):
+        if not isinstance(arr, np.ndarray):
+            raise TypeError(
+                f"{name} must be a numpy ndarray, got {type(arr).__name__}: {arr!r}"
+            )
+        if arr.ndim != 1:
+            raise ValueError(f"{name} must be a 1-D ndarray, got shape {arr.shape}")
+        if np.issubdtype(arr.dtype, np.complexfloating):
+            raise ValueError(
+                f"{name} must have a real numeric dtype, got complex dtype: {arr.dtype}"
+            )
+        if arr.dtype == object or not np.issubdtype(arr.dtype, np.number):
+            raise ValueError(f"{name} must have a numeric dtype, got dtype {arr.dtype}")
+    x_float = x.astype(np.float64, copy=False)
+    y_float = y.astype(np.float64, copy=False)
+    if not np.isfinite(x_float).all() or not np.isfinite(y_float).all():
+        raise ValueError(
+            "x and y must contain only finite values (no NaN, no ±inf); non-finite "
+            "frames are rejected, not dropped (SG + arc-length integration assume "
+            "uniform frame spacing)"
+        )
+    if len(x_float) != len(y_float):
+        raise ValueError(
+            f"x and y must have the same length; got len(x)={len(x_float)} "
+            f"len(y)={len(y_float)}"
+        )
+    return x_float, y_float
+
+
+def _resolve_sg_window(sg_window: Any, constants: ConstantsT) -> int:
+    """Resolve + validate ``sg_window`` (positive odd int, ``> SG_DEGREE``).
+
+    ``None`` → ``constants.SG_WINDOW_SHORT``. Validation reuses
+    :func:`~sleap_roots.circumnutation._noise._validate_sg_window_polyorder`
+    against ``constants.SG_DEGREE`` so an even / ``<= SG_DEGREE`` / non-int
+    ``sg_window`` raises before any reconstruction work.
+    """
+    degree = int(constants.SG_DEGREE)
+    if sg_window is None:
+        sg_window = int(constants.SG_WINDOW_SHORT)
+    if isinstance(sg_window, bool) or not isinstance(sg_window, (int, np.integer)):
+        raise TypeError(
+            f"sg_window must be a positive odd int (> SG_DEGREE), "
+            f"got {type(sg_window).__name__}: {sg_window!r}"
+        )
+    # Reuse the shared SG window/order validator (names "window" / "polyorder");
+    # any failure here is a documented sg_window contract violation.
+    window_int, _ = _validate_sg_window_polyorder(int(sg_window), degree)
+    return window_int
 
 
 @attrs.define(frozen=True, slots=False, kw_only=True, eq=False)
@@ -127,12 +204,14 @@ def reconstruct(
     Returns:
         A frozen :class:`MidlineResult`.
     """
-    _c = constants if constants is not None else ConstantsT()
-    window = int(sg_window) if sg_window is not None else int(_c.SG_WINDOW_SHORT)
+    # ALL field-named validation runs first and unconditionally; the degenerate
+    # gate (below) runs only on fully-valid inputs (so n==0-with-bad-cadence
+    # RAISES rather than returning a graceful MidlineResult).
+    _c = _check_constants(constants) or ConstantsT()
+    window = _resolve_sg_window(sg_window, _c)
     degree = int(_c.SG_DEGREE)
-
-    x = np.asarray(x, dtype=np.float64)
-    y = np.asarray(y, dtype=np.float64)
+    cadence_s = _validate_cadence_s(cadence_s)
+    x, y = _validate_xy(x, y)
     n = len(x)
 
     x_smooth = compute_sg_derivative(x, window, degree, deriv=0)
