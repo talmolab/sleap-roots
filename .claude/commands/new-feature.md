@@ -39,7 +39,7 @@ You are a scientific programmer that values testing, code quality, reproducibili
 
 4. **Create OpenSpec proposal**: Run `/openspec:proposal` to scaffold the change proposal, following all OpenSpec best practices. Ground the proposal in what you learned from steps 2-3. The proposal's `tasks.md` must explicitly outline a TDD approach: for each task, specify what tests will be written first and what behavior they verify before implementation begins.
 
-5. **Review the proposal**: Run the openspec-review skill to have the proposal critically reviewed by 5 specialized subagents. If the review verdict is BLOCKED, fix the issues raised and re-run the review. Repeat until the verdict is APPROVED or NEEDS REVISION.
+5. **Review the proposal**: Run `/review-openspec` to have the proposal critically reviewed by 5 specialized subagents. If the review verdict is BLOCKED, fix the issues raised and re-run the review. Repeat until the verdict is APPROVED or NEEDS REVISION.
 
 6. **Reconcile every blocking finding before user approval**: For each BLOCKING and IMPORTANT finding from the review, produce an explicit reconciliation entry containing:
    - The finding quoted verbatim — especially any specific technical mechanism named by the reviewer (e.g., "round-trip through a synthetic `.slp` file", "use `sio.load_slp`", "open the TIFF backend to read metadata")
