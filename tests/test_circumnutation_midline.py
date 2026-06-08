@@ -111,3 +111,108 @@ def test_compute_sg_derivative_negative_deriv_raises_naming_deriv():
     x = np.zeros(20, dtype=np.float64)
     with pytest.raises(ValueError, match="deriv"):
         compute_sg_derivative(x, window=5, polynomial_order=3, deriv=-1)
+
+
+# ---------------------------------------------------------------------------
+# §2 — _geometry.compute_path_curvature (κ = (ẋÿ − ẏẍ)/|v|³, sign-anchored)
+# ---------------------------------------------------------------------------
+
+
+def _circle_derivs(radius, n, clockwise=False):
+    """Analytic 1st/2nd derivatives of a circle of the given radius (n samples)."""
+    t = np.linspace(0.0, 2.0 * np.pi, n, endpoint=False)
+    sign = -1.0 if clockwise else 1.0
+    x_dot = -radius * np.sin(t)
+    y_dot = sign * radius * np.cos(t)
+    x_ddot = -radius * np.cos(t)
+    y_ddot = -sign * radius * np.sin(t)
+    return x_dot, y_dot, x_ddot, y_ddot
+
+
+def test_compute_path_curvature_absolute_sign_anchor():
+    """Hand-built anchor: unit velocity +x, unit acceleration +y → κ = +1.0 exactly.
+
+    This pins the FORMULA sign (the standard y-up math curvature formula), not
+    the frame-ambiguous word "left turn" — mirroring compute_signed_area's
+    absolute anchor.
+    """
+    from sleap_roots.circumnutation._geometry import compute_path_curvature
+
+    kappa = compute_path_curvature(
+        np.array([1.0]), np.array([0.0]), np.array([0.0]), np.array([1.0])
+    )
+    assert kappa.shape == (1,)
+    assert kappa[0] == 1.0
+
+
+def test_compute_path_curvature_circle_recovers_inverse_radius():
+    """CCW circle radius R → κ = +1/R; CW circle → −1/R."""
+    from sleap_roots.circumnutation._geometry import compute_path_curvature
+
+    R = 50.0
+    kappa_ccw = compute_path_curvature(*_circle_derivs(R, 128, clockwise=False))
+    kappa_cw = compute_path_curvature(*_circle_derivs(R, 128, clockwise=True))
+    np.testing.assert_allclose(kappa_ccw, np.full(128, 1.0 / R), atol=1e-12)
+    np.testing.assert_allclose(kappa_cw, np.full(128, -1.0 / R), atol=1e-12)
+
+
+def test_compute_path_curvature_straight_line_is_zero():
+    """Zero acceleration (straight line) → κ ≈ 0."""
+    from sleap_roots.circumnutation._geometry import compute_path_curvature
+
+    n = 10
+    x_dot = np.full(n, 3.0)
+    y_dot = np.full(n, 4.0)
+    x_ddot = np.zeros(n)
+    y_ddot = np.zeros(n)
+    kappa = compute_path_curvature(x_dot, y_dot, x_ddot, y_ddot)
+    np.testing.assert_allclose(kappa, np.zeros(n), atol=1e-12)
+
+
+def test_compute_path_curvature_zero_velocity_is_nan_no_warning():
+    """A constructed exact |v|=0 frame → NaN, with no RuntimeWarning."""
+    import warnings
+
+    from sleap_roots.circumnutation._geometry import compute_path_curvature
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        kappa = compute_path_curvature(
+            np.array([0.0]), np.array([0.0]), np.array([1.0]), np.array([1.0])
+        )
+    assert np.isnan(kappa[0])
+
+
+def test_compute_path_curvature_length_mismatch_raises():
+    """Mismatched input lengths raise ValueError (sibling-helper guard)."""
+    from sleap_roots.circumnutation._geometry import compute_path_curvature
+
+    with pytest.raises(ValueError):
+        compute_path_curvature(
+            np.array([1.0, 2.0]), np.array([0.0]), np.array([0.0]), np.array([1.0])
+        )
+
+
+def test_compute_path_curvature_sign_is_opposite_handedness():
+    """Cross-helper anchor (publication-trait-inversion guard): sign(κ) == −handedness.
+
+    On a y-up-math CCW circle, the standard curvature formula gives κ = +1/R,
+    while compute_psi_g (which uses the swapped atan2(dx, dy)) gives a NEGATIVE
+    net rotation → handedness = −1. So sign(κ) == −handedness.
+    """
+    from sleap_roots.circumnutation._geometry import (
+        compute_path_curvature,
+        compute_psi_g,
+    )
+
+    n = 256
+    t = np.linspace(0.0, 2.0 * np.pi, n, endpoint=False)
+    x = np.cos(t)
+    y = np.sin(t)
+    kappa = compute_path_curvature(*_circle_derivs(1.0, n, clockwise=False))
+    psi_g = compute_psi_g(x, y)
+    handedness = int(np.sign(psi_g[-1] - psi_g[0]))
+
+    assert int(np.sign(kappa[0])) == 1
+    assert handedness == -1
+    assert int(np.sign(kappa[0])) == -handedness
