@@ -413,9 +413,7 @@ def test_reconstruct_circle_numerics():
         result.speed_px_per_frame[interior], expected_speed, rtol=1e-3
     )
     # Interior curvature ≈ +1/R (loose physical tolerance — SG discretization).
-    np.testing.assert_allclose(
-        result.curvature_px_inv[interior], 1.0 / R, atol=1e-3
-    )
+    np.testing.assert_allclose(result.curvature_px_inv[interior], 1.0 / R, atol=1e-3)
     # Arc length is monotonic, starts at 0, and ≈ the cumulative speed sum.
     assert result.arc_length_px[0] == 0.0
     assert result.arc_length_px[-1] > 0.0
