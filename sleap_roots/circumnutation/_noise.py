@@ -388,6 +388,11 @@ def compute_sg_derivative(
             f"deriv > polyorder"
         )
     x = np.asarray(x, dtype=np.float64)
+    if x.ndim != 1:
+        raise ValueError(
+            f"x must be a 1-D array (this helper operates on a 1-D signal), "
+            f"got shape {x.shape}"
+        )
     if len(x) < window_int:
         logger.debug(
             "compute_sg_derivative: len(x)=%d < window=%d, returning all-NaN",

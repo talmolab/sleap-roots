@@ -116,6 +116,19 @@ def test_compute_sg_derivative_negative_deriv_raises_naming_deriv():
         compute_sg_derivative(x, window=5, polynomial_order=3, deriv=-1)
 
 
+def test_compute_sg_derivative_rejects_non_1d_input():
+    """A non-1-D x raises ValueError (the helper is documented 1-D only).
+
+    /copilot-review: without a ndim guard, ND input silently produces
+    inconsistent shapes (the short-input path returns a length-len(x) 1-D array).
+    """
+    from sleap_roots.circumnutation._noise import compute_sg_derivative
+
+    x2d = np.zeros((20, 2), dtype=np.float64)
+    with pytest.raises(ValueError, match="1-D"):
+        compute_sg_derivative(x2d, window=5, polynomial_order=3, deriv=1)
+
+
 # ---------------------------------------------------------------------------
 # §2 — _geometry.compute_path_curvature (κ = (ẋÿ − ẏẍ)/|v|³, sign-anchored)
 # ---------------------------------------------------------------------------
@@ -393,15 +406,15 @@ def test_reconstruct_validation_precedes_degenerate_gate():
 
 @pytest.mark.parametrize("bad_window", [4, 3, 5.0])  # even, <=SG_DEGREE, non-int
 def test_reconstruct_invalid_sg_window_raises_naming_field(bad_window):
-    """Even / ≤ SG_DEGREE / non-int sg_window → ValueError|TypeError naming the field."""
+    """Even / ≤ SG_DEGREE / non-int sg_window → ValueError|TypeError naming sg_window."""
     from sleap_roots.circumnutation.midline import reconstruct
 
     x, y = _wobble_track(n=16)
-    with pytest.raises((ValueError, TypeError)):
+    with pytest.raises((ValueError, TypeError), match="sg_window"):
         reconstruct(x, y, cadence_s=300.0, sg_window=bad_window)
 
 
-def test_reconstruct_non_constantst_constants_raises_type_error():
+def test_reconstruct_invalid_constants_type_raises_type_error():
     """constants not None and not a ConstantsT → TypeError naming constants."""
     from sleap_roots.circumnutation.midline import reconstruct
 

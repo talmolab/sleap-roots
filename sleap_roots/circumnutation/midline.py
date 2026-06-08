@@ -108,9 +108,16 @@ def _resolve_sg_window(sg_window: Any, constants: ConstantsT) -> int:
             f"sg_window must be a positive odd int (> SG_DEGREE), "
             f"got {type(sg_window).__name__}: {sg_window!r}"
         )
-    # Reuse the shared SG window/order validator (names "window" / "polyorder");
-    # any failure here is a documented sg_window contract violation.
-    window_int, _ = _validate_sg_window_polyorder(int(sg_window), degree)
+    # Reuse the shared SG window/order validator, but re-raise naming the PUBLIC
+    # parameter `sg_window` so the midline API's field-named error contract holds
+    # (the shared validator's message names "window"/"polynomial_order").
+    try:
+        window_int, _ = _validate_sg_window_polyorder(int(sg_window), degree)
+    except ValueError as exc:
+        raise ValueError(
+            f"sg_window must be a positive odd int > SG_DEGREE ({degree}), "
+            f"got sg_window={sg_window!r}: {exc}"
+        ) from exc
     return window_int
 
 
