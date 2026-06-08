@@ -213,6 +213,36 @@ def reconstruct(
     cadence_s = _validate_cadence_s(cadence_s)
     x, y = _validate_xy(x, y)
     n = len(x)
+    noise_mask_k = float(_c.NOISE_MASK_K)
+
+    # Degenerate gate (graceful, no raise, no RuntimeWarning). Returns BEFORE any
+    # np.std / np.hypot / cumulative_trapezoid call (np.std([]) warns;
+    # cumulative_trapezoid([]) raises). `n == 0` MUST be the first short-circuit
+    # disjunct — np.ptp([]) raises. Stationarity is detected on the RAW input
+    # (post-SG speed is float dust, never exactly 0).
+    if n == 0 or n < window or (np.ptp(x) == 0.0 and np.ptp(y) == 0.0):
+        logger.debug(
+            "midline.reconstruct: degenerate input (n_frames=%d, sg_window=%d), "
+            "returning all-NaN MidlineResult",
+            n,
+            window,
+        )
+        nan_arr = np.full(n, np.nan, dtype=np.float64)
+        return MidlineResult(
+            frame_indices=np.arange(n, dtype=np.int64),
+            x_smooth_px=nan_arr.copy(),
+            y_smooth_px=nan_arr.copy(),
+            speed_px_per_frame=nan_arr.copy(),
+            arc_length_px=nan_arr.copy(),
+            curvature_px_inv=nan_arr.copy(),
+            velocity_sub_noise_mask=np.zeros(n, dtype=bool),
+            cadence_s=float(cadence_s),
+            sg_window=window,
+            sg_degree=degree,
+            sigma_v_px_per_frame=float("nan"),
+            noise_mask_k=noise_mask_k,
+            is_degenerate=True,
+        )
 
     x_smooth = compute_sg_derivative(x, window, degree, deriv=0)
     y_smooth = compute_sg_derivative(y, window, degree, deriv=0)
@@ -228,7 +258,6 @@ def reconstruct(
     curvature[~np.isfinite(curvature)] = np.nan
 
     sigma_v = float(np.std(speed, ddof=0))
-    noise_mask_k = float(_c.NOISE_MASK_K)
     mask = speed <= noise_mask_k * sigma_v
 
     logger.debug(
