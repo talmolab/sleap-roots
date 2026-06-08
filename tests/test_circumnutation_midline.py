@@ -538,3 +538,125 @@ def test_reconstruct_no_inf_curvature_near_stall_no_warning():
         warnings.simplefilter("error")
         result = reconstruct(x, y, cadence_s=300.0)
     assert not np.isinf(result.curvature_px_inv).any()
+
+
+# ---------------------------------------------------------------------------
+# §7 — determinism + canary + logging (contract-locking)
+# ---------------------------------------------------------------------------
+
+# Captured by scripts/circumnutation/capture_midline_canary.py (Windows, numpy
+# 2.3.4 / scipy 1.16.3). Cross-OS reproducibility floor: atol=1e-9, rtol=0.
+_CANARY_FRAME_INDICES = [20, 64, 100]
+_MIDLINE_CIRCLE_CANARY_KAPPA = np.array(
+    [0.019982228651719475, 0.019982228651719041, 0.019982228651719825],
+    dtype=np.float64,
+)
+_MIDLINE_CIRCLE_CANARY_ARC = np.array(
+    [49.087381306541396, 157.07960787946203, 245.43688416639691], dtype=np.float64
+)
+_MIDLINE_SYNTHETIC_CANARY_KAPPA = np.array(
+    [0.070983916763426955, 0.052506569868884842, 0.0038495167641695101],
+    dtype=np.float64,
+)
+_MIDLINE_SYNTHETIC_CANARY_ARC = np.array(
+    [94.860183661027691, 303.29354513251394, 473.48121320074745], dtype=np.float64
+)
+
+
+def test_reconstruct_is_deterministic_same_process():
+    """Two same-process calls are bit-identical (field-by-field; never r1 == r2)."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x, y = _wobble_track(n=64, amp=5.0)
+    r1 = reconstruct(x, y, cadence_s=300.0)
+    r2 = reconstruct(x, y, cadence_s=300.0)
+    for name in (
+        "x_smooth_px",
+        "y_smooth_px",
+        "speed_px_per_frame",
+        "arc_length_px",
+        "curvature_px_inv",
+        "frame_indices",
+        "velocity_sub_noise_mask",
+    ):
+        np.testing.assert_array_equal(getattr(r1, name), getattr(r2, name))
+    assert r1.is_degenerate == r2.is_degenerate
+
+
+def test_reconstruct_circle_canary_oracle_and_reproducibility():
+    """Circle: κ ≈ 1/R (loose oracle) AND matches the captured canary (atol=1e-9)."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    R, n = 50.0, 128
+    x, y = _circle_xy(R, n)
+    result = reconstruct(x, y, cadence_s=300.0)
+
+    # ORACLE: physical accuracy to 1/R at a LOOSE tolerance (SG discretization).
+    np.testing.assert_allclose(
+        result.curvature_px_inv[_CANARY_FRAME_INDICES], 1.0 / R, atol=1e-3
+    )
+    # REPRODUCIBILITY: runtime vs captured-literal at the cross-OS floor.
+    np.testing.assert_allclose(
+        result.curvature_px_inv[_CANARY_FRAME_INDICES],
+        _MIDLINE_CIRCLE_CANARY_KAPPA,
+        atol=1e-9,
+        rtol=0.0,
+    )
+    np.testing.assert_allclose(
+        result.arc_length_px[_CANARY_FRAME_INDICES],
+        _MIDLINE_CIRCLE_CANARY_ARC,
+        atol=1e-9,
+        rtol=0.0,
+    )
+
+
+def test_reconstruct_synthetic_canary_reproducibility():
+    """Synthetic generator: matches the captured canary across OSs (atol=1e-9)."""
+    from sleap_roots.circumnutation import synthetic
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    df = synthetic.generate_trajectory(
+        random_state=0,
+        n_frames=128,
+        T_nutation_s=3333,
+        cadence_s=300,
+        noise_sigma_px=0.5,
+    )
+    x = df["tip_x"].to_numpy(dtype=np.float64)
+    y = df["tip_y"].to_numpy(dtype=np.float64)
+    result = reconstruct(x, y, cadence_s=300.0)
+
+    np.testing.assert_allclose(
+        result.curvature_px_inv[_CANARY_FRAME_INDICES],
+        _MIDLINE_SYNTHETIC_CANARY_KAPPA,
+        atol=1e-9,
+        rtol=0.0,
+    )
+    np.testing.assert_allclose(
+        result.arc_length_px[_CANARY_FRAME_INDICES],
+        _MIDLINE_SYNTHETIC_CANARY_ARC,
+        atol=1e-9,
+        rtol=0.0,
+    )
+
+
+def test_reconstruct_emits_one_debug_record(caplog):
+    """Exactly one DEBUG record from the midline logger; no INFO/WARNING/ERROR."""
+    import logging
+
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x, y = _wobble_track(n=32)
+    with caplog.at_level(logging.DEBUG, logger="sleap_roots.circumnutation.midline"):
+        reconstruct(x, y, cadence_s=300.0)
+
+    records = [
+        r for r in caplog.records if r.name == "sleap_roots.circumnutation.midline"
+    ]
+    debug_records = [r for r in records if r.levelno == logging.DEBUG]
+    assert len(debug_records) == 1
+    msg = debug_records[0].getMessage()
+    assert msg.startswith("midline.reconstruct(")
+    assert "n_frames=" in msg
+    assert "sg_window=" in msg
+    assert not any(r.levelno >= logging.INFO for r in records)
