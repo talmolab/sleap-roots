@@ -450,3 +450,91 @@ def test_reconstruct_is_cadence_independent():
     )
     # Only the provenance scalar differs.
     assert r300.cadence_s == 300.0 and r1.cadence_s == 1.0
+
+
+# ---------------------------------------------------------------------------
+# §6 — degenerate / edge cases (graceful all-NaN; no raise, no RuntimeWarning)
+# ---------------------------------------------------------------------------
+
+
+def _assert_degenerate_result(result, n):
+    """A degenerate MidlineResult: float arrays all-NaN, mask all-False bool, etc."""
+    assert result.is_degenerate is True
+    assert result.frame_indices.shape == (n,)
+    np.testing.assert_array_equal(result.frame_indices, np.arange(n))
+    for name in (
+        "x_smooth_px",
+        "y_smooth_px",
+        "speed_px_per_frame",
+        "arc_length_px",
+        "curvature_px_inv",
+    ):
+        arr = getattr(result, name)
+        assert arr.shape == (n,), name
+        if n > 0:
+            assert np.isnan(arr).all(), name
+    # A bool array cannot hold NaN; the degenerate mask is all-False.
+    assert result.velocity_sub_noise_mask.dtype == np.bool_
+    assert result.velocity_sub_noise_mask.shape == (n,)
+    assert not result.velocity_sub_noise_mask.any()
+    assert np.isnan(result.sigma_v_px_per_frame)
+
+
+@pytest.mark.parametrize("n", [0, 1, 2, 3, 4])
+def test_reconstruct_degenerate_below_window(n):
+    """n < sg_window (incl n=0) → graceful all-NaN, is_degenerate=True, no warning."""
+    import warnings
+
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x = np.arange(n, dtype=np.float64)
+    y = np.linspace(0.0, 1.0, n) if n > 0 else np.array([])
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        result = reconstruct(x, y, cadence_s=300.0)
+    _assert_degenerate_result(result, n)
+
+
+def test_reconstruct_n_equals_window_is_not_degenerate():
+    """n == sg_window (non-stationary) → a real reconstruction (is_degenerate=False)."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x = np.arange(5, dtype=np.float64)
+    y = np.array([0.0, 1.0, 0.5, 1.5, 0.25])
+    result = reconstruct(x, y, cadence_s=300.0)
+    assert result.is_degenerate is False
+    assert np.isfinite(result.arc_length_px).all()
+
+
+def test_reconstruct_raw_stationary_is_degenerate():
+    """A raw-stationary track (x, y all-constant, n ≥ sg_window) → graceful all-NaN.
+
+    Stationarity is detected on the RAW input (ptp(x)==0 and ptp(y)==0) because
+    post-SG speed is floating-point dust, never exactly 0.
+    """
+    import warnings
+
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    n = 8
+    x = np.full(n, 3.0)
+    y = np.full(n, -7.0)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        result = reconstruct(x, y, cadence_s=300.0)
+    _assert_degenerate_result(result, n)
+
+
+def test_reconstruct_no_inf_curvature_near_stall_no_warning():
+    """A non-degenerate track with a near-stall yields finite-or-NaN curvature, no inf."""
+    import warnings
+
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    # Mostly-growing track with a brief near-stall (repeated-ish points).
+    x = np.array([0.0, 1.0, 2.0, 2.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0])
+    y = np.array([0.0, 0.2, 0.1, 0.1, 0.1, 0.3, 0.2, 0.4, 0.1, 0.5])
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        result = reconstruct(x, y, cadence_s=300.0)
+    assert not np.isinf(result.curvature_px_inv).any()
