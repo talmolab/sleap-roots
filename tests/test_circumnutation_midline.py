@@ -79,7 +79,9 @@ def test_compute_sg_derivative_window_order_validation(
 
     x = np.zeros(20, dtype=np.float64)
     with pytest.raises(error_type, match=token):
-        compute_sg_derivative(x, window=window, polynomial_order=polynomial_order, deriv=1)
+        compute_sg_derivative(
+            x, window=window, polynomial_order=polynomial_order, deriv=1
+        )
 
 
 def test_compute_sg_derivative_deriv_equal_order_is_accepted():

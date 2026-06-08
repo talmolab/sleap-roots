@@ -38,7 +38,7 @@ from typing import Optional
 
 import numpy as np
 import scipy.fft
-from scipy.signal import savgol_filter
+import scipy.signal
 
 
 logger = logging.getLogger(__name__)
@@ -88,8 +88,8 @@ def compute_sg_residual_xy(
             window,
         )
         return float("nan")
-    x_smooth = savgol_filter(x, window_length=window, polyorder=degree)
-    y_smooth = savgol_filter(y, window_length=window, polyorder=degree)
+    x_smooth = scipy.signal.savgol_filter(x, window_length=window, polyorder=degree)
+    y_smooth = scipy.signal.savgol_filter(y, window_length=window, polyorder=degree)
     std_x = float(np.std(x - x_smooth))
     std_y = float(np.std(y - y_smooth))
     return float(np.sqrt(std_x**2 + std_y**2))
@@ -191,13 +191,64 @@ def compute_msd_residual_xy(
             window + lag,
         )
         return float("nan")
-    x_smooth = savgol_filter(x, window_length=window, polyorder=degree)
-    y_smooth = savgol_filter(y, window_length=window, polyorder=degree)
+    x_smooth = scipy.signal.savgol_filter(x, window_length=window, polyorder=degree)
+    y_smooth = scipy.signal.savgol_filter(y, window_length=window, polyorder=degree)
     x_res = x - x_smooth
     y_res = y - y_smooth
     diffs_sq = (x_res[lag:] - x_res[:-lag]) ** 2 + (y_res[lag:] - y_res[:-lag]) ** 2
     msd = float(np.mean(diffs_sq))
     return float(np.sqrt(msd / 4.0))
+
+
+def _validate_sg_window_polyorder(window: int, polynomial_order: int) -> tuple:
+    """Validate ``window`` (positive odd int) and ``polynomial_order`` (< window).
+
+    Shared boundary validator for the Savitzky-Golay helpers in this module
+    (``compute_sg_detrended``, ``compute_sg_derivative``). Returns the coerced
+    ``(window_int, polyorder_int)`` so callers get field-named error messages
+    consistent with the rest of circumnutation's validation pattern, rather
+    than relying on ``scipy.signal.savgol_filter`` to raise.
+
+    Raises:
+        TypeError: If ``window`` or ``polynomial_order`` is not an int.
+        ValueError: If ``window`` is non-positive or even; if
+            ``polynomial_order`` is negative; if ``polynomial_order >= window``.
+    """
+    if isinstance(window, bool) or not isinstance(window, (int, np.integer)):
+        raise TypeError(
+            f"window must be a positive odd int, got {type(window).__name__}"
+        )
+    window_int = int(window)
+    if window_int < 1:
+        raise ValueError(
+            f"window must be a positive odd int (>= 1), got window={window_int}"
+        )
+    if window_int % 2 == 0:
+        raise ValueError(
+            f"window must be a positive ODD int "
+            f"(scipy.signal.savgol_filter requires odd window_length), "
+            f"got window={window_int}"
+        )
+    if isinstance(polynomial_order, bool) or not isinstance(
+        polynomial_order, (int, np.integer)
+    ):
+        raise TypeError(
+            f"polynomial_order must be a non-negative int, got "
+            f"{type(polynomial_order).__name__}"
+        )
+    polyorder_int = int(polynomial_order)
+    if polyorder_int < 0:
+        raise ValueError(
+            f"polynomial_order must be a non-negative int, got "
+            f"polynomial_order={polyorder_int}"
+        )
+    if polyorder_int >= window_int:
+        raise ValueError(
+            f"polynomial_order ({polyorder_int}) must be < window "
+            f"({window_int}); scipy.signal.savgol_filter requires "
+            f"polyorder < window_length"
+        )
+    return window_int, polyorder_int
 
 
 def compute_sg_detrended(
@@ -252,40 +303,7 @@ def compute_sg_detrended(
         get field-named error messages consistent with the rest of
         circumnutation's boundary validation pattern.
     """
-    if isinstance(window, bool) or not isinstance(window, (int, np.integer)):
-        raise TypeError(
-            f"window must be a positive odd int, got {type(window).__name__}"
-        )
-    window_int = int(window)
-    if window_int < 1:
-        raise ValueError(
-            f"window must be a positive odd int (>= 1), got window={window_int}"
-        )
-    if window_int % 2 == 0:
-        raise ValueError(
-            f"window must be a positive ODD int "
-            f"(scipy.signal.savgol_filter requires odd window_length), "
-            f"got window={window_int}"
-        )
-    if isinstance(polynomial_order, bool) or not isinstance(
-        polynomial_order, (int, np.integer)
-    ):
-        raise TypeError(
-            f"polynomial_order must be a non-negative int, got "
-            f"{type(polynomial_order).__name__}"
-        )
-    polyorder_int = int(polynomial_order)
-    if polyorder_int < 0:
-        raise ValueError(
-            f"polynomial_order must be a non-negative int, got "
-            f"polynomial_order={polyorder_int}"
-        )
-    if polyorder_int >= window_int:
-        raise ValueError(
-            f"polynomial_order ({polyorder_int}) must be < window "
-            f"({window_int}); scipy.signal.savgol_filter requires "
-            f"polyorder < window_length"
-        )
+    window_int, polyorder_int = _validate_sg_window_polyorder(window, polynomial_order)
     x = np.asarray(x, dtype=np.float64)
     if len(x) < window_int:
         logger.debug(
@@ -294,7 +312,7 @@ def compute_sg_detrended(
             window_int,
         )
         return np.full(len(x), np.nan, dtype=np.float64)
-    smoothed = savgol_filter(
+    smoothed = scipy.signal.savgol_filter(
         x,
         window_length=window_int,
         polyorder=polyorder_int,
@@ -302,6 +320,90 @@ def compute_sg_detrended(
     )
     residual = x - smoothed
     return residual.astype(np.float64, copy=False)
+
+
+def compute_sg_derivative(
+    x: np.ndarray,
+    window: int,
+    polynomial_order: int,
+    deriv: int,
+    delta: float = 1.0,
+    mode: str = "interp",
+) -> np.ndarray:
+    """Return the Savitzky-Golay analytic derivative of order ``deriv`` (PR #8, Tier 3a).
+
+    Thin wrapper over ``scipy.signal.savgol_filter(x, window, polynomial_order,
+    deriv=deriv, delta=delta, mode=mode)`` that fits ONE polynomial per window
+    and evaluates its ``deriv``-th derivative. ``deriv=0`` returns the smoothed
+    signal; ``deriv=1`` / ``deriv=2`` return the first / second derivatives.
+    ``midline.reconstruct`` (Tier 3a) calls it three times per coordinate so the
+    smoothed coordinate AND its velocity/acceleration come from the SAME fitted
+    polynomial (theory.md §6.2: "SG smoothing BEFORE second-derivative
+    operations"), self-consistently.
+
+    Reuses :func:`_validate_sg_window_polyorder` for the window/order boundary
+    checks (shared with :func:`compute_sg_detrended`) and ADDITIONALLY validates
+    the derivative order: ``scipy`` SILENTLY returns all-zeros for ``deriv >
+    polynomial_order`` (a silent-wrong-answer hazard) and raises an opaque
+    ``factorial()`` error for ``deriv < 0``; this helper converts both into
+    field-named ``ValueError`` exceptions.
+
+    Args:
+        x: 1-D float array. Coerced to ``float64``.
+        window: SG window length (positive odd int; ``> polynomial_order``).
+        polynomial_order: SG polynomial degree (non-negative int; ``< window``).
+        deriv: Derivative order to evaluate (``0 <= deriv <= polynomial_order``).
+        delta: Sample spacing passed to ``savgol_filter`` so the returned
+            derivative is per-``delta`` (e.g. ``delta=cadence_s`` for px/s, or
+            ``delta=1.0`` for per-frame). Ignored for ``deriv=0``. Default 1.0.
+        mode: Boundary mode for ``savgol_filter``. Default ``"interp"`` (the
+            scipy default) — at the edges the filter fits the polynomial to the
+            last ``window`` points and evaluates the derivative there, the
+            correct boundary policy for derivative estimation. (Contrast
+            :func:`compute_sg_detrended`, which hardcodes ``"nearest"`` because
+            it estimates a residual for noise statistics, not a derivative.)
+
+    Returns:
+        Length-``len(x)`` 1-D ``float64`` array of the ``deriv``-th SG
+        derivative. Returns ``np.full(len(x), np.nan, dtype=np.float64)`` when
+        ``len(x) < window`` (boundary conditions undefined for short inputs),
+        mirroring :func:`compute_sg_detrended`.
+
+    Raises:
+        TypeError: If ``window`` or ``polynomial_order`` is not an int.
+        ValueError: If ``window`` is non-positive or even; if
+            ``polynomial_order`` is negative or ``>= window``; if ``deriv`` is
+            negative or ``> polynomial_order``.
+    """
+    window_int, polyorder_int = _validate_sg_window_polyorder(window, polynomial_order)
+    if isinstance(deriv, bool) or not isinstance(deriv, (int, np.integer)):
+        raise TypeError(f"deriv must be a non-negative int, got {type(deriv).__name__}")
+    deriv_int = int(deriv)
+    if deriv_int < 0:
+        raise ValueError(f"deriv must be non-negative, got deriv={deriv_int}")
+    if deriv_int > polyorder_int:
+        raise ValueError(
+            f"deriv ({deriv_int}) must be <= polynomial_order ({polyorder_int}); "
+            f"scipy.signal.savgol_filter silently returns all-zeros for "
+            f"deriv > polyorder"
+        )
+    x = np.asarray(x, dtype=np.float64)
+    if len(x) < window_int:
+        logger.debug(
+            "compute_sg_derivative: len(x)=%d < window=%d, returning all-NaN",
+            len(x),
+            window_int,
+        )
+        return np.full(len(x), np.nan, dtype=np.float64)
+    result = scipy.signal.savgol_filter(
+        x,
+        window_length=window_int,
+        polyorder=polyorder_int,
+        deriv=deriv_int,
+        delta=delta,
+        mode=mode,
+    )
+    return result.astype(np.float64, copy=False)
 
 
 def compute_fourier_noise_floor(
