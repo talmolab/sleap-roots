@@ -45,7 +45,12 @@ CADENCE_S = 300.0
 RANDOM_STATE = 0
 T_NUTATION_S = 3333
 NOISE_SIGMA_PX = 0.5
-# Interior frame indices (avoid the Savitzky-Golay edge frames).
+# Interior frame indices: deliberately well away from the array edges so the
+# canary cells come from the Savitzky-Golay INTERIOR (fixed-coefficient FIR
+# `correlate1d`) path, NOT the per-edge `mode="interp"` polyfit/lstsq path. This
+# is load-bearing for the cross-OS atol=1e-9 floor: the only BLAS/LAPACK-touched
+# computation (`savgol_coeffs`) is then data-independent and well-conditioned
+# (cond(A)≈11), so the edge lstsq driver variation never enters a canary value.
 CANARY_FRAME_INDICES = [20, 64, 100]
 
 

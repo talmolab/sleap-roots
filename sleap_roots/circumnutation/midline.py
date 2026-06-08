@@ -222,7 +222,7 @@ def reconstruct(
     # (post-SG speed is float dust, never exactly 0).
     if n == 0 or n < window or (np.ptp(x) == 0.0 and np.ptp(y) == 0.0):
         logger.debug(
-            "midline.reconstruct: degenerate input (n_frames=%d, sg_window=%d), "
+            "midline.reconstruct(n_frames=%d, sg_window=%d): degenerate input, "
             "returning all-NaN MidlineResult",
             n,
             window,

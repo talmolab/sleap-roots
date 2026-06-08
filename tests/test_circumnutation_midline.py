@@ -196,6 +196,27 @@ def test_compute_path_curvature_length_mismatch_raises():
         )
 
 
+def test_compute_path_curvature_huge_magnitude_no_warning_no_inf():
+    """Overflow-inducing huge input → no RuntimeWarning and no inf (swept to NaN).
+
+    /review-pr finding: the `(ẋ²+ẏ²)**1.5` squaring must be inside the errstate
+    guard, and the helper must sweep any resulting non-finite curvature to NaN so
+    a direct PR #9/#10 caller never receives `inf` (the reconstruct caller's sweep
+    is then defensive depth, not the only guard).
+    """
+    import warnings
+
+    from sleap_roots.circumnutation._geometry import compute_path_curvature
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        kappa = compute_path_curvature(
+            np.array([1e200]), np.array([0.0]), np.array([0.0]), np.array([1e200])
+        )
+    assert not np.isinf(kappa).any()
+    assert np.isnan(kappa[0])
+
+
 def test_compute_path_curvature_sign_is_opposite_handedness():
     """Cross-helper anchor (publication-trait-inversion guard): sign(κ) == −handedness.
 

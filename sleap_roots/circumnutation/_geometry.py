@@ -299,12 +299,14 @@ def compute_path_curvature(
 
     Returns:
         Length-``len(x_dot)`` 1-D ``float64`` array of curvature in px⁻¹.
-        Frames where ``|v| = √(ẋ² + ẏ²) = 0`` (the curvature denominator
-        vanishes) are set to ``NaN``. The computation is guarded by
-        ``np.errstate(divide, invalid, over)`` so no ``np.RuntimeWarning`` is
-        emitted and no ``±inf`` is returned at the exact-zero denominator; the
-        caller (``midline.reconstruct``) additionally sweeps any non-finite
-        curvature at the near-zero-denominator corner to ``NaN``.
+        Any frame with non-finite curvature is set to ``NaN`` — both the
+        exact-zero denominator (``|v| = √(ẋ² + ẏ²) = 0`` → ``0/0``) and the
+        near-zero / overflow corner (``±inf``). The whole computation (squaring,
+        power, and division) is guarded by ``np.errstate(divide, invalid, over)``
+        and the result is swept with ``kappa[~np.isfinite(kappa)] = np.nan``, so
+        **no ``np.RuntimeWarning`` is emitted and no ``±inf`` is ever returned**
+        — direct callers (e.g. PR #9/#10 on a resampled κ(s) grid) need no
+        further sweep. ``midline.reconstruct`` keeps a redundant defensive sweep.
 
     Raises:
         ValueError: If the four input arrays do not all have the same length.
@@ -318,10 +320,15 @@ def compute_path_curvature(
             f"x_dot, y_dot, x_ddot, y_ddot must have the same length; got "
             f"{len(x_dot)}, {len(y_dot)}, {len(x_ddot)}, {len(y_ddot)}"
         )
-    denom = (x_dot**2 + y_dot**2) ** 1.5
+    # The squaring AND the division are inside the errstate guard: a huge-
+    # magnitude input would otherwise emit an unguarded "overflow encountered in
+    # square" RuntimeWarning from the `(ẋ²+ẏ²)**1.5` term (the `over` category).
     with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+        denom = (x_dot**2 + y_dot**2) ** 1.5
         kappa = (x_dot * y_ddot - y_dot * x_ddot) / denom
     kappa = np.asarray(kappa, dtype=np.float64)
-    # Exact zero-velocity frames (vanishing denominator) → NaN, never ±inf.
-    kappa[denom == 0.0] = np.nan
+    # Sweep ALL non-finite curvature to NaN (exact zero-velocity → 0/0 → NaN;
+    # near-zero / overflow corner → ±inf → NaN) so the helper never returns ±inf
+    # to a direct caller (e.g. PR #9/#10 on a resampled κ(s) grid).
+    kappa[~np.isfinite(kappa)] = np.nan
     return kappa
