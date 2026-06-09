@@ -423,6 +423,52 @@ def test_reconstruct_invalid_constants_type_raises_type_error():
         reconstruct(x, y, cadence_s=300.0, constants=object())
 
 
+@pytest.mark.parametrize(
+    "field,bad_value,token",
+    [
+        ("NOISE_MASK_K", -1.0, "NOISE_MASK_K"),  # negative → silent all-False mask
+        ("NOISE_MASK_K", float("nan"), "NOISE_MASK_K"),  # non-finite
+        ("NOISE_MASK_K", "two", "NOISE_MASK_K"),  # non-numeric
+        ("SG_DEGREE", -1, "SG_DEGREE"),  # negative polyorder
+        ("SG_DEGREE", 3.5, "SG_DEGREE"),  # float → silent int() truncation
+    ],
+)
+def test_reconstruct_invalid_consumed_constants_field_raises_naming_field(
+    field, bad_value, token
+):
+    """Invalid consumed ConstantsT fields fail fast with a field-named ValueError.
+
+    /copilot-review: reconstruct must validate the ConstantsT fields it consumes
+    (NOISE_MASK_K, SG_DEGREE) at the boundary — like the sibling tier modules —
+    rather than silently coercing or producing a confusing downstream error.
+    """
+    from sleap_roots.circumnutation._constants import ConstantsT
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x, y = _wobble_track(n=8)
+    bad_constants = ConstantsT(**{field: bad_value})
+    with pytest.raises(ValueError, match=token):
+        reconstruct(x, y, cadence_s=300.0, constants=bad_constants)
+
+
+def test_reconstruct_non_finite_message_is_diagnostic():
+    """The non-finite error names the offending array (x vs y) and reports counts."""
+    from sleap_roots.circumnutation.midline import reconstruct
+
+    x = np.arange(8.0)
+    y = np.linspace(0.0, 3.0, 8)
+    y[2] = np.nan
+    y[5] = np.inf
+    with pytest.raises(ValueError, match=r"y must contain only finite"):
+        reconstruct(x, y, cadence_s=300.0)
+    # The message reports the NaN and ±inf counts.
+    try:
+        reconstruct(x, y, cadence_s=300.0)
+    except ValueError as exc:
+        msg = str(exc)
+        assert "1 NaN" in msg and "1 ±inf" in msg
+
+
 # ---------------------------------------------------------------------------
 # §5 — arc / speed / curvature numerics + cadence-independence
 # (contract-locking: the happy-path orchestration was built in §3)

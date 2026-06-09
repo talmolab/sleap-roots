@@ -23,6 +23,7 @@ mask and is NOT the per-arc-length ``L_gz`` mask.
 """
 
 import logging
+import math
 from typing import Any, Optional
 
 import attrs
@@ -53,6 +54,45 @@ def _check_constants(value: Any) -> Optional[ConstantsT]:
     return value
 
 
+def _validate_midline_constants(constants: ConstantsT) -> None:
+    """Validate the ``ConstantsT`` fields ``reconstruct`` consumes (field-named).
+
+    Mirrors the sibling tier modules (``nutation`` / ``psi_g`` / ``temporal_cwt``)
+    which validate the specific constants they consume at the boundary so an
+    invalid override fails fast with a field-named ``ValueError`` rather than a
+    silent coercion (``int()`` truncation) or a confusing downstream SciPy error.
+    ``attrs`` does not type-check at construction, so this guards explicit
+    overrides like ``ConstantsT(NOISE_MASK_K=-1)``.
+
+    ``SG_WINDOW_SHORT`` is NOT validated here: it is consumed only when
+    ``sg_window is None`` and is then validated by :func:`_resolve_sg_window`.
+
+    Raises:
+        ValueError: If ``NOISE_MASK_K`` is not a finite non-negative number, or
+            ``SG_DEGREE`` is not a non-negative int.
+    """
+    k = constants.NOISE_MASK_K
+    if isinstance(k, (bool, np.bool_)) or not isinstance(
+        k, (int, float, np.integer, np.floating)
+    ):
+        raise ValueError(
+            f"constants.NOISE_MASK_K must be a finite non-negative number, "
+            f"got {type(k).__name__}: {k!r}"
+        )
+    if not math.isfinite(float(k)) or float(k) < 0:
+        raise ValueError(f"constants.NOISE_MASK_K must be finite and >= 0, got {k!r}")
+    degree = constants.SG_DEGREE
+    if isinstance(degree, (bool, np.bool_)) or not isinstance(
+        degree, (int, np.integer)
+    ):
+        raise ValueError(
+            f"constants.SG_DEGREE must be a non-negative int (no float coercion), "
+            f"got {type(degree).__name__}: {degree!r}"
+        )
+    if int(degree) < 0:
+        raise ValueError(f"constants.SG_DEGREE must be >= 0, got {int(degree)}")
+
+
 def _validate_xy(x: Any, y: Any) -> tuple:
     """Validate ``x``/``y`` are finite 1-D numeric ndarrays of equal length.
 
@@ -78,12 +118,19 @@ def _validate_xy(x: Any, y: Any) -> tuple:
             raise ValueError(f"{name} must have a numeric dtype, got dtype {arr.dtype}")
     x_float = x.astype(np.float64, copy=False)
     y_float = y.astype(np.float64, copy=False)
-    if not np.isfinite(x_float).all() or not np.isfinite(y_float).all():
-        raise ValueError(
-            "x and y must contain only finite values (no NaN, no ±inf); non-finite "
-            "frames are rejected, not dropped (SG + arc-length integration assume "
-            "uniform frame spacing)"
-        )
+    # Per-array, count-reporting non-finite message (mirrors
+    # temporal_cwt._validate_x) so a bad input is easy to diagnose: which array
+    # (x vs y) and how many NaN / ±inf. Non-finite is REJECTED, not dropped,
+    # because SG differentiation + cumulative_trapezoid assume uniform spacing.
+    for name, arr in (("x", x_float), ("y", y_float)):
+        if not np.isfinite(arr).all():
+            n_nan = int(np.isnan(arr).sum())
+            n_inf = int(np.isinf(arr).sum())
+            raise ValueError(
+                f"{name} must contain only finite values; found {n_nan} NaN(s) "
+                f"and {n_inf} ±inf value(s). Non-finite frames are rejected, not "
+                f"dropped (SG + arc-length integration assume uniform frame spacing)"
+            )
     if len(x_float) != len(y_float):
         raise ValueError(
             f"x and y must have the same length; got len(x)={len(x_float)} "
@@ -215,6 +262,7 @@ def reconstruct(
     # gate (below) runs only on fully-valid inputs (so n==0-with-bad-cadence
     # RAISES rather than returning a graceful MidlineResult).
     _c = _check_constants(constants) or ConstantsT()
+    _validate_midline_constants(_c)
     window = _resolve_sg_window(sg_window, _c)
     degree = int(_c.SG_DEGREE)
     cadence_s = _validate_cadence_s(cadence_s)
