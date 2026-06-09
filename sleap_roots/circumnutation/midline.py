@@ -262,6 +262,11 @@ def reconstruct(
     arc_length = scipy.integrate.cumulative_trapezoid(speed, dx=1.0, initial=0.0)
 
     curvature = compute_path_curvature(x_dot, y_dot, x_ddot, y_ddot)
+    # Defensive depth (intentionally redundant): compute_path_curvature already
+    # sweeps non-finite → NaN internally, so this is a no-op today. Kept so a
+    # future change to the helper's internal sweep cannot reintroduce ±inf into
+    # MidlineResult.curvature_px_inv. Do NOT "DRY-delete" the HELPER's sweep —
+    # direct callers (PR #9/#10 on a resampled κ(s) grid) rely on it.
     curvature[~np.isfinite(curvature)] = np.nan
 
     sigma_v = float(np.std(speed, ddof=0))
