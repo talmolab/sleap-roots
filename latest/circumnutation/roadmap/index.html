@@ -3046,9 +3046,9 @@
 <tr>
 <td>8</td>
 <td><code>add-circumnutation-tier3a-midline</code></td>
-<td>Tip-trail-as-midline reconstruction (theory.md §6.1); arc-length <code>s(τ)</code>; <code>κ(s)</code>; <code>v(t)</code>; SG smoothing of <code>(x,y)</code>. <strong>No growth-zone mask</strong> (CC-1).</td>
-<td>⬜</td>
-<td>⬜</td>
+<td>Tip-trail-as-midline reconstruction (theory.md §6.1); <code>midline.reconstruct(x, y, cadence_s, sg_window=None, constants=None) -&gt; MidlineResult</code> (frozen <code>attrs</code>, <code>eq=False</code>) emitting arc-length <code>s(τ)</code> (<code>cumulative_trapezoid</code>), per-frame curvature <code>κ</code> (theory.md §6.2), tip speed, and a per-frame velocity sub-noise mask. <strong>Machinery</strong> PR mirroring PR #5 (input-validating, frozen Result, determinism — <strong>no trait emission</strong>). SG smoothing/differentiation from one polynomial per coordinate (new <code>_noise.compute_sg_derivative</code>, deriv 0/1/2); curvature via new sign-anchored <code>_geometry.compute_path_curvature</code> (<code>κ=(ẋÿ−ẏẍ)/|v|³</code>; absolute anchor + the cross-helper <code>sign(κ)=−handedness</code> note, <code>dψ_g/dt=−κ·|v|</code>). <strong>Frame-parameterized / cadence-independent</strong> (px/frame). <strong>No <code>L_gz</code> mask</strong> (CC-1, → PR #10); <strong>no uniform-<code>s</code> resample</strong> (→ PR #9 owns <code>(kappa, ds)</code>); no new constants (<code>_CONSTANTS_VERSION</code> stays 5). Cross-OS determinism canary <code>atol=1e-9</code> (closed-form circle oracle + synthetic; reproduced on all 3 BLAS backends); real plate-001 validation (curvature bounded on unmasked frames, mask-fraction band, cross-tier <code>arc ≤</code> Tier 0 path length). theory.md §6.2 y-down curvature-sign clarification patched (Appendix B(4)). <a href="https://github.com/talmolab/sleap-roots/issues/226">#226</a> · <a href="https://github.com/talmolab/sleap-roots/pull/227">PR #227</a></td>
+<td>✅</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>9</td>
