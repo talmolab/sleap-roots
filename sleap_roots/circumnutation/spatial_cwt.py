@@ -21,6 +21,7 @@ from typing import Any, Optional
 
 import attrs
 import numpy as np
+import pywt
 
 from sleap_roots.circumnutation._constants import ConstantsT
 
@@ -363,6 +364,64 @@ def extract_ridge(
         powers=amplitudes**2,
         in_coi=in_coi,
     )
+
+
+# ---------------------------------------------------------------------------
+# §5 — private scale-axis + COI helpers (spatial siblings of temporal_cwt)
+# ---------------------------------------------------------------------------
+
+
+def _coi_boundary_samples(scale: float, coi_factor: float) -> int:
+    """Return the COI boundary in integer samples: ``ceil(coi_factor * scale)``."""
+    return int(math.ceil(coi_factor * scale))
+
+
+def _make_coi_mask(scales: np.ndarray, n_samples: int, coi_factor: float) -> np.ndarray:
+    """Build the boolean COI mask of shape ``(n_scales, n_samples)``.
+
+    ``True`` flags inside-COI = unreliable cells near each edge (same polarity as
+    ``temporal_cwt._make_coi_mask``).
+    """
+    coi_mask = np.zeros((len(scales), n_samples), dtype=bool)
+    for i_scale, s in enumerate(scales):
+        boundary = _coi_boundary_samples(float(s), coi_factor)
+        left = min(boundary, n_samples)
+        right_start = max(0, n_samples - boundary)
+        coi_mask[i_scale, :left] = True
+        coi_mask[i_scale, right_start:] = True
+    return coi_mask
+
+
+def _spatial_scale_axis(
+    n_samples: int,
+    ds: float,
+    wavelet: str,
+    scale_count: int,
+    wl_min_factor: float,
+    wl_max_fraction: float,
+) -> tuple:
+    """Derive log-spaced scales + spatial-wavelength/frequency axes.
+
+    Spatial sibling of ``temporal_cwt._log_spaced_scales`` (period→wavelength).
+    The wavelength axis is the honest ``pywt.scale2frequency`` round-trip
+    convention value (wavelet-agnostic; NOT bias-corrected — see the cgau2
+    calibration note on :class:`SpatialScaleogramResult`). Returns
+    ``(scales, wavelengths_px, spatial_freqs_px_inv)``.
+    """
+    center_freq = float(pywt.scale2frequency(wavelet, 1.0))
+    wl_min_samples = wl_min_factor  # wavelength_min / ds
+    wl_max_samples = wl_max_fraction * n_samples
+    scale_min = wl_min_samples * center_freq
+    scale_max = wl_max_samples * center_freq
+    scales = np.logspace(
+        math.log10(scale_min), math.log10(scale_max), num=scale_count
+    ).astype(np.float64)
+    freqs_normalized = np.asarray(
+        pywt.scale2frequency(wavelet, scales), dtype=np.float64
+    )
+    spatial_freqs_px_inv = freqs_normalized / ds
+    wavelengths_px = 1.0 / spatial_freqs_px_inv
+    return scales, wavelengths_px, spatial_freqs_px_inv
 
 
 # ---------------------------------------------------------------------------

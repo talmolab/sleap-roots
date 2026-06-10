@@ -457,3 +457,48 @@ def test_extract_ridge_deterministic():
     npt.assert_array_equal(r1.wavelengths_px, r2.wavelengths_px)
     npt.assert_array_equal(r1.amplitudes, r2.amplitudes)
     npt.assert_array_equal(r1.in_coi, r2.in_coi)
+
+
+# ---------------------------------------------------------------------------
+# §4 — private scale-axis + COI helpers (parameterized)
+# ---------------------------------------------------------------------------
+
+
+def test_coi_boundary_samples_is_ceil_factor_scale():
+    """§4.1: _coi_boundary_samples = ceil(coi_factor * scale)."""
+    from sleap_roots.circumnutation.spatial_cwt import _coi_boundary_samples
+
+    assert _coi_boundary_samples(10.0, 1.375) == math.ceil(1.375 * 10.0)
+    assert _coi_boundary_samples(0.5, 2.0) == 1
+
+
+def test_make_coi_mask_shape_and_edges():
+    """§4.1: _make_coi_mask flags the COI band on both edges per scale."""
+    from sleap_roots.circumnutation.spatial_cwt import _make_coi_mask
+
+    scales = np.array([2.0, 8.0], dtype=np.float64)
+    n_samples = 40
+    mask = _make_coi_mask(scales, n_samples, 1.375)
+    assert mask.shape == (2, n_samples)
+    assert mask.dtype == bool
+    # larger scale -> wider COI band
+    assert mask[1].sum() > mask[0].sum()
+    # both edges flagged, interior clear at the small scale
+    assert mask[0, 0] and mask[0, -1]
+    assert not mask[0, n_samples // 2]
+
+
+def test_spatial_scale_axis_endpoints_and_monotonicity():
+    """§4.3: scales/wavelengths log-spaced; endpoints = factor*ds and fraction*n*ds."""
+    from sleap_roots.circumnutation.spatial_cwt import _spatial_scale_axis
+
+    n, ds, scale_count = 200, 5.8, 64
+    scales, wavelengths_px, spatial_freqs = _spatial_scale_axis(
+        n, ds, "cgau2", scale_count, 2.0, 0.25
+    )
+    assert scales.shape == (scale_count,)
+    assert wavelengths_px.shape == (scale_count,)
+    assert np.all(np.diff(scales) > 0)
+    npt.assert_allclose(spatial_freqs * wavelengths_px, 1.0, atol=1e-12)
+    npt.assert_allclose(wavelengths_px.min(), 2.0 * ds, rtol=1e-9)
+    npt.assert_allclose(wavelengths_px.max(), 0.25 * n * ds, rtol=1e-9)
