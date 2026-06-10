@@ -1,0 +1,193 @@
+{
+  "provenance": {
+    "capture_date_iso": "2026-06-10T04:31:04.279729+00:00",
+    "platform": {
+      "system": "Windows",
+      "release": "10",
+      "machine": "AMD64",
+      "python_version": "3.11.13"
+    },
+    "library_versions": {
+      "numpy": "2.3.4",
+      "pywt": "1.8.0"
+    },
+    "blas_info": "Build Dependencies:\n  blas:\n    detection method: pkgconfig\n    found: true\n    include directory: C:/Users/runneradmin/AppData/Local/Temp/cibw-run-nvpocyoj/cp311-win_amd64/build/venv/Lib/site-packages/scipy_openblas64/include\n    lib directory: C:/Users/runneradmin/AppData/Local/Temp/cibw-run-nvpocyoj/cp311-win_amd64/build/venv/Lib/site-packages/scipy_openblas64/lib\n    name: scipy-openblas\n    openblas configuration: OpenBLAS 0.3.30  USE64BITINT DYNAMIC_ARCH NO_AFFINITY\n      Haswell MAX_THREADS=24\n    pc file directory: D:/a/numpy-release/numpy-release/.openblas\n    version: 0.3.30\n  lapack:\n    detection method: pkgconfig\n    found: true\n    include directory: C:/Users/runneradmin/AppData/Local/Temp/cibw-run-nvpocyoj/cp311-win_amd64/build/venv/Lib/site-packages/scipy_openblas64/include\n    lib directory: C:/Users/runneradmin/AppData/Local/Temp/cibw-run-nvpocyoj/cp311-win_amd64/build/venv/Lib/site-packages/scipy_openblas64/lib\n    name: scipy-openblas\n    openblas configuration: OpenBLAS 0.3.30  USE64BITINT DYNAMIC_ARCH NO_AFFINITY\n      Haswell MAX_THREADS=24\n    pc file directory: D:/a/numpy-release/numpy-release/.openblas\n    version: 0.3.30\nCompilers:\n  c:\n    commands: cl\n    linker: link\n    name: msvc\n    version: 19.44.35217\n  c++:\n    commands: cl\n    linker: link\n    name: msvc\n    version: 19.44.35217\n  cython:\n    commands: cython\n    linker: cython\n    name: cython\n    version: 3.1.4\nMachine Information:\n  build:\n    cpu: x86_64\n    endian: little\n    family: x86_64\n    system: windows\n  host:\n    cpu: x86_64\n    endian: little\n    family: x86_64\n    system: windows\nPython Information:\n  path: C:\\Users\\runneradmin\\AppData\\Local\\Temp\\build-env-k6gqraxb\\Scripts\\python.exe\n  version: '3.11'\nSIMD Extensions:\n  baseline:\n  - SSE\n  - SSE2\n  - SSE3\n  found:\n  - SSSE3\n  - SSE41\n  - POPCNT\n  - SSE42\n  - AVX\n  - F16C\n  - FMA3\n  - AVX2\n  - AVX512F\n  - AVX512CD\n  - AVX512_SKX\n  - AVX512_CLX\n  - AVX512_CNL\n  - AVX512_ICL\n\n",
+    "wavelet": "cgau2",
+    "scale_count": 64,
+    "wl_min_factor": 2.0,
+    "wl_max_fraction": 0.25
+  },
+  "coi_efolding_factor": {
+    "scales": [
+      8.0,
+      12.0,
+      16.0,
+      24.0,
+      32.0,
+      48.0,
+      64.0,
+      96.0,
+      128.0
+    ],
+    "per_scale_factor": [
+      1.5,
+      1.4166666666666667,
+      1.4375,
+      1.4166666666666667,
+      1.3125,
+      1.2708333333333333,
+      1.375,
+      1.3645833333333333,
+      1.3671875
+    ],
+    "median": 1.375,
+    "mean": 1.3845486111111112,
+    "std": 0.06421264586426019
+  },
+  "wavelength_calibration": [
+    {
+      "n": 200,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 20.0,
+      "lambda_reported": 21.415700105950716,
+      "ratio": 1.0707850052975358
+    },
+    {
+      "n": 200,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 30.0,
+      "lambda_reported": 32.229121535395095,
+      "ratio": 1.0743040511798365
+    },
+    {
+      "n": 200,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 40.0,
+      "lambda_reported": 43.7910755348181,
+      "ratio": 1.0947768883704525
+    },
+    {
+      "n": 200,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 50.0,
+      "lambda_reported": 56.53706139574857,
+      "ratio": 1.1307412279149716
+    },
+    {
+      "n": 200,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 60.0,
+      "lambda_reported": 69.35716412102333,
+      "ratio": 1.155952735350389
+    },
+    {
+      "n": 200,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 80.0,
+      "lambda_reported": 89.54450646062656,
+      "ratio": 1.1193063307578321
+    },
+    {
+      "n": 400,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 20.0,
+      "lambda_reported": 21.58419061464013,
+      "ratio": 1.0792095307320064
+    },
+    {
+      "n": 400,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 30.0,
+      "lambda_reported": 31.32870438467964,
+      "ratio": 1.044290146155988
+    },
+    {
+      "n": 400,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 40.0,
+      "lambda_reported": 42.73476538422848,
+      "ratio": 1.068369134605712
+    },
+    {
+      "n": 400,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 50.0,
+      "lambda_reported": 54.783835599606576,
+      "ratio": 1.0956767119921316
+    },
+    {
+      "n": 400,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 60.0,
+      "lambda_reported": 66.00179835206133,
+      "ratio": 1.1000299725343554
+    },
+    {
+      "n": 400,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 80.0,
+      "lambda_reported": 90.03153570856938,
+      "ratio": 1.1253941963571172
+    },
+    {
+      "n": 600,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 20.0,
+      "lambda_reported": 22.256672470198875,
+      "ratio": 1.1128336235099439
+    },
+    {
+      "n": 600,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 30.0,
+      "lambda_reported": 32.42658005283263,
+      "ratio": 1.0808860017610875
+    },
+    {
+      "n": 600,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 40.0,
+      "lambda_reported": 45.678889072206545,
+      "ratio": 1.1419722268051635
+    },
+    {
+      "n": 600,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 50.0,
+      "lambda_reported": 52.38914220260644,
+      "ratio": 1.0477828440521288
+    },
+    {
+      "n": 600,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 60.0,
+      "lambda_reported": 64.34723931636692,
+      "ratio": 1.0724539886061153
+    },
+    {
+      "n": 600,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 80.0,
+      "lambda_reported": 90.64509430368646,
+      "ratio": 1.1330636787960808
+    }
+  ]
+}
