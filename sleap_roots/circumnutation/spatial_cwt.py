@@ -157,6 +157,75 @@ def _validate_ds(ds: Any) -> float:
     return ds_f
 
 
+def _validate_positive_finite(value: Any, name: str) -> None:
+    """Raise ValueError (field-named) unless ``value`` is a positive finite number."""
+    if isinstance(value, (bool, np.bool_)):
+        raise ValueError(
+            f"constants.{name} must be a positive finite number, got bool {value!r}"
+        )
+    if not isinstance(value, (int, float, np.integer, np.floating)):
+        raise ValueError(
+            f"constants.{name} must be a positive finite number, "
+            f"got {type(value).__name__}: {value!r}"
+        )
+    v = float(value)
+    if not math.isfinite(v) or v <= 0.0:
+        raise ValueError(
+            f"constants.{name} must be a positive finite number, got {value!r}"
+        )
+
+
+def _validate_wavelength_factors(constants: ConstantsT) -> None:
+    """Validate the two spatial wavelength-range factors (consumed by the MIN floor).
+
+    Field-named guards (CC-1) so a bad ``ConstantsT`` override surfaces a clear
+    ``ValueError`` naming the field rather than a cryptic ``ZeroDivisionError``
+    from :func:`_min_samples_required`.
+    """
+    _validate_positive_finite(
+        constants.CWT_WAVELENGTH_MIN_NYQUIST_FACTOR, "CWT_WAVELENGTH_MIN_NYQUIST_FACTOR"
+    )
+    _validate_positive_finite(
+        constants.CWT_WAVELENGTH_MAX_SIGNAL_FRACTION,
+        "CWT_WAVELENGTH_MAX_SIGNAL_FRACTION",
+    )
+
+
+def _validate_spatial_cwt_constants(constants: ConstantsT) -> None:
+    """Validate every spatial-CWT constant ``compute_scaleogram`` consumes.
+
+    Spatial sibling of ``temporal_cwt._validate_cwt_constants``; field-named
+    ``ValueError`` per CC-1. Covers the two wavelength factors, the COI factor,
+    ``CWT_SCALE_COUNT_DEFAULT`` (positive int), and ``WAVELET_DEFAULT_SPATIAL``
+    (a non-empty string pywt recognizes).
+    """
+    _validate_wavelength_factors(constants)
+    _validate_positive_finite(
+        constants.SPATIAL_COI_EFOLDING_FACTOR, "SPATIAL_COI_EFOLDING_FACTOR"
+    )
+    sc = constants.CWT_SCALE_COUNT_DEFAULT
+    if (
+        isinstance(sc, (bool, np.bool_))
+        or not isinstance(sc, (int, np.integer))
+        or int(sc) < 1
+    ):
+        raise ValueError(
+            f"constants.CWT_SCALE_COUNT_DEFAULT must be an int >= 1, got {sc!r}"
+        )
+    wavelet = constants.WAVELET_DEFAULT_SPATIAL
+    if not isinstance(wavelet, str) or not wavelet:
+        raise ValueError(
+            f"constants.WAVELET_DEFAULT_SPATIAL must be a non-empty string, got {wavelet!r}"
+        )
+    try:
+        pywt.scale2frequency(wavelet, 1.0)
+    except (ValueError, TypeError) as exc:
+        raise ValueError(
+            f"constants.WAVELET_DEFAULT_SPATIAL is not a recognized pywt wavelet: "
+            f"{wavelet!r} ({exc})"
+        ) from exc
+
+
 def _min_samples_required(constants: ConstantsT) -> int:
     """Spatial MIN floor: floor(WL_MIN_NYQUIST / WL_MAX_FRACTION) + 1 (= 9 default)."""
     return (
@@ -222,6 +291,7 @@ def resample_curvature(
             ``velocity_sub_noise_mask`` of wrong length.
     """
     _c = _check_constants(constants) or ConstantsT()
+    _validate_wavelength_factors(_c)
     curvature = _validate_1d_float(curvature_px_inv, "curvature_px_inv")
     arc = _validate_1d_float(arc_length_px, "arc_length_px")
     if curvature.shape[0] != arc.shape[0]:
@@ -236,6 +306,11 @@ def resample_curvature(
             raise TypeError(
                 "velocity_sub_noise_mask must be a numpy ndarray, got "
                 f"{type(velocity_sub_noise_mask).__name__}"
+            )
+        if velocity_sub_noise_mask.ndim != 1:
+            raise ValueError(
+                "velocity_sub_noise_mask must be 1-D, got "
+                f"ndim={velocity_sub_noise_mask.ndim}"
             )
         if velocity_sub_noise_mask.shape[0] != arc.shape[0]:
             raise ValueError(
@@ -273,14 +348,19 @@ def resample_curvature(
         )
         return _degenerate_resample(n_unmasked)
 
-    # Apex-origin axis (apex at s_a = 0 = largest surviving arc).
-    s_a = arc_s.max() - arc_s
-    # Deduplicate duplicate-s_a knots by averaging κ -> strictly-increasing xp.
-    s_a_unique, inverse = np.unique(s_a, return_inverse=True)
-    counts = np.bincount(inverse)
-    kappa_unique = np.bincount(inverse, weights=kappa_s) / counts
+    # Numeric body under errstate as a belt-and-suspenders guarantee of the
+    # never-RuntimeWarning contract (the two-stage gate above already makes every
+    # op below well-defined: arc_span > 0 => >= 2 unique knots => non-empty
+    # positive-diff median; counts >= 1 per unique value => no divide-by-zero).
+    with np.errstate(invalid="ignore", divide="ignore"):
+        # Apex-origin axis (apex at s_a = 0 = largest surviving arc).
+        s_a = arc_s.max() - arc_s
+        # Deduplicate duplicate-s_a knots by averaging κ -> strictly-increasing xp.
+        s_a_unique, inverse = np.unique(s_a, return_inverse=True)
+        counts = np.bincount(inverse)
+        kappa_unique = np.bincount(inverse, weights=kappa_s) / counts
 
-    ds = float(np.median(np.diff(s_a_unique)))
+        ds = float(np.median(np.diff(s_a_unique)))
 
     # Stage 2 gate (output grid length).
     grid_len = int(math.floor(arc_span / ds)) + 1
@@ -468,6 +548,7 @@ def compute_scaleogram(
             or ``ds`` non-positive / non-finite.
     """
     _c = _check_constants(constants) or ConstantsT()
+    _validate_spatial_cwt_constants(_c)
     kappa_v = _validate_1d_float(kappa, "kappa")
     if not np.isfinite(kappa_v).all():
         n_bad = int((~np.isfinite(kappa_v)).sum())

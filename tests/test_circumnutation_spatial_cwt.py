@@ -876,3 +876,79 @@ def test_real_plate001_spatial_cwt_is_physically_plausible():
         )
 
     print(f"\nplate-001 spatial CWT observed (lambda_spatial, 2ds/lambda): {observed}")
+
+
+# ---------------------------------------------------------------------------
+# Phase-3.5 review reconciliation: constants-field validation + dtype/ndim guards
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "overrides,field",
+    [
+        (
+            {"CWT_WAVELENGTH_MAX_SIGNAL_FRACTION": 0.0},
+            "CWT_WAVELENGTH_MAX_SIGNAL_FRACTION",
+        ),
+        (
+            {"CWT_WAVELENGTH_MIN_NYQUIST_FACTOR": -1.0},
+            "CWT_WAVELENGTH_MIN_NYQUIST_FACTOR",
+        ),
+        ({"SPATIAL_COI_EFOLDING_FACTOR": 0.0}, "SPATIAL_COI_EFOLDING_FACTOR"),
+        ({"CWT_SCALE_COUNT_DEFAULT": 0}, "CWT_SCALE_COUNT_DEFAULT"),
+        (
+            {"WAVELET_DEFAULT_SPATIAL": "definitely-not-a-wavelet"},
+            "WAVELET_DEFAULT_SPATIAL",
+        ),
+    ],
+)
+def test_compute_scaleogram_validates_constants_fields(overrides, field):
+    """B1: bad spatial-CWT constants raise ValueError NAMING the field (CC-1)."""
+    from sleap_roots.circumnutation.spatial_cwt import compute_scaleogram
+    from sleap_roots.circumnutation._constants import ConstantsT
+
+    kappa, _ = _clean_inputs(n=40, ds=5.8)
+    with pytest.raises(ValueError, match=field):
+        compute_scaleogram(kappa, 5.8, constants=ConstantsT(**overrides))
+
+
+def test_resample_curvature_validates_wavelength_constants_not_zerodiv():
+    """B1: a zero CWT_WAVELENGTH_MAX_SIGNAL_FRACTION → ValueError, NOT ZeroDivisionError."""
+    from sleap_roots.circumnutation.spatial_cwt import resample_curvature
+    from sleap_roots.circumnutation._constants import ConstantsT
+
+    kappa, arc = _clean_inputs(n=20, ds=5.0)
+    with pytest.raises(ValueError, match="CWT_WAVELENGTH_MAX_SIGNAL_FRACTION"):
+        resample_curvature(
+            kappa, arc, constants=ConstantsT(CWT_WAVELENGTH_MAX_SIGNAL_FRACTION=0.0)
+        )
+
+
+def test_resample_curvature_rejects_object_dtype():
+    """I2: object-dtype curvature → ValueError naming the field (explicit, not pragma)."""
+    from sleap_roots.circumnutation.spatial_cwt import resample_curvature
+
+    _, arc = _clean_inputs(n=20, ds=5.0)
+    obj = np.array([object()] * 20, dtype=object)
+    with pytest.raises(ValueError, match="curvature_px_inv"):
+        resample_curvature(obj, arc)
+
+
+def test_compute_scaleogram_rejects_object_dtype_kappa():
+    """I2: object-dtype kappa → ValueError naming the field."""
+    from sleap_roots.circumnutation.spatial_cwt import compute_scaleogram
+
+    obj = np.array([object()] * 20, dtype=object)
+    with pytest.raises(ValueError, match="kappa"):
+        compute_scaleogram(obj, 5.8)
+
+
+def test_resample_curvature_rejects_2d_mask_with_field_named_error():
+    """Behavioral: a 2-D mask → field-named ValueError, not a raw numpy broadcast error."""
+    from sleap_roots.circumnutation.spatial_cwt import resample_curvature
+
+    kappa, arc = _clean_inputs(n=20, ds=5.0)
+    with pytest.raises(ValueError, match="velocity_sub_noise_mask"):
+        resample_curvature(
+            kappa, arc, velocity_sub_noise_mask=np.zeros((20, 2), dtype=bool)
+        )
