@@ -58,7 +58,11 @@ interior `[scale_idx, positions]`.
 ## Risks / Trade-offs
 
 - **cgau2 COI factor unknown at design time** → measured empirically in GREEN
-  (task 6.1); `SPATIAL_COI_EFOLDING_FACTOR` default set from the measurement.
+  (task 1.1); `SPATIAL_COI_EFOLDING_FACTOR` default set from the measurement. The
+  same step-response capture also characterizes the cgau2 `scale2frequency`
+  wavelength calibration (its center-frequency convention introduces a measured
+  systematic offset in `wavelengths_px`), so the λ-recovery oracle tolerance is a
+  measured band, not a speculative ±5%.
 - **L_gz/L_c descope ripples to PR #10** → its `L_gz`-dependent traits + mask are
   blocked on #230, but `traveling_wave_residual` + `apex_basal_period_consistency`
   remain deliverable from λ(s_a). Documented as a scope note, not changed here.
@@ -69,9 +73,10 @@ interior `[scale_idx, positions]`.
 Foundation-test migration atomic with the first non-raising commit (impl 7→8,
 stub 4→3; `_CONSTANTS_VERSION` assertion 5→6 in BOTH `test_circumnutation_foundation.py`
 AND `test_circumnutation_temporal_cwt.py::test_2G4`, same commit). `theory.md`
-§7.4/§6.3 patched with the deviation AND the §6.5 trait-status table rows for
-`L_gz`/`L_c` flipped from "✓ Measurable" to "✗ — see #230" (resolving the
-§6.5-vs-§7.4 internal contradiction); original §7.4 preserved in Appendix B.
+§7.4/§6.3 patched with the deviation AND the §6.6 trait-status table rows
+("What this means for the trait list") for `L_gz`/`L_c` flipped from "✓ Measurable"
+to "✗ — see #230" (resolving the §6.6-vs-§7.4 internal contradiction); original
+§7.4 preserved in Appendix B.
 `roadmap.md` row #9 / CC-1 / row #10 reconciled to the descope.
 
 ## Open Questions

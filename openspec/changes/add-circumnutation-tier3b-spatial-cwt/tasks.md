@@ -20,7 +20,7 @@ constant before Section 5.
 
 ## 1. Measure the cgau2 COI e-folding factor (BEFORE constants — feeds the default)
 
-- [ ] 1.1 `scripts/circumnutation/capture_spatial_coi_factor.py` — step-response measurement of the cgau2 e-folding factor across scales (mirroring PR #5's cmor calibration); record the measured value + provenance (platform, pywt/numpy versions). Document the derivation in `design.md`. The measured number becomes the `SPATIAL_COI_EFOLDING_FACTOR` default added in Section 5. (No package change; resolves the backwards dependency the review flagged.)
+- [ ] 1.1 `scripts/circumnutation/capture_spatial_coi_factor.py` — step-response measurement of the cgau2 e-folding factor across scales (mirroring PR #5's cmor calibration); record the measured value + provenance (platform, pywt/numpy versions). Document the derivation in `design.md`. The measured number becomes the `SPATIAL_COI_EFOLDING_FACTOR` default added in Section 5. **Also characterize the cgau2 `pywt.scale2frequency` wavelength calibration**: the cgau2 center-frequency convention (reports `center_freq ≈ 0.4`) makes the round-trip `wavelengths_px` over-report the true peak-response wavelength by an empirically positive, mildly λ-dependent band (~+7 to +16% over λ∈[30,60]px at n=200 in the round-2 probe). Record this band so the λ-recovery oracle tolerance (tasks 6.1/6.5) is the MEASURED band, not a speculative ±5%, and PR #10 can apply the same offset to `traveling_wave_residual`. (No package change; resolves the backwards dependency the review flagged.)
 
 ## 2. ResampleResult + resample_curvature (independent — no new constants)
 
@@ -69,11 +69,11 @@ All of 5.x land in a SINGLE commit so no committed suite is ever RED.
 
 ## 6. Analytic oracles + determinism canary (full chain)
 
-- [ ] 6.1 RED: pure-sinusoid-of-known-λ oracle wired through `resample_curvature → compute_scaleogram → extract_ridge` (so the RED can fail on a wrong apex/`s_a` axis, not green-on-arrival) — COI-interior (`~in_coi`) median `wavelengths_px` recovers `lambda_true` within a LITERAL ±~5% (one log-scale step) tolerance.
+- [ ] 6.1 RED: pure-sinusoid-of-known-λ oracle wired through `resample_curvature → compute_scaleogram → extract_ridge` (so the RED can fail on a wrong apex/`s_a` axis, not green-on-arrival) — COI-interior (`~in_coi`) median `wavelengths_px` recovers `lambda_true` within the MEASURED cgau2-calibration band from task 1.1 (a literal in the test; NOT a speculative ±5%, since `scale2frequency("cgau2")` systematically offsets the wavelength axis).
 - [ ] 6.2 GREEN: ensure recovery + convention hold (any fix lands here).
-- [ ] 6.3 RED: harmonic robustness — fundamental + 30–40% second harmonic → ridge median tracks the fundamental λ, not λ/2.
+- [ ] 6.3 RED: harmonic robustness — fundamental + ~20–30% second harmonic → COI-interior ridge median tracks the fundamental λ, not λ/2.
 - [ ] 6.4 GREEN: confirm (document any scale-band tuning).
-- [ ] 6.5 RED: 50%-sparsity robustness — sinusoid on a non-uniform grid, ~50% randomly dropped → full chain recovers `lambda_true` within tolerance; record any interp-gap bias.
+- [ ] 6.5 RED: 50%-sparsity robustness — sinusoid on a non-uniform grid, ~50% randomly dropped → full chain recovers `lambda_true` within the measured tolerance AND the gap-interpolation bias is asserted by SIGN (recovered median λ ≥ `lambda_true` minus the calibration band, since linear interp across gaps low-passes → lengthens λ).
 - [ ] 6.6 GREEN: confirm.
 - [ ] 6.7 RED: determinism — `compute_scaleogram` + `extract_ridge` same input twice → `np.array_equal` at `atol=0`; hardcoded canary at interior COI-dodging `[scale_idx, positions]` matches at `atol=1e-9, rtol=0`.
 - [ ] 6.8 GREEN: `scripts/circumnutation/capture_spatial_cwt_canary.py` (interior, COI-dodging) → paste literals into the test; ISOLATE the canary in its own test and pre-document (design.md) the per-canary loosen-on-legitimate-drift policy in case cgau2 (unproven cross-OS here) needs a single looser canary atol.
@@ -84,7 +84,7 @@ All of 5.x land in a SINGLE commit so no committed suite is ever RED.
 
 ## 8. Theory + program-doc deviation discipline (review BLOCKING reconciliation: roadmap/CC-1/#197)
 
-- [ ] 8.1 Patch `docs/circumnutation/theory.md`: §7.4/§6.3 note that `L_gz`/`L_c` are not measurable from top-view tip-trail κ(s) as written (empirical, this PR); AND the §6.5 trait-status table rows for `L_gz`/`L_c` (currently "✓ Measurable (Tier 3)") → "✗ Not measurable from tip-trail as written — see #230" (resolve the §6.5-vs-§7.4 internal contradiction). λ_spatial is the measurable spatial quantity. Preserve the original §7.4 text in Appendix B with a "Why" note referencing #230.
+- [ ] 8.1 Patch `docs/circumnutation/theory.md`: §7.4/§6.3 note that `L_gz`/`L_c` are not measurable from top-view tip-trail κ(s) as written (empirical, this PR); AND the §6.6 trait-status table rows ("What this means for the trait list") for `L_gz`/`L_c` (currently "✓ Measurable (Tier 3)") → "✗ Not measurable from tip-trail as written — see #230" (resolve the §6.6-vs-§7.4 internal contradiction). λ_spatial is the measurable spatial quantity. Preserve the original §7.4 text in Appendix B with a "Why" note referencing #230.
 - [ ] 8.2 Patch `docs/circumnutation/roadmap.md`: rewrite row #9 scope → "resample + cgau2 scaleogram + λ_spatial ridge; L_gz/L_c descoped to #230"; fill row #9 issue/status cells with #229; annotate CC-1 step 2 (now factually wrong — it says PR #9 peak-finds L_gz/fits L_c) with the descope + #230 pointer; annotate row #10 that its L_gz-dependent traits + mask are blocked on #230 while `traveling_wave_residual` + `apex_basal_period_consistency` remain deliverable from PR #9's λ.
 - [ ] 8.3 Update epic #197 body: fill in #229/#230 for PR #9 and correct the stale "L_gz peak-find + L_c decay fit" scope line (tracking-hygiene; draft note in vault, post per the authorize-each-post rule).
 - [ ] 8.4 Update `docs/circumnutation/__init__.py`-area docstrings if stale: `sleap_roots/circumnutation/__init__.py` "remaining stubs" docstring (currently lists `spatial_cwt`) → remove `spatial_cwt`.
