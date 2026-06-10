@@ -58,6 +58,54 @@ class ResampleResult:
     is_degenerate: bool
 
 
+@attrs.define(frozen=True, slots=False, kw_only=True, eq=False)
+class SpatialScaleogramResult:
+    """cgau2 spatial CWT scaleogram of κ(s) (PR #9).
+
+    ``eq=False`` (ndarray fields make auto ``__eq__`` ambiguous).
+
+    Attributes:
+        scaleogram: complex128 ``(n_scales, n_samples)`` CWT coefficients.
+        scales: float64 ``(n_scales,)`` log-spaced dimensionless pywt scales.
+        wavelengths_px: float64 ``(n_scales,)`` spatial wavelength axis (px), the
+            honest ``pywt.scale2frequency`` convention value (NOT bias-corrected).
+        spatial_freqs_px_inv: float64 ``(n_scales,)``, ``1.0 / wavelengths_px``.
+        coi_mask: bool ``(n_scales, n_samples)``; ``True`` = inside-COI = unreliable.
+        ds: Resolved uniform grid spacing (px).
+        wavelet: Resolved wavelet name.
+    """
+
+    scaleogram: np.ndarray
+    scales: np.ndarray
+    wavelengths_px: np.ndarray
+    spatial_freqs_px_inv: np.ndarray
+    coi_mask: np.ndarray
+    ds: float
+    wavelet: str
+
+
+@attrs.define(frozen=True, slots=False, kw_only=True, eq=False)
+class SpatialRidgeResult:
+    """Per-position dominant spatial wavelength λ(s_a) ridge (PR #9).
+
+    Spatial sibling of ``temporal_cwt.RidgeResult`` (frame→position,
+    period_s→wavelength_px). ``eq=False`` (ndarray fields).
+
+    Attributes:
+        position_indices: int64 ``(n_samples,)``, ``np.arange(n_samples)``.
+        wavelengths_px: float64 ``(n_samples,)`` spatial wavelength AT the ridge.
+        amplitudes: float64 ``(n_samples,)`` ``|W|`` at the ridge cell (≥ 0).
+        powers: float64 ``(n_samples,)`` ``amplitudes ** 2`` (redundant by design).
+        in_coi: bool ``(n_samples,)``; ``True`` iff the ridge cell is inside-COI.
+    """
+
+    position_indices: np.ndarray
+    wavelengths_px: np.ndarray
+    amplitudes: np.ndarray
+    powers: np.ndarray
+    in_coi: np.ndarray
+
+
 # ---------------------------------------------------------------------------
 # §2 — Validators (field-named; run first, unconditionally)
 # ---------------------------------------------------------------------------
@@ -253,6 +301,67 @@ def resample_curvature(
         n_unmasked=n_unmasked,
         arc_span_px=arc_span,
         is_degenerate=False,
+    )
+
+
+# ---------------------------------------------------------------------------
+# §4 — Public: extract_ridge
+# ---------------------------------------------------------------------------
+
+
+def extract_ridge(
+    scaleogram_result: SpatialScaleogramResult,
+    constants: Optional[ConstantsT] = None,
+) -> SpatialRidgeResult:
+    """Extract the per-position dominant spatial wavelength ridge λ(s_a).
+
+    Deterministic per-position argmax of ``|scaleogram|`` along the scale axis
+    (numpy's documented smallest-index tie-break). Ships the raw ridge — NOT
+    COI-masked (PR #10 applies the COI reliability gate).
+
+    Args:
+        scaleogram_result: A :class:`SpatialScaleogramResult`.
+        constants: Optional :class:`ConstantsT` override-bag.
+
+    Returns:
+        A :class:`SpatialRidgeResult`.
+
+    Raises:
+        TypeError: ``scaleogram_result`` not a :class:`SpatialScaleogramResult`,
+            or bad ``constants`` type.
+        ValueError: empty scaleogram (``n_scales == 0`` or ``n_samples == 0``).
+    """
+    _check_constants(constants)
+    if not isinstance(scaleogram_result, SpatialScaleogramResult):
+        raise TypeError(
+            "scaleogram_result must be a SpatialScaleogramResult, got "
+            f"{type(scaleogram_result).__name__}"
+        )
+    scaleogram = scaleogram_result.scaleogram
+    n_scales, n_samples = scaleogram.shape
+    if n_scales == 0 or n_samples == 0:
+        raise ValueError(
+            f"scaleogram must be non-empty, got n_scales={n_scales}, "
+            f"n_samples={n_samples}"
+        )
+
+    logger.debug("extract_ridge(n_scales=%d, n_samples=%d)", n_scales, n_samples)
+
+    mag = np.abs(scaleogram)
+    ridge_scale_idx = np.argmax(mag, axis=0)
+    positions = np.arange(n_samples)
+    amplitudes = mag[ridge_scale_idx, positions].astype(np.float64)
+    wavelengths_px = scaleogram_result.wavelengths_px[ridge_scale_idx].astype(
+        np.float64
+    )
+    in_coi = scaleogram_result.coi_mask[ridge_scale_idx, positions].astype(bool)
+
+    return SpatialRidgeResult(
+        position_indices=positions.astype(np.int64),
+        wavelengths_px=wavelengths_px,
+        amplitudes=amplitudes,
+        powers=amplitudes**2,
+        in_coi=in_coi,
     )
 
 

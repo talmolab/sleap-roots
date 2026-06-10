@@ -258,3 +258,202 @@ def test_resample_curvature_emits_one_debug_record(caplog):
     for token in ("n_input=", "n_unmasked=", "ds=", "arc_span_px="):
         assert token in msg
     assert not [r for r in records if r.levelno > logging.DEBUG]
+
+
+# ---------------------------------------------------------------------------
+# §3 — SpatialScaleogramResult + SpatialRidgeResult + extract_ridge
+# ---------------------------------------------------------------------------
+
+
+def _make_scaleogram_result(n_scales=8, n_samples=30, peak_row=3):
+    """Construct a SpatialScaleogramResult by hand (extract_ridge input)."""
+    from sleap_roots.circumnutation.spatial_cwt import SpatialScaleogramResult
+
+    rng = np.linspace(0.1, 1.0, n_scales)
+    scaleogram = np.zeros((n_scales, n_samples), dtype=np.complex128)
+    # make peak_row the argmax at every position
+    for j in range(n_samples):
+        scaleogram[:, j] = rng * (0.3 + 0.1 * j)
+        scaleogram[peak_row, j] = (5.0 + 0.01 * j) + 2.0j
+    scales = np.linspace(1.0, 20.0, n_scales).astype(np.float64)
+    wavelengths_px = np.linspace(60.0, 6.0, n_scales).astype(np.float64)
+    spatial_freqs = 1.0 / wavelengths_px
+    coi_mask = np.zeros((n_scales, n_samples), dtype=bool)
+    coi_mask[:, :2] = True
+    coi_mask[:, -2:] = True
+    return SpatialScaleogramResult(
+        scaleogram=scaleogram,
+        scales=scales,
+        wavelengths_px=wavelengths_px,
+        spatial_freqs_px_inv=spatial_freqs,
+        coi_mask=coi_mask,
+        ds=5.8,
+        wavelet="cgau2",
+    )
+
+
+def test_spatial_scaleogram_result_frozen_attrs_seven_fields():
+    """§3.1: SpatialScaleogramResult frozen attrs, seven fields in order."""
+    from sleap_roots.circumnutation.spatial_cwt import SpatialScaleogramResult
+
+    names = tuple(f.name for f in attrs.fields(SpatialScaleogramResult))
+    assert names == (
+        "scaleogram",
+        "scales",
+        "wavelengths_px",
+        "spatial_freqs_px_inv",
+        "coi_mask",
+        "ds",
+        "wavelet",
+    )
+    r = _make_scaleogram_result()
+    with pytest.raises(attrs.exceptions.FrozenInstanceError):
+        r.ds = 1.0
+
+
+def test_spatial_ridge_result_frozen_attrs_five_fields():
+    """§3.3: SpatialRidgeResult frozen attrs, five fields in order; powers==amp²."""
+    from sleap_roots.circumnutation.spatial_cwt import SpatialRidgeResult
+
+    names = tuple(f.name for f in attrs.fields(SpatialRidgeResult))
+    assert names == (
+        "position_indices",
+        "wavelengths_px",
+        "amplitudes",
+        "powers",
+        "in_coi",
+    )
+    r = SpatialRidgeResult(
+        position_indices=np.arange(3, dtype=np.int64),
+        wavelengths_px=np.ones(3),
+        amplitudes=np.full(3, 2.0),
+        powers=np.full(3, 4.0),
+        in_coi=np.zeros(3, dtype=bool),
+    )
+    with pytest.raises(attrs.exceptions.FrozenInstanceError):
+        r.amplitudes = np.zeros(3)
+
+
+def test_extract_ridge_happy_path():
+    """§3.5: per-position argmax over scales → λ, amplitudes, powers, in_coi."""
+    from sleap_roots.circumnutation.spatial_cwt import (
+        extract_ridge,
+        SpatialRidgeResult,
+    )
+
+    sr = _make_scaleogram_result(n_scales=8, n_samples=30, peak_row=3)
+    r = extract_ridge(sr)
+    assert isinstance(r, SpatialRidgeResult)
+    assert r.position_indices.dtype == np.int64
+    npt.assert_array_equal(r.position_indices, np.arange(30, dtype=np.int64))
+    # every ridge picked peak_row=3 → its wavelength
+    npt.assert_allclose(r.wavelengths_px, sr.wavelengths_px[3])
+    assert (r.amplitudes >= 0).all()
+    npt.assert_allclose(r.powers, r.amplitudes**2)
+    # in_coi reflects the scaleogram COI mask at the ridge scale
+    assert r.in_coi[0] and r.in_coi[-1]
+    assert not r.in_coi[15]
+
+
+def test_extract_ridge_single_scale_degenerates_gracefully():
+    """§3.5: n_scales==1 → argmax returns 0 everywhere, no IndexError."""
+    from sleap_roots.circumnutation.spatial_cwt import extract_ridge
+
+    sr = _make_scaleogram_result(n_scales=1, n_samples=12, peak_row=0)
+    r = extract_ridge(sr)
+    npt.assert_allclose(r.wavelengths_px, sr.wavelengths_px[0])
+
+
+def test_extract_ridge_scale_tie_returns_smallest_index():
+    """§3.5: tied |W| across scales → numpy argmax smallest-index tie-break."""
+    from sleap_roots.circumnutation.spatial_cwt import (
+        extract_ridge,
+        SpatialScaleogramResult,
+    )
+
+    n_scales, n_samples = 4, 5
+    scaleogram = np.ones((n_scales, n_samples), dtype=np.complex128)  # all tied
+    scales = np.linspace(1.0, 10.0, n_scales).astype(np.float64)
+    wavelengths_px = np.linspace(40.0, 10.0, n_scales).astype(np.float64)
+    sr = SpatialScaleogramResult(
+        scaleogram=scaleogram,
+        scales=scales,
+        wavelengths_px=wavelengths_px,
+        spatial_freqs_px_inv=1.0 / wavelengths_px,
+        coi_mask=np.zeros((n_scales, n_samples), dtype=bool),
+        ds=5.0,
+        wavelet="cgau2",
+    )
+    r = extract_ridge(sr)
+    npt.assert_allclose(r.wavelengths_px, wavelengths_px[0])  # smallest index
+
+
+@pytest.mark.parametrize("bad", [None, {}, (1, 2, 3), np.zeros((4, 4))])
+def test_extract_ridge_rejects_non_result(bad):
+    """§3.7: non-SpatialScaleogramResult → TypeError referencing the type."""
+    from sleap_roots.circumnutation.spatial_cwt import extract_ridge
+
+    with pytest.raises(TypeError, match="SpatialScaleogramResult"):
+        extract_ridge(bad)
+
+
+@pytest.mark.parametrize("shape", [(0, 10), (8, 0)])
+def test_extract_ridge_rejects_empty(shape):
+    """§3.7: empty scaleogram (n_scales==0 or n_samples==0) → ValueError."""
+    from sleap_roots.circumnutation.spatial_cwt import (
+        extract_ridge,
+        SpatialScaleogramResult,
+    )
+
+    n_scales, n_samples = shape
+    sr = SpatialScaleogramResult(
+        scaleogram=np.zeros(shape, dtype=np.complex128),
+        scales=np.zeros(n_scales, dtype=np.float64),
+        wavelengths_px=np.zeros(n_scales, dtype=np.float64),
+        spatial_freqs_px_inv=np.zeros(n_scales, dtype=np.float64),
+        coi_mask=np.zeros(shape, dtype=bool),
+        ds=5.0,
+        wavelet="cgau2",
+    )
+    with pytest.raises(ValueError):
+        extract_ridge(sr)
+
+
+def test_extract_ridge_rejects_bad_constants():
+    """§3.7: invalid constants type → TypeError referencing constants."""
+    from sleap_roots.circumnutation.spatial_cwt import extract_ridge
+
+    sr = _make_scaleogram_result()
+    with pytest.raises(TypeError, match="constants"):
+        extract_ridge(sr, constants="foo")
+
+
+def test_extract_ridge_emits_one_debug_record(caplog):
+    """§3.9: exactly one DEBUG record with n_scales=/n_samples=; no INFO/WARN/ERROR."""
+    from sleap_roots.circumnutation.spatial_cwt import extract_ridge
+
+    sr = _make_scaleogram_result(n_scales=8, n_samples=30)
+    with caplog.at_level(
+        logging.DEBUG, logger="sleap_roots.circumnutation.spatial_cwt"
+    ):
+        extract_ridge(sr)
+    records = [
+        r for r in caplog.records if r.name == "sleap_roots.circumnutation.spatial_cwt"
+    ]
+    assert len(records) == 1
+    msg = records[0].getMessage()
+    assert msg.startswith("extract_ridge(")
+    assert "n_scales=" in msg and "n_samples=" in msg
+    assert not [r for r in records if r.levelno > logging.DEBUG]
+
+
+def test_extract_ridge_deterministic():
+    """§3: same input twice → identical ridge at atol=0."""
+    from sleap_roots.circumnutation.spatial_cwt import extract_ridge
+
+    sr = _make_scaleogram_result()
+    r1 = extract_ridge(sr)
+    r2 = extract_ridge(sr)
+    npt.assert_array_equal(r1.wavelengths_px, r2.wavelengths_px)
+    npt.assert_array_equal(r1.amplitudes, r2.amplitudes)
+    npt.assert_array_equal(r1.in_coi, r2.in_coi)
