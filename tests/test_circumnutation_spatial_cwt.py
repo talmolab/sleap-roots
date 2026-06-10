@@ -502,3 +502,161 @@ def test_spatial_scale_axis_endpoints_and_monotonicity():
     npt.assert_allclose(spatial_freqs * wavelengths_px, 1.0, atol=1e-12)
     npt.assert_allclose(wavelengths_px.min(), 2.0 * ds, rtol=1e-9)
     npt.assert_allclose(wavelengths_px.max(), 0.25 * n * ds, rtol=1e-9)
+
+
+# ---------------------------------------------------------------------------
+# §5 — compute_scaleogram (cgau2) + constants graduation (version 5→6)
+# ---------------------------------------------------------------------------
+
+
+def test_compute_scaleogram_shapes_dtypes_and_resolved_fields():
+    """§5: SpatialScaleogramResult shapes/dtypes, reciprocal axes, wavelet, ds."""
+    from sleap_roots.circumnutation.spatial_cwt import (
+        compute_scaleogram,
+        SpatialScaleogramResult,
+    )
+    from sleap_roots.circumnutation._constants import CWT_SCALE_COUNT_DEFAULT
+
+    kappa, arc = _clean_inputs(n=200, ds=5.8)
+    r = compute_scaleogram(kappa, 5.8)
+    assert isinstance(r, SpatialScaleogramResult)
+    assert r.scaleogram.shape == (CWT_SCALE_COUNT_DEFAULT, 200)
+    assert r.scaleogram.dtype == np.complex128
+    assert r.scales.shape == (CWT_SCALE_COUNT_DEFAULT,)
+    assert np.all(np.diff(r.scales) > 0)
+    assert r.wavelengths_px.shape == (CWT_SCALE_COUNT_DEFAULT,)
+    npt.assert_allclose(r.spatial_freqs_px_inv * r.wavelengths_px, 1.0, atol=1e-12)
+    assert r.coi_mask.shape == r.scaleogram.shape
+    assert r.coi_mask.dtype == bool
+    assert r.ds == 5.8
+    assert r.wavelet == "cgau2"
+
+
+def test_compute_scaleogram_min_floor_accepts_9_rejects_8():
+    """§5: accept-at MIN floor (9) + reject-below; floor=floor(2.0/0.25)+1=9."""
+    from sleap_roots.circumnutation.spatial_cwt import compute_scaleogram
+
+    r = compute_scaleogram(np.sin(np.arange(9, dtype=np.float64)), 5.8)
+    assert r.scaleogram.shape[1] == 9
+    with pytest.raises(ValueError, match="kappa"):
+        compute_scaleogram(np.sin(np.arange(8, dtype=np.float64)), 5.8)
+
+
+def test_compute_scaleogram_rejects_non_finite_kappa():
+    """§5: non-finite kappa → ValueError naming the field (NOT dropped here)."""
+    from sleap_roots.circumnutation.spatial_cwt import compute_scaleogram
+
+    kappa, _ = _clean_inputs(n=20, ds=5.8)
+    kappa = kappa.copy()
+    kappa[3] = np.nan
+    with pytest.raises(ValueError, match="kappa"):
+        compute_scaleogram(kappa, 5.8)
+
+
+@pytest.mark.parametrize("bad_ds", [0, -1.0, float("nan"), float("inf"), float("-inf")])
+def test_compute_scaleogram_rejects_invalid_ds_value(bad_ds):
+    """§5: ds value 0/neg/nan/inf → ValueError naming ds."""
+    from sleap_roots.circumnutation.spatial_cwt import compute_scaleogram
+
+    kappa, _ = _clean_inputs(n=20, ds=5.8)
+    with pytest.raises(ValueError, match="ds"):
+        compute_scaleogram(kappa, bad_ds)
+
+
+@pytest.mark.parametrize("bad_ds", [True, np.bool_(True), "5.8", [5.8]])
+def test_compute_scaleogram_rejects_invalid_ds_type(bad_ds):
+    """§5: ds bool/np.bool_/str/list → TypeError naming ds."""
+    from sleap_roots.circumnutation.spatial_cwt import compute_scaleogram
+
+    kappa, _ = _clean_inputs(n=20, ds=5.8)
+    with pytest.raises(TypeError, match="ds"):
+        compute_scaleogram(kappa, bad_ds)
+
+
+def test_compute_scaleogram_accepts_numpy_float_ds():
+    """§5 (M-a): ds=np.float64 ACCEPTED (positive sibling of np.bool_ rejection)."""
+    from sleap_roots.circumnutation.spatial_cwt import compute_scaleogram
+
+    kappa, _ = _clean_inputs(n=20, ds=5.8)
+    r = compute_scaleogram(kappa, np.float64(5.8))
+    assert r.ds == 5.8
+
+
+def test_compute_scaleogram_honors_wavelet_override():
+    """§5 (M-f): WAVELET_DEFAULT_SPATIAL override is honored, not hard-coded."""
+    from sleap_roots.circumnutation.spatial_cwt import compute_scaleogram
+    from sleap_roots.circumnutation._constants import ConstantsT
+
+    kappa, _ = _clean_inputs(n=40, ds=5.8)
+    r = compute_scaleogram(
+        kappa, 5.8, constants=ConstantsT(WAVELET_DEFAULT_SPATIAL="cmor1.5-1.0")
+    )
+    assert r.wavelet == "cmor1.5-1.0"
+
+
+def test_compute_scaleogram_emits_one_debug_record(caplog):
+    """§5: one DEBUG record with the documented tokens; no INFO/WARN/ERROR."""
+    from sleap_roots.circumnutation.spatial_cwt import compute_scaleogram
+
+    kappa, _ = _clean_inputs(n=40, ds=5.8)
+    with caplog.at_level(
+        logging.DEBUG, logger="sleap_roots.circumnutation.spatial_cwt"
+    ):
+        compute_scaleogram(kappa, 5.8)
+    records = [
+        r for r in caplog.records if r.name == "sleap_roots.circumnutation.spatial_cwt"
+    ]
+    assert len(records) == 1
+    msg = records[0].getMessage()
+    assert msg.startswith("compute_scaleogram(")
+    for token in (
+        "n_samples=",
+        "ds=",
+        "n_scales=",
+        "wavelength_min_px=",
+        "wavelength_max_px=",
+        "wavelet=",
+    ):
+        assert token in msg
+    assert not [r for r in records if r.levelno > logging.DEBUG]
+
+
+def test_constants_version_is_6_and_three_spatial_constants_present():
+    """§5: _CONSTANTS_VERSION bumped 5→6; 3 spatial constants exist + ConstantsT fields."""
+    from sleap_roots.circumnutation import _constants
+    from sleap_roots.circumnutation._constants import ConstantsT
+
+    assert _constants._CONSTANTS_VERSION == 6
+    for name in (
+        "SPATIAL_COI_EFOLDING_FACTOR",
+        "CWT_WAVELENGTH_MIN_NYQUIST_FACTOR",
+        "CWT_WAVELENGTH_MAX_SIGNAL_FRACTION",
+    ):
+        assert hasattr(_constants, name)
+        assert hasattr(ConstantsT(), name)
+
+
+def test_spatial_constants_override_roundtrip_and_snapshot_len_38():
+    """§5: ConstantsT override round-trip; snapshot contains the 3 + len==38."""
+    from sleap_roots.circumnutation._constants import (
+        ConstantsT,
+        _default_constants_snapshot,
+    )
+
+    c = ConstantsT(
+        SPATIAL_COI_EFOLDING_FACTOR=2.0,
+        CWT_WAVELENGTH_MIN_NYQUIST_FACTOR=4.0,
+        CWT_WAVELENGTH_MAX_SIGNAL_FRACTION=0.5,
+    )
+    assert c.SPATIAL_COI_EFOLDING_FACTOR == 2.0
+    assert c.CWT_WAVELENGTH_MIN_NYQUIST_FACTOR == 4.0
+    assert c.CWT_WAVELENGTH_MAX_SIGNAL_FRACTION == 0.5
+    assert c.NOISE_MASK_K == 2  # unoverridden default
+    snap = _default_constants_snapshot()
+    for name in (
+        "SPATIAL_COI_EFOLDING_FACTOR",
+        "CWT_WAVELENGTH_MIN_NYQUIST_FACTOR",
+        "CWT_WAVELENGTH_MAX_SIGNAL_FRACTION",
+    ):
+        assert name in snap
+    assert len(snap) == 38

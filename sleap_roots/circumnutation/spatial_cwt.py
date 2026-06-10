@@ -145,6 +145,18 @@ def _validate_1d_float(value: Any, name: str) -> np.ndarray:
         raise ValueError(f"{name} must be float64-coercible: {exc}") from exc
 
 
+def _validate_ds(ds: Any) -> float:
+    """Validate ``ds`` is a positive finite float-like (not bool/str/list)."""
+    if isinstance(ds, (bool, np.bool_)):
+        raise TypeError(f"ds must be a real number, got bool {ds!r}")
+    if not isinstance(ds, (int, float, np.integer, np.floating)):
+        raise TypeError(f"ds must be int or float, got {type(ds).__name__}: {ds!r}")
+    ds_f = float(ds)
+    if not math.isfinite(ds_f) or ds_f <= 0.0:
+        raise ValueError(f"ds must be positive and finite, got {ds!r}")
+    return ds_f
+
+
 def _min_samples_required(constants: ConstantsT) -> int:
     """Spatial MIN floor: floor(WL_MIN_NYQUIST / WL_MAX_FRACTION) + 1 (= 9 default)."""
     return (
@@ -425,22 +437,81 @@ def _spatial_scale_axis(
 
 
 # ---------------------------------------------------------------------------
-# Stub (graduated in PR #9 §5 atomic commit)
+# §6 — Public: compute_scaleogram (cgau2 spatial CWT)
 # ---------------------------------------------------------------------------
 
 
-def compute_scaleogram(kappa=None, ds=None, constants=None):
-    """Compute a spatial CWT scaleogram of ``κ(s)`` (PR #9 §5 will implement).
+def compute_scaleogram(
+    kappa: np.ndarray,
+    ds: float,
+    constants: Optional[ConstantsT] = None,
+) -> SpatialScaleogramResult:
+    """Compute a cgau2 spatial CWT scaleogram of uniform-grid curvature ``κ(s)``.
+
+    Spatial sibling of ``temporal_cwt.compute_scaleogram`` (``cgau2`` default,
+    ``ds`` instead of ``cadence_s``). Unlike :func:`resample_curvature`, this
+    REJECTS non-finite ``kappa`` (it expects the clean uniform grid the resample
+    produced).
 
     Args:
-        kappa: 1-D numpy array of uniform-grid curvature values.
-        ds: Arc-length spacing between samples (px).
+        kappa: 1-D float64 uniform-grid curvature (px⁻¹), all-finite, length ≥
+            ``MIN_SAMPLES_REQUIRED`` (= 9 at defaults).
+        ds: Uniform grid spacing (px); positive finite.
         constants: Optional :class:`ConstantsT` override-bag.
 
     Returns:
-        A ``SpatialScaleogramResult`` (when implemented).
+        A :class:`SpatialScaleogramResult`.
 
     Raises:
-        NotImplementedError: Until the PR #9 §5 atomic graduation commit.
+        TypeError: ``kappa`` not an ndarray, bad ``ds`` type, or bad ``constants``.
+        ValueError: ``kappa`` non-1-D / complex / object / non-finite / too short,
+            or ``ds`` non-positive / non-finite.
     """
-    raise NotImplementedError("PR #9 — see docs/circumnutation/roadmap.md")
+    _c = _check_constants(constants) or ConstantsT()
+    kappa_v = _validate_1d_float(kappa, "kappa")
+    if not np.isfinite(kappa_v).all():
+        n_bad = int((~np.isfinite(kappa_v)).sum())
+        raise ValueError(f"kappa must be all-finite, got {n_bad} non-finite value(s)")
+    ds_v = _validate_ds(ds)
+    min_samples = _min_samples_required(_c)
+    if kappa_v.shape[0] < min_samples:
+        raise ValueError(
+            f"kappa too short: len={kappa_v.shape[0]} < MIN_SAMPLES_REQUIRED="
+            f"{min_samples}"
+        )
+
+    wavelet = _c.WAVELET_DEFAULT_SPATIAL
+    n_samples = kappa_v.shape[0]
+    scales, wavelengths_px, spatial_freqs_px_inv = _spatial_scale_axis(
+        n_samples,
+        ds_v,
+        wavelet,
+        _c.CWT_SCALE_COUNT_DEFAULT,
+        _c.CWT_WAVELENGTH_MIN_NYQUIST_FACTOR,
+        _c.CWT_WAVELENGTH_MAX_SIGNAL_FRACTION,
+    )
+
+    logger.debug(
+        "compute_scaleogram(n_samples=%d, ds=%.6f, n_scales=%d, "
+        "wavelength_min_px=%.6f, wavelength_max_px=%.6f, wavelet=%r)",
+        n_samples,
+        ds_v,
+        len(scales),
+        float(wavelengths_px.min()),
+        float(wavelengths_px.max()),
+        wavelet,
+    )
+
+    coefs, _ = pywt.cwt(kappa_v, scales, wavelet)
+    scaleogram = np.asarray(coefs, dtype=np.complex128)
+    coi_mask = _make_coi_mask(scales, n_samples, _c.SPATIAL_COI_EFOLDING_FACTOR)
+
+    return SpatialScaleogramResult(
+        scaleogram=scaleogram,
+        scales=scales,
+        wavelengths_px=wavelengths_px,
+        spatial_freqs_px_inv=spatial_freqs_px_inv,
+        coi_mask=coi_mask,
+        ds=ds_v,
+        wavelet=wavelet,
+    )

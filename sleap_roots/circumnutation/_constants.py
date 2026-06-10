@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 _SCHEMA_VERSION: int = 1
 """Bumped when the per-plant CSV row-identity columns or sidecar JSON shapes change."""
 
-_CONSTANTS_VERSION: int = 5
+_CONSTANTS_VERSION: int = 6
 """Bumped when any default in this module changes.
 
 PR #3 (``add-circumnutation-qc-tier``) bumped this 1 → 2 by adding four
@@ -63,6 +63,17 @@ TEMPORAL sibling of the existing :data:`NYQUIST_RATIO_MAX` (SPATIAL);
 both default to ``0.25`` per theory.md §6.5's "10-min still works"
 empirical anchor — the dimensional separation lives in the constant
 NAMES + docstrings, not in different values.
+
+PR #9 (``add-circumnutation-tier3b-spatial-cwt``) bumped this 5 → 6 by
+adding three new spatial-CWT-machinery default constants
+(``SPATIAL_COI_EFOLDING_FACTOR``, ``CWT_WAVELENGTH_MIN_NYQUIST_FACTOR``,
+``CWT_WAVELENGTH_MAX_SIGNAL_FRACTION``) to the overridable defaults set.
+``SPATIAL_COI_EFOLDING_FACTOR`` (default ``1.375``) is the empirically-measured
+``cgau2`` e-folding factor (impulse 1/e half-width; see
+``scripts/circumnutation/capture_spatial_coi_factor.py``), the spatial sibling
+of ``COI_EFOLDING_FACTOR`` (cmor ``√1.5``). The two ``CWT_WAVELENGTH_*``
+constants are the spatial siblings of the temporal ``CWT_PERIOD_*`` (same
+``2.0`` / ``0.25`` defaults; dimensional separation in NAMES + docstrings).
 """
 
 
@@ -611,4 +622,8 @@ def _default_constants_snapshot() -> dict:
         "BAND_POWER_BAND_HIGH_FACTOR": BAND_POWER_BAND_HIGH_FACTOR,
         "DERR_EXPECTED_PERIOD_S": DERR_EXPECTED_PERIOD_S,
         "TEMPORAL_NYQUIST_RATIO_MAX": TEMPORAL_NYQUIST_RATIO_MAX,
+        # PR #9 — spatial CWT machinery defaults
+        "SPATIAL_COI_EFOLDING_FACTOR": SPATIAL_COI_EFOLDING_FACTOR,
+        "CWT_WAVELENGTH_MIN_NYQUIST_FACTOR": CWT_WAVELENGTH_MIN_NYQUIST_FACTOR,
+        "CWT_WAVELENGTH_MAX_SIGNAL_FRACTION": CWT_WAVELENGTH_MAX_SIGNAL_FRACTION,
     }

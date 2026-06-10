@@ -54,8 +54,16 @@ import pytest
 # + the explicit logger-namespace list. No _CONSTANTS_VERSION bump (no new
 # constants; the two new helpers compute_sg_derivative / compute_path_curvature
 # are functions, not ConstantsT fields).
+# PR #9 (add-circumnutation-tier3b-spatial-cwt) graduates spatial_cwt from a stub
+# to the 8th implementation module (same stub→impl shape as PR #7/#8: stub count
+# shrinks 4 → 3, implementation count grows 7 → 8). The stub callable
+# compute_scaleogram KEEPS its name; the speculative wavelet=/scale_range= stub
+# kwargs are dropped (derived from constants). spatial_cwt is removed from
+# STUB_MODULES and STUBS_WITH_CONSTANTS_KWARG and added to
+# IMPLEMENTATIONS_WITH_CONSTANTS_KWARG + the explicit logger-namespace list. PR #9
+# bumps _CONSTANTS_VERSION 5 → 6 (3 new spatial-CWT constants); the L_gz/L_c
+# growth-zone traits are descoped to issue #230.
 STUB_MODULES = [
-    ("spatial_cwt", "compute_scaleogram", 9),
     ("parametric", "compute", 11),
     ("plotting", "scaleogram", 16),
     ("pipeline", "compute_traits", 14),
@@ -220,14 +228,14 @@ def test_valid_unit_vocabulary_is_union_of_pipeline_and_converted():
     assert VALID_UNIT_VOCABULARY == PIPELINE_UNIT_VOCABULARY | CONVERTED_UNIT_VOCABULARY
 
 
-def test_schema_version_is_1_and_constants_version_is_5():
-    """`_SCHEMA_VERSION` is 1 (PR #1); `_CONSTANTS_VERSION` is 5 (bumped in PR #6)."""
+def test_schema_version_is_1_and_constants_version_is_6():
+    """`_SCHEMA_VERSION` is 1 (PR #1); `_CONSTANTS_VERSION` is 6 (bumped in PR #9)."""
     from sleap_roots.circumnutation import _constants
 
     assert isinstance(_constants._SCHEMA_VERSION, int)
     assert _constants._SCHEMA_VERSION == 1
     assert isinstance(_constants._CONSTANTS_VERSION, int)
-    assert _constants._CONSTANTS_VERSION == 5
+    assert _constants._CONSTANTS_VERSION == 6
 
 
 # ---------------------------------------------------------------------------
@@ -786,6 +794,11 @@ def test_constants_snapshot_reflects_override():
         # add-circumnutation-tier3a-midline change removes it from STUB_MODULES
         # above (same Copilot regression PR #4/#5/#7 hit).
         "midline",
+        # Added in PR #9: spatial_cwt (now an implementation module, not a stub).
+        # Must be listed explicitly because the
+        # add-circumnutation-tier3b-spatial-cwt change removes it from STUB_MODULES
+        # above (same Copilot regression PR #4/#5/#7/#8 hit).
+        "spatial_cwt",
     ],
 )
 def test_module_logger_is_namespaced(module_name):
@@ -859,7 +872,6 @@ def test_convert_to_mm_inf_rejected(bad):
 # but the implementation is exercised via `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG`
 # below (no NotImplementedError contract).
 STUBS_WITH_CONSTANTS_KWARG = [
-    ("spatial_cwt", "compute_scaleogram"),
     ("pipeline", "compute_traits"),
 ]
 
@@ -875,6 +887,7 @@ IMPLEMENTATIONS_WITH_CONSTANTS_KWARG = [
     ("nutation", "compute"),  # added by PR #6
     ("psi_g", "compute"),  # added by PR #7 (stub→impl rename compute_psi_g→compute)
     ("midline", "reconstruct"),  # added by PR #8 (stub→impl, no rename)
+    ("spatial_cwt", "compute_scaleogram"),  # added by PR #9 (stub→impl, no rename)
 ]
 
 
@@ -989,6 +1002,16 @@ def test_implementation_accepts_constants_kwarg(module_name, callable_name):
         y = np.linspace(0.0, 3.0, 8, dtype=np.float64)
         result = fn(x, y, 300.0, constants=ConstantsT())
         assert isinstance(result, MidlineResult)
+    elif module_name == "spatial_cwt":
+        # spatial_cwt.compute_scaleogram(kappa, ds, constants). PR #9
+        # (add-circumnutation-tier3b-spatial-cwt). Array-typed like midline:
+        # takes a 1-D float64 kappa (len >= MIN_SAMPLES_REQUIRED = 9) + scalar ds.
+        # Returns a SpatialScaleogramResult, not a DataFrame.
+        from sleap_roots.circumnutation.spatial_cwt import SpatialScaleogramResult
+
+        kappa = np.sin(np.arange(12, dtype=np.float64))
+        result = fn(kappa, 5.8, constants=ConstantsT())
+        assert isinstance(result, SpatialScaleogramResult)
     else:
         # kinematics.compute / qc.compute take a positional trajectory_df.
         # Build a minimal valid 10-frame, 1-track trajectory inline.
