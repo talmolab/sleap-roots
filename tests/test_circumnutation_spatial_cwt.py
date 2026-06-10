@@ -788,3 +788,91 @@ def test_compute_scaleogram_cross_os_canary_at_atol_1e_9():
     )
     observed = result.scaleogram[scale_idx, list(_SPATIAL_CANARY_POSITIONS)]
     npt.assert_allclose(observed, _SPATIAL_CANARY_VALUES, atol=1e-9, rtol=0)
+
+
+# ---------------------------------------------------------------------------
+# §7 — real plate-001 Nipponbare validation (PR #7/#8 lesson: not synthetic-only)
+# ---------------------------------------------------------------------------
+
+from pathlib import Path  # noqa: E402
+
+from sleap_roots.circumnutation._constants import NYQUIST_RATIO_MAX  # noqa: E402
+
+_PROOFREAD_FIXTURE = Path(
+    "tests/data/circumnutation_nipponbare_plate_001/"
+    "plate_001_greyscale.tracked_proofread.slp"
+)
+
+
+def _load_proofread_tracks():
+    """Load the 6-track Nipponbare proofread fixture with int track_id."""
+    from sleap_roots.series import Series
+
+    series = Series.load(series_name="plate_001", primary_path=str(_PROOFREAD_FIXTURE))
+    df = series.get_tracked_tips()
+    df["track_id"] = df["track_id"].str.replace("track_", "", regex=False).astype(int)
+    return df
+
+
+def _track_xy(df, track_id):
+    sub = df[df.track_id == track_id].dropna(subset=["tip_x", "tip_y"])
+    sub = sub.sort_values("frame")
+    return (
+        sub.tip_x.to_numpy(dtype=np.float64),
+        sub.tip_y.to_numpy(dtype=np.float64),
+    )
+
+
+@pytest.mark.skipif(
+    not _PROOFREAD_FIXTURE.exists(),
+    reason=f"Git-LFS proofread fixture not present: {_PROOFREAD_FIXTURE}",
+)
+def test_real_plate001_spatial_cwt_is_physically_plausible():
+    """§7: real κ(s) chain runs, shapes correct, λ_spatial plausible + Nyquist-safe.
+
+    Observed (recorded for auditability): λ_spatial ≈ 85–142 px; n_interior ≥ 279;
+    2·ds/λ ≈ 0.13–0.19 (< NYQUIST_RATIO_MAX = 0.25). λ_spatial is the same order as
+    the ~65 px theory estimate (v·T), inflated by the documented cgau2 over-report.
+    """
+    from sleap_roots.circumnutation.midline import reconstruct
+    from sleap_roots.circumnutation.spatial_cwt import (
+        resample_curvature,
+        compute_scaleogram,
+        extract_ridge,
+    )
+    from sleap_roots.circumnutation._constants import CWT_SCALE_COUNT_DEFAULT
+
+    df = _load_proofread_tracks()
+    observed = {}
+    for track_id in sorted(df.track_id.unique()):
+        x, y = _track_xy(df, track_id)
+        mr = reconstruct(x, y, cadence_s=300.0)
+        rs = resample_curvature(
+            mr.curvature_px_inv, mr.arc_length_px, mr.velocity_sub_noise_mask
+        )
+        assert not rs.is_degenerate, track_id
+        sr = compute_scaleogram(rs.kappa_uniform, rs.ds)
+        assert sr.scaleogram.shape == (CWT_SCALE_COUNT_DEFAULT, len(rs.kappa_uniform))
+        assert sr.coi_mask.shape == sr.scaleogram.shape
+        rg = extract_ridge(sr)
+        interior = ~rg.in_coi
+        # HARD min-COI-valid-positions floor (guard against a few-sample median).
+        assert int(interior.sum()) >= 5, (track_id, int(interior.sum()))
+        lam_spatial = float(np.median(rg.wavelengths_px[interior]))
+        # physically plausible spatial wavelength (px)
+        assert np.isfinite(lam_spatial) and 30.0 < lam_spatial < 400.0, (
+            track_id,
+            lam_spatial,
+        )
+        # post-mask Nyquist sanity: 2*ds < NYQUIST_RATIO_MAX * lambda_observed
+        assert 2.0 * rs.ds < NYQUIST_RATIO_MAX * lam_spatial, (
+            track_id,
+            rs.ds,
+            lam_spatial,
+        )
+        observed[int(track_id)] = (
+            round(lam_spatial, 1),
+            round(2.0 * rs.ds / lam_spatial, 3),
+        )
+
+    print(f"\nplate-001 spatial CWT observed (lambda_spatial, 2ds/lambda): {observed}")
