@@ -32,9 +32,13 @@ utility, and per-module logging convention. Tier PRs land tier-by-tier:
 
 - ``kinematics`` — Tier 0 raw kinematic traits (PR #2, merged)
 - ``qc`` — QC tier per-track quality (PR #3, merged)
-- ``synthetic`` — Layer-1 validation generator (PR #4, this PR)
-- ``temporal_cwt``, ``psi_g``, ``midline``, ``spatial_cwt``,
-  ``parametric``, ``plotting``, ``pipeline`` — remaining stubs, raise
+- ``synthetic`` — Layer-1 validation generator (PR #4, merged)
+- ``temporal_cwt`` — temporal CWT machinery (PR #5, merged)
+- ``nutation`` — Tier 1 nutation traits (PR #6, merged)
+- ``psi_g`` — Tier 2 ψ_g traits (PR #7, merged)
+- ``midline`` — Tier 3a midline reconstruction (PR #8, merged)
+- ``spatial_cwt`` — Tier 3b spatial CWT machinery (PR #9, merged)
+- ``parametric``, ``plotting``, ``pipeline`` — remaining stubs, raise
   ``NotImplementedError`` until their tier PRs land.
 
 Pure-pixel convention: the pipeline never accepts ``px_per_mm`` and
