@@ -201,7 +201,7 @@ The function SHALL be deterministic per CC-6: same input → bit-identical `kapp
 
 The function SHALL validate inputs strictly (field-named, runs FIRST and unconditionally): `curvature_px_inv` and `arc_length_px` SHALL be 1-D `np.ndarray` (coercible from integer/float; rejecting `complex`/`object`) of EQUAL length (else `ValueError`); non-ndarray raises `TypeError`; `velocity_sub_noise_mask`, where provided, SHALL be a bool-coercible 1-D array of the same length (else `ValueError`/`TypeError`); `constants` SHALL be `None` or a `ConstantsT` instance (else `TypeError`). Validation always wins over the degenerate path.
 
-After validation, a degenerate gate runs ONLY on valid inputs and SHALL return a graceful all-NaN `ResampleResult` (`is_degenerate=True`) — never raising, never emitting `np.RuntimeWarning` (computed under `np.errstate` with a `~np.isfinite` sweep) — when, after dropping masked + non-finite frames, fewer than the documented minimum survive — the same `MIN_SAMPLES_REQUIRED` floor (= `9` at defaults) that `compute_scaleogram` requires, so a non-degenerate `ResampleResult` always yields enough uniform samples to feed a valid scaleogram — OR the surviving arc-span is non-positive (the all-equal-`arc_length` case; the gate is evaluated from the survivor count + span ALONE, before `ds = median(positive Δs_a)`, so `np.median([])` is never reached).
+After validation, a degenerate gate runs ONLY on valid inputs and SHALL return a graceful all-NaN `ResampleResult` (`is_degenerate=True`) — never raising, never emitting `np.RuntimeWarning` (computed under `np.errstate` with a `~np.isfinite` sweep) — when, after dropping masked + non-finite frames, fewer than the documented minimum survive — the same `MIN_SAMPLES_REQUIRED` floor (= `9` at defaults) that `compute_scaleogram` requires, so a non-degenerate `ResampleResult` always yields enough uniform samples to feed a valid scaleogram — (including the zero-survivor extreme `n_unmasked == 0`, e.g. a fully-masked input) OR the surviving arc-span is non-positive (the all-equal-`arc_length` case). The gate is evaluated from the survivor count + span ALONE and SHALL short-circuit BEFORE both the apex-origin reparameterization's `max`/`min` AND `ds = median(positive Δs_a)` — so an empty survivor set never reaches `np.max([])`/`np.min([])` and an all-equal `arc_length` never reaches `np.median([])`.
 
 The `ResampleResult` class SHALL be an `@attrs.define(frozen=True, slots=False, kw_only=True, eq=False)` container with exactly the following fields (in this order): `kappa_uniform: np.ndarray` (float64, px⁻¹, on the uniform apex-origin grid); `s_a_uniform_px: np.ndarray` (float64, px, apex-origin, `s_a_uniform_px[0] == 0.0`); `ds: float` (px); `n_unmasked: int`; `arc_span_px: float`; `is_degenerate: bool`. (`eq=False` because ndarray `__eq__` is ambiguous.)
 
@@ -223,11 +223,17 @@ The `ResampleResult` class SHALL be an `@attrs.define(frozen=True, slots=False, 
 - **THEN** `result.n_unmasked == int((~mask).sum())`
 - **AND** the interpolation uses only the unmasked samples (the masked frames do not contribute knots)
 
+#### Scenario: resample_curvature coerces an integer 0/1 mask identically to a bool mask
+- **GIVEN** finite inputs and a `velocity_sub_noise_mask` given as an integer 0/1 array (`np.array([0, 1, 0, ...], dtype=int)`)
+- **WHEN** `resample_curvature(curvature_px_inv, arc_length_px, velocity_sub_noise_mask=int_mask)` is invoked
+- **THEN** it coerces to bool and yields the same `n_unmasked` and `kappa_uniform` as the equivalent `dtype=bool` mask
+- **AND** a mask whose length differs from the inputs raises `ValueError` naming the field
+
 #### Scenario: resample_curvature uses the apex-origin convention (apex at s_a = 0)
 - **GIVEN** finite arrays with strictly increasing `arc_length_px` (no mask)
 - **WHEN** `resample_curvature(curvature_px_inv, arc_length_px)` is invoked
 - **THEN** `result.s_a_uniform_px[0] == 0.0` corresponds to the apex (the largest `arc_length_px`, i.e. the latest tip position per theory §6.5)
-- **AND** `result.arc_span_px == max(arc_length_px) − min(arc_length_px)` to within numerical precision over the unmasked samples
+- **AND** `result.arc_span_px == max(arc_length_px) − min(arc_length_px)` to within numerical precision over the surviving (unmasked, finite) samples
 
 #### Scenario: resample_curvature rejects malformed or mismatched inputs with TypeError or ValueError naming the field
 - **WHEN** `resample_curvature(curvature_px_inv, arc_length_px)` is invoked with a non-ndarray argument, OR `curvature_px_inv.ndim != 1`, OR `complex`/`object` dtype, OR `len(curvature_px_inv) != len(arc_length_px)`, OR a `velocity_sub_noise_mask` of wrong length
@@ -235,10 +241,16 @@ The `ResampleResult` class SHALL be an `@attrs.define(frozen=True, slots=False, 
 - **AND** the exception message names the offending field
 
 #### Scenario: resample_curvature returns a graceful all-NaN ResampleResult on degenerate input
-- **GIVEN** valid inputs that, after dropping masked + non-finite frames, leave fewer than the documented minimum surviving samples OR a non-positive surviving arc-span (e.g., an all-masked input, or all `arc_length_px` equal)
+- **GIVEN** valid inputs that, after dropping masked + non-finite frames, leave fewer than the documented minimum surviving samples OR a non-positive surviving arc-span (e.g., all `arc_length_px` equal)
 - **WHEN** `resample_curvature(...)` is invoked
 - **THEN** the call does NOT raise and emits no `RuntimeWarning`
 - **AND** the returned `ResampleResult` has `is_degenerate == True` and `kappa_uniform` all-NaN
+
+#### Scenario: resample_curvature handles a fully-masked input (n_unmasked == 0) without raising
+- **GIVEN** a valid `velocity_sub_noise_mask` that is all-`True` (so the zero-survivor extreme `n_unmasked == 0`)
+- **WHEN** `resample_curvature(curvature_px_inv, arc_length_px, velocity_sub_noise_mask=mask)` is invoked
+- **THEN** the call does NOT raise (no `ValueError` from `np.max([])`/`np.min([])` on the empty survivor set, no `RuntimeWarning` from `np.median([])`)
+- **AND** the returned `ResampleResult` has `is_degenerate == True`, `n_unmasked == 0`, and `kappa_uniform` all-NaN — the gate short-circuits BEFORE the apex-origin `max`/`min` and the `ds`-median
 
 #### Scenario: resample_curvature drops non-finite (curvature, arc_length) pairs without raising
 - **GIVEN** finite `arc_length_px` and a `curvature_px_inv` containing some NaN values (e.g. from a curvature blow-up swept to NaN by PR #8) at indices that still leave enough finite survivors
@@ -268,7 +280,7 @@ The `ResampleResult` class SHALL be an `@attrs.define(frozen=True, slots=False, 
 - **AND** no `INFO`/`WARNING`/`ERROR`/`CRITICAL` records are emitted
 
 ### Requirement: Tier 3b spatial CWT scaleogram API
-The system SHALL provide `sleap_roots.circumnutation.spatial_cwt.compute_scaleogram(kappa: np.ndarray, ds: float, constants: Optional[ConstantsT] = None) -> SpatialScaleogramResult`. The function SHALL accept the canonical `(kappa, ds, constants=None)` signature locked by the foundation's Package layout requirement. The function SHALL compute a spatial Continuous Wavelet Transform of the uniform-grid curvature `kappa` using the `cgau2` mother wavelet by default (overridable via `constants.WAVELET_DEFAULT_SPATIAL`), at log-spaced scales over an auto-derived spatial-wavelength range `[constants.CWT_WAVELENGTH_MIN_NYQUIST_FACTOR * ds, constants.CWT_WAVELENGTH_MAX_SIGNAL_FRACTION * len(kappa) * ds]`, returning a frozen `SpatialScaleogramResult` containing the complex-valued scaleogram, scales axis, spatial-wavelength axis (`wavelengths_px`, derived via `pywt.scale2frequency` round-trip for wavelet-agnostic correctness), spatial-frequency axis (`spatial_freqs_px_inv = 1.0 / wavelengths_px`), cone-of-influence boolean mask (computed via wavelet-aware `constants.SPATIAL_COI_EFOLDING_FACTOR * scale`), the resolved `ds`, and the resolved wavelet name.
+The system SHALL provide `sleap_roots.circumnutation.spatial_cwt.compute_scaleogram(kappa: np.ndarray, ds: float, constants: Optional[ConstantsT] = None) -> SpatialScaleogramResult`. The function SHALL accept the canonical `(kappa, ds, constants=None)` signature locked by the foundation's Package layout requirement. The function SHALL compute a spatial Continuous Wavelet Transform of the uniform-grid curvature `kappa` using the `cgau2` mother wavelet by default (overridable via `constants.WAVELET_DEFAULT_SPATIAL`), at log-spaced scales over an auto-derived spatial-wavelength range `[constants.CWT_WAVELENGTH_MIN_NYQUIST_FACTOR * ds, constants.CWT_WAVELENGTH_MAX_SIGNAL_FRACTION * len(kappa) * ds]`, returning a frozen `SpatialScaleogramResult` containing the complex-valued scaleogram, scales axis, spatial-wavelength axis (`wavelengths_px`, the honest `pywt.scale2frequency` round-trip convention value for wavelet-agnostic correctness — NOT bias-corrected; for `cgau2` this convention value over-reports the true px wavelength by a documented λ- and `n`-dependent band that PR #10 must reconcile identically on both sides of `traveling_wave_residual`, see the design "Handoff to PR #10"), spatial-frequency axis (`spatial_freqs_px_inv = 1.0 / wavelengths_px`), cone-of-influence boolean mask (computed via wavelet-aware `constants.SPATIAL_COI_EFOLDING_FACTOR * scale`), the resolved `ds`, and the resolved wavelet name.
 
 The function SHALL emit NO trait values. The function SHALL be deterministic per CC-6: same input → bit-identical scaleogram across calls in the same process AND identical to within `atol=1e-9, rtol=0` across Ubuntu / Windows / macOS CI runners. The function SHALL log exactly one `logger.debug` message at the start (after input validation) whose text begins with `"compute_scaleogram("` and contains the named tokens `n_samples=`, `ds=`, `n_scales=`, `wavelength_min_px=`, `wavelength_max_px=`, `wavelet=`. No INFO, WARNING, or ERROR log records SHALL be emitted on the happy path.
 
@@ -322,6 +334,17 @@ The `SpatialScaleogramResult` class SHALL be an `@attrs.define(frozen=True, slot
 - **WHEN** `compute_scaleogram(kappa, ds)` is invoked with `ds` equal to `True` (Python bool) OR `np.bool_(True)` (numpy bool scalar — must be explicitly guarded since `np.bool_` is a subclass of `int`) OR `"5.8"` (str) OR `[5.8]` (list)
 - **THEN** `TypeError` is raised
 - **AND** the exception message contains the substring `"ds"` and identifies the offending type
+
+#### Scenario: compute_scaleogram accepts a numpy float scalar ds
+- **GIVEN** a valid `kappa` and `ds = np.float64(5.8)` (a numpy floating scalar, the natural type of `ResampleResult.ds` arithmetic)
+- **WHEN** `compute_scaleogram(kappa, np.float64(5.8))` is invoked
+- **THEN** the call returns a `SpatialScaleogramResult` and `result.ds == 5.8` (numpy float scalar ACCEPTED — the positive sibling of the `np.bool_` rejection scenario, so the `bool`-guard does not over-reject numpy numerics)
+
+#### Scenario: compute_scaleogram honors the WAVELET_DEFAULT_SPATIAL override
+- **GIVEN** a valid `kappa`, `ds`, and `constants=ConstantsT(WAVELET_DEFAULT_SPATIAL="cmor1.5-1.0")`
+- **WHEN** `compute_scaleogram(kappa, ds, constants=constants)` is invoked
+- **THEN** `result.wavelet == "cmor1.5-1.0"` (the wavelet is read from `constants`, NOT hard-coded "cgau2")
+- **AND** the DEBUG record's `wavelet=` token reflects the override
 
 #### Scenario: compute_scaleogram is deterministic across runs
 - **GIVEN** a valid `kappa` and `ds`
@@ -396,6 +419,12 @@ The `SpatialRidgeResult` class SHALL be an `@attrs.define(frozen=True, slots=Fal
 - **WHEN** `extract_ridge(scaleogram_result)` is invoked
 - **THEN** `ValueError` is raised
 - **AND** the exception message references the empty-axis condition (e.g., `"n_scales == 0"` or `"n_samples == 0"`)
+
+#### Scenario: extract_ridge degenerates gracefully on a single-scale scaleogram (n_scales == 1)
+- **GIVEN** a manually-constructed valid `SpatialScaleogramResult` with `n_scales == 1` (scaleogram shape `(1, n_samples)`, `n_samples > 0`)
+- **WHEN** `extract_ridge(scaleogram_result)` is invoked
+- **THEN** the call does NOT raise (argmax over a single scale returns index 0 at every position; no `IndexError`)
+- **AND** every `result.wavelengths_px[i] == scaleogram_result.wavelengths_px[0]`
 
 #### Scenario: extract_ridge rejects invalid constants type with TypeError
 - **GIVEN** a valid `SpatialScaleogramResult`

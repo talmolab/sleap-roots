@@ -59,14 +59,50 @@ interior `[scale_idx, positions]`.
 
 - **cgau2 COI factor unknown at design time** → measured empirically in GREEN
   (task 1.1); `SPATIAL_COI_EFOLDING_FACTOR` default set from the measurement. The
-  same step-response capture also characterizes the cgau2 `scale2frequency`
-  wavelength calibration (its center-frequency convention introduces a measured
-  systematic offset in `wavelengths_px`), so the λ-recovery oracle tolerance is a
-  measured band, not a speculative ±5%.
+  same capture also characterizes the cgau2 `scale2frequency` wavelength
+  calibration: a λ- AND n-dependent offset (≈+5–20%, from grid quantization +
+  center-freq convention — NOT a single factor), so the λ-recovery oracle tolerance
+  is a measured band per-(n, scale-count), not a speculative ±5%. See Handoff to
+  PR #10 #2 for why we ship the convention value rather than baking a correction.
+  Use the **impulse 1/e** stimulus for the COI factor (≈1.33–1.35), not a literal
+  step (round-3 finding).
 - **L_gz/L_c descope ripples to PR #10** → its `L_gz`-dependent traits + mask are
   blocked on #230, but `traveling_wave_residual` + `apex_basal_period_consistency`
   remain deliverable from λ(s_a). Documented as a scope note, not changed here.
 - **Single-plate evidence** (plate-001) → multi-plate validation deferred (#220 multi-plate backlog; #202 the broader sweep).
+
+## Handoff to PR #10 (must be documented now to protect the central trait)
+
+PR #10's `traveling_wave_residual = |λ_spatial − v·T| / (v·T)` is the program's
+central falsifiable trait. PR #9 ships λ_spatial; three handoffs MUST be written
+into `theory.md` §7.4 (next to `traveling_wave_residual`) so PR #10 cannot
+silently corrupt it (round-3 scientific review):
+
+1. **Unit reconciliation (dimensional landmine).** `wavelengths_px` is **px**; Tier-0
+   `v` is **px/frame**; the temporal ridge `T` (`periods_s`) is **seconds**. So
+   `v·T` is `px·s/frame`, NOT px. The correct comparison is
+   `λ_spatial[px]  vs  v[px/frame] · (T[s] / cadence_s[s/frame])`. Theory §6.4's
+   derivation uses `T` in **frames**; the pipeline emits `periods_s` — PR #10 must
+   convert `T_frames = periods_s / cadence_s`. Also §7.4 lists λ_spatial in **mm**:
+   that is post-`convert_to_mm` only — PR #10 must compare both sides in the SAME
+   unit (px throughout, or both converted).
+2. **cgau2 wavelength calibration (do NOT bake a correction into `wavelengths_px`).**
+   `wavelengths_px` is the honest `pywt.scale2frequency("cgau2", …)` convention
+   value. Round-3 probing shows it over-reports the true px wavelength by a
+   **λ- AND n-dependent** band (≈+5–20% over λ∈[20,80]px, n∈{200,400,600}) driven
+   by the 64-scale log-grid quantization + cgau2's center-freq convention — so it
+   is NOT a single calibratable constant. PR #9 therefore ships the convention
+   value + documents the measured band (task 1.1); PR #10 must reconcile it
+   identically on both sides of the residual (compare in scale space, OR raise
+   `CWT_SCALE_COUNT_DEFAULT` for finer quantization, OR widen the residual
+   tolerance) — a +10% one-sided bias could flip "confirmed" vs "refuted." Tracked
+   for #230 / PR #10; NOT added as a constant here (a single number would lie).
+3. **COI reliability gate.** `extract_ridge` ships the raw per-position ridge
+   (correct — mirrors temporal). PR #10 MUST apply a spatial `COI_FRACTION_MAX`-style
+   gate (NaN λ_spatial when too few `~in_coi` positions survive), exactly as the
+   temporal tier does, so a sparse/short trail does not ship a few-sample median as
+   authoritative. PR #9's real-data test asserts a minimum `~in_coi` count as an
+   interim guard.
 
 ## Migration Plan
 
