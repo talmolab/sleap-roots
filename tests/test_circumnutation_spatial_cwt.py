@@ -660,3 +660,131 @@ def test_spatial_constants_override_roundtrip_and_snapshot_len_38():
     ):
         assert name in snap
     assert len(snap) == 38
+
+
+# ---------------------------------------------------------------------------
+# §6 — analytic oracles + determinism
+# ---------------------------------------------------------------------------
+
+
+def _chain_lambda(kappa, arc):
+    """resample → scaleogram → extract_ridge → COI-interior median λ."""
+    from sleap_roots.circumnutation.spatial_cwt import (
+        resample_curvature,
+        compute_scaleogram,
+        extract_ridge,
+    )
+
+    rs = resample_curvature(kappa, arc)
+    assert not rs.is_degenerate
+    sr = compute_scaleogram(rs.kappa_uniform, rs.ds)
+    rg = extract_ridge(sr)
+    interior = ~rg.in_coi
+    assert interior.sum() >= 5  # min COI-valid positions guard
+    return float(np.median(rg.wavelengths_px[interior]))
+
+
+# Measured cgau2 scale2frequency calibration band (from
+# tests/data/circumnutation_spatial_cwt_calibration.json; ratio [1.044, 1.156]).
+# The oracle tolerance is this MEASURED band (not a speculative ±5%) — the cgau2
+# convention over-reports λ; widened slightly to [1.00, 1.25] for per-(n, λ) drift.
+_CGAU2_RATIO_LO = 1.00
+_CGAU2_RATIO_HI = 1.25
+
+
+def test_oracle_pure_sinusoid_recovers_lambda_within_measured_band():
+    """§6.1: full chain recovers a planted λ within the measured cgau2 band."""
+    ds = 5.8
+    arc = np.arange(280, dtype=np.float64) * ds
+    for lam in (40.0, 65.0):
+        kappa = np.sin(2.0 * np.pi * arc / lam)
+        recovered = _chain_lambda(kappa, arc)
+        ratio = recovered / lam
+        assert _CGAU2_RATIO_LO <= ratio <= _CGAU2_RATIO_HI, (lam, recovered, ratio)
+
+
+def test_oracle_tracks_fundamental_not_second_harmonic():
+    """§6.3: fundamental + ~25% 2nd harmonic → ridge tracks the fundamental, not λ/2."""
+    ds = 5.8
+    arc = np.arange(280, dtype=np.float64) * ds
+    lam = 60.0
+    kappa = np.sin(2.0 * np.pi * arc / lam) + 0.25 * np.sin(
+        2.0 * np.pi * arc / (lam / 2.0)
+    )
+    recovered = _chain_lambda(kappa, arc)
+    assert abs(recovered - lam) < abs(recovered - lam / 2.0)
+
+
+def test_oracle_sparsity50_recovers_with_long_bias_sign():
+    """§6.5: 50%-drop-then-interp recovers λ; bias is LONG (recovered ≥ λ)."""
+    rng = np.random.default_rng(0)
+    ds = 5.8
+    n = 280
+    arc = np.arange(n, dtype=np.float64) * ds
+    lam = 65.0
+    keep = np.sort(rng.choice(n, n // 2, replace=False))
+    kappa = np.full(n, np.nan, dtype=np.float64)
+    kappa[keep] = np.sin(2.0 * np.pi * arc[keep] / lam)
+    recovered = _chain_lambda(kappa, arc)
+    ratio = recovered / lam
+    # gap-interpolation low-passes → lengthens apparent λ (sign assertion)
+    assert recovered >= 0.99 * lam
+    assert _CGAU2_RATIO_LO <= ratio <= _CGAU2_RATIO_HI, (recovered, ratio)
+
+
+def test_full_chain_is_deterministic_same_process():
+    """§6.7: same input twice → bit-identical scaleogram + ridge (atol=0)."""
+    from sleap_roots.circumnutation.spatial_cwt import (
+        resample_curvature,
+        compute_scaleogram,
+        extract_ridge,
+    )
+
+    ds = 5.8
+    arc = np.arange(200, dtype=np.float64) * ds
+    kappa = np.sin(2.0 * np.pi * arc / 55.0)
+    rs1 = resample_curvature(kappa, arc)
+    rs2 = resample_curvature(kappa, arc)
+    npt.assert_array_equal(rs1.kappa_uniform, rs2.kappa_uniform)
+    s1 = compute_scaleogram(rs1.kappa_uniform, rs1.ds)
+    s2 = compute_scaleogram(rs2.kappa_uniform, rs2.ds)
+    npt.assert_array_equal(s1.scaleogram, s2.scaleogram)
+    g1 = extract_ridge(s1)
+    g2 = extract_ridge(s2)
+    npt.assert_array_equal(g1.wavelengths_px, g2.wavelengths_px)
+
+
+# Cross-OS determinism canary — captured by
+# scripts/circumnutation/capture_spatial_cwt_canary.py (Windows, numpy 2.3.4 /
+# pywt 1.8.0). RNG-free planted sinusoid (λ=65 px, n=256, ds=5.8). Interior
+# COI-dodging cells at scale_idx=31, positions (9, 128, 247). Regression-detection
+# sentinel: MAY be re-captured (cross-referencing this test) if pywt/numpy/BLAS
+# legitimately drifts; cgau2 is unproven cross-OS so a single looser atol on THIS
+# canary is the sanctioned fallback (do not loosen the oracle/shape tests).
+_SPATIAL_CANARY_N = 256
+_SPATIAL_CANARY_DS = 5.8
+_SPATIAL_CANARY_LAMBDA = 65.0
+_SPATIAL_CANARY_TARGET_WL = 65.0
+_SPATIAL_CANARY_POSITIONS = (9, 128, 247)
+_SPATIAL_CANARY_VALUES = np.array(
+    [
+        complex(1.9879488682279405, -0.12456742413157516),
+        complex(-1.3873614268387511, 1.213896518079489),
+        complex(0.044826015688709663, -1.6637277728609841),
+    ],
+    dtype=np.complex128,
+)
+
+
+def test_compute_scaleogram_cross_os_canary_at_atol_1e_9():
+    """§6: captured scaleogram cells reproduce within atol=1e-9 across OSes."""
+    from sleap_roots.circumnutation.spatial_cwt import compute_scaleogram
+
+    s_a = np.arange(_SPATIAL_CANARY_N, dtype=np.float64) * _SPATIAL_CANARY_DS
+    kappa = np.sin(2.0 * np.pi * s_a / _SPATIAL_CANARY_LAMBDA)
+    result = compute_scaleogram(kappa, _SPATIAL_CANARY_DS)
+    scale_idx = int(
+        np.argmin(np.abs(result.wavelengths_px - _SPATIAL_CANARY_TARGET_WL))
+    )
+    observed = result.scaleogram[scale_idx, list(_SPATIAL_CANARY_POSITIONS)]
+    npt.assert_allclose(observed, _SPATIAL_CANARY_VALUES, atol=1e-9, rtol=0)
