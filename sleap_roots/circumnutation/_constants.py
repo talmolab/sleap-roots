@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 _SCHEMA_VERSION: int = 1
 """Bumped when the per-plant CSV row-identity columns or sidecar JSON shapes change."""
 
-_CONSTANTS_VERSION: int = 5
+_CONSTANTS_VERSION: int = 6
 """Bumped when any default in this module changes.
 
 PR #3 (``add-circumnutation-qc-tier``) bumped this 1 → 2 by adding four
@@ -63,6 +63,17 @@ TEMPORAL sibling of the existing :data:`NYQUIST_RATIO_MAX` (SPATIAL);
 both default to ``0.25`` per theory.md §6.5's "10-min still works"
 empirical anchor — the dimensional separation lives in the constant
 NAMES + docstrings, not in different values.
+
+PR #9 (``add-circumnutation-tier3b-spatial-cwt``) bumped this 5 → 6 by
+adding three new spatial-CWT-machinery default constants
+(``SPATIAL_COI_EFOLDING_FACTOR``, ``CWT_WAVELENGTH_MIN_NYQUIST_FACTOR``,
+``CWT_WAVELENGTH_MAX_SIGNAL_FRACTION``) to the overridable defaults set.
+``SPATIAL_COI_EFOLDING_FACTOR`` (default ``1.375``) is the empirically-measured
+``cgau2`` e-folding factor (impulse 1/e half-width; see
+``scripts/circumnutation/capture_spatial_coi_factor.py``), the spatial sibling
+of ``COI_EFOLDING_FACTOR`` (cmor ``√1.5``). The two ``CWT_WAVELENGTH_*``
+constants are the spatial siblings of the temporal ``CWT_PERIOD_*`` (same
+``2.0`` / ``0.25`` defaults; dimensional separation in NAMES + docstrings).
 """
 
 
@@ -305,6 +316,45 @@ multi-plate sweep that resolves #202.
 
 
 # ---------------------------------------------------------------------------
+# Spatial CWT machinery defaults (PR #9; design.md + capture_spatial_coi_factor.py)
+# ---------------------------------------------------------------------------
+
+SPATIAL_COI_EFOLDING_FACTOR: float = 1.375
+"""Cone-of-influence half-width = factor · scale, in samples, for SPATIAL CWT (PR #9).
+
+Calibrated for the ``cgau2`` spatial mother wavelet
+(:data:`WAVELET_DEFAULT_SPATIAL`). This is the SPATIAL sibling of
+:data:`COI_EFOLDING_FACTOR` (calibrated for ``cmor1.5-1.0`` at ``√1.5 ≈ 1.225``);
+``cgau2``'s envelope is a 2nd-derivative Gaussian (not a plain Gaussian), so its
+e-folding factor differs and was measured empirically by the **impulse 1/e
+half-width** method (median ``≈ 1.375`` across scales 8–128) in
+``scripts/circumnutation/capture_spatial_coi_factor.py`` — the cgau2 analog of
+the step-response measurement the ``COI_EFOLDING_FACTOR`` docstring explicitly
+defers to PR #9.
+"""
+
+CWT_WAVELENGTH_MIN_NYQUIST_FACTOR: float = 2.0
+"""Multiplier of ``ds`` setting the minimum spatial wavelength in the CWT scale range (PR #9).
+
+``wavelength_min_px = factor · ds = 2 · ds`` is the spatial-Nyquist wavelength
+(the strict floor below which spatial aliasing is certain). SPATIAL-domain sibling
+of :data:`CWT_PERIOD_MIN_NYQUIST_FACTOR` (TEMPORAL); same numeric default ``2.0``,
+the dimensional separation lives in the NAMES + docstrings, not the values.
+"""
+
+CWT_WAVELENGTH_MAX_SIGNAL_FRACTION: float = 0.25
+"""Fraction of ``n · ds`` setting the maximum spatial wavelength in the CWT scale range (PR #9).
+
+``wavelength_max_px = fraction · n · ds = 0.25 · n · ds`` is Torrence & Compo's
+``n/4`` upper bound for a tractable COI fraction, in the spatial domain. SPATIAL
+sibling of :data:`CWT_PERIOD_MAX_SIGNAL_FRACTION` (TEMPORAL); same numeric default
+``0.25``. The spatial ``MIN_SAMPLES_REQUIRED`` floor derives from these two as
+``int(floor(CWT_WAVELENGTH_MIN_NYQUIST_FACTOR / CWT_WAVELENGTH_MAX_SIGNAL_FRACTION)) + 1``
+(= ``9`` at defaults), mirroring the temporal derivation.
+"""
+
+
+# ---------------------------------------------------------------------------
 # Smoothing / detrending defaults (preliminary_results.md anchors)
 # ---------------------------------------------------------------------------
 
@@ -517,6 +567,10 @@ class ConstantsT:
     BAND_POWER_BAND_HIGH_FACTOR: float = BAND_POWER_BAND_HIGH_FACTOR
     DERR_EXPECTED_PERIOD_S: float = DERR_EXPECTED_PERIOD_S
     TEMPORAL_NYQUIST_RATIO_MAX: float = TEMPORAL_NYQUIST_RATIO_MAX
+    # PR #9 — spatial CWT machinery defaults
+    SPATIAL_COI_EFOLDING_FACTOR: float = SPATIAL_COI_EFOLDING_FACTOR
+    CWT_WAVELENGTH_MIN_NYQUIST_FACTOR: float = CWT_WAVELENGTH_MIN_NYQUIST_FACTOR
+    CWT_WAVELENGTH_MAX_SIGNAL_FRACTION: float = CWT_WAVELENGTH_MAX_SIGNAL_FRACTION
 
 
 def _default_constants_snapshot() -> dict:
@@ -568,4 +622,8 @@ def _default_constants_snapshot() -> dict:
         "BAND_POWER_BAND_HIGH_FACTOR": BAND_POWER_BAND_HIGH_FACTOR,
         "DERR_EXPECTED_PERIOD_S": DERR_EXPECTED_PERIOD_S,
         "TEMPORAL_NYQUIST_RATIO_MAX": TEMPORAL_NYQUIST_RATIO_MAX,
+        # PR #9 — spatial CWT machinery defaults
+        "SPATIAL_COI_EFOLDING_FACTOR": SPATIAL_COI_EFOLDING_FACTOR,
+        "CWT_WAVELENGTH_MIN_NYQUIST_FACTOR": CWT_WAVELENGTH_MIN_NYQUIST_FACTOR,
+        "CWT_WAVELENGTH_MAX_SIGNAL_FRACTION": CWT_WAVELENGTH_MAX_SIGNAL_FRACTION,
     }

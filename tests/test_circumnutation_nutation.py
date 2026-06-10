@@ -170,7 +170,8 @@ _EXPECTED_PR6_CONSTANTS: frozenset = frozenset(
 )
 
 # Architecture-B2 round-2: hard-anchored constants count.
-_EXPECTED_SNAPSHOT_COUNT_POST_PR6: int = 35
+# PR #9 bumped this 35 → 38 (added 3 spatial-CWT constants).
+_EXPECTED_SNAPSHOT_COUNT: int = 38
 
 
 # ===========================================================================
@@ -1229,19 +1230,19 @@ def test_2G6_TEMPORAL_NYQUIST_RATIO_MAX_in_default_snapshot():
     assert custom.TEMPORAL_NYQUIST_RATIO_MAX == 0.5
 
 
-def test_2G7_constants_version_is_5():
-    """§2.G.7: _CONSTANTS_VERSION == 5 after PR #6 bump."""
-    assert _CONSTANTS_VERSION == 5
+def test_2G7_constants_version_is_6():
+    """§2.G.7: _CONSTANTS_VERSION == 6 after the PR #9 bump (was 5 after PR #6)."""
+    assert _CONSTANTS_VERSION == 6
 
 
 def test_2G8_default_constants_snapshot_includes_pr6_keys():
-    """§2.G.8 (Architecture-B2 round-2): snapshot contains 6 PR #6 keys + total==35."""
+    """§2.G.8 (Architecture-B2 round-2): snapshot contains the 6 PR #6 keys + total==38 (post-PR-#9)."""
     snapshot_keys = set(_default_constants_snapshot().keys())
     assert (
         snapshot_keys >= _EXPECTED_PR6_CONSTANTS
     ), f"Missing PR #6 constants: {_EXPECTED_PR6_CONSTANTS - snapshot_keys}"
-    assert len(_default_constants_snapshot()) == _EXPECTED_SNAPSHOT_COUNT_POST_PR6, (
-        f"Expected {_EXPECTED_SNAPSHOT_COUNT_POST_PR6} entries post-PR-#6; "
+    assert len(_default_constants_snapshot()) == _EXPECTED_SNAPSHOT_COUNT, (
+        f"Expected {_EXPECTED_SNAPSHOT_COUNT} entries post-PR-#9; "
         f"got {len(_default_constants_snapshot())}"
     )
 
