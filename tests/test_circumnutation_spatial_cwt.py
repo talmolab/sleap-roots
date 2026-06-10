@@ -542,13 +542,14 @@ def test_compute_scaleogram_min_floor_accepts_9_rejects_8():
         compute_scaleogram(np.sin(np.arange(8, dtype=np.float64)), 5.8)
 
 
-def test_compute_scaleogram_rejects_non_finite_kappa():
-    """§5: non-finite kappa → ValueError naming the field (NOT dropped here)."""
+@pytest.mark.parametrize("bad", [np.nan, np.inf, -np.inf])
+def test_compute_scaleogram_rejects_non_finite_kappa(bad):
+    """§5: non-finite kappa (NaN/+inf/-inf) → ValueError naming the field (NOT dropped here)."""
     from sleap_roots.circumnutation.spatial_cwt import compute_scaleogram
 
     kappa, _ = _clean_inputs(n=20, ds=5.8)
     kappa = kappa.copy()
-    kappa[3] = np.nan
+    kappa[3] = bad
     with pytest.raises(ValueError, match="kappa"):
         compute_scaleogram(kappa, 5.8)
 

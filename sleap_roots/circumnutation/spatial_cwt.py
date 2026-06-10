@@ -441,7 +441,7 @@ def extract_ridge(
     logger.debug("extract_ridge(n_scales=%d, n_samples=%d)", n_scales, n_samples)
 
     mag = np.abs(scaleogram)
-    ridge_scale_idx = np.argmax(mag, axis=0)
+    ridge_scale_idx = np.argmax(mag, axis=0).astype(np.int64)
     positions = np.arange(n_samples)
     amplitudes = mag[ridge_scale_idx, positions].astype(np.float64)
     wavelengths_px = scaleogram_result.wavelengths_px[ridge_scale_idx].astype(
@@ -491,7 +491,7 @@ def _spatial_scale_axis(
     scale_count: int,
     wl_min_factor: float,
     wl_max_fraction: float,
-) -> tuple:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Derive log-spaced scales + spatial-wavelength/frequency axes.
 
     Spatial sibling of ``temporal_cwt._log_spaced_scales`` (period→wavelength).
