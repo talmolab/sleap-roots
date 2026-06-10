@@ -74,35 +74,55 @@ interior `[scale_idx, positions]`.
 ## Handoff to PR #10 (must be documented now to protect the central trait)
 
 PR #10's `traveling_wave_residual = |λ_spatial − v·T| / (v·T)` is the program's
-central falsifiable trait. PR #9 ships λ_spatial; three handoffs MUST be written
+central falsifiable trait. PR #9 ships λ_spatial; FOUR handoffs MUST be written
 into `theory.md` §7.4 (next to `traveling_wave_residual`) so PR #10 cannot
-silently corrupt it (round-3 scientific review):
+silently corrupt it (round-3/4 scientific review). Round-4 verified the formula
+below is dimensionally correct AND its operand units match the actual emitted
+trait units in the code:
 
-1. **Unit reconciliation (dimensional landmine).** `wavelengths_px` is **px**; Tier-0
-   `v` is **px/frame**; the temporal ridge `T` (`periods_s`) is **seconds**. So
-   `v·T` is `px·s/frame`, NOT px. The correct comparison is
-   `λ_spatial[px]  vs  v[px/frame] · (T[s] / cadence_s[s/frame])`. Theory §6.4's
-   derivation uses `T` in **frames**; the pipeline emits `periods_s` — PR #10 must
-   convert `T_frames = periods_s / cadence_s`. Also §7.4 lists λ_spatial in **mm**:
-   that is post-`convert_to_mm` only — PR #10 must compare both sides in the SAME
-   unit (px throughout, or both converted).
+1. **Unit reconciliation (dimensional landmine).** Emitted units, NOT the stale
+   §7.x trait-table annotations: `wavelengths_px` = **px**; Tier-0
+   `v_total_median_px_per_frame` = **px/frame** (kinematics.py); the temporal ridge
+   `periods_s` = **seconds**; **`T_nutation_median` is emitted in SECONDS too**
+   (nutation.py `nanmedian(periods_s)`, column has no suffix) — the §7.2/§7.4 trait
+   table's "hr" annotation is STALE (confirmed by Appendix B(3), where `T_psig`
+   was corrected to seconds "for consistency with Tier 1"); do NOT multiply by
+   3600. So `v·T` naively is `px·s/frame`, NOT px. The correct comparison is
+   `λ_spatial[px]  vs  v[px/frame] · (T_nutation_median[s] / cadence_s[s/frame])`
+   (i.e. `T_frames = periods_s / cadence_s`; theory §6.4 uses T in **frames**:
+   `5.83 px/frame × (3333 s / 300 s) ≈ 65 px` ✓). §7.4's **mm** λ annotation is
+   post-`convert_to_mm` only — compare both sides in the SAME unit.
 2. **cgau2 wavelength calibration (do NOT bake a correction into `wavelengths_px`).**
    `wavelengths_px` is the honest `pywt.scale2frequency("cgau2", …)` convention
-   value. Round-3 probing shows it over-reports the true px wavelength by a
+   value. Round-3/4 probing shows it over-reports the true px wavelength by a
    **λ- AND n-dependent** band (≈+5–20% over λ∈[20,80]px, n∈{200,400,600}) driven
    by the 64-scale log-grid quantization + cgau2's center-freq convention — so it
-   is NOT a single calibratable constant. PR #9 therefore ships the convention
-   value + documents the measured band (task 1.1); PR #10 must reconcile it
-   identically on both sides of the residual (compare in scale space, OR raise
-   `CWT_SCALE_COUNT_DEFAULT` for finer quantization, OR widen the residual
-   tolerance) — a +10% one-sided bias could flip "confirmed" vs "refuted." Tracked
-   for #230 / PR #10; NOT added as a constant here (a single number would lie).
+   is NOT a single calibratable constant. PR #9 ships the convention value and
+   **commits the task-1.1 measurement as a machine-readable calibration artifact**
+   (`scripts/circumnutation/` emits a small JSON/CSV `{n, scale_count, lambda_true,
+   lambda_reported}` map) — NOT prose-only — so PR #10's absolute-λ consumers
+   (`lambda_spatial_median`) and the oracle literals are reproducible, not hand-typed.
+   For `traveling_wave_residual` the bias cancels via two-sided same-axis comparison
+   (compare in scale space, OR raise `CWT_SCALE_COUNT_DEFAULT`, OR widen tolerance);
+   for absolute-λ traits it does NOT cancel and the map must be applied. A +10%
+   one-sided bias could flip "confirmed" vs "refuted." NOT added as a constant
+   (a single number would lie).
 3. **COI reliability gate.** `extract_ridge` ships the raw per-position ridge
    (correct — mirrors temporal). PR #10 MUST apply a spatial `COI_FRACTION_MAX`-style
    gate (NaN λ_spatial when too few `~in_coi` positions survive), exactly as the
    temporal tier does, so a sparse/short trail does not ship a few-sample median as
-   authoritative. PR #9's real-data test asserts a minimum `~in_coi` count as an
-   interim guard.
+   authoritative. **Any λ_spatial appearing in PR #9's own artifacts/canaries is
+   UNGATED and not authoritative;** PR #9's real-data test asserts a HARD minimum
+   `~in_coi` count floor (not record-only) as an interim guard.
+4. **`apex_basal_period_consistency` — the λ-offset does NOT cancel here.** This
+   trait compares λ at the apex (`s_a → 0`, short λ) vs the base (`s_a → max`, long
+   λ) on the SAME scaleogram. Because the cgau2 over-report is **λ-dependent**, apex
+   and basal positions get DIFFERENT fractional offsets, so a genuinely uniform-λ
+   trail shows SPURIOUS apex-vs-basal variation — a false H1-violation generator.
+   PR #10 MUST apply the calibration map (#2) per-λ BEFORE comparing apex vs basal,
+   and MUST pin the direction: **apex = `s_a → 0`, base = `s_a → max`** (do NOT infer
+   apex from raw `arc_length`; recall the PR #8 `sign(κ) = −handedness` polarity
+   warning for any chirality trait).
 
 ## Migration Plan
 
