@@ -62,13 +62,17 @@ interior `[scale_idx, positions]`.
 - **L_gz/L_c descope ripples to PR #10** → its `L_gz`-dependent traits + mask are
   blocked on #230, but `traveling_wave_residual` + `apex_basal_period_consistency`
   remain deliverable from λ(s_a). Documented as a scope note, not changed here.
-- **Single-plate evidence** (plate-001) → multi-plate validation deferred (#202).
+- **Single-plate evidence** (plate-001) → multi-plate validation deferred (#220 multi-plate backlog; #202 the broader sweep).
 
 ## Migration Plan
 
 Foundation-test migration atomic with the first non-raising commit (impl 7→8,
-stub 4→3; `_CONSTANTS_VERSION` assertion 5→6). `theory.md` §7.4/§6.3 patched with
-the deviation; original preserved in Appendix B.
+stub 4→3; `_CONSTANTS_VERSION` assertion 5→6 in BOTH `test_circumnutation_foundation.py`
+AND `test_circumnutation_temporal_cwt.py::test_2G4`, same commit). `theory.md`
+§7.4/§6.3 patched with the deviation AND the §6.5 trait-status table rows for
+`L_gz`/`L_c` flipped from "✓ Measurable" to "✗ — see #230" (resolving the
+§6.5-vs-§7.4 internal contradiction); original §7.4 preserved in Appendix B.
+`roadmap.md` row #9 / CC-1 / row #10 reconciled to the descope.
 
 ## Open Questions
 
