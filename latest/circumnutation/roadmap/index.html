@@ -2846,10 +2846,10 @@
 <p>The growth-zone mask (apical region of the tip-trail, length ≈ <code>L_gz</code>) is <em>not</em> known at midline-reconstruction time. The correct algorithm is:</p>
 <ol>
 <li>Smooth <code>(x, y)</code>; reconstruct full midline with arc-length <code>s(τ)</code>; compute <code>κ(s)</code> along the <em>full</em> trail. <strong>No mask.</strong> (PR #8.)</li>
-<li>Spatial CWT on the full <code>κ(s)</code>; peak-find <code>L_gz_estimate</code> from the <code>|κ(s)|</code> envelope; fit exponential decay basal of the peak for <code>L_c_estimate</code>. (PR #9.)</li>
-<li><em>Now</em> construct the growth-zone mask using the detected <code>L_gz</code>, and apply it to compute downstream traits (<code>λ_spatial_median</code>, <code>traveling_wave_residual</code>) on the basal-of-peak portion only. (PR #10.)</li>
+<li>Spatial CWT on the full <code>κ(s)</code>; extract the dominant spatial-wavelength ridge <code>λ(s_a)</code>. (PR #9.)</li>
+<li><em>Now</em> (once <code>L_gz</code> is available) construct the growth-zone mask and apply it to compute downstream traits (<code>λ_spatial_median</code>, <code>traveling_wave_residual</code>) on the basal-of-peak portion only. (PR #10.)</li>
 </ol>
-<p>PR #8's "growth-zone mask" responsibility is removed; PR #10 owns it.</p>
+<p><strong>⚠ PR #9 update (empirical, 2026-06-09):</strong> step 2's original plan — "peak-find <code>L_gz_estimate</code> from the <code>|κ(s)|</code> envelope; fit exponential decay basal of the peak for <code>L_c_estimate</code>" — was found NOT to transfer to top-view tip-trail κ(s) (the trail is a steady-amplitude oscillation over ~3000 px; the growth zone is ~1 % of the trail; the |κ| envelope global-argmax lands basal on all 6 plate-001 tracks — exactly the §6.5 "recent trail cannot be inverted" limit). PR #9 therefore ships <strong>resample + cgau2 scaleogram + λ_spatial ridge</strong> only; <code>L_gz</code>/<code>L_c</code> detection (and hence the <code>L_gz</code> growth-zone mask in step 3) are <strong>descoped to follow-up research issue #230</strong>. PR #8's "growth-zone mask" responsibility is removed; PR #10 owns it once #230 resolves.</p>
 <h3 id="cc-2-configuration-strategy-module-level-named-constants">CC-2. Configuration strategy: module-level named constants.<a class="headerlink" href="#cc-2-configuration-strategy-module-level-named-constants" title="Permanent link">&para;</a></h3>
 <p>Match <code>tracked_tip_pipeline.py</code> convention: tuple/dict module-level constants (e.g., <code>_TRACKED_TIP_UNITS</code>, <code>_VALID_ROOT_TYPES</code>, <code>_SCHEMA_VERSION</code>). One <code>_constants.py</code> per tier OR top-level if shared. Magic numbers to name (non-exhaustive — flesh out in PR #1):</p>
 <table>
@@ -3053,14 +3053,14 @@
 <tr>
 <td>9</td>
 <td><code>add-circumnutation-tier3b-spatial-cwt</code></td>
-<td>Spatial CWT (<code>cgau2</code> default); <code>L_gz</code> peak-finder; <code>L_c</code> exponential-decay fit. <strong>No mask</strong> (CC-1).</td>
-<td>⬜</td>
-<td>⬜</td>
+<td>Spatial CWT machinery (<code>cgau2</code> default): <code>resample_curvature</code> (non-uniform→uniform κ(s), the PR #8 handoff), <code>compute_scaleogram</code>, <code>extract_ridge</code> (λ_spatial ridge). Frozen Results, determinism canary, <strong>no mask, no trait emission</strong>. <strong><code>L_gz</code>/<code>L_c</code> DESCOPED</strong> — the §7.4</td>
+<td>κ</td>
+<td>-envelope-peak premise does not transfer to top-view tip-trail κ(s) (steady traveling wave; §6.5 inversion limit; empirically confirmed on all 6 plate-001 tracks) → follow-up research <a href="https://github.com/talmolab/sleap-roots/issues/230">#230</a>. 3 new constants (<code>SPATIAL_COI_EFOLDING_FACTOR</code>, <code>CWT_WAVELENGTH_{MIN_NYQUIST,MAX_SIGNAL}_*</code>); <code>_CONSTANTS_VERSION</code> 5→6. <a href="https://github.com/talmolab/sleap-roots/issues/229">#229</a></td>
 </tr>
 <tr>
 <td>10</td>
 <td><code>add-circumnutation-tier3c-traits</code></td>
-<td>Tier-3 trait emission (theory.md §7.4) including <code>B_balance_number</code>, <code>L_gz_steady_state_residual</code>, <code>L_gz_resolvable</code>, <code>traveling_wave_residual</code>, <code>apex_basal_period_consistency</code>. <strong>Applies the L_gz growth-zone mask</strong> (CC-1).</td>
+<td>Tier-3 trait emission (theory.md §7.4) including <code>B_balance_number</code>, <code>L_gz_steady_state_residual</code>, <code>L_gz_resolvable</code>, <code>traveling_wave_residual</code>, <code>apex_basal_period_consistency</code>. <strong>Applies the L_gz growth-zone mask</strong> (CC-1). <strong>⚠ Ripple from PR #9:</strong> the <code>L_gz</code>-dependent traits (<code>B_balance_number</code>, <code>L_gz_steady_state_residual</code>, <code>L_gz_resolvable</code>) + the growth-zone mask are <strong>blocked on <a href="https://github.com/talmolab/sleap-roots/issues/230">#230</a></strong> (L_gz/L_c not yet measurable from tip-trail κ(s)); <code>traveling_wave_residual</code> + <code>apex_basal_period_consistency</code> remain deliverable from PR #9's λ(s_a) ridge (apply the cgau2 calibration map + the §7.4 unit handoff).</td>
 <td>⬜</td>
 <td>⬜</td>
 </tr>

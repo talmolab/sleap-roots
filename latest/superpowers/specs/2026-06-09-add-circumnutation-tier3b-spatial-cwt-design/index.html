@@ -12,7 +12,7 @@
         <meta name="author" content="Talmo Lab">
       
       
-        <link rel="canonical" href="https://roots.sleap.ai/latest/reference/sleap_roots/circumnutation/">
+        <link rel="canonical" href="https://roots.sleap.ai/latest/superpowers/specs/2026-06-09-add-circumnutation-tier3b-spatial-cwt-design/">
       
       
       
@@ -25,7 +25,7 @@
     
     
       
-        <title>Index - sleap-roots</title>
+        <title>Design: Tier 3b spatial CWT machinery (PR #9, add-circumnutation-tier3b-spatial-cwt) - sleap-roots</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#sleap_roots.circumnutation" class="md-skip">
+        <a href="#design-tier-3b-spatial-cwt-machinery-pr-9-add-circumnutation-tier3b-spatial-cwt" class="md-skip">
           Skip to content
         </a>
       
@@ -120,7 +120,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Index
+              Design: Tier 3b spatial CWT machinery (PR #9, add-circumnutation-tier3b-spatial-cwt)
             
           </span>
         </div>
@@ -2827,660 +2827,181 @@
   
 
 
-  <h1>Index</h1>
-
-<div class="doc doc-object doc-module">
-
-
-
-<h2 id="sleap_roots.circumnutation" class="doc doc-heading">
-            <span class="doc doc-object-name doc-module-name">circumnutation</span>
-
-
-<a href="#sleap_roots.circumnutation" class="headerlink" title="Permanent link">&para;</a></h2>
-
-    <div class="doc doc-contents first">
-
-        <p>Circumnutation analysis pipeline for sleap-roots.</p>
-<p>This package consumes per-track tip-trajectory DataFrames matching the
-:data:<code>ROW_IDENTITY_COLUMNS</code> schema (8 columns: <code>series</code>,
-<code>sample_uid</code>, <code>timepoint</code>, <code>plate_id</code>, <code>plant_id</code>, <code>track_id</code>,
-<code>genotype</code>, <code>treatment</code>, plus per-frame <code>frame</code>, <code>tip_x</code>,
-<code>tip_y</code>) and emits per-plant circumnutation traits — period,
-amplitude, handedness, growth-zone length, balance number,
-traveling-wave residual — plus per-plant time-series CSVs and
-diagnostic plots.</p>
-<p><strong>Note on input shape.</strong> <code>TrackedTipPipeline</code> today emits only 7
-columns (<code>series</code>, <code>sample_uid</code>, <code>timepoint</code>, <code>track_id</code>,
-<code>frame</code>, <code>tip_x</code>, <code>tip_y</code>); callers wanting to feed
-<code>TrackedTipPipeline</code> output directly into <code>CircumnutationInputs</code>
-must first enrich the DataFrame with <code>plate_id</code> (==<code>series</code> is a
-fine fallback), <code>plant_id</code> (==<code>track_id</code> today), <code>genotype</code>
-(NaN if unavailable), and <code>treatment</code> (NaN if unavailable). A
-future tier PR may provide a convenience adapter; the foundation
-requires the full 8-column schema explicitly so the row-identity
-contract is unambiguous.</p>
-<p>The pipeline is organized as five computation tiers + a QC tier
-(see <code>docs/circumnutation/theory.md</code> §6.3 for the full architecture
-and <code>docs/circumnutation/roadmap.md</code> for the multi-PR rollout).</p>
-<p>The foundation PR (PR #1) landed the contracts — package layout,
-:class:<code>CircumnutationInputs</code> data class, :data:<code>ROW_IDENTITY_COLUMNS</code>
-schema, units sidecar, run-metadata sidecar, module-level constants,
-:func:<code>~sleap_roots.circumnutation.units.convert_to_mm</code> downstream
-utility, and per-module logging convention. Tier PRs land tier-by-tier:</p>
+<h1 id="design-tier-3b-spatial-cwt-machinery-pr-9-add-circumnutation-tier3b-spatial-cwt">Design: Tier 3b spatial CWT machinery (PR #9, <code>add-circumnutation-tier3b-spatial-cwt</code>)<a class="headerlink" href="#design-tier-3b-spatial-cwt-machinery-pr-9-add-circumnutation-tier3b-spatial-cwt" title="Permanent link">&para;</a></h1>
+<p><strong>Date</strong>: 2026-06-09
+<strong>Status</strong>: approved (revised scope after empirical investigation)
+<strong>Author</strong>: Elizabeth Berrigan (eberrigan) + Claude</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>PR #9 of the multi-PR circumnutation program (epic #197; roadmap row #9). It
+graduates the <code>spatial_cwt</code> stub into an implementation module — a <strong>machinery</strong>
+PR mirroring PR #5 <code>temporal_cwt</code> and PR #8 <code>midline</code> (input-validating, frozen
+<code>attrs</code> Results, a determinism contract, <strong>no trait emission, no DataFrame, no
+mask</strong>). Its input is PR #8's <code>MidlineResult</code> (<code>curvature_px_inv</code> on the native
+NON-uniform <code>arc_length_px</code> grid); PR #9 owns the uniform-arc-length resample
+(the locked PR #8→#9 handoff), runs a cgau2 spatial CWT, and extracts the
+dominant spatial wavelength ridge λ(s_a).</p>
+<h2 id="goals-non-goals">Goals / Non-Goals<a class="headerlink" href="#goals-non-goals" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>kinematics</code> — Tier 0 raw kinematic traits (PR #2, merged)</li>
-<li><code>qc</code> — QC tier per-track quality (PR #3, merged)</li>
-<li><code>synthetic</code> — Layer-1 validation generator (PR #4, merged)</li>
-<li><code>temporal_cwt</code> — temporal CWT machinery (PR #5, merged)</li>
-<li><code>nutation</code> — Tier 1 nutation traits (PR #6, merged)</li>
-<li><code>psi_g</code> — Tier 2 ψ_g traits (PR #7, merged)</li>
-<li><code>midline</code> — Tier 3a midline reconstruction (PR #8, merged)</li>
-<li><code>spatial_cwt</code> — Tier 3b spatial CWT machinery (PR #9, merged)</li>
-<li><code>parametric</code>, <code>plotting</code>, <code>pipeline</code> — remaining stubs, raise
-  <code>NotImplementedError</code> until their tier PRs land.</li>
+<li><strong>Goals:</strong> resample κ(s) onto a uniform grid; cgau2 spatial scaleogram + COI;
+  spatial ridge → λ(s_a) (the steady-traveling-wave wavelength). Deterministic,
+  cross-OS reproducible, pure-pixel.</li>
+<li><strong>Non-Goals (deferred):</strong> trait columns / <code>trajectory_df</code> / groupby (PR #10);
+  the <code>L_gz</code> growth-zone mask (CC-1, PR #10); <strong>L_gz / L_c growth-zone-structure
+  detection</strong> (descoped — see "Empirical investigation" + follow-up issue).</li>
 </ul>
-<p>Pure-pixel convention: the pipeline never accepts <code>px_per_mm</code> and
-never emits <code>[mm]</code> columns. Calibration is always a downstream
-concern handled by :func:<code>~sleap_roots.circumnutation.units.convert_to_mm</code>.</p>
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-<div class="doc doc-object doc-attribute">
-
-
-
-<h3 id="sleap_roots.circumnutation.ROW_IDENTITY_COLUMNS" class="doc doc-heading">
-            <span class="doc doc-object-name doc-attribute-name">ROW_IDENTITY_COLUMNS</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
-  </span>
-
-<a href="#sleap_roots.circumnutation.ROW_IDENTITY_COLUMNS" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ROW_IDENTITY_COLUMNS</span><span class="p">:</span> <span class="n"><span title="tuple">tuple</span></span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="s2">&quot;series&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="s2">&quot;sample_uid&quot;</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="s2">&quot;timepoint&quot;</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="s2">&quot;plate_id&quot;</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="s2">&quot;plant_id&quot;</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="s2">&quot;track_id&quot;</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="s2">&quot;genotype&quot;</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="s2">&quot;treatment&quot;</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span>
+<h2 id="empirical-investigation-that-reshaped-scope">Empirical investigation that reshaped scope<a class="headerlink" href="#empirical-investigation-that-reshaped-scope" title="Permanent link">&para;</a></h2>
+<p>Before locking the spec we ran <code>_scratch/2026-06-09-lgz-localizer-comparison/</code>
+(documented <code>research:investigate</code>) to test how <code>detect_growth_zone</code> should
+localize <code>L_gz</code> (peak of the |κ(s)| envelope, theory §7.4) — Hilbert vs cgau2
+CWT-power vs smoothed-|κ| — on the 6 Nipponbare plate-001 <strong>proofread</strong> tracks +
+an analytic oracle.</p>
+<p><strong>Finding (decisive):</strong> the §7.4 premise — "L_gz = peak of |κ(s)| envelope, L_c =
+basal exponential decay" — <strong>does not transfer to top-view tip-trail κ(s)</strong>.</p>
+<ul>
+<li>The oracle confirms the localizers work <em>when an apical envelope peak exists</em>
+  (Hilbert/smoothed ~1-bin accurate on clean/sparse; Hilbert edge-fails under
+  noise; CWT-power noise-robust but +23–46 px biased).</li>
+<li>On real data the structure is absent: trail spans ≈ 3050–3527 px, the growth
+  zone (~29–65 px) is ~1 % of the trail, and the global |κ| envelope argmax lands
+  <strong>basal (48–100 % of span)</strong> on every track, every method. Apical/basal Hilbert
+  envelope ratio = 0.32/1.25/0.56/0.67/0.77/0.91 → for 5/6 tracks apical curvature
+  amplitude is <em>lower</em> than basal — the opposite of the predicted localized peak.</li>
+<li>Raw κ(s_a) is a <strong>roughly steady-amplitude oscillation over the whole trail</strong> —
+  the QPB steady-traveling-wave signature (§4.7), directly visible in the plots,
+  independent of envelope method or edge artifacts.</li>
+</ul>
+<p>This is exactly what theory <strong>§6.5</strong> warned: "the recent trail cannot be inverted
+to recover ε̇(s_a)… trail-as-midline holds only past the growth zone." The §7.4
+definitions come from Rivière/Averrhoa <strong>whole-organ side-view</strong> κ(s,t) over a
+short growth zone; they do not transfer to top-view multi-period tip-trail data.
+Synthetic-only would have confirmed the wrong premise (PR #7 helix / PR #8 mask
+lesson).</p>
+<p><strong>Consequence:</strong> the data SUPPORTS the spatial scaleogram + λ_spatial (a steady
+wave has a clean dominant wavelength — what cgau2 CWT extracts), and PR #10's
+central falsifiable trait <code>traveling_wave_residual = |λ_spatial − v·T|/(v·T)</code>
+remains deliverable. It is specifically the <strong>Meroz growth-zone-structure traits
+(L_gz, L_c, B = L_gz/L_c)</strong> that don't transfer → descoped to a follow-up.</p>
+<h2 id="decisions-brainstorm-d1d10-scope-pivot">Decisions (brainstorm D1–D10 + scope pivot)<a class="headerlink" href="#decisions-brainstorm-d1d10-scope-pivot" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>D1 — API:</strong> separate public <code>resample_curvature</code> (entry, raw arrays);
+  <code>compute_scaleogram(kappa, ds, constants=None)</code> stays the locked pure-CWT stub
+  signature (drop the stub file's <code>wavelet=</code>/<code>scale_range=</code> kwargs; derive from
+  constants, matching temporal_cwt). Entry-takes-arrays / downstream-takes-Result
+  symmetry with temporal_cwt.</li>
+<li><strong>D2 — mask gaps:</strong> drop <code>velocity_sub_noise_mask</code> frames (κ blows up at
+  sub-noise |v|), then <code>np.interp</code> survivors onto the uniform grid; guards →
+  graceful all-NaN. (Empirically validated; no new dep; tight determinism.)</li>
+<li><strong>D3 — ds:</strong> median of positive surviving Δ(arc_length); scale range derives
+  from it via spatial-named CWT constants.</li>
+<li><strong>D4 — 3 funcs / 3 Results</strong> (revised after pivot): <code>resample_curvature →
+  ResampleResult</code>, <code>compute_scaleogram → SpatialScaleogramResult</code>, <code>extract_ridge
+  → SpatialRidgeResult</code>. (Was <code>detect_growth_zone/GrowthZoneResult</code> — descoped.)</li>
+<li><strong>D6 — constants + version bump 5→6:</strong> add <code>SPATIAL_COI_EFOLDING_FACTOR</code>
+  (cgau2, empirically measured via step-response), <code>CWT_WAVELENGTH_MIN_NYQUIST_FACTOR</code>,
+  <code>CWT_WAVELENGTH_MAX_SIGNAL_FRACTION</code>; reuse <code>CWT_SCALE_COUNT_DEFAULT</code>,
+  <code>WAVELET_DEFAULT_SPATIAL="cgau2"</code>.</li>
+<li><strong>D9 — apex-origin axis:</strong> emit <code>s_a = arc_max − s</code> (apex at 0) on the position
+  axis so PR #10 can do apex-vs-basal λ-consistency. λ itself is orientation-
+  invariant. Pin the apex end with the oracle.</li>
+<li><strong>D10 — units:</strong> pure-pixel (px, px⁻¹) Result fields; defer the <code>px⁻¹</code>
+  <code>PIPELINE_UNIT_VOCABULARY</code> token to PR #10 (PR #9 emits no sidecar/CSV).</li>
+<li><strong>Descoped by the investigation:</strong> D5 (Hilbert envelope), D7 (curve_fit L_c),
+  D8 (resolvability v-window), <code>detect_growth_zone</code>, <code>GrowthZoneResult</code>,
+  <code>L_gz_resolvable</code>. <code>LGZ_NMIN_RESOLVABLE</code> stays in <code>_constants</code> for the future PR
+  but is no longer consumed by PR #9.</li>
+</ul>
+<h2 id="public-api">Public API<a class="headerlink" href="#public-api" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">resample_curvature</span><span class="p">(</span><span class="n">curvature_px_inv</span><span class="p">,</span> <span class="n">arc_length_px</span><span class="p">,</span> <span class="n">velocity_sub_noise_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                   <span class="n">constants</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ResampleResult</span>        <span class="c1"># entry, raw arrays</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">compute_scaleogram</span><span class="p">(</span><span class="n">kappa</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">constants</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SpatialScaleogramResult</span>  <span class="c1"># locked stub</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">extract_ridge</span><span class="p">(</span><span class="n">scaleogram_result</span><span class="p">,</span> <span class="n">constants</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SpatialRidgeResult</span>    <span class="c1"># λ(s_a) ridge</span>
 </span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Eight-column row-identity schema for the per-plant trait CSV.</p>
-<p>Today <code>plant_id</code> and <code>track_id</code> are populated identically; both
-columns exist so a future divergence (multi-track-per-plant) is a
-non-breaking schema extension. <code>plate_id</code> and <code>treatment</code> are
-aspirational — no upstream produces them today; they populate as
-<code>NaN</code> and are reserved for future upstream metadata work.</p>
-
-    </div>
-
-</div>
-
-
-
-<div class="doc doc-object doc-class">
-
-
-
-<h3 id="sleap_roots.circumnutation.CircumnutationInputs" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">CircumnutationInputs</span>
-
-
-<a href="#sleap_roots.circumnutation.CircumnutationInputs" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-    <div class="doc doc-contents ">
-
-
-
-        <p>Per-call inputs to the circumnutation pipeline.</p>
-<p>The pipeline never sees a calibration value (<code>px_per_mm</code>) — every
-length-bearing trait the pipeline emits is in pixels. The
-:func:<code>sleap_roots.circumnutation.units.convert_to_mm</code> utility
-handles downstream conversion when a user wants mm output.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>trajectory_df</code>
-            </td>
-            <td>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Per-track tip-trajectory DataFrame containing the
-eight :data:<code>ROW_IDENTITY_COLUMNS</code> plus per-frame <code>frame</code>,
-<code>tip_x</code>, <code>tip_y</code> columns. Must be non-empty.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>cadence_s</code>
-            </td>
-            <td>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Frame cadence in seconds. Must be positive and finite.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>R_px</code>
-            </td>
-            <td>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Optional root cross-section radius in pixels (Bastien-Meroz
-2016 use). Must be <code>None</code> or a positive finite float. The
-user converts their physical-unit radius measurement to
-pixels using whatever calibration they trust; the pipeline's
-Tier 4 formulas cancel dimensions.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>run_id</code>
-            </td>
-            <td>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Optional human-readable identifier for the run; included
-in <code>run_metadata.json</code>.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If any field fails validation. The message names
-the offending field.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="sleap_roots.circumnutation.convert_to_mm" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">convert_to_mm</span>
-
-
-<a href="#sleap_roots.circumnutation.convert_to_mm" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">convert_to_mm</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">traits_df</span><span class="p">:</span> <span class="n"><span title="pandas.DataFrame">DataFrame</span></span><span class="p">,</span> <span class="n">units</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">,</span> <span class="n">px_per_mm</span><span class="p">:</span> <span class="n"><span title="float">float</span></span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Tuple">Tuple</span></span><span class="p">[</span><span class="n"><span title="pandas.DataFrame">DataFrame</span></span><span class="p">,</span> <span class="n"><span title="dict">dict</span></span><span class="p">]</span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Convert pixel-unit columns of a per-plant trait DataFrame to mm.</p>
-<p>Pure function: original <code>traits_df</code> and <code>units</code> are not mutated.
-For every column whose unit string is one of <code>"px"</code>, <code>"px²"</code>,
-<code>"px/frame"</code>, <code>"px/hr"</code>, or <code>"px·hr⁻¹"</code>, the column values are
-scaled by <code>1 / px_per_mm</code> (or <code>(1 / px_per_mm) ** 2</code> for <code>px²</code>)
-and the column is renamed to swap its <code>_px</code>-suffix for the
-corresponding <code>_mm</code> form. Columns with non-px units pass through
-unchanged.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>traits_df</code>
-            </td>
-            <td>
-                  <code><span title="pandas.DataFrame">DataFrame</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Per-plant trait DataFrame with <code>_px</code>-suffixed columns.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>units</code>
-            </td>
-            <td>
-                  <code><span title="dict">dict</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Mapping of column-name → unit-string (must align with
-<code>traits_df.columns</code> for any column intended to be converted).</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>px_per_mm</code>
-            </td>
-            <td>
-                  <code><span title="float">float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Calibration factor; must be a positive finite float.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="pandas.DataFrame">DataFrame</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Tuple of <code>(mm_traits_df, mm_units)</code> — copies with calibration</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="dict">dict</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>applied and <code>_px</code> columns renamed.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If <code>px_per_mm</code> is not a positive finite float.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>sleap_roots/circumnutation/units.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-27"> 27</a></span>
-<span class="normal"><a href="#__codelineno-0-28"> 28</a></span>
-<span class="normal"><a href="#__codelineno-0-29"> 29</a></span>
-<span class="normal"><a href="#__codelineno-0-30"> 30</a></span>
-<span class="normal"><a href="#__codelineno-0-31"> 31</a></span>
-<span class="normal"><a href="#__codelineno-0-32"> 32</a></span>
-<span class="normal"><a href="#__codelineno-0-33"> 33</a></span>
-<span class="normal"><a href="#__codelineno-0-34"> 34</a></span>
-<span class="normal"><a href="#__codelineno-0-35"> 35</a></span>
-<span class="normal"><a href="#__codelineno-0-36"> 36</a></span>
-<span class="normal"><a href="#__codelineno-0-37"> 37</a></span>
-<span class="normal"><a href="#__codelineno-0-38"> 38</a></span>
-<span class="normal"><a href="#__codelineno-0-39"> 39</a></span>
-<span class="normal"><a href="#__codelineno-0-40"> 40</a></span>
-<span class="normal"><a href="#__codelineno-0-41"> 41</a></span>
-<span class="normal"><a href="#__codelineno-0-42"> 42</a></span>
-<span class="normal"><a href="#__codelineno-0-43"> 43</a></span>
-<span class="normal"><a href="#__codelineno-0-44"> 44</a></span>
-<span class="normal"><a href="#__codelineno-0-45"> 45</a></span>
-<span class="normal"><a href="#__codelineno-0-46"> 46</a></span>
-<span class="normal"><a href="#__codelineno-0-47"> 47</a></span>
-<span class="normal"><a href="#__codelineno-0-48"> 48</a></span>
-<span class="normal"><a href="#__codelineno-0-49"> 49</a></span>
-<span class="normal"><a href="#__codelineno-0-50"> 50</a></span>
-<span class="normal"><a href="#__codelineno-0-51"> 51</a></span>
-<span class="normal"><a href="#__codelineno-0-52"> 52</a></span>
-<span class="normal"><a href="#__codelineno-0-53"> 53</a></span>
-<span class="normal"><a href="#__codelineno-0-54"> 54</a></span>
-<span class="normal"><a href="#__codelineno-0-55"> 55</a></span>
-<span class="normal"><a href="#__codelineno-0-56"> 56</a></span>
-<span class="normal"><a href="#__codelineno-0-57"> 57</a></span>
-<span class="normal"><a href="#__codelineno-0-58"> 58</a></span>
-<span class="normal"><a href="#__codelineno-0-59"> 59</a></span>
-<span class="normal"><a href="#__codelineno-0-60"> 60</a></span>
-<span class="normal"><a href="#__codelineno-0-61"> 61</a></span>
-<span class="normal"><a href="#__codelineno-0-62"> 62</a></span>
-<span class="normal"><a href="#__codelineno-0-63"> 63</a></span>
-<span class="normal"><a href="#__codelineno-0-64"> 64</a></span>
-<span class="normal"><a href="#__codelineno-0-65"> 65</a></span>
-<span class="normal"><a href="#__codelineno-0-66"> 66</a></span>
-<span class="normal"><a href="#__codelineno-0-67"> 67</a></span>
-<span class="normal"><a href="#__codelineno-0-68"> 68</a></span>
-<span class="normal"><a href="#__codelineno-0-69"> 69</a></span>
-<span class="normal"><a href="#__codelineno-0-70"> 70</a></span>
-<span class="normal"><a href="#__codelineno-0-71"> 71</a></span>
-<span class="normal"><a href="#__codelineno-0-72"> 72</a></span>
-<span class="normal"><a href="#__codelineno-0-73"> 73</a></span>
-<span class="normal"><a href="#__codelineno-0-74"> 74</a></span>
-<span class="normal"><a href="#__codelineno-0-75"> 75</a></span>
-<span class="normal"><a href="#__codelineno-0-76"> 76</a></span>
-<span class="normal"><a href="#__codelineno-0-77"> 77</a></span>
-<span class="normal"><a href="#__codelineno-0-78"> 78</a></span>
-<span class="normal"><a href="#__codelineno-0-79"> 79</a></span>
-<span class="normal"><a href="#__codelineno-0-80"> 80</a></span>
-<span class="normal"><a href="#__codelineno-0-81"> 81</a></span>
-<span class="normal"><a href="#__codelineno-0-82"> 82</a></span>
-<span class="normal"><a href="#__codelineno-0-83"> 83</a></span>
-<span class="normal"><a href="#__codelineno-0-84"> 84</a></span>
-<span class="normal"><a href="#__codelineno-0-85"> 85</a></span>
-<span class="normal"><a href="#__codelineno-0-86"> 86</a></span>
-<span class="normal"><a href="#__codelineno-0-87"> 87</a></span>
-<span class="normal"><a href="#__codelineno-0-88"> 88</a></span>
-<span class="normal"><a href="#__codelineno-0-89"> 89</a></span>
-<span class="normal"><a href="#__codelineno-0-90"> 90</a></span>
-<span class="normal"><a href="#__codelineno-0-91"> 91</a></span>
-<span class="normal"><a href="#__codelineno-0-92"> 92</a></span>
-<span class="normal"><a href="#__codelineno-0-93"> 93</a></span>
-<span class="normal"><a href="#__codelineno-0-94"> 94</a></span>
-<span class="normal"><a href="#__codelineno-0-95"> 95</a></span>
-<span class="normal"><a href="#__codelineno-0-96"> 96</a></span>
-<span class="normal"><a href="#__codelineno-0-97"> 97</a></span>
-<span class="normal"><a href="#__codelineno-0-98"> 98</a></span>
-<span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
-<span class="normal"><a href="#__codelineno-0-100">100</a></span>
-<span class="normal"><a href="#__codelineno-0-101">101</a></span>
-<span class="normal"><a href="#__codelineno-0-102">102</a></span>
-<span class="normal"><a href="#__codelineno-0-103">103</a></span>
-<span class="normal"><a href="#__codelineno-0-104">104</a></span>
-<span class="normal"><a href="#__codelineno-0-105">105</a></span>
-<span class="normal"><a href="#__codelineno-0-106">106</a></span>
-<span class="normal"><a href="#__codelineno-0-107">107</a></span>
-<span class="normal"><a href="#__codelineno-0-108">108</a></span>
-<span class="normal"><a href="#__codelineno-0-109">109</a></span>
-<span class="normal"><a href="#__codelineno-0-110">110</a></span>
-<span class="normal"><a href="#__codelineno-0-111">111</a></span>
-<span class="normal"><a href="#__codelineno-0-112">112</a></span>
-<span class="normal"><a href="#__codelineno-0-113">113</a></span>
-<span class="normal"><a href="#__codelineno-0-114">114</a></span>
-<span class="normal"><a href="#__codelineno-0-115">115</a></span>
-<span class="normal"><a href="#__codelineno-0-116">116</a></span>
-<span class="normal"><a href="#__codelineno-0-117">117</a></span>
-<span class="normal"><a href="#__codelineno-0-118">118</a></span>
-<span class="normal"><a href="#__codelineno-0-119">119</a></span>
-<span class="normal"><a href="#__codelineno-0-120">120</a></span>
-<span class="normal"><a href="#__codelineno-0-121">121</a></span>
-<span class="normal"><a href="#__codelineno-0-122">122</a></span>
-<span class="normal"><a href="#__codelineno-0-123">123</a></span>
-<span class="normal"><a href="#__codelineno-0-124">124</a></span>
-<span class="normal"><a href="#__codelineno-0-125">125</a></span>
-<span class="normal"><a href="#__codelineno-0-126">126</a></span>
-<span class="normal"><a href="#__codelineno-0-127">127</a></span>
-<span class="normal"><a href="#__codelineno-0-128">128</a></span>
-<span class="normal"><a href="#__codelineno-0-129">129</a></span>
-<span class="normal"><a href="#__codelineno-0-130">130</a></span>
-<span class="normal"><a href="#__codelineno-0-131">131</a></span>
-<span class="normal"><a href="#__codelineno-0-132">132</a></span>
-<span class="normal"><a href="#__codelineno-0-133">133</a></span>
-<span class="normal"><a href="#__codelineno-0-134">134</a></span>
-<span class="normal"><a href="#__codelineno-0-135">135</a></span>
-<span class="normal"><a href="#__codelineno-0-136">136</a></span>
-<span class="normal"><a href="#__codelineno-0-137">137</a></span>
-<span class="normal"><a href="#__codelineno-0-138">138</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="k">def</span><span class="w"> </span><span class="nf">convert_to_mm</span><span class="p">(</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a>    <span class="n">traits_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>    <span class="n">units</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="n">px_per_mm</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert pixel-unit columns of a per-plant trait DataFrame to mm.</span>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="sd">    Pure function: original ``traits_df`` and ``units`` are not mutated.</span>
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">    For every column whose unit string is one of ``&quot;px&quot;``, ``&quot;px²&quot;``,</span>
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">    ``&quot;px/frame&quot;``, ``&quot;px/hr&quot;``, or ``&quot;px·hr⁻¹&quot;``, the column values are</span>
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">    scaled by ``1 / px_per_mm`` (or ``(1 / px_per_mm) ** 2`` for ``px²``)</span>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="sd">    and the column is renamed to swap its ``_px``-suffix for the</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="sd">    corresponding ``_mm`` form. Columns with non-px units pass through</span>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">    unchanged.</span>
-</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a>
-</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="sd">        traits_df: Per-plant trait DataFrame with ``_px``-suffixed columns.</span>
-</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="sd">        units: Mapping of column-name → unit-string (must align with</span>
-</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="sd">            ``traits_df.columns`` for any column intended to be converted).</span>
-</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="sd">        px_per_mm: Calibration factor; must be a positive finite float.</span>
-</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a>
-</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="sd">        Tuple of ``(mm_traits_df, mm_units)`` — copies with calibration</span>
-</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="sd">        applied and ``_px`` columns renamed.</span>
-</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a>
-</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a><span class="sd">    Raises:</span>
-</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a><span class="sd">        ValueError: If ``px_per_mm`` is not a positive finite float.</span>
-</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">px_per_mm</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
-</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a>            <span class="sa">f</span><span class="s2">&quot;px_per_mm must be a positive finite float, got </span><span class="si">{</span><span class="n">px_per_mm</span><span class="si">!r}</span><span class="s2">&quot;</span>
-</span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a>        <span class="p">)</span>
-</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a>    <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a>        <span class="n">scale</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">px_per_mm</span><span class="p">)</span>
-</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a>    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
-</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a>            <span class="sa">f</span><span class="s2">&quot;px_per_mm must be a positive finite float, got </span><span class="si">{</span><span class="n">px_per_mm</span><span class="si">!r}</span><span class="s2">&quot;</span>
-</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a>        <span class="p">)</span>
-</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span> <span class="ow">or</span> <span class="n">scale</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a>            <span class="sa">f</span><span class="s2">&quot;px_per_mm must be a positive finite float, got </span><span class="si">{</span><span class="n">px_per_mm</span><span class="si">!r}</span><span class="s2">&quot;</span>
-</span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68"></a>        <span class="p">)</span>
-</span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69"></a>
-</span><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70"></a>    <span class="n">out_df</span> <span class="o">=</span> <span class="n">traits_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-</span><span id="__span-0-71"><a id="__codelineno-0-71" name="__codelineno-0-71"></a>    <span class="n">out_units</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">units</span><span class="p">)</span>
-</span><span id="__span-0-72"><a id="__codelineno-0-72" name="__codelineno-0-72"></a>
-</span><span id="__span-0-73"><a id="__codelineno-0-73" name="__codelineno-0-73"></a>    <span class="n">rename_map</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span id="__span-0-74"><a id="__codelineno-0-74" name="__codelineno-0-74"></a>    <span class="n">new_unit_for</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span id="__span-0-75"><a id="__codelineno-0-75" name="__codelineno-0-75"></a>
-</span><span id="__span-0-76"><a id="__codelineno-0-76" name="__codelineno-0-76"></a>    <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">unit</span> <span class="ow">in</span> <span class="n">units</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span id="__span-0-77"><a id="__codelineno-0-77" name="__codelineno-0-77"></a>        <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">out_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-</span><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a>            <span class="k">continue</span>
-</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a>
-</span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="c1"># Handle pixel-area first (its own suffix scheme)</span>
-</span><span id="__span-0-81"><a id="__codelineno-0-81" name="__codelineno-0-81"></a>        <span class="k">if</span> <span class="n">unit</span> <span class="o">==</span> <span class="s2">&quot;px²&quot;</span><span class="p">:</span>
-</span><span id="__span-0-82"><a id="__codelineno-0-82" name="__codelineno-0-82"></a>            <span class="n">new_col</span> <span class="o">=</span> <span class="n">_rename_px_squared</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
-</span><span id="__span-0-83"><a id="__codelineno-0-83" name="__codelineno-0-83"></a>            <span class="n">out_df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">out_df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">scale</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
-</span><span id="__span-0-84"><a id="__codelineno-0-84" name="__codelineno-0-84"></a>            <span class="n">rename_map</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_col</span>
-</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a>            <span class="n">new_unit_for</span><span class="p">[</span><span class="n">new_col</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mm²&quot;</span>
-</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a>            <span class="k">continue</span>
-</span><span id="__span-0-87"><a id="__codelineno-0-87" name="__codelineno-0-87"></a>
-</span><span id="__span-0-88"><a id="__codelineno-0-88" name="__codelineno-0-88"></a>        <span class="c1"># px·hr⁻¹ is just an alternate notation for px/hr</span>
-</span><span id="__span-0-89"><a id="__codelineno-0-89" name="__codelineno-0-89"></a>        <span class="k">if</span> <span class="n">unit</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;px/hr&quot;</span><span class="p">,</span> <span class="s2">&quot;px·hr⁻¹&quot;</span><span class="p">):</span>
-</span><span id="__span-0-90"><a id="__codelineno-0-90" name="__codelineno-0-90"></a>            <span class="n">new_col</span> <span class="o">=</span> <span class="n">_rename_px_per_x</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="s2">&quot;_per_hr&quot;</span><span class="p">)</span>
-</span><span id="__span-0-91"><a id="__codelineno-0-91" name="__codelineno-0-91"></a>            <span class="n">out_df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">out_df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">/</span> <span class="n">scale</span>
-</span><span id="__span-0-92"><a id="__codelineno-0-92" name="__codelineno-0-92"></a>            <span class="n">rename_map</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_col</span>
-</span><span id="__span-0-93"><a id="__codelineno-0-93" name="__codelineno-0-93"></a>            <span class="n">new_unit_for</span><span class="p">[</span><span class="n">new_col</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mm/hr&quot;</span>
-</span><span id="__span-0-94"><a id="__codelineno-0-94" name="__codelineno-0-94"></a>            <span class="k">continue</span>
-</span><span id="__span-0-95"><a id="__codelineno-0-95" name="__codelineno-0-95"></a>
-</span><span id="__span-0-96"><a id="__codelineno-0-96" name="__codelineno-0-96"></a>        <span class="k">if</span> <span class="n">unit</span> <span class="o">==</span> <span class="s2">&quot;px/frame&quot;</span><span class="p">:</span>
-</span><span id="__span-0-97"><a id="__codelineno-0-97" name="__codelineno-0-97"></a>            <span class="n">new_col</span> <span class="o">=</span> <span class="n">_rename_px_per_x</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="s2">&quot;_per_frame&quot;</span><span class="p">)</span>
-</span><span id="__span-0-98"><a id="__codelineno-0-98" name="__codelineno-0-98"></a>            <span class="n">out_df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">out_df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">/</span> <span class="n">scale</span>
-</span><span id="__span-0-99"><a id="__codelineno-0-99" name="__codelineno-0-99"></a>            <span class="n">rename_map</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_col</span>
-</span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a>            <span class="n">new_unit_for</span><span class="p">[</span><span class="n">new_col</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mm/frame&quot;</span>
-</span><span id="__span-0-101"><a id="__codelineno-0-101" name="__codelineno-0-101"></a>            <span class="k">continue</span>
-</span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a>
-</span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103"></a>        <span class="k">if</span> <span class="n">unit</span> <span class="o">==</span> <span class="s2">&quot;px&quot;</span><span class="p">:</span>
-</span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a>            <span class="c1"># Replace the FIRST trailing _px (not earlier occurrences).</span>
-</span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a>            <span class="n">new_col</span> <span class="o">=</span> <span class="n">_rename_trailing_px</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
-</span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106"></a>            <span class="n">out_df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">out_df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">/</span> <span class="n">scale</span>
-</span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107"></a>            <span class="n">rename_map</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_col</span>
-</span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108"></a>            <span class="n">new_unit_for</span><span class="p">[</span><span class="n">new_col</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mm&quot;</span>
-</span><span id="__span-0-109"><a id="__codelineno-0-109" name="__codelineno-0-109"></a>            <span class="k">continue</span>
-</span><span id="__span-0-110"><a id="__codelineno-0-110" name="__codelineno-0-110"></a>
-</span><span id="__span-0-111"><a id="__codelineno-0-111" name="__codelineno-0-111"></a>        <span class="c1"># Non-px columns pass through; nothing to do.</span>
-</span><span id="__span-0-112"><a id="__codelineno-0-112" name="__codelineno-0-112"></a>
-</span><span id="__span-0-113"><a id="__codelineno-0-113" name="__codelineno-0-113"></a>    <span class="c1"># Detect rename collisions: a `_px` → `_mm` rename target that already</span>
-</span><span id="__span-0-114"><a id="__codelineno-0-114" name="__codelineno-0-114"></a>    <span class="c1"># exists in the input as a different (non-renamed) column would cause</span>
-</span><span id="__span-0-115"><a id="__codelineno-0-115" name="__codelineno-0-115"></a>    <span class="c1"># silent data loss when pandas.rename produces duplicate column names.</span>
-</span><span id="__span-0-116"><a id="__codelineno-0-116" name="__codelineno-0-116"></a>    <span class="k">for</span> <span class="n">src_col</span><span class="p">,</span> <span class="n">dst_col</span> <span class="ow">in</span> <span class="n">rename_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span id="__span-0-117"><a id="__codelineno-0-117" name="__codelineno-0-117"></a>        <span class="k">if</span> <span class="p">(</span>
-</span><span id="__span-0-118"><a id="__codelineno-0-118" name="__codelineno-0-118"></a>            <span class="n">dst_col</span> <span class="ow">in</span> <span class="n">out_df</span><span class="o">.</span><span class="n">columns</span>
-</span><span id="__span-0-119"><a id="__codelineno-0-119" name="__codelineno-0-119"></a>            <span class="ow">and</span> <span class="n">dst_col</span> <span class="o">!=</span> <span class="n">src_col</span>
-</span><span id="__span-0-120"><a id="__codelineno-0-120" name="__codelineno-0-120"></a>            <span class="ow">and</span> <span class="n">dst_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">rename_map</span>
-</span><span id="__span-0-121"><a id="__codelineno-0-121" name="__codelineno-0-121"></a>        <span class="p">):</span>
-</span><span id="__span-0-122"><a id="__codelineno-0-122" name="__codelineno-0-122"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-123"><a id="__codelineno-0-123" name="__codelineno-0-123"></a>                <span class="sa">f</span><span class="s2">&quot;convert_to_mm column rename collision: source column &quot;</span>
-</span><span id="__span-0-124"><a id="__codelineno-0-124" name="__codelineno-0-124"></a>                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">src_col</span><span class="si">!r}</span><span class="s2"> would be renamed to </span><span class="si">{</span><span class="n">dst_col</span><span class="si">!r}</span><span class="s2">, but </span><span class="si">{</span><span class="n">dst_col</span><span class="si">!r}</span><span class="s2"> &quot;</span>
-</span><span id="__span-0-125"><a id="__codelineno-0-125" name="__codelineno-0-125"></a>                <span class="sa">f</span><span class="s2">&quot;already exists in the input DataFrame. Either rename one of &quot;</span>
-</span><span id="__span-0-126"><a id="__codelineno-0-126" name="__codelineno-0-126"></a>                <span class="sa">f</span><span class="s2">&quot;the columns upstream or drop the duplicate before calling &quot;</span>
-</span><span id="__span-0-127"><a id="__codelineno-0-127" name="__codelineno-0-127"></a>                <span class="sa">f</span><span class="s2">&quot;convert_to_mm.&quot;</span>
-</span><span id="__span-0-128"><a id="__codelineno-0-128" name="__codelineno-0-128"></a>            <span class="p">)</span>
-</span><span id="__span-0-129"><a id="__codelineno-0-129" name="__codelineno-0-129"></a>
-</span><span id="__span-0-130"><a id="__codelineno-0-130" name="__codelineno-0-130"></a>    <span class="c1"># Apply renames in one go</span>
-</span><span id="__span-0-131"><a id="__codelineno-0-131" name="__codelineno-0-131"></a>    <span class="n">out_df</span> <span class="o">=</span> <span class="n">out_df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">rename_map</span><span class="p">)</span>
-</span><span id="__span-0-132"><a id="__codelineno-0-132" name="__codelineno-0-132"></a>
-</span><span id="__span-0-133"><a id="__codelineno-0-133" name="__codelineno-0-133"></a>    <span class="c1"># Build the new units dict: drop renamed olds, add renamed news</span>
-</span><span id="__span-0-134"><a id="__codelineno-0-134" name="__codelineno-0-134"></a>    <span class="k">for</span> <span class="n">old_col</span> <span class="ow">in</span> <span class="n">rename_map</span><span class="p">:</span>
-</span><span id="__span-0-135"><a id="__codelineno-0-135" name="__codelineno-0-135"></a>        <span class="n">out_units</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">old_col</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-</span><span id="__span-0-136"><a id="__codelineno-0-136" name="__codelineno-0-136"></a>    <span class="n">out_units</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new_unit_for</span><span class="p">)</span>
-</span><span id="__span-0-137"><a id="__codelineno-0-137" name="__codelineno-0-137"></a>
-</span><span id="__span-0-138"><a id="__codelineno-0-138" name="__codelineno-0-138"></a>    <span class="k">return</span> <span class="n">out_df</span><span class="p">,</span> <span class="n">out_units</span>
-</span></code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-
-
-  </div>
-
-    </div>
-
-</div>
+<p>Direct spatial twin of <code>temporal_cwt</code> (<code>compute_scaleogram</code> + <code>extract_ridge</code>),
+plus the <code>resample_curvature</code> entry helper for the non-uniform→uniform handoff.</p>
+<h2 id="result-classes-all-attrsdefinefrozentrue-slotsfalse-kw_onlytrue-eqfalse">Result classes (all <code>@attrs.define(frozen=True, slots=False, kw_only=True, eq=False)</code>)<a class="headerlink" href="#result-classes-all-attrsdefinefrozentrue-slotsfalse-kw_onlytrue-eqfalse" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><code>ResampleResult</code></strong>: <code>kappa_uniform</code> (px⁻¹), <code>s_a_uniform_px</code> (apex-origin),
+  <code>ds</code> (px), <code>n_unmasked</code> (int), <code>arc_span_px</code> (float), <code>is_degenerate</code> (bool).</li>
+<li><strong><code>SpatialScaleogramResult</code></strong>: <code>scaleogram</code> (complex128 <code>(n_scales, n_samples)</code>),
+  <code>scales</code> (float64), <code>wavelengths_px</code>, <code>spatial_freqs_px_inv</code>, <code>coi_mask</code> (bool),
+  <code>ds</code>, <code>wavelet</code> (str).</li>
+<li><strong><code>SpatialRidgeResult</code></strong>: <code>position_indices</code> (int64), <code>wavelengths_px</code> (λ at
+  ridge per position), <code>amplitudes</code>, <code>powers</code>, <code>in_coi</code> (bool). Mirrors temporal
+  <code>RidgeResult</code> (frame→position, period_s→wavelength_px).</li>
+</ul>
+<h2 id="algorithms">Algorithms<a class="headerlink" href="#algorithms" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>resample_curvature:</strong> drop masked + non-finite frames; <code>s_a = arc_max − s</code>
+  over survivors; <code>ds = median(positive Δs_a)</code>; uniform grid <code>[0, arc_span]</code> step
+  <code>ds</code>; <code>kappa_uniform = np.interp(grid, s_a_sorted, kappa_sorted)</code>. Guards (min
+  unmasked count, min arc-span) → graceful all-NaN <code>is_degenerate=True</code>.</li>
+<li><strong>compute_scaleogram:</strong> log-spaced scales via <code>pywt.scale2frequency("cgau2", …)</code>
+  (wavelet-agnostic), λ_min = <code>CWT_WAVELENGTH_MIN_NYQUIST_FACTOR·ds</code>, λ_max =
+  <code>CWT_WAVELENGTH_MAX_SIGNAL_FRACTION·n·ds</code>, <code>CWT_SCALE_COUNT_DEFAULT</code> scales;
+  <code>pywt.cwt(kappa, scales, "cgau2")</code> → complex128; COI via
+  <code>SPATIAL_COI_EFOLDING_FACTOR</code> (spatial sibling of <code>_make_coi_mask</code>/
+  <code>_coi_boundary_samples</code>).</li>
+<li><strong>extract_ridge:</strong> per-position argmax over scales → λ at ridge; amplitudes =
+  |W| at ridge; powers = amplitudes²; <code>in_coi</code> from the scaleogram COI mask.
+  Deterministic (no random tie-break).</li>
+</ul>
+<h2 id="constants-versioning">Constants &amp; versioning<a class="headerlink" href="#constants-versioning" title="Permanent link">&para;</a></h2>
+<p><code>_CONSTANTS_VERSION</code> 5 → 6 (three real new CWT constants). All three added to
+<code>ConstantsT</code> + <code>_default_constants_snapshot()</code>. <code>SPATIAL_COI_EFOLDING_FACTOR</code>
+default is the empirically-measured cgau2 e-folding factor (capture script
+<code>scripts/circumnutation/capture_spatial_coi_factor.py</code>, mirroring PR #5's
+cmor calibration; the cmor <code>COI_EFOLDING_FACTOR=√1.5</code> docstring already defers
+the cgau2 factor to PR #9).</p>
+<h2 id="determinism-cc-6-analytic-oracle">Determinism (CC-6) &amp; analytic oracle<a class="headerlink" href="#determinism-cc-6-analytic-oracle" title="Permanent link">&para;</a></h2>
+<p>No <code>curve_fit</code> (descoped) → the whole stack (<code>np.interp</code> + <code>pywt.cwt(cgau2)</code> +
+argmax ridge) holds at <strong><code>atol=1e-9, rtol=0</code></strong> cross-OS, like PR #5. Canary
+<code>scripts/circumnutation/capture_spatial_cwt_canary.py</code>. Oracle: a planted <strong>pure
+sinusoid of known λ</strong> on a uniform grid → assert <code>extract_ridge</code> recovers λ at
+interior (COI-dodging) positions; scaleogram cells canaried at interior indices.</p>
+<h2 id="degenerate-raise-policy-pr-8-split">Degenerate / raise policy (PR #8 split)<a class="headerlink" href="#degenerate-raise-policy-pr-8-split" title="Permanent link">&para;</a></h2>
+<p>Field-named validation runs first, unconditionally → raises (<code>TypeError</code>/
+<code>ValueError</code>) on bad arrays, non-finite, length mismatch, bad <code>ds</code>, bad
+constants. Degenerate gate runs only on valid input → graceful all-NaN Result,
+never raises, never <code>RuntimeWarning</code> (<code>errstate</code> + <code>~isfinite</code> sweep).
+Module-qualified imports (<code>import pywt</code>, <code>import scipy.signal</code>).</p>
+<h2 id="foundation-test-migration-atomic-with-first-non-raising-commit">Foundation-test migration (atomic with first non-raising commit)<a class="headerlink" href="#foundation-test-migration-atomic-with-first-non-raising-commit" title="Permanent link">&para;</a></h2>
+<p>Remove <code>("spatial_cwt","compute_scaleogram",9)</code> from <code>STUB_MODULES</code> +
+<code>STUBS_WITH_CONSTANTS_KWARG</code>; add to <code>IMPLEMENTATIONS_WITH_CONSTANTS_KWARG</code>
+(array-typed branch like midline) + the explicit <code>test_module_logger_is_namespaced</code>
+list (PR #9 comment block); add <code>elif module_name == "spatial_cwt":</code>; bump the
+<code>_CONSTANTS_VERSION</code> assertion 5→6; update the STUB_MODULES block-comment.
+Counts: impl 7→8, stub 4→3.</p>
+<h2 id="tdd-outline-one-redgreen-per-scope-unit">TDD outline (one RED→GREEN per scope unit)<a class="headerlink" href="#tdd-outline-one-redgreen-per-scope-unit" title="Permanent link">&para;</a></h2>
+<p>constants + version → ResampleResult/resample (mask-drop, ds, degenerate) →
+SpatialScaleogramResult/compute_scaleogram (scale axis, cgau2 CWT, COI) →
+SpatialRidgeResult/extract_ridge (ridge λ, COI status, determinism) → analytic
+sinusoid oracle + determinism canary → real plate-001 sanity (λ_spatial plausible
++ ~uniform along trail, per the investigation) → foundation migration (atomic).</p>
+<h2 id="recorded-deviations-deviation-discipline">Recorded deviations (deviation discipline)<a class="headerlink" href="#recorded-deviations-deviation-discipline" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>theory.md note (§7.4 / §6.3):</strong> the L_gz/L_c growth-zone-structure traits are
+  NOT measurable from top-view tip-trail κ(s) as written (empirical, this PR);
+  the steady-traveling-wave λ_spatial is the measurable spatial quantity. Original
+  §7.4 text preserved in Appendix B; changelog "Why" note.</li>
+<li><strong>Pure-pixel (CC-3):</strong> λ/wavelengths in px, curvature/freq in px⁻¹ (theory shows
+  mm) — same deliberate deviation as PR #8 px/frame.</li>
+</ul>
+<h2 id="follow-ups-vault-drafted-github-issues-post-per-lazy-issue-workflow">Follow-ups (vault-drafted GitHub issues — post per lazy-issue workflow)<a class="headerlink" href="#follow-ups-vault-drafted-github-issues-post-per-lazy-issue-workflow" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>PR #9 tracking issue</strong> (<code>add-circumnutation-tier3b-spatial-cwt</code>; parent #197;
+   labels enhancement, circumnutation, multi-pr).</li>
+<li><strong>L_gz/L_c tip-trail transfer research issue</strong> — redefine or relocate the
+   growth-zone-structure traits for top-view tip-trail κ(s); references this
+   investigation. Blocks the L_gz-dependent parts of PR #10.</li>
+</ol>
+<h2 id="open-questions">Open questions<a class="headerlink" href="#open-questions" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The empirical <code>SPATIAL_COI_EFOLDING_FACTOR</code> value (measured during GREEN).</li>
+<li>PR #10 scope adjustment (L_gz mask + L_gz traits blocked; traveling_wave_residual</li>
+<li>apex_basal_period_consistency remain) — tracked, not changed by PR #9.</li>
+<li>Multi-plate validation of λ_spatial (plate-001 only here; cf. #202).
+```</li>
+</ul>
 
 
 
