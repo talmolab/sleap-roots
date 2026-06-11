@@ -10,9 +10,21 @@ This is a trait-emission module mirroring :mod:`sleap_roots.circumnutation.nutat
 (Tier 1) and :mod:`sleap_roots.circumnutation.psi_g` (Tier 2): the canonical
 signature is ``compute(trajectory_df, cadence_s, constants=None) -> pd.DataFrame``
 with a per-track 5-tuple groupby and the 8 row-identity columns. It emits 6
-float64 trait columns (declared order): ``lambda_spatial_median_px``,
-``lambda_spatial_variation``, ``traveling_wave_residual``, ``lambda_expected_px``,
-``lambda_spatial_mad_px``, ``coi_valid_fraction``.
+float64 trait columns (declared order):
+
+- ``lambda_spatial_median_px`` — median calibrated spatial wavelength along the
+  trail (px).
+- ``lambda_spatial_variation`` — orientation-robust spread ``MAD/median`` of the
+  along-trail wavelength (dimensionless; 0 = uniform). Reads ~0 on a noise-free
+  uniform-λ trail; real-data scatter is noise-dependent.
+- ``traveling_wave_residual`` — ``|lambda_spatial − v·T_frames| / (v·T_frames)``,
+  the QPB falsification test (dimensionless).
+- ``lambda_expected_px`` — ``v · T_frames``, ``T_frames = T_nutation_median /
+  cadence_s`` (the steady-wave prediction; px).
+- ``lambda_spatial_mad_px`` — absolute MAD of the along-trail wavelength (px;
+  numerator of ``lambda_spatial_variation``).
+- ``coi_valid_fraction`` — fraction of ridge positions outside the cone of
+  influence (dimensionless engineering diagnostic).
 
 Reduced scope (PR #9 descope → GitHub issue #230): the ``L_gz``/``L_c``-dependent
 traits and the growth-zone mask are NOT emitted (blocked on #230).
@@ -28,13 +40,113 @@ reconciliation), §7.4 (Tier 3 trait table + handoff) + Appendix B(6).
 """
 
 import logging
-from typing import Optional
+from typing import Any, Dict, Optional
 
+import numpy as np
 import pandas as pd
 
+from sleap_roots.circumnutation import temporal_cwt
 from sleap_roots.circumnutation._constants import ConstantsT
+from sleap_roots.circumnutation._io import (
+    _IDENTITY_5_TUPLE,
+    _build_per_plant_template_from_df,
+)
+from sleap_roots.circumnutation._types import (
+    ROW_IDENTITY_COLUMNS,
+    _validate_trajectory_df,
+)
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Module-level contracts
+# ---------------------------------------------------------------------------
+
+# 6 trait columns in declared order (per spec ADDED requirement). All float64.
+_TRAVELING_WAVE_TRAIT_COLUMNS: tuple = (
+    "lambda_spatial_median_px",
+    "lambda_spatial_variation",
+    "traveling_wave_residual",
+    "lambda_expected_px",
+    "lambda_spatial_mad_px",
+    "coi_valid_fraction",
+)
+
+# Per-column units (GitHub issue #222); every value is in PIPELINE_UNIT_VOCABULARY.
+_TRAVELING_WAVE_TRAIT_UNITS: Dict[str, str] = {
+    "lambda_spatial_median_px": "px",
+    "lambda_spatial_variation": "—",
+    "traveling_wave_residual": "—",
+    "lambda_expected_px": "px",
+    "lambda_spatial_mad_px": "px",
+    "coi_valid_fraction": "—",
+}
+
+
+# ---------------------------------------------------------------------------
+# Input validation helpers
+# ---------------------------------------------------------------------------
+
+
+def _check_constants(constants: Any) -> ConstantsT:
+    """Validate constants as None or ConstantsT; return the resolved instance.
+
+    Validates ``COI_FRACTION_MAX`` locally (the field this module consumes) as a
+    float in ``(0, 1]`` with a field-named error. The Tier 0/Tier 1 constant
+    fields are re-validated by the inner ``kinematics.compute`` /
+    ``nutation.compute`` calls.
+    """
+    if constants is None:
+        resolved = ConstantsT()
+    elif isinstance(constants, ConstantsT):
+        resolved = constants
+    else:
+        raise TypeError(
+            f"constants must be None or a ConstantsT instance, got "
+            f"{type(constants).__name__}"
+        )
+    coi = resolved.COI_FRACTION_MAX
+    if not isinstance(coi, (int, float, np.integer, np.floating)) or isinstance(
+        coi, (bool, np.bool_)
+    ):
+        raise ValueError(f"COI_FRACTION_MAX must be a float in (0, 1], got {coi!r}")
+    coi_float = float(coi)
+    if not np.isfinite(coi_float) or coi_float <= 0.0 or coi_float > 1.0:
+        raise ValueError(
+            f"COI_FRACTION_MAX must be a float in (0, 1], got {coi_float!r}"
+        )
+    return resolved
+
+
+def _all_nan_spatial_traits() -> Dict[str, float]:
+    """Return a fully-NaN trait dict (used for tracks with no usable ridge).
+
+    Every one of the 6 trait keys is present so the per-plant merge always
+    yields one well-formed row per 5-tuple. ``coi_valid_fraction`` is NaN here
+    (no ridge formed); when a ridge DOES form it is populated even if the
+    low-COI gate fires (see :func:`_compute_one_track`).
+    """
+    return {col: float("nan") for col in _TRAVELING_WAVE_TRAIT_COLUMNS}
+
+
+def _compute_one_track(
+    group: pd.DataFrame,
+    *,
+    cadence_s: float,
+    constants: ConstantsT,
+) -> Dict[str, float]:
+    """Compute the 6 Tier 3c traits for a single track's per-frame rows.
+
+    Always returns a complete 6-key dict and never raises (degenerate, short,
+    or all-NaN-tip tracks emit an all-NaN row). The spatial chain, COI gate,
+    calibration, and Tier 0/1 composition are filled in by subsequent TDD steps.
+    """
+    # PR #10 TDD step 2: emission skeleton only — the spatial chain (task 3),
+    # COI gate + calibration (task 4), and Tier 0/1 composition + the trait
+    # formulas (task 5) are implemented next. Until then, every track emits an
+    # all-NaN row (a well-formed 6-key dict).
+    return _all_nan_spatial_traits()
 
 
 def compute(
@@ -49,15 +161,74 @@ def compute(
             row-identity columns plus ``frame``, ``tip_x``, ``tip_y``.
         cadence_s: Sampling cadence in seconds per frame (positive finite).
         constants: Optional :class:`ConstantsT` override-bag. When ``None``
-            (default), module-level defaults are used.
+            (default), module-level defaults are used. ``COI_FRACTION_MAX`` is
+            validated locally as a float in ``(0, 1]``.
 
     Returns:
         Per-plant DataFrame with one row per unique
         ``(series, sample_uid, plate_id, plant_id, track_id)`` 5-tuple: the 8
-        row-identity columns followed by the 6 Tier 3c trait columns in the
-        declared order.
+        row-identity columns followed by the 6 Tier 3c trait columns (all
+        float64) in the declared order.
+
+    Raises:
+        ValueError: If ``trajectory_df`` is empty / missing required columns,
+            ``cadence_s`` is non-positive or non-finite, or ``COI_FRACTION_MAX``
+            is outside ``(0, 1]``.
+        TypeError: If ``cadence_s`` is a bool/str/list, or ``constants`` is not
+            ``None`` / a ``ConstantsT`` instance.
     """
-    # Minimal scaffold (PR #10 TDD step 1.2): the per-plant emission, validation,
-    # spatial chain, calibration, and gating are implemented in subsequent TDD
-    # steps (tasks 2-7). Returns an empty DataFrame until then.
-    return pd.DataFrame()
+    if not isinstance(trajectory_df, pd.DataFrame):
+        raise ValueError(
+            f"trajectory_df must be a pandas DataFrame, got "
+            f"{type(trajectory_df).__name__}"
+        )
+    _validate_trajectory_df(None, None, trajectory_df)
+    cadence_float = temporal_cwt._validate_cadence_s(cadence_s)
+    resolved_constants = _check_constants(constants)
+
+    trait_rows: list = []
+    n_tracks = trajectory_df[list(_IDENTITY_5_TUPLE)].drop_duplicates().shape[0]
+    logger.debug(
+        "traveling_wave.compute(n_tracks=%d, cadence_s=%.6f)",
+        n_tracks,
+        cadence_float,
+    )
+    for key, group in trajectory_df.groupby(
+        list(_IDENTITY_5_TUPLE), dropna=False, sort=False
+    ):
+        traits = _compute_one_track(
+            group, cadence_s=cadence_float, constants=resolved_constants
+        )
+        identity = dict(zip(_IDENTITY_5_TUPLE, key))
+        trait_rows.append({**identity, **traits})
+
+    trait_df = pd.DataFrame(
+        trait_rows,
+        columns=list(_IDENTITY_5_TUPLE) + list(_TRAVELING_WAVE_TRAIT_COLUMNS),
+    )
+
+    # Per-plant template via the shared helper (mirrors nutation/psi_g). Coerce
+    # trait_df identity dtypes to the template's int64 keys before merging so a
+    # numeric-string / float key cannot silently fall through to all-NaN.
+    template = _build_per_plant_template_from_df(trajectory_df)
+    for col in ("track_id", "plant_id"):
+        if col in trait_df.columns and col in template.columns:
+            try:
+                trait_df[col] = trait_df[col].astype(template[col].dtype)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"trait_df[{col!r}] cannot be cast to template dtype "
+                    f"{template[col].dtype!r}; this would silently break the "
+                    f"per-plant merge and produce all-NaN traits."
+                ) from exc
+
+    result = template.merge(trait_df, on=list(_IDENTITY_5_TUPLE), how="left")
+
+    # Enforce trait dtypes: all 6 float64 (no bool/int special case).
+    for col in _TRAVELING_WAVE_TRAIT_COLUMNS:
+        result[col] = result[col].astype(np.float64)
+
+    # Enforce declared column order: 8 row-identity + 6 trait.
+    result = result[list(ROW_IDENTITY_COLUMNS) + list(_TRAVELING_WAVE_TRAIT_COLUMNS)]
+
+    return result
