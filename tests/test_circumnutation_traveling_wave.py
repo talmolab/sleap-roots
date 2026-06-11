@@ -428,3 +428,117 @@ def test_coi_gate_above_half_in_coi_gates_lambda_but_keeps_fraction():
     assert np.isnan(traits["lambda_spatial_median_px"])
     assert np.isnan(traits["lambda_spatial_variation"])
     assert np.isnan(traits["lambda_spatial_mad_px"])
+
+
+# ---------------------------------------------------------------------------
+# Task 5 — Tier 0/1 composition (5-tuple merge) + lambda_expected/residual
+# ---------------------------------------------------------------------------
+
+
+def _nutating_track_rows(track_id, n_frames=575, plate_id="plate", T_s=3333.0):
+    """A nutating lateral oscillation + steady growth drift (synthetic)."""
+    from sleap_roots.circumnutation import synthetic
+
+    df = synthetic.generate_trajectory(
+        T_nutation_s=T_s,
+        n_frames=n_frames,
+        cadence_s=300.0,
+        amplitude_px=12.0,
+        growth_rate_px_per_frame=4.0,
+        noise_sigma_px=0.0,
+        random_state=0,
+    )
+    df = df.copy()
+    df["series"] = "test"
+    df["sample_uid"] = "test"
+    df["timepoint"] = "T0"
+    df["plate_id"] = plate_id
+    df["plant_id"] = track_id
+    df["track_id"] = track_id
+    df["genotype"] = np.nan
+    df["treatment"] = np.nan
+    return df
+
+
+def test_full_emission_on_nutating_synthetic_track():
+    """The milestone: a nutating synthetic track emits all 6 finite traits."""
+    df = _nutating_track_rows(0)
+    result = traveling_wave.compute(df, cadence_s=300.0)
+    row = result.iloc[0]
+    for col in _TRAIT_COLUMNS:
+        assert np.isfinite(row[col]), col
+    assert row["traveling_wave_residual"] >= 0.0
+
+
+def test_multi_plate_float_track_id_uses_correct_plate_operands():
+    """Overlapping float64 track_ids across plates: finite operands, no silent NaN."""
+    a = _nutating_track_rows(0, plate_id="plateA")
+    b = _nutating_track_rows(0, plate_id="plateB", T_s=4000.0)
+    df = pd.concat([a, b], ignore_index=True)
+    df["track_id"] = df["track_id"].astype(np.float64)  # exercise the int64 coercion
+    result = traveling_wave.compute(df, cadence_s=300.0)
+    assert len(result) == 2
+    # both plates' healthy tracks have FINITE operands (not silent all-NaN)
+    assert result["lambda_expected_px"].notna().all()
+    # the two plates have different T -> different lambda_expected (correct-plate join)
+    exp = result.sort_values("plate_id")["lambda_expected_px"].to_numpy()
+    assert not np.isclose(exp[0], exp[1])
+
+
+def test_non_nutating_track_nans_residual_keeps_spatial_lambda():
+    """A noise-only (non-nutating) track: residual + expected NaN; spatial lambda valid."""
+    from sleap_roots.circumnutation import synthetic
+
+    df = synthetic.generate_trajectory(
+        T_nutation_s=3333.0,
+        n_frames=600,
+        cadence_s=300.0,
+        amplitude_px=0.0,
+        growth_rate_px_per_frame=4.0,
+        noise_sigma_px=2.0,
+        random_state=0,
+    ).copy()
+    for col, val in [
+        ("series", "test"),
+        ("sample_uid", "test"),
+        ("timepoint", "T0"),
+        ("plate_id", "plate"),
+        ("plant_id", 0),
+        ("track_id", 0),
+        ("genotype", np.nan),
+        ("treatment", np.nan),
+    ]:
+        df[col] = val
+    result = traveling_wave.compute(df, cadence_s=300.0)
+    row = result.iloc[0]
+    assert np.isnan(row["traveling_wave_residual"])
+    assert np.isnan(row["lambda_expected_px"])
+    # pure-spatial trait remains valid (a ridge formed)
+    assert np.isfinite(row["lambda_spatial_median_px"])
+
+
+def test_stationary_track_residual_no_runtimewarning():
+    """A stationary track (v~0): lambda_expected/residual NaN, no divide warning."""
+    rows = [
+        {
+            "series": "test",
+            "sample_uid": "test",
+            "timepoint": "T0",
+            "plate_id": "plate",
+            "plant_id": 0,
+            "track_id": 0,
+            "genotype": np.nan,
+            "treatment": np.nan,
+            "frame": f,
+            "tip_x": 5.0,
+            "tip_y": 5.0,
+        }
+        for f in range(64)
+    ]
+    df = pd.DataFrame(rows)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        result = traveling_wave.compute(df, cadence_s=300.0)
+    row = result.iloc[0]
+    assert np.isnan(row["lambda_expected_px"])
+    assert np.isnan(row["traveling_wave_residual"])

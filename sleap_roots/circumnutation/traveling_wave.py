@@ -45,7 +45,13 @@ from typing import Any, Dict, Optional
 import numpy as np
 import pandas as pd
 
-from sleap_roots.circumnutation import midline, spatial_cwt, temporal_cwt
+from sleap_roots.circumnutation import (
+    kinematics,
+    midline,
+    nutation,
+    spatial_cwt,
+    temporal_cwt,
+)
 from sleap_roots.circumnutation._constants import ConstantsT
 from sleap_roots.circumnutation._io import (
     _IDENTITY_5_TUPLE,
@@ -334,6 +340,44 @@ def compute(
                 ) from exc
 
     result = template.merge(trait_df, on=list(_IDENTITY_5_TUPLE), how="left")
+
+    # Compose with Tier 0 (v) and Tier 1 (T_nutation), recomputed self-contained
+    # (redundant by design — the PR #14 pipeline DAG MUST dedup Tier 0/Tier 1
+    # rather than calling this naively). Join on the FULL _IDENTITY_5_TUPLE with
+    # int64 coercion: track_id is not unique across plates, and an int64-vs-float64
+    # key mismatch would SILENTLY produce all-NaN operands (not a KeyError).
+    tier0 = kinematics.compute(trajectory_df, constants=resolved_constants)
+    tier1 = nutation.compute(
+        trajectory_df,
+        cadence_float,
+        coordinate="lateral",
+        constants=resolved_constants,
+    )
+    ops = tier0[list(_IDENTITY_5_TUPLE) + ["v_total_median_px_per_frame"]].merge(
+        tier1[list(_IDENTITY_5_TUPLE) + ["T_nutation_median"]],
+        on=list(_IDENTITY_5_TUPLE),
+        how="outer",
+    )
+    for frame in (result, ops):
+        for col in ("track_id", "plant_id"):
+            frame[col] = frame[col].astype(np.int64)
+    result = result.merge(ops, on=list(_IDENTITY_5_TUPLE), how="left")
+
+    # lambda_expected_px = v · T_frames, T_frames = T_nutation_median / cadence_s
+    # (T_nutation_median is seconds; it is NaN when the track is not nutating, so
+    # the residual NaNs naturally for non-nutating tracks). Division guard: the
+    # residual is interpretable only when v is finite and the predicted wavelength
+    # is positive (a sub-wavelength v·T is an undefined regime, not a QPB result).
+    v = result["v_total_median_px_per_frame"].to_numpy(dtype=np.float64)
+    t_frames = result["T_nutation_median"].to_numpy(dtype=np.float64) / cadence_float
+    expected = v * t_frames
+    valid = np.isfinite(v) & np.isfinite(expected) & (expected > 0.0)
+    expected = np.where(valid, expected, np.nan)
+    median = result["lambda_spatial_median_px"].to_numpy(dtype=np.float64)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        residual = np.abs(median - expected) / expected
+    result["lambda_expected_px"] = expected
+    result["traveling_wave_residual"] = residual
 
     # Enforce trait dtypes: all 6 float64 (no bool/int special case).
     for col in _TRAVELING_WAVE_TRAIT_COLUMNS:
