@@ -211,11 +211,14 @@ below are authoritative for the implementer and become tasks in the proposal.
 ### CR-1 [BLOCKING] Join recomputed Tier 0/1 on the full 5-tuple, not `track_id`
 `track_id` is not unique across plates/samples; joining Tier 0/1 operands by `track_id` alone
 would pull the wrong plate's `v`/`T`/`is_nutating` (silent-wrong) or crash on duplicate labels —
-undetectable by the single-plate plate-001 fixture. **Resolution:** index both recomputed frames
-by `list(_IDENTITY_5_TUPLE)` and look up each loop's operands by the same 5-tuple `key` the
-`groupby` yields (`tier0.at[key, "v_total_median_px_per_frame"]`, etc.). Fixed inline in
-Composition. **Add a multi-plate test** (≥2 plates, overlapping `track_id`s) — the regression the
-fixture alone can't catch.
+undetectable by the single-plate plate-001 fixture. **Resolution (revised per round-2, see
+CR2-1):** do NOT use `set_index(...).at[key]` (dtype-fragile — see CR2-1). Instead **merge** the
+operand columns onto the per-track `trait_df` on `list(_IDENTITY_5_TUPLE)`, applying the same
+int64 coercion-with-raise guard CR-5 mandates for the template merge, to BOTH sides. Concretely:
+`trait_df = trait_df.merge(tier0[[*_IDENTITY_5_TUPLE, "v_total_median_px_per_frame"]], on=..., how="left").merge(tier1[[*_IDENTITY_5_TUPLE, "T_nutation_median", "is_nutating"]], on=..., how="left")`
+after coercing `track_id`/`plant_id` to int64 on all three frames. **Add a multi-plate test**
+(≥2 plates, overlapping `track_id`s, **with float64 `track_id`** to exercise the coercion) — the
+regression the single-plate fixture alone can't catch.
 
 ### CR-2 [BLOCKING] `_compute_one_track` never raises — guard + try/except → all-NaN row
 `midline.reconstruct` raises `ValueError` on non-finite tips; `compute_scaleogram` raises
@@ -364,3 +367,77 @@ uses the new name.
 Unit reconciliation sound (T is seconds, no ×3600); "raw residual is mixed-domain, calibrated is
 honest" correct; MAD computed about the median; all 6 column suffixes correct; CC-3/CC-1 honored;
 COI gate **direction** correct.
+
+## Critical-review reconciliation (round 2, 2026-06-10)
+
+Round 2 verified the CR-1..CR-13 fixes against code + re-ran the calibration on real data. Most
+are SOUND (CR-3/4/5/6/7/8/9/11/12/13 confirmed; n=400 slice `λ_reported` strictly increasing →
+np.interp well-posed; n=400 residual median 0.142 vs 0.147 — immaterial; append-only regeneration
+proven bit-identical on shared rows; theory.md line numbers 504/505/507/512/514/485–495 verified;
+last Appendix B entry is B(5) → new one is B(6)). Remaining items:
+
+### CR2-1 [BLOCKING] The CR-1 `.at[key]` lookup is dtype-fragile → use merge
+`_validate_trajectory_df` does NOT constrain `track_id`/`plant_id` dtype, but the recomputed Tier
+0/1 frames coerce them to int64 (`_io.py:164`). A raw float64 `track_id` makes the groupby key
+`(..., 0.0)` miss the int64 index `0` → `KeyError`, uncaught (CR-2 wraps only the CWT calls) →
+`compute()` crashes. **Resolution:** replaced `.at[key]` with a merge-on-`_IDENTITY_5_TUPLE` +
+int64 coercion (fixed in CR-1 above). The multi-plate test MUST use a **float64 `track_id`**
+fixture to exercise this path.
+
+### CR2-2 [IMPORTANT/HIGH] CR-10 foundation-test edits — exact locations (else CI breaks)
+CR-10 named only 1 of 3 required edits and mis-cited its line. Pin all three in
+`tests/test_circumnutation_foundation.py`:
+1. `test_module_logger_is_namespaced` parametrize list — append `"traveling_wave"` **after line
+   801** (the `spatial_cwt` entry; the "786–801" range in CR-10 was wrong — 786 is `nutation`).
+2. `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG` list (**line ~882–891**) — append
+   `("traveling_wave", "compute")` after the `spatial_cwt` entry (line ~890).
+3. `test_implementation_accepts_constants_kwarg` (the if/elif chain ~921–1037) — add a **dedicated
+   `elif module_name == "traveling_wave":` branch** (mirror the `nutation` branch ~936–961: a
+   ≥64-frame single-track df, `fn(df, 300.0, constants=ConstantsT())`, assert DataFrame). The
+   generic `else` branch calls `fn(df, constants=...)` with **no `cadence_s`** → `TypeError`. This
+   is the most likely missed CI break. (`STUB_MODULES`/`STUBS_WITH_CONSTANTS_KWARG`: no edit —
+   `traveling_wave` was never a stub; confirmed.) Verify exact line numbers at impl time.
+
+### CR2-3 [IMPORTANT] Synthetic known-λ test: small-amplitude construction
+The synthetic generator's spatial λ = `growth_rate_px_per_frame · (T_nutation_s / cadence_s)` =
+exactly `v·T_frames` (synthetic.py:475–500) — so a known-λ recovery test IS constructible. BUT at
+the default `amplitude_px=10` the trail's arc-length-per-period exceeds the pure-drift `v·T` by the
+lateral excursion → κ(s)'s spatial period is 5–15% longer than `growth_rate·T_frames`. **The
+synthetic λ-recovery test MUST use small amplitude relative to drift** (`amplitude_px ≪
+growth_rate·T_frames`) so arc-length ≈ drift and the a-priori λ is correct — OR assert against the
+numerically-integrated arc-length-per-period. Note: synthetic λ and `lambda_expected` are coupled
+by construction, so a *large-residual* (QPB-violating) case is NOT synthesizable — the real-data
+plate-001 test covers the non-trivial-residual case. State both in the Testing strategy.
+
+### CR2-4 [MINOR] Table extension covers n=400 only
+The consumer reads only the n=400 slice (CR-7), so the append-only extension generates the new
+`λ_true` rows (≥ ~140–150 px) **for n=400 only** (sufficient and minimal). A single
+`λ_true=140` row already pushes `λ_reported` to ~157 px, covering track-0's 142.5 — confirmed.
+
+### CR2-5 [MINOR] CR-2 wording: non-finite-dropped, not just NaN
+The pre-`reconstruct` filter drops **non-finite** tips (`np.isfinite(tip_x) & np.isfinite(tip_y)`,
+per psi_g.py:239) — ±inf as well as NaN (`midline._validate_xy` rejects ±inf too). The per-track
+diagram's "NaN-dropped" → "non-finite-dropped (np.isfinite mask)".
+
+### CR2-6 [MINOR] roadmap.md line 146 also strike the descoped L_gz claims
+Beyond the rename (CR-12), roadmap line 146 still lists `B_balance_number`,
+`L_gz_steady_state_residual`, `L_gz_resolvable` as PR #10 deliverables and says "Applies the L_gz
+growth-zone mask" — contradicting D1's descope. The roadmap edit MUST also remove those
+descoped traits + the mask claim so the row matches D1 + §7.4.
+
+### CR2-7 [MINOR] Note the smooth-fit calibration alternative + rationale
+A smooth `ratio(λ)` least-squares fit would remove the per-knot sawtooth and extrapolate
+gracefully (making table extension optional). The chosen piecewise-linear-on-extended-table is
+preferred for **auditability** (every prediction traces to a measured grid point) + **reuse of the
+committed deterministic PR #9 generator**. State this so reviewers don't re-raise it.
+
+### CR2-8 [MINOR] Determinism canary covers the full chain
+The two-run determinism canary runs the **full composed chain including the np.interp calibration
+on the extended table** (not just the raw ridge), guarding against a non-deterministic
+table-extension. (`np.interp` itself is bit-reproducible cross-OS; the binding risk is the
+inherited Tier-1 scipy stack + cgau2 CWT — hence measure, don't cargo-cult.)
+
+### CR2-9 [MINOR] CR-13 import scenario
+Add `sleap_roots.circumnutation.traveling_wave` to the spec's "modules import cleanly" scenario
+import list (`openspec/specs/circumnutation/spec.md:34`) — every impl module currently appears
+there.
