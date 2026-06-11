@@ -113,12 +113,15 @@ _CGAU2_LAMBDA_CALIBRATION: tuple = (
 )
 
 # Precomputed interpolation axes (np.interp clamps beyond the table edges).
+# Marked read-only — the calibration table is a fixed module-level constant.
 _CALIB_AXIS: np.ndarray = np.array(
     [p[0] for p in _CGAU2_LAMBDA_CALIBRATION], dtype=np.float64
 )
 _CALIB_RATIO: np.ndarray = np.array(
     [p[1] for p in _CGAU2_LAMBDA_CALIBRATION], dtype=np.float64
 )
+_CALIB_AXIS.flags.writeable = False
+_CALIB_RATIO.flags.writeable = False
 
 
 def _calibrate_wavelengths(wavelengths_px: np.ndarray) -> np.ndarray:
@@ -178,7 +181,9 @@ def _all_nan_spatial_traits() -> Dict[str, float]:
     return {col: float("nan") for col in _TRAVELING_WAVE_TRAIT_COLUMNS}
 
 
-def _ridge_to_traits(ridge, constants: ConstantsT) -> Dict[str, float]:
+def _ridge_to_traits(
+    ridge: "spatial_cwt.SpatialRidgeResult", constants: ConstantsT
+) -> Dict[str, float]:
     """Gate on the COI and compute the calibrated along-trail wavelength stats.
 
     A ridge formed, so ``coi_valid_fraction`` is finite. The COI gate NaNs the 3
@@ -245,12 +250,18 @@ def _compute_one_track(
     if mr.is_degenerate:
         return traits
 
-    rs = spatial_cwt.resample_curvature(
-        mr.curvature_px_inv,
-        mr.arc_length_px,
-        mr.velocity_sub_noise_mask,
-        constants=constants,
-    )
+    try:
+        rs = spatial_cwt.resample_curvature(
+            mr.curvature_px_inv,
+            mr.arc_length_px,
+            mr.velocity_sub_noise_mask,
+            constants=constants,
+        )
+    except (ValueError, TypeError):
+        # Unreachable by contract (a non-degenerate MidlineResult emits
+        # equal-length 1-D float64 arrays), but keeps the never-raises
+        # guarantee robust against a future MidlineResult field-shape change.
+        return traits
     if rs.is_degenerate:
         return traits
 
@@ -293,6 +304,13 @@ def compute(
             is outside ``(0, 1]``.
         TypeError: If ``cadence_s`` is a bool/str/list, or ``constants`` is not
             ``None`` / a ``ConstantsT`` instance.
+
+    Note:
+        Calling this standalone recomputes Tier 0 (``kinematics.compute``) and a
+        per-track Tier 1 temporal CWT (``nutation.compute``) — redundant by design
+        for a self-contained tier. Batch callers should route through the PR #14
+        pipeline DAG (issue #232 lineage) so Tier 0/Tier 1 are computed once and
+        their outputs are deduped rather than recomputed here.
     """
     if not isinstance(trajectory_df, pd.DataFrame):
         raise ValueError(

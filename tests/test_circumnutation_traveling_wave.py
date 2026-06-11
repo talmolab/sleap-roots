@@ -602,7 +602,9 @@ def test_real_plate001_qpb_result_calibrated():
     assert np.all(res < 0.30), res.tolist()
     # all spatial gates pass (in-COI fraction well below COI_FRACTION_MAX=0.5)
     assert np.all(coi >= 0.5), coi.tolist()
-    assert np.all(np.isfinite(var))
+    # variation within the documented band (wide enough to be cross-OS-safe, but
+    # tight enough to guard against a regression to ~0 or a blown-up spread).
+    assert np.all((var >= 0.10) & (var <= 0.45)), var.tolist()
 
 
 def test_synthetic_uniform_lambda_recovery_and_noise_floor():
@@ -677,3 +679,34 @@ def test_compute_canary_matches_expected_values():
     row = traveling_wave.compute(df, cadence_s=300.0).iloc[0]
     for col, expected in _CANARY.items():
         np.testing.assert_allclose(row[col], expected, atol=1e-6, rtol=0.0, err_msg=col)
+
+
+def test_ridge_wavelengths_deterministic_in_process():
+    """The spatial-λ ridge `wavelengths_px[interior]` is bit-identical across runs.
+
+    The load-bearing determinism contract is the ridge wavelength ARRAY, not just
+    the median: an argmax tie-flip would shift it by a discrete full-scale-step.
+    Two in-process runs must match exactly (atol=0). Cross-OS, the median canary
+    (run on the Ubuntu/Windows/macOS CI matrix) catches a tie-flip because it moves
+    the median by a full scale-step ≫ the canary atol.
+    """
+    from sleap_roots.circumnutation.midline import reconstruct
+    from sleap_roots.circumnutation.spatial_cwt import (
+        compute_scaleogram,
+        extract_ridge,
+        resample_curvature,
+    )
+
+    sub = _nutating_track_rows(0).sort_values("frame")
+    x = sub["tip_x"].to_numpy(np.float64)
+    y = sub["tip_y"].to_numpy(np.float64)
+
+    def ridge_interior():
+        mr = reconstruct(x, y, cadence_s=300.0)
+        rs = resample_curvature(
+            mr.curvature_px_inv, mr.arc_length_px, mr.velocity_sub_noise_mask
+        )
+        rg = extract_ridge(compute_scaleogram(rs.kappa_uniform, rs.ds))
+        return rg.wavelengths_px[~rg.in_coi]
+
+    np.testing.assert_array_equal(ridge_interior(), ridge_interior())

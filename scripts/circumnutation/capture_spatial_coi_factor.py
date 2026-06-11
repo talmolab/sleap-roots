@@ -219,8 +219,6 @@ def main() -> int:
         ]
         # Append at the END; existing rows + provenance are untouched (verbatim).
         payload["wavelength_calibration"] = existing + new_rows
-        coi = payload["coi_efolding_factor"]
-        calib = payload["wavelength_calibration"]
         print("=" * 78)
         print(
             f"PR #10 append-only extension: +{len(new_rows)} rows (knots "
