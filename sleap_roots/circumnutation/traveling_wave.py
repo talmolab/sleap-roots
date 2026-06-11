@@ -365,6 +365,11 @@ def compute(
     # int64 coercion: track_id is not unique across plates, and an int64-vs-float64
     # key mismatch would SILENTLY produce all-NaN operands (not a KeyError).
     tier0 = kinematics.compute(trajectory_df, constants=resolved_constants)
+    # coordinate="lateral": the QPB relation λ_spatial = v·T uses the nutation
+    # period of the LATERAL (perpendicular-to-growth-axis) oscillation — the
+    # component that imprints the spatial wave in the trail. The longitudinal /
+    # raw-x / raw-y periods would not be the physically correct T for this test
+    # (CC-7; matches Derr's lateral-coordinate oracle).
     tier1 = nutation.compute(
         trajectory_df,
         cadence_float,
@@ -383,9 +388,13 @@ def compute(
 
     # lambda_expected_px = v · T_frames, T_frames = T_nutation_median / cadence_s
     # (T_nutation_median is seconds; it is NaN when the track is not nutating, so
-    # the residual NaNs naturally for non-nutating tracks). Division guard: the
-    # residual is interpretable only when v is finite and the predicted wavelength
-    # is positive (a sub-wavelength v·T is an undefined regime, not a QPB result).
+    # the residual NaNs naturally for non-nutating tracks). NOTE: lambda_expected_px
+    # is a TRUE-px prediction carrying NO cgau2 over-report — which is exactly why
+    # the calibration is applied to λ (not to v·T); comparing the raw cgau2 λ to
+    # this true-px expectation would be the mixed-domain trap (Appendix B(6)).
+    # Division guard: the residual is interpretable only when v is finite and the
+    # predicted wavelength is positive (a sub-wavelength v·T is an undefined regime,
+    # not a QPB result).
     v = result["v_total_median_px_per_frame"].to_numpy(dtype=np.float64)
     t_frames = result["T_nutation_median"].to_numpy(dtype=np.float64) / cadence_float
     expected = v * t_frames
