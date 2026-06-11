@@ -44,7 +44,9 @@ definitions and overturned two §7.4 "Handoff to PR #10" claims (see Impact). De
 - **Affected specs:** `circumnutation` — MODIFY "Package layout" (add `traveling_wave`,
   8→9 impl, addition scope note, callability scenario, import scenario); ADD "Tier 3c
   traveling-wave trait emission API".
-- **Affected code (new):** `sleap_roots/circumnutation/traveling_wave.py`;
+- **Affected code (new):** `sleap_roots/circumnutation/traveling_wave.py` (incl. an in-package
+  `_CGAU2_LAMBDA_CALIBRATION_N400` literal — the module does NOT read `tests/data` at runtime, so the
+  trait works in an installed wheel — and a `_TRAVELING_WAVE_TRAIT_UNITS` mapping per #222);
   `tests/test_circumnutation_traveling_wave.py`.
 - **Affected code (edits):** `scripts/circumnutation/capture_spatial_coi_factor.py` (append-only
   merge mode); `tests/test_circumnutation_foundation.py` (add `traveling_wave` to the
@@ -58,5 +60,9 @@ definitions and overturned two §7.4 "Handoff to PR #10" claims (see Impact). De
   regression test pins the existing rows).
 - **Scientific result (D7):** on plate-001, `traveling_wave_residual ≈ 0.10–0.18` (QPB holds to
   ~9–18%, calibrated) and `lambda_spatial_variation ≈ 0.13–0.37`.
+- **Affected process:** PR #10 has no tracking issue yet (epic #197 expects one). Draft the issue
+  body to the vault, post after user OK (parent #197; labels `enhancement`, `circumnutation`,
+  `multi-pr`), and backfill the number into roadmap line 146.
 - **Blocked / follow-up:** #230 (L_gz/L_c tip-trail transfer). No downstream consumer expects the
-  omitted columns (verified against spec.md + roadmap + theory).
+  omitted columns (verified against spec.md + roadmap + theory; the only reference is `parametric.py`'s
+  stub docstring, which does not consume them at runtime).

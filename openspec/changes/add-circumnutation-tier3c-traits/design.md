@@ -51,3 +51,23 @@ This file captures the decisions an implementer/reviewer needs without re-readin
 Two §7.4 handoff claims overturned (bias-cancels; apex-vs-basal). theory.md edits (§7.4 rows +
 handoff notes 2/4 + the dead-name scope note) + new **Appendix B(6)** preserving the originals are
 enumerated in `tasks.md` §8.2; roadmap + changelog propagation in §8.3.
+
+## OpenSpec-review reconciliation (5-subagent review)
+
+- **Packaging (BLOCKING):** the cgau2 calibration data must reach the production module at runtime,
+  but the JSON lives in `tests/data/` (not in the wheel). Resolution: ship a committed in-package
+  `_CGAU2_LAMBDA_CALIBRATION_N400` literal (the n=400 slice incl. the extension), validated against
+  the authoritative JSON by a sync test; the module never reads `tests/data` at runtime.
+- **Calibration regeneration (BLOCKING):** the append-only mode must **load the existing JSON and
+  pass `provenance` + the 18 rows through verbatim** (measure only the new n=400 knots), so the
+  byte-for-byte freeze is mechanical, not environment-dependent. No PR #9 test reads the JSON.
+- **Silent-NaN join (IMPORTANT):** Tier 0/1 return int64 keys; raw `track_id` may be float64 →
+  pandas merge yields silent all-NaN (not `KeyError`). Coerce per-track keys to int64; the test
+  asserts FINITE operands for healthy tracks.
+- **Issue hygiene (BLOCKING):** draft the PR #10 GitHub issue to the vault → user OK → post →
+  backfill roadmap line 146 (task 0.1).
+- **Coverage additions:** `_TRAVELING_WAVE_TRAIT_UNITS` mapping + units-vocabulary test (#222);
+  scenarios/tests for DEBUG-log, constants rejection, cadence value/type, all-NaN-tip/single-frame,
+  COI-gate boundary, calibration-literal sync; real-data test `skipif`-gated; tasks 1.1+1.2 land in
+  one commit; synthetic-recovery params + tolerance pinned; px⁻¹ vocabulary token confirmed
+  not-needed (no px⁻¹ column emitted).

@@ -7,55 +7,84 @@ shared-module edits (foundation, calibration script). Design + evidence:
 `docs/superpowers/specs/2026-06-10-add-circumnutation-tier3c-traits-design.md` (CR-1..CR-13,
 CR2-1..CR2-9); `docs/circumnutation/investigations/2026-06-10-tier3c-traveling-wave/report.md`.
 
+## 0. PR #10 GitHub tracking issue (vault-draft → user OK → post) (OR: issue-hygiene)
+- [ ] 0.1 Draft the PR #10 issue body to `c:\vaults\sleap-roots\circumnutation\` (parent epic #197;
+  labels `enhancement`, `circumnutation`, `multi-pr`; reduced-scope statement; `Closes #<n>` plan;
+  #230 block-reference; note the `apex_basal_period_consistency` → `lambda_spatial_variation` rename
+  and that this PR corrects two PR #9 §7.4 handoff claims). Show the user; post ONLY after explicit
+  OK; then backfill the issue number into `roadmap.md` line 146 (`⬜` → `[#NNN]`).
+
 ## 1. Module scaffold + foundation-test migrations (CR-10, CR2-2)
-- [ ] 1.1 RED: extend `tests/test_circumnutation_foundation.py` — add `"traveling_wave"` to the
-  `test_module_logger_is_namespaced` parametrize list (after the `spatial_cwt` entry, ~line 801),
-  to `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG` (~line 891), and add a dedicated
-  `elif module_name == "traveling_wave":` branch in `test_implementation_accepts_constants_kwarg`
-  (mirror the `nutation` branch: ≥64-frame single-track df, `fn(df, 300.0, constants=ConstantsT())`,
-  assert DataFrame). Confirm these fail (module absent). Verify `traveling_wave` is NOT added to
-  `STUB_MODULES`/`STUBS_WITH_CONSTANTS_KWARG` (it was never a stub).
+- [ ] 1.1 RED: extend `tests/test_circumnutation_foundation.py` — add `"traveling_wave"` (with a
+  `# Added in PR #10: traveling_wave …` comment mirroring the PR #9 spatial_cwt block, for
+  Copilot-regression symmetry) to the `test_module_logger_is_namespaced` parametrize list (after the
+  `spatial_cwt` entry, ~line 801), to `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG` (~line 891), and add a
+  dedicated `elif module_name == "traveling_wave":` branch in
+  `test_implementation_accepts_constants_kwarg` (mirror the `nutation` branch: ≥64-frame single-track
+  df, `fn(df, 300.0, constants=ConstantsT())`, assert DataFrame). Confirm these fail (module absent).
+  Verify `traveling_wave` is NOT added to `STUB_MODULES`/`STUBS_WITH_CONSTANTS_KWARG` (never a stub).
 - [ ] 1.2 GREEN: create `sleap_roots/circumnutation/traveling_wave.py` with module docstring
   (sibling shape + Anchors to the design, the investigation report, theory.md §4.7/§6.4/§7.4),
   `logger = logging.getLogger(__name__)`, and a minimal `compute(trajectory_df, cadence_s,
   constants=None)` that validates inputs and returns the empty-shape DataFrame. Foundation tests pass.
+  **Commit 1.1 + 1.2 TOGETHER** (the foundation suite imports `traveling_wave`; committing 1.1 alone
+  leaves the shared suite RED across the commit boundary).
 
 ## 2. Input-validation boundary + emission skeleton (CR-5, CR-6)
 - [ ] 2.1 RED: schema test — `compute` returns 8 `ROW_IDENTITY_COLUMNS` + 6 trait columns in the
-  declared order with all-float64 trait dtypes; 5-tuple uniqueness holds; validation rejects bad
-  `trajectory_df` (delegates to `_validate_trajectory_df`) and bad `cadence_s` (reuse
-  `temporal_cwt._validate_cadence_s`) and bad `constants` (None or ConstantsT). Local
-  `COI_FRACTION_MAX` validated in (0, 1].
+  declared order with all-float64 trait dtypes; 5-tuple uniqueness holds; none of the omitted L_gz
+  columns present. Validation RED tests (explicit, not delegation notes): bad `trajectory_df`
+  (delegates to `_validate_trajectory_df`); `cadence_s` VALUE `∈ {0, -1.0, nan, inf, -inf}` →
+  ValueError naming `cadence_s`; `cadence_s` TYPE `∈ {True, np.bool_(True), "300", [300.0]}` →
+  TypeError naming `cadence_s`; `constants=object()` → TypeError; `ConstantsT(COI_FRACTION_MAX=0.0/1.5)`
+  → ValueError naming `COI_FRACTION_MAX`.
 - [ ] 2.2 GREEN: implement the emission tail verbatim from siblings — `groupby(list(_IDENTITY_5_TUPLE),
   dropna=False, sort=False)`; `_build_per_plant_template_from_df`; pre-merge int64 coercion guard
   (raise on cast failure); left-merge on the 5-tuple; final column order = 8 identity + 6 traits;
   single `astype(np.float64)` loop (no bool/int special case). Add `_all_nan_spatial_traits()` helper.
+- [ ] 2.3 RED: units-vocabulary test (mirror `test_circumnutation_psi_g.py` §2) — assert
+  `_TRAVELING_WAVE_TRAIT_UNITS` has all 6 columns mapped (`_px`→`"px"`, dimensionless→`"—"`) and every
+  value ∈ `PIPELINE_UNIT_VOCABULARY`. GREEN: declare the mapping.
+- [ ] 2.4 RED: logging test — `caplog.set_level(logging.DEBUG, logger="sleap_roots.circumnutation.traveling_wave")`;
+  assert exactly one DEBUG record from that logger, `msg.startswith("traveling_wave.compute(")`,
+  contains `"n_tracks="` and `"cadence_s="`, and zero records at INFO+ on the happy path.
 
 ## 3. Per-track spatial chain + error handling (CR-2, CR-3, CR2-5)
 - [ ] 3.1 RED: per-track tests — (a) a healthy single track yields finite λ traits; (b) a degenerate
-  /stationary track yields all-NaN spatial traits (#1–#5 NaN, #6 NaN) and does NOT raise; (c) a
-  short/non-finite track does NOT crash `compute()` (other tracks survive); (d) a forced low-COI
-  ridge gates #1–#5 to NaN while `coi_valid_fraction` (#6) stays finite.
+  /stationary track yields all-NaN spatial traits (#1–#5 NaN, #6 NaN) and does NOT raise nor emit
+  `np.RuntimeWarning`; (c) a short/non-finite track does NOT crash `compute()` (other tracks survive);
+  (d) an all-NaN-tip track AND a single-frame track each yield a well-formed all-NaN row (one row per
+  5-tuple, no drop/dup); (e) a forced low-COI ridge gates #1–#5 to NaN while `coi_valid_fraction` (#6)
+  stays finite.
 - [ ] 3.2 GREEN: implement `_compute_one_track`: sort by `frame` + drop NON-finite tips
   (`np.isfinite` mask) before `reconstruct`; `is_degenerate` guards after `reconstruct` and
   `resample_curvature`; guard-before-call + `try/except ValueError → _all_nan_spatial_traits()`
   around `compute_scaleogram`/`extract_ridge`. Pin the CR-3 `coi_valid_fraction` rule (finite iff a
   ridge formed). Invariant: always returns a full 6-key dict, never raises.
 
-## 4. COI gate + calibration consumer (CR-7, CR-11)
-- [ ] 4.1 RED: COI gate test — gate NaN ⇔ `coi_valid_fraction < (1 − COI_FRACTION_MAX)`; pin the
-  boundary (strict `>` on in-COI fraction; exactly-50%-in-COI does NOT gate). Calibration test —
-  `λ_cal = λ_reported / ratio_interp(λ_reported)` using the **n=400** slice (strictly-increasing
-  `λ_reported` → well-posed `np.interp`); recovers a known calibration knot.
-- [ ] 4.2 GREEN: implement `~in_coi` interior selection, the COI fraction gate, and the calibrated-λ
-  helper (one calibrated array used for all three λ-traits). Units mapping: declare the 6
-  column→unit pairs (px/—; all already in `PIPELINE_UNIT_VOCABULARY` — no `_constants` change).
+## 4. COI gate + calibration consumer (CR-7, CR-11, OR: packaging)
+- [ ] 4.1 RED: COI gate boundary test — construct (synthetic OR monkeypatched) `SpatialRidgeResult`s
+  with `in_coi` fraction EXACTLY 0.5 and > 0.5; assert the exactly-0.5 case does NOT gate (strict
+  inequality) and the >0.5 case gates #1–#5 while `coi_valid_fraction` stays finite in both.
+  (Hitting exactly 0.5 deterministically requires a constructed/monkeypatched ridge, not real data.)
+- [ ] 4.2 RED: in-package calibration-literal sync test — assert the module-level
+  `_CGAU2_LAMBDA_CALIBRATION_N400` literal equals the authoritative JSON's `n==400` entries
+  (sorted by `λ_reported`, `atol=0`), its `λ_reported` axis is strictly increasing, and it covers
+  `λ_true ≥ 140 px`. Calibration test — `λ_cal = λ_reported / np.interp(λ_reported, axis, ratio)`
+  recovers a known knot. (The module reads the LITERAL, never `tests/data` at runtime — wheel-safe.)
+- [ ] 4.3 GREEN: implement `~in_coi` interior selection, the COI fraction gate
+  (`coi_valid_fraction < 1 − COI_FRACTION_MAX`), the `_CGAU2_LAMBDA_CALIBRATION_N400` literal, and the
+  calibrated-λ helper (one calibrated array used for all three λ-traits). Declare
+  `_TRAVELING_WAVE_TRAIT_UNITS` (done in 2.3).
 
 ## 5. Composition (Tier 0/1 recompute + 5-tuple join) + traits + gating (CR-1, CR2-1, CR-4)
 - [ ] 5.1 RED: **multi-plate test with float64 `track_id`** (≥2 plates, overlapping track_ids) —
-  asserts each row's `v`/`T` operands come from the correct plate (the CR-1/CR2-1 regression).
+  asserts (i) one row per 5-tuple, no raise; (ii) for healthy nutating tracks the merged operands are
+  FINITE, not all-NaN (the int64-vs-float64 silent-NaN guard — the failure mode is NaN, NOT KeyError);
+  (iii) each row's `lambda_expected_px` derives from THAT 5-tuple's own `v`/`T` (correct plate).
   Plus: `is_nutating==False` → `traveling_wave_residual` NaN, λ traits valid; stationary `v≈0` →
-  `lambda_expected_px`/`traveling_wave_residual` NaN (no inf/RuntimeWarning).
+  `lambda_expected_px`/`traveling_wave_residual` NaN with NO `np.RuntimeWarning` (assert via
+  `warnings.catch_warnings`).
 - [ ] 5.2 GREEN: recompute `kinematics.compute(df, constants=resolved)` and
   `nutation.compute(df, cadence_s, coordinate="lateral", constants=resolved)`; **merge** operands
   onto `trait_df` on the full `_IDENTITY_5_TUPLE` with int64 coercion (NOT `.at[key]`). Compute
@@ -63,24 +92,34 @@ CR2-1..CR2-9); `docs/circumnutation/investigations/2026-06-10-tier3c-traveling-w
   `lambda_spatial_variation = MAD/median`, `lambda_spatial_mad_px`. Division guard: NaN #3/#4 when
   `v` non-finite or `lambda_expected_px ≤ 0`.
 
-## 6. Calibration-table extension (append-only) (CR-8, CR2-4)
-- [ ] 6.1 RED: regression test asserting the existing 18 `(n, λ_true)` rows + the `provenance` block
-  are byte-for-byte unchanged after the extension; and that the extended n=400 `λ_reported` range
-  covers the observed real λ (≥ ~150 px).
-- [ ] 6.2 GREEN: add an append-only / merge mode to `capture_spatial_coi_factor.py` that generates
-  only the new `λ_true` rows (n=400) up to ~150 px and preserves the existing rows + provenance
-  verbatim (do NOT call `_provenance()` on append). Regenerate the committed JSON via that mode.
+## 6. Calibration-table extension (append-only, load-and-passthrough) (CR-8, CR2-4)
+- [ ] 6.1 RED: regression test asserting the existing 18 `(n, λ_true)` rows + the entire `provenance`
+  block are byte-for-byte unchanged after the extension; the extended n=400 axis is strictly
+  increasing; and it covers `λ_true ≥ 140 px` (→ `λ_reported ≈ 157 px ≥` the observed real λ ≈ 142.5,
+  so no clamped extrapolation). Headroom is pinned on `λ_true` (≥140), NOT `λ_reported`.
+- [ ] 6.2 GREEN: add an append-only / merge mode to `capture_spatial_coi_factor.py` that **reads the
+  existing committed JSON, copies its `provenance` block and existing `wavelength_calibration` rows
+  through verbatim (NO re-measure, do NOT call `_provenance()`), and measures ONLY the new n=400
+  `λ_true` knots (e.g. 100, 120, 140, 150)**, appending them. This makes the byte-for-byte freeze
+  mechanical (not environment-dependent). Regenerate the committed JSON via that mode; derive the
+  `_CGAU2_LAMBDA_CALIBRATION_N400` literal (task 4.2/4.3) from the regenerated n=400 slice.
+- [ ] 6.3 Update the stale `# … ratio [1.044, 1.156]` comment in `tests/test_circumnutation_spatial_cwt.py`
+  to reflect the extended range (the hardcoded `[1.00, 1.25]` band still passes; only the comment is stale).
 
 ## 7. Determinism + real-data validation (CR2-8, CR-9, D6, D7)
-- [ ] 7.1 RED: determinism canary — two runs of the **full composed chain (incl. np.interp
-  calibration on the extended table)** are bit-identical in-process; a captured canary matches to a
-  measured `atol` (target 1e-6 — re-measure, don't cargo-cult) cross-OS.
-- [ ] 7.2 RED: real-data plate-001 test (all 6 tracks) — `traveling_wave_residual` finite and
-  `< 0.30` (generous band; do NOT pin [0.087, 0.177] — both endpoints were extrapolation artifacts
-  pre-extension); `lambda_spatial_variation` finite ~0.13–0.37; all gates pass; 6/6 nutating.
+- [ ] 7.1 RED: determinism — (a) two runs of the **full composed chain (incl. the np.interp
+  calibration)** are bit-identical IN-PROCESS at `atol=0`; (b) a captured canary tuple on a fixed
+  synthetic input matches hardcoded values to a measured `atol` (target 1e-6 — re-measure, don't
+  cargo-cult) cross-OS. State the canary columns/positions explicitly.
+- [ ] 7.2 RED: real-data plate-001 test (all 6 tracks), **gated with
+  `@pytest.mark.skipif(not _PROOFREAD_FIXTURE.exists(), …)`** exactly like `test_circumnutation_spatial_cwt.py`
+  §7 — `traveling_wave_residual` finite and `< 0.30` (generous band; do NOT pin [0.087, 0.177] — both
+  endpoints were extrapolation artifacts pre-extension); `lambda_spatial_variation` finite ~0.10–0.45;
+  all gates pass (`coi_valid_fraction ≥ 1 − COI_FRACTION_MAX`); 6/6 nutating.
 - [ ] 7.3 RED: synthetic known-λ recovery — a **small-amplitude** trajectory
-  (`amplitude_px ≪ growth_rate·T_frames`) so λ_spatial ≈ `growth_rate·T_frames` a priori;
-  `lambda_spatial_median_px` recovers it within calibration tolerance.
+  (e.g. `generate_trajectory(amplitude_px=2.0, growth_rate_px_per_frame=4.29, T_nutation_s=3333,
+  cadence_s=300, n_frames=575, random_state=0)` → λ_apriori ≈ 47.7 px) so λ_spatial ≈
+  `growth_rate·T_frames` a priori; assert `abs(lambda_spatial_median_px − λ_apriori)/λ_apriori < 0.25`.
 - [ ] 7.4 GREEN: reconcile any numeric drift; lock the measured atol + canary values.
 
 ## 8. Spec deltas + docs deviations (CR-12, CR-13, CR2-6)
@@ -96,7 +135,10 @@ CR2-1..CR2-9); `docs/circumnutation/investigations/2026-06-10-tier3c-traveling-w
 - [ ] 8.3 roadmap.md line 146: rename both `apex_basal_period_consistency` → `lambda_spatial_variation`;
   remove the descoped `B_balance_number`/`L_gz_*` traits + "Applies the L_gz mask" claim (D1); add
   `traveling_wave` to the module enumeration. `docs/changelog.md`: PR #10 entry announces the rename
-  (leave the historical PR #9 entry).
+  (leave the historical PR #9 entry). GitHub-side rename propagation: the PR #10 issue body (task 0.1)
+  states the rename; leave a comment on #230 (and note for the next #197 epic edit) recording
+  `apex_basal_period_consistency` → `lambda_spatial_variation` so the open issues don't reference a
+  dead trait name (post only after user OK, per the issue-hygiene rule).
 
 ## 9. Verification gates (pre-merge)
 - [ ] 9.1 `uv run pytest tests/ -q` green; `black --check`; `pydocstyle --convention=google
