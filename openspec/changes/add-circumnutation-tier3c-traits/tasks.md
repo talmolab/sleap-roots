@@ -115,23 +115,27 @@ CR2-1..CR2-9); `docs/circumnutation/investigations/2026-06-10-tier3c-traveling-w
 
 ## 7. Determinism + real-data validation (CR2-8, CR-9, D6, D7)
 - [ ] 7.1 RED: determinism — (a) two runs of the **full composed chain (incl. the np.interp
-  calibration)** are bit-identical IN-PROCESS at `atol=0`; (b) capture and assert the integer ridge
-  scale-index array EQUAL cross-OS (an argmax tie-flip is a discrete scale-step jump, not atol-bounded
-  — index-equality is the real cross-OS contract); (c) a captured float canary tuple matches hardcoded
-  values to a measured `atol` (target 1e-6 — re-measure; may need to be looser if a tie-flip shifts the
-  median). State the canary columns/positions explicitly.
+  calibration)** are bit-identical IN-PROCESS at `atol=0`; (b) capture and assert the ridge
+  `wavelengths_px[interior]` array (PUBLIC `SpatialRidgeResult` field, 1:1 with the argmax scale index)
+  EXACTLY equal cross-OS — an argmax tie-flip is a discrete scale-step jump, not atol-bounded, so this
+  exact-equality (not a float tol) is the real spatial-λ cross-OS contract; (c) a captured float canary
+  tuple for the v·T-derived columns (`lambda_expected_px`, `traveling_wave_residual`) matches hardcoded
+  values to a measured `atol` (target 1e-6, inherited from Tier 1 — re-measure; looser only if a
+  tie-flip shifts the median). State the canary columns/positions explicitly.
 - [ ] 7.2 RED: real-data plate-001 test (all 6 tracks), **gated with
   `@pytest.mark.skipif(not _PROOFREAD_FIXTURE.exists(), …)`** exactly like `test_circumnutation_spatial_cwt.py`
   §7 — `traveling_wave_residual` finite and `< 0.30` (generous band; do NOT pin [0.087, 0.177] — both
   endpoints were extrapolation artifacts pre-extension); `lambda_spatial_variation` finite ~0.10–0.45;
   all gates pass (`coi_valid_fraction ≥ 1 − COI_FRACTION_MAX`); 6/6 nutating.
-- [ ] 7.3 RED: synthetic known-λ recovery — a **small-amplitude** trajectory
+- [ ] 7.3 RED: synthetic known-λ recovery — a **small-amplitude, low-noise** trajectory
   (e.g. `generate_trajectory(amplitude_px=2.0, growth_rate_px_per_frame=4.29, T_nutation_s=3333,
-  cadence_s=300, n_frames=575, random_state=0)` → λ_apriori ≈ 47.7 px) so λ_spatial ≈
-  `growth_rate·T_frames` a priori; assert `abs(lambda_spatial_median_px − λ_apriori)/λ_apriori < 0.25`.
-  This trajectory is uniform-λ by construction → ALSO capture `lambda_spatial_variation` on it as the
-  **argmax-quantization noise floor**, record it in the test + theory, and assert real-data variation
-  is interpreted relative to that floor (values within the floor = "consistent with uniform").
+  cadence_s=300, n_frames=575, noise_sigma_px=0.0, random_state=0)` → λ_apriori ≈ 47.7 px) so
+  λ_spatial ≈ `growth_rate·T_frames` a priori; assert `abs(lambda_spatial_median_px − λ_apriori)/λ_apriori < 0.25`.
+  On this NOISE-FREE uniform-λ trail ALSO assert `lambda_spatial_variation ≈ 0` (e.g. `< 0.05`) —
+  confirming there is NO spurious argmax-quantization floor and the trait correctly reads "uniform"
+  when λ is uniform. Document (test + theory) that real-data `lambda_spatial_variation` (~0.13–0.37)
+  is genuine ridge-localization scatter that grows with noise, interpreted relative to the noise level
+  — NOT a quantization floor and NOT pure biological λ variation.
 - [ ] 7.4 GREEN: reconcile any numeric drift; lock the measured atol + canary values.
 
 ## 8. Spec deltas + docs deviations (CR-12, CR-13, CR2-6)
@@ -145,9 +149,10 @@ CR2-1..CR2-9); `docs/circumnutation/investigations/2026-06-10-tier3c-traveling-w
   **Appendix B(6)** preserving the ORIGINAL "bias cancels" + `apex_basal_period_consistency`
   wording, then the corrections (cite the design + investigation report). Also document in §7.4 /
   Appendix B(6): the cgau2 calibration uses an **n-averaged** `ratio(λ)` curve with an irreducible
-  **~±5% systematic** (residual n-scatter), and `lambda_spatial_variation` has an **argmax-quantization
-  noise floor** (measured in task 7.3) — neither should be over-interpreted below those thresholds;
-  the D7 plate-001 numbers are provisional pending the post-extension re-measurement.
+  **~±5% systematic** (residual n-scatter), and `lambda_spatial_variation` is a **noise-sensitive
+  spread** (≈0 on a noise-free uniform-λ trail — no spurious quantization floor; grows with
+  curvature-localization noise, task 7.3) interpreted relative to the noise level, not as pure
+  biological signal; the D7 plate-001 numbers are provisional pending the post-extension re-measurement.
 - [ ] 8.3 roadmap.md line 146: rename both `apex_basal_period_consistency` → `lambda_spatial_variation`;
   remove the descoped `B_balance_number`/`L_gz_*` traits + "Applies the L_gz mask" claim (D1); add
   `traveling_wave` to the module enumeration. `docs/changelog.md`: PR #10 entry announces the rename

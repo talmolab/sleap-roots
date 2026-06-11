@@ -441,3 +441,28 @@ inherited Tier-1 scipy stack + cgau2 CWT — hence measure, don't cargo-cult.)
 Add `sleap_roots.circumnutation.traveling_wave` to the spec's "modules import cleanly" scenario
 import list (`openspec/specs/circumnutation/spec.md:34`) — every impl module currently appears
 there.
+
+## Rounds 3–4 supersession (read this — it overrides earlier calibration entries)
+
+Two later critical-review rounds (openspec-review + a fresh-eyes pass, then a focused science pass)
+changed three decisions recorded above. Where this section conflicts with CR-7 / CR2-4 / CR-9 / the
+round-2 summary, **this section wins** (the authoritative current decisions also live in the
+change-folder `design.md` Round-3 / Round-4 sections and in the spec/tasks):
+
+- **Calibration is now n-AVERAGED, not the n=400 slice.** SUPERSEDES CR-7 ("use the n=400 rows") and
+  CR2-4 ("extension for n=400 only"). The cgau2 ratio scatters ~7% across `n ∈ {200,400,600}`
+  non-monotonically; fixing n=400 injected a ~±5% systematic ≈ the residual signal. The consumer uses
+  a single n-averaged `ratio(λ)` curve (in-package literal `_CGAU2_LAMBDA_CALIBRATION`, NOT
+  `_CGAU2_LAMBDA_CALIBRATION_N400`); the append-only extension measures the new `λ_true` knots for ALL
+  three n; the ~±5% systematic is documented. Verified: averaged axis strictly increasing; plate-001
+  median 0.142, range [0.094, 0.182] (unchanged).
+- **D7 is provisional.** 4 of 6 real tracks currently clamp-extrapolate (not 2); the ~9–18% headline is
+  re-confirmed only after the post-extension re-measurement. SUPERSEDES the settled-sounding D7 / CR-9
+  `[0.087, 0.177]` phrasing above (that range is retired — do NOT pin it).
+- **`lambda_spatial_variation` has NO argmax-quantization floor.** A noise-free uniform-λ synthetic
+  reads ≈0; real-data 0.13–0.37 is genuine ridge-localization scatter (grows with noise), interpreted
+  relative to the noise level — not a quantization floor, not pure biology.
+- **Determinism asserts `wavelengths_px[interior]` exact-equality** (the integer scale index is not a
+  public `SpatialRidgeResult` field); the 1e-6 atol covers only the v·T-derived columns.
+- **Packaging:** the calibration data ships as the in-package literal (wheel-safe); the module never
+  reads `tests/data` at runtime.

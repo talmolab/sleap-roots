@@ -23,13 +23,14 @@ This file captures the decisions an implementer/reviewer needs without re-readin
   `_IDENTITY_5_TUPLE`** (with int64 coercion — NOT `track_id` alone, NOT `.at[key]`; CR-1/CR2-1).
   Redundant by design → forward-note for the PR #14 DAG to dedup.
 - **D3 calibration** — the §7.4 "bias cancels in the ratio" handoff claim is empirically FALSE;
-  compute ONE calibrated λ (true px, via the n=400 calibration slice, strictly-increasing
-  `λ_reported` → well-posed `np.interp`) and use it for all three λ-traits. Extend the calibration
-  artifact append-only to ~150 px (existing 18 rows + provenance frozen byte-for-byte; regression
-  test pins them). No test currently reads the JSON.
+  compute ONE calibrated λ (true px, via the **n-averaged** `ratio(λ)` curve — mean across
+  `n ∈ {200,400,600}` per `λ_true`; see Round-3 reconciliation — strictly-increasing `λ_reported_mean`
+  → well-posed `np.interp`) and use it for all three λ-traits. Extend the calibration artifact
+  append-only to ~150 px (new `λ_true` knots for ALL three n; existing 18 rows + provenance frozen
+  byte-for-byte; regression test pins them). No test currently reads the JSON.
 - **D4 `lambda_spatial_variation`** — `MAD(λ_cal)/median(λ_cal)` over COI-valid positions
-  (orientation-invariant robust spread; renamed from `apex_basal_period_consistency`, which implied
-  an apex-vs-basal difference that is edge-artifact-dominated + orientation-ambiguous).
+  (orientation-ROBUST spread; renamed from `apex_basal_period_consistency`, which implied an
+  apex-vs-basal difference that is edge-artifact-dominated + orientation-ambiguous).
 - **D5 constants** — none new; reuse `COI_FRACTION_MAX`. `_CONSTANTS_VERSION` stays 6.
 - **Gating** — spatial-availability gate (degenerate midline/resample, caught CWT raise, or
   in-COI fraction > `COI_FRACTION_MAX`) NaNs #1–#5; `is_nutating`/`v` flow through
@@ -56,11 +57,13 @@ enumerated in `tasks.md` §8.2; roadmap + changelog propagation in §8.3.
 
 - **Packaging (BLOCKING):** the cgau2 calibration data must reach the production module at runtime,
   but the JSON lives in `tests/data/` (not in the wheel). Resolution: ship a committed in-package
-  `_CGAU2_LAMBDA_CALIBRATION_N400` literal (the n=400 slice incl. the extension), validated against
-  the authoritative JSON by a sync test; the module never reads `tests/data` at runtime.
+  `_CGAU2_LAMBDA_CALIBRATION` literal (the n-averaged `ratio(λ)` curve incl. the extension; see
+  Round-3), validated against the authoritative JSON by a sync test; the module never reads
+  `tests/data` at runtime.
 - **Calibration regeneration (BLOCKING):** the append-only mode must **load the existing JSON and
-  pass `provenance` + the 18 rows through verbatim** (measure only the new n=400 knots), so the
-  byte-for-byte freeze is mechanical, not environment-dependent. No PR #9 test reads the JSON.
+  pass `provenance` + the 18 rows through verbatim** (measure only the new `λ_true` knots for all
+  three n), so the byte-for-byte freeze is mechanical, not environment-dependent. No PR #9 test reads
+  the JSON.
 - **Silent-NaN join (IMPORTANT):** Tier 0/1 return int64 keys; raw `track_id` may be float64 →
   pandas merge yields silent all-NaN (not `KeyError`). Coerce per-track keys to int64; the test
   asserts FINITE operands for healthy tracks.
@@ -96,3 +99,20 @@ The fresh-eyes pass surfaced scientific gaps the engineering-focused rounds miss
 - **Mechanics:** append new calibration rows at the END (existing 18 a contiguous prefix); regression
   compares by `(n, λ_true)` key; the literal is generated from full-precision JSON tokens; §6 precedes
   §4.2/4.3; `lambda_spatial_mad_px` named among the is_nutating-independent spatial traits.
+
+## Round-4 review reconciliation (focused science pass)
+
+- **Noise-floor claim CORRECTED (round-3 over-correction).** Empirically, `lambda_spatial_variation`
+  on a NOISE-FREE uniform-λ synthetic reads ≈ 0 (there is NO argmax-quantization floor; the round-3
+  "~0.13 floor" hypothesis was wrong — that number came from the fixture's default localization noise).
+  Reframed: the trait correctly reads ≈0 when λ is uniform; real-data 0.13–0.37 is genuine
+  ridge-localization scatter that grows with noise, interpreted relative to the noise level — not a
+  quantization floor, not pure biology. Task 7.3 now asserts ≈0 on a `noise_sigma_px=0` trail.
+- **Determinism field CORRECTED.** `SpatialRidgeResult` exposes no integer scale-index; the determinism
+  contract asserts exact-equality on the PUBLIC `wavelengths_px[interior]` (1:1 with the argmax index)
+  instead. The spatial-λ ridge is exact cross-OS (modulo a tie-flip); the 1e-6 atol budget covers only
+  the v·T-derived columns (`lambda_expected_px`, `traveling_wave_residual`).
+- **n-averaging verified SOUND** (re-computed): the averaged `λ_reported_mean` axis is strictly
+  increasing; plate-001 median 0.142, range [0.094, 0.182] (unchanged vs n=400); averaging an
+  unstructured non-monotone n-scatter is defensible (it is deterministic quantization/edge structure,
+  not usable signal). Supersedes the superpowers-design CR-7/CR2-4 "n=400-only" reasoning.
