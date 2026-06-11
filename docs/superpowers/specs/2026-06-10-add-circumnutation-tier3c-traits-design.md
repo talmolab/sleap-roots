@@ -52,11 +52,17 @@ psi_g.py). Public `compute`; private `_compute_one_track`, `_check_constants`,
 
 ### Composition (recompute internally) — D-composition
 
-`compute` is self-contained: it calls `kinematics.compute(trajectory_df)` (Tier 0) and
-`nutation.compute(trajectory_df, cadence_s, coordinate="lateral")` (Tier 1) once each, indexes
-the results by track, and reads `v_total_median_px_per_frame`, `T_nutation_median`,
+`compute` is self-contained: it calls `kinematics.compute(trajectory_df, constants=resolved)`
+(Tier 0) and `nutation.compute(trajectory_df, cadence_s, coordinate="lateral", constants=resolved)`
+(Tier 1) once each, **joins both results to the per-track loop on the full `_IDENTITY_5_TUPLE`**
+(`series, sample_uid, plate_id, plant_id, track_id` — NOT `track_id` alone; `track_id` is not
+unique across plates/samples), and reads `v_total_median_px_per_frame`, `T_nutation_median`,
 `is_nutating`. This keeps the `(trajectory_df, cadence_s, constants)` signature identical to its
-siblings, guarantees operand consistency, and gets the `is_nutating` gate for free.
+siblings, guarantees operand consistency, and gets the `is_nutating` gate for free. The
+resolved `constants` MUST flow into both recomputed tiers so a caller's override is honored
+consistently. `coordinate="lateral"` is hardcoded (not exposed): the QPB residual is only
+defined against the lateral nutation period (CC-7); exposing it would silently invalidate the
+residual (mirrors psi_g's deliberate omission of `coordinate`).
 
 > **Forward note to PR #14 (pipeline DAG):** Tier 3c RE-RUNS Tier 0 and Tier 1 internally. In a
 > full pipeline run those tiers are also computed standalone, so the DAG MUST dedup — compute
@@ -195,4 +201,166 @@ DataFrame) and `_check_cadence_s` (positive finite). `constants` validated as No
   `apex_basal_period_consistency`.
 - **D5** No new constants; `_CONSTANTS_VERSION` stays 6.
 - **D6** atol target 1e-6, re-measured.
-- **D7** QPB holds to ~9–18% on plate-001 (real scientific result).
+- **D7** QPB holds to ~9–18% on plate-001 (real scientific result; see CR-9 re: extrapolation).
+
+## Critical-review reconciliation (round 1, 2026-06-10)
+
+Five adversarial subagents reviewed this design; numbers re-verified on plate-001. Resolutions
+below are authoritative for the implementer and become tasks in the proposal.
+
+### CR-1 [BLOCKING] Join recomputed Tier 0/1 on the full 5-tuple, not `track_id`
+`track_id` is not unique across plates/samples; joining Tier 0/1 operands by `track_id` alone
+would pull the wrong plate's `v`/`T`/`is_nutating` (silent-wrong) or crash on duplicate labels —
+undetectable by the single-plate plate-001 fixture. **Resolution:** index both recomputed frames
+by `list(_IDENTITY_5_TUPLE)` and look up each loop's operands by the same 5-tuple `key` the
+`groupby` yields (`tier0.at[key, "v_total_median_px_per_frame"]`, etc.). Fixed inline in
+Composition. **Add a multi-plate test** (≥2 plates, overlapping `track_id`s) — the regression the
+fixture alone can't catch.
+
+### CR-2 [BLOCKING] `_compute_one_track` never raises — guard + try/except → all-NaN row
+`midline.reconstruct` raises `ValueError` on non-finite tips; `compute_scaleogram` raises
+`ValueError` on <`MIN_SAMPLES_REQUIRED` (9) samples, non-finite κ, or non-positive `ds`. The
+linear chain as drawn would crash all of `compute()` on one bad track. **Resolution** (mirrors
+`nutation._compute_one_track` lines 398–428 verbatim in shape):
+1. Sort the track by `frame` and drop non-finite `tip_x`/`tip_y` rows **before** `reconstruct`
+   (so it never sees NaN and never raises on finiteness — mirrors `psi_g.py:239`).
+2. `mr = reconstruct(...)`; if `mr.is_degenerate` → return `_all_nan_spatial_traits()`.
+3. `rs = resample_curvature(...)`; if `rs.is_degenerate` → return `_all_nan_spatial_traits()`.
+4. Guard-before-call: only call `compute_scaleogram` when `not rs.is_degenerate`.
+5. **AND** wrap `compute_scaleogram`/`extract_ridge` in `try/except ValueError → _all_nan_spatial_traits()`
+   (defense-in-depth, exact sibling pattern).
+Add a named helper `_all_nan_spatial_traits()` returning all 6 columns (with the CR-3 rule for
+#6), so every gate path returns a complete dict and the per-plant left-merge always yields one
+row per 5-tuple. **Invariant (state explicitly):** `_compute_one_track` always returns a full
+6-key trait dict and never raises.
+
+### CR-3 [BLOCKING] `coi_valid_fraction` (#6) value pinned across all gate paths
+| Path | ridge formed? | #1–#5 | #6 `coi_valid_fraction` |
+|---|---|---|---|
+| midline degenerate | no | NaN | **NaN** |
+| resample degenerate | no | NaN | **NaN** |
+| scaleogram/ridge raised (caught) | no | NaN | **NaN** |
+| low-COI gate fired (`coi_valid_fraction < 1−COI_FRACTION_MAX`) | yes | NaN | **the actual fraction** (finite) |
+| healthy | yes | finite | the actual fraction |
+So `#6` is finite **iff a ridge formed**; it disambiguates only the low-COI-vs-healthy case (the
+three no-ridge paths collapse to one all-NaN row). The design prose claim that #6 "diagnoses why
+a row gated" is **scoped to that distinction only** (corrected). `#6` is the one
+not-spatial-gated diagnostic (mirrors nutation's always-populated precursors).
+
+### CR-4 [IMPORTANT] Residual division guard (`v` finite, `lambda_expected > 0`)
+A stationary/degenerate track can give `v ≈ 0` or non-finite ⇒ `lambda_expected_px = v·T_frames`
+≤ 0 or non-finite ⇒ `traveling_wave_residual = |λ−0|/0 = inf/nan` with a RuntimeWarning.
+**Resolution:** gate #3 and #4 to NaN when `v` is non-finite **or** `lambda_expected_px ≤ 0`
+(explicit guard before the division; mirrors nutation's `T > 0` guards). So #4 = NaN when
+`is_nutating==False` (T NaN) **or** `v` non-finite/zero.
+
+### CR-5 [IMPORTANT] Emission tail specified verbatim from siblings
+Add an "Emission" step: `groupby(list(_IDENTITY_5_TUPLE), dropna=False, sort=False)`;
+`template = _build_per_plant_template_from_df(trajectory_df)`; pre-merge dtype-coercion guard on
+`track_id`/`plant_id` that **raises** on cast failure (prevents silent all-NaN merge);
+`template.merge(trait_df, on=list(_IDENTITY_5_TUPLE), how="left")`; final column order =
+8 `ROW_IDENTITY_COLUMNS` + 6 trait columns. **All 6 traits are float64** — no bool/int special
+case (unlike nutation's `is_nutating`/psi_g's `handedness`); a single
+`for col in _TRAIT_COLUMNS: result[col] = result[col].astype(np.float64)` loop. NaN from an
+unmatched left-merge row is already the correct "no trait" sentinel for float columns.
+
+### CR-6 [IMPORTANT] Validation helpers
+Reuse `_validate_trajectory_df` (with the `isinstance(... pd.DataFrame)` pre-check the siblings
+duplicate) and import `temporal_cwt._validate_cadence_s` (psi_g's choice — avoid a third private
+copy). `_check_constants`: validate `COI_FRACTION_MAX` locally (float in (0, 1]); defer the
+Tier-1/Tier-0 fields to the inner `nutation.compute`/`kinematics.compute` (which re-validate
+their own). `COI_FRACTION_MAX` **verified present** in `_constants.py` (line 135) + `ConstantsT`
+(line 539) — `_CONSTANTS_VERSION` stays 6 confirmed.
+
+### CR-7 [IMPORTANT] Calibration consumer: one monotone `ratio(λ_true)` curve
+The JSON is a `(n, ds, λ_true)` grid with **3 `λ_reported` per `λ_true`** (n∈{200,400,600}),
+non-monotone in `λ_reported` → interpolating `ratio` vs `λ_reported` rides a sawtooth (~5%
+jitter) and is ill-posed for `np.interp`. **Resolution:** collapse to a single monotone curve —
+for the consumer, use the `n` slice nearest the real ridge length (real `n_int` 279–414 ⇒ the
+**n=400** rows), build `ratio(λ_true)` from that slice, and invert
+`λ_true = λ_reported / ratio` via interpolation on the strictly-increasing `(λ_reported_n400 → ratio)`
+mapping. (Robustness checked: averaging across n shifts the residual median only 0.147→0.142.)
+Document the chosen `n` and the monotone construction. **Do NOT assert** "calibrating λ ÷r ≡
+inflating v·T ×r" as strictly equal — it holds only for a constant scalar r; with a per-λ `r` it
+is approximate. State the operative rule plainly: compute one calibrated λ array in true px, use
+it for all three λ-traits.
+
+### CR-8 [IMPORTANT] Calibration regeneration = append-only merge (zero blast radius)
+**No test reads the JSON** (verified — only a comment in `test_circumnutation_spatial_cwt.py:689`;
+the gate is a hardcoded `[1.00, 1.25]` band), so regeneration cannot break a PR #9 test. The real
+risk is **environment drift**: `capture_spatial_coi_factor.py` rewrites the whole file incl. the
+provenance block (`capture_date_iso`, numpy/pywt/BLAS versions), and `pywt.cwt`/`scale2frequency`
+are library-version-sensitive (PR #9's own canary flags cgau2 as cross-OS-unproven) — a full
+re-run on a different env could silently shift the existing 18 rows. **Resolution:** add an
+**append-only / merge mode** to `capture_spatial_coi_factor.py` that adds only the new `λ_true`
+rows (≥ ~150 px coverage) and **freezes the existing provenance + 18 rows byte-for-byte**. Add a
+regression test asserting the pre-existing `(n, λ_true)` rows are unchanged (nothing currently
+protects them). This mechanically guarantees the "existing entries unchanged" claim instead of
+resting it on env-determinism.
+
+### CR-9 [IMPORTANT] D7 honesty: extend table BEFORE locking the headline
+Both endpoints of the advertised residual range [0.087, 0.177] are the two tracks (0,1) whose
+`λ_reported` (120–142 px) currently **clamp-extrapolate** beyond the [21,91] table. **Resolution:**
+extend the calibration table (CR-8) **first**, then re-measure; state D7 as "≈0.10–0.18 (re-confirmed
+post-extension)"; the real-data test asserts the residual is **finite and < 0.30** (a generous
+band), NOT a pinned [0.087, 0.177] that encodes an extrapolation artifact.
+
+### CR-10 [IMPORTANT] Logging (CC-9) + foundation test migrations
+Add `logger = logging.getLogger(__name__)` and a single top-of-`compute`
+`logger.debug("traveling_wave.compute(n_tracks=%d, cadence_s=%.6f)", …)` matching the exact
+sibling pattern (siblings emit only DEBUG — no INFO/per-plate scheme; do not invent one). Module
+docstring follows the sibling shape (callable summary + per-trait bullets + Anchors to this
+design, the investigation report, theory.md §4.7/§6.4/§7.4). **Foundation test migrations
+(tasks):** add `"traveling_wave"` to `test_module_logger_is_namespaced`'s module list
+(`tests/test_circumnutation_foundation.py:786–801`); add the `traveling_wave.compute` callability
+entry + any `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG`-style table entry (verify exact locations in
+impl). `traveling_wave` was never a stub (only `parametric`/`plotting`/`pipeline` remain), so it
+is a pure ADDITION — no `STUB_MODULES` removal (mirrors PR #6's `nutation` addition note).
+
+### CR-11 [IMPORTANT] Units subsection (all in-vocabulary; no `_constants` change)
+Per-column units: `lambda_spatial_median_px`=px, `lambda_spatial_variation`=—,
+`traveling_wave_residual`=—, `lambda_expected_px`=px, `lambda_spatial_mad_px`=px,
+`coi_valid_fraction`=—. **Verified** `px` and `—` are already in `PIPELINE_UNIT_VOCABULARY`
+(`_constants.py:431`) → no vocabulary addition, no `_CONSTANTS_VERSION` change. The `px⁻¹`
+concern PR #9 deferred does **not** fire (no trait column has px⁻¹ units; `spatial_freqs_px_inv`
+is an internal Result field, not a trait/sidecar column). Declare the 6 column→unit pairs in the
+tier's trait-units mapping so the sidecar writer validates.
+
+### CR-12 [BLOCKING] Enumerate exact theory.md edits + Appendix B(6)
+Per deviation discipline (B(3)/B(5) convention: **preserve the original wording for provenance**),
+the proposal's tasks MUST include these precise `theory.md` edits:
+1. §7.4 `lambda_spatial_median` row (line 504): rename → `lambda_spatial_median_px`, unit `mm`→`px`,
+   strike "basal of $L_{gz}$" (no mask, D1), note calibration applied.
+2. §7.4 `traveling_wave_residual` row (line 505): reflect calibrated λ + `T_frames = T_nutation/cadence_s`
+   + honest ~0.10–0.18 result (§4.7 anchor stays correct).
+3. §7.4 `apex_basal_period_consistency` row (line 507): rename → `lambda_spatial_variation`,
+   redefine as `MAD(λ_cal)/median(λ_cal)` robust spread; weaken the directional-H1 anchor.
+4. §7.4 "Handoff to PR #10" note 2 (line 512): correct the now-false "bias largely cancels" claim
+   in place (point to B(6)).
+5. §7.4 "Handoff to PR #10" note 4 (line 514): correct the apex-vs-basal / "pin apex = s_a→0"
+   instruction in place (overturned; point to the uniformity-spread definition).
+6. §7.4 PR #9 scope-note (lines 485–495): update the dead name `apex_basal_period_consistency`
+   → `lambda_spatial_variation`.
+7. **NEW Appendix B(6)**: preserve verbatim the ORIGINAL handoff-note-2 "bias cancels" wording and
+   the ORIGINAL `apex_basal_period_consistency` name+definition; then state the corrections (calibrate
+   λ in true px for all 3 traits; rename→`lambda_spatial_variation`=MAD/median; honest residual
+   0.10–0.18). Cite this design + the investigation report (as B(4)/B(5) cite theirs).
+**roadmap.md**: rename both `apex_basal_period_consistency` occurrences in the PR #10 row (line 146)
+→ `lambda_spatial_variation`; add `traveling_wave` to the module enumeration. **changelog.md**: the
+PR #10 entry announces the rename (leave the historical PR #9 entry as-is). **PR #10 issue draft**
+uses the new name.
+
+### CR-13 [IMPORTANT] OpenSpec deltas
+- **MODIFY "Package layout"**: add `traveling_wave` as an addition-shape new implementation module
+  (impl count 8→9; stub count unchanged), with a "Scope note on PR #10 addition" mirroring PR #6's
+  `nutation` note, plus a callability scenario (`traveling_wave.compute` importable/callable).
+- **ADD "Tier 3c traveling-wave trait emission API"**: lock the
+  `compute(trajectory_df, cadence_s, constants=None) -> pd.DataFrame` signature, the 8+6 column
+  schema in order, dtypes (all float64 traits), the two NaN-gates, the COI gate
+  (`coi_valid_fraction < 1−COI_FRACTION_MAX`), and the calibration application. Render each behavior
+  as a discrete `#### Scenario:`.
+
+### Verified reviewer claims (no change needed)
+Unit reconciliation sound (T is seconds, no ×3600); "raw residual is mixed-domain, calibrated is
+honest" correct; MAD computed about the median; all 6 column suffixes correct; CC-3/CC-1 honored;
+COI gate **direction** correct.
