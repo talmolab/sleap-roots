@@ -5,8 +5,11 @@ structure. Spec: openspec/changes/add-circumnutation-tier3c-traits/specs/
 circumnutation/spec.md (Requirement: Tier 3c traveling-wave trait emission API).
 """
 
+import json
 import logging
 import warnings
+from collections import defaultdict
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -300,3 +303,82 @@ def test_all_nan_tip_and_single_frame_tracks_emit_nan_rows():
     assert len(result) == 2
     for col in _SPATIAL_TRAITS + ("coi_valid_fraction",):
         assert result[col].isna().all(), col
+
+
+# ---------------------------------------------------------------------------
+# Task 6 — calibration-table extension (append-only) + in-package literal
+# ---------------------------------------------------------------------------
+
+_CALIB_JSON = (
+    Path(__file__).parent / "data" / "circumnutation_spatial_cwt_calibration.json"
+)
+
+# The original PR #9 18 rows (n, lambda_true) -> ratio. These MUST survive the
+# PR #10 append-only extension byte-for-byte (compared by key, not list position).
+_ORIGINAL_RATIOS = {
+    (200, 20.0): 1.0707850052975358,
+    (200, 30.0): 1.0743040511798365,
+    (200, 40.0): 1.0947768883704525,
+    (200, 50.0): 1.1307412279149716,
+    (200, 60.0): 1.155952735350389,
+    (200, 80.0): 1.1193063307578321,
+    (400, 20.0): 1.0792095307320064,
+    (400, 30.0): 1.044290146155988,
+    (400, 40.0): 1.068369134605712,
+    (400, 50.0): 1.0956767119921316,
+    (400, 60.0): 1.1000299725343554,
+    (400, 80.0): 1.1253941963571172,
+    (600, 20.0): 1.1128336235099439,
+    (600, 30.0): 1.0808860017610875,
+    (600, 40.0): 1.1419722268051635,
+    (600, 50.0): 1.0477828440521288,
+    (600, 60.0): 1.0724539886061153,
+    (600, 80.0): 1.1330636787960808,
+}
+
+
+def _load_calib_rows():
+    return json.loads(_CALIB_JSON.read_text(encoding="utf-8"))["wavelength_calibration"]
+
+
+def test_calibration_original_rows_preserved_byte_for_byte():
+    """The PR #9 18 rows survive the append-only extension unchanged (by key)."""
+    rows = {(r["n"], r["lambda_true"]): r["ratio"] for r in _load_calib_rows()}
+    for key, ratio in _ORIGINAL_RATIOS.items():
+        assert key in rows, key
+        assert rows[key] == ratio, key  # exact equality (atol=0)
+
+
+def test_calibration_extension_covers_real_lambda_for_all_n():
+    """The extension adds lambda_true>=140 for all three n (-> lambda_reported>=140)."""
+    rows = _load_calib_rows()
+    for n in (200, 400, 600):
+        lts = {r["lambda_true"] for r in rows if r["n"] == n}
+        assert {100.0, 120.0, 140.0, 150.0} <= lts, n
+    # n-averaged lambda_reported axis reaches past the observed real lambda ~142.5
+    assert max(r["lambda_reported"] for r in rows) >= 140.0
+
+
+def test_in_package_calibration_literal_matches_n_averaged_json():
+    """_CGAU2_LAMBDA_CALIBRATION equals the n-averaged JSON, strictly increasing."""
+    rows = _load_calib_rows()
+    by_lt = defaultdict(list)
+    for r in rows:
+        by_lt[r["lambda_true"]].append(r)
+    expected = []
+    for lt in sorted(by_lt):
+        rs = by_lt[lt]
+        ratio_mean = sum(r["ratio"] for r in rs) / len(rs)
+        lam_rep_mean = sum(r["lambda_reported"] for r in rs) / len(rs)
+        expected.append((lam_rep_mean, ratio_mean))
+    expected.sort()
+
+    literal = traveling_wave._CGAU2_LAMBDA_CALIBRATION
+    assert len(literal) == len(expected)
+    for (lr_lit, ra_lit), (lr_exp, ra_exp) in zip(literal, expected):
+        assert lr_lit == lr_exp  # atol=0: literal generated from JSON tokens
+        assert ra_lit == ra_exp
+    # strictly increasing reported axis (well-posed np.interp) covering lambda_true>=140
+    axis = [p[0] for p in literal]
+    assert all(axis[i + 1] > axis[i] for i in range(len(axis) - 1))
+    assert axis[-1] >= 140.0

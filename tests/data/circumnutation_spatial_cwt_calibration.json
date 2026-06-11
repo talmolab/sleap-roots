@@ -188,6 +188,102 @@
       "lambda_true": 80.0,
       "lambda_reported": 90.64509430368646,
       "ratio": 1.1330636787960808
+    },
+    {
+      "n": 200,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 100.0,
+      "lambda_reported": 109.84923654331857,
+      "ratio": 1.0984923654331857
+    },
+    {
+      "n": 200,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 120.0,
+      "lambda_reported": 128.04588163922762,
+      "ratio": 1.0670490136602302
+    },
+    {
+      "n": 200,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 140.0,
+      "lambda_reported": 157.0810192222133,
+      "ratio": 1.1220072801586665
+    },
+    {
+      "n": 200,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 150.0,
+      "lambda_reported": 165.31537038759865,
+      "ratio": 1.1021024692506576
+    },
+    {
+      "n": 400,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 100.0,
+      "lambda_reported": 108.46709070523863,
+      "ratio": 1.0846709070523863
+    },
+    {
+      "n": 400,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 120.0,
+      "lambda_reported": 130.677652818696,
+      "ratio": 1.0889804401558
+    },
+    {
+      "n": 400,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 140.0,
+      "lambda_reported": 157.43622176250454,
+      "ratio": 1.1245444411607468
+    },
+    {
+      "n": 400,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 150.0,
+      "lambda_reported": 167.52222655711557,
+      "ratio": 1.1168148437141039
+    },
+    {
+      "n": 600,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 100.0,
+      "lambda_reported": 111.33531359335313,
+      "ratio": 1.1133531359335314
+    },
+    {
+      "n": 600,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 120.0,
+      "lambda_reported": 136.7481842029058,
+      "ratio": 1.1395682016908817
+    },
+    {
+      "n": 600,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 140.0,
+      "lambda_reported": 156.83656528576307,
+      "ratio": 1.1202611806125933
+    },
+    {
+      "n": 600,
+      "scale_count": 64,
+      "ds": 5.8,
+      "lambda_true": 150.0,
+      "lambda_reported": 167.9616761227524,
+      "ratio": 1.119744507485016
     }
   ]
 }

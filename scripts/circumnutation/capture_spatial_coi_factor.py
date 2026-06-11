@@ -52,6 +52,14 @@ SCALE_COUNT = 64  # CWT_SCALE_COUNT_DEFAULT
 WL_MIN_FACTOR = 2.0  # CWT_WAVELENGTH_MIN_NYQUIST_FACTOR
 WL_MAX_FRACTION = 0.25  # CWT_WAVELENGTH_MAX_SIGNAL_FRACTION
 
+# Signal lengths and the PR #9 base wavelength grid.
+_BASE_NS = (200, 400, 600)
+_BASE_LAMBDAS = (20.0, 30.0, 40.0, 50.0, 60.0, 80.0)
+# PR #10 append-only extension: new lambda_true knots (measured for ALL _BASE_NS)
+# so the consumer's n-average is defined up to lambda_reported ~= 167 px, covering
+# the observed real plate-001 lambda ~= 142.5 px without clamped extrapolation.
+_EXTENSION_LAMBDAS = (100.0, 120.0, 140.0, 150.0)
+
 
 def _scale_axis(n: int, ds: float) -> np.ndarray:
     """Replicate the planned spatial scale axis (PR #9 spec)."""
@@ -104,17 +112,28 @@ def measure_coi_factor() -> dict:
     }
 
 
-def measure_wavelength_calibration() -> list:
-    """Per-(n, lambda_true) reported-vs-true wavelength via the ridge median."""
+def measure_wavelength_calibration(lambdas=_BASE_LAMBDAS, ns=_BASE_NS) -> list:
+    """Per-(n, lambda_true) reported-vs-true wavelength via the ridge median.
+
+    Args:
+        lambdas: The ``lambda_true`` knots to measure (px).
+        ns: The signal lengths to measure each knot at.
+
+    Returns:
+        A list of ``{n, scale_count, ds, lambda_true, lambda_reported, ratio}``
+        rows, one per ``(n, lambda_true)`` pair. Each row is independent (no
+        cross-row state), so measuring only new knots reproduces the same values
+        for the existing knots in a fixed environment.
+    """
     rows = []
-    for n in (200, 400, 600):
+    for n in ns:
         ds = 5.8
         s_a = np.arange(n, dtype=np.float64) * ds
         scales = _scale_axis(n, ds)
         wavelengths = _wavelengths_px(scales, ds)
         # crude COI mask (factor ~1.34) to take an interior median
         coi_factor = 1.34
-        for lam in (20.0, 30.0, 40.0, 50.0, 60.0, 80.0):
+        for lam in lambdas:
             kappa = np.sin(2.0 * np.pi * s_a / lam)
             coefs, _ = pywt.cwt(kappa, scales, WAVELET)
             mag = np.abs(coefs)  # (n_scales, n)
@@ -170,7 +189,50 @@ def main() -> int:
         description="Measure cgau2 COI e-folding factor + wavelength calibration."
     )
     parser.add_argument("--out", type=Path, default=None, help="JSON artifact path.")
+    parser.add_argument(
+        "--append",
+        action="store_true",
+        help=(
+            "PR #10 append-only mode: load the existing --out JSON, copy its "
+            "provenance + existing wavelength_calibration rows through VERBATIM "
+            "(no re-measure), measure ONLY the new _EXTENSION_LAMBDAS knots for "
+            "all _BASE_NS, and append them at the END. Makes the existing-rows "
+            "freeze mechanical (environment-independent)."
+        ),
+    )
     args = parser.parse_args()
+
+    if args.append:
+        if args.out is None or not args.out.exists():
+            print(
+                "--append requires an existing --out JSON to extend.", file=sys.stderr
+            )
+            return 2
+        with args.out.open("r", encoding="utf-8") as f:
+            payload = json.load(f)
+        existing = payload["wavelength_calibration"]
+        existing_keys = {(r["n"], r["lambda_true"]) for r in existing}
+        new_rows = [
+            r
+            for r in measure_wavelength_calibration(lambdas=_EXTENSION_LAMBDAS)
+            if (r["n"], r["lambda_true"]) not in existing_keys
+        ]
+        # Append at the END; existing rows + provenance are untouched (verbatim).
+        payload["wavelength_calibration"] = existing + new_rows
+        coi = payload["coi_efolding_factor"]
+        calib = payload["wavelength_calibration"]
+        print("=" * 78)
+        print(
+            f"PR #10 append-only extension: +{len(new_rows)} rows (knots "
+            f"{_EXTENSION_LAMBDAS} x n={_BASE_NS}); existing "
+            f"{len(existing)} rows + provenance preserved verbatim."
+        )
+        print("=" * 78)
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        with args.out.open("w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, default=str)
+        print(f"JSON artifact updated: {args.out.as_posix()}")
+        return 0
 
     coi = measure_coi_factor()
     calib = measure_wavelength_calibration()

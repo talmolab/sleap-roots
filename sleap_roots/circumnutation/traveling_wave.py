@@ -83,6 +83,29 @@ _TRAVELING_WAVE_TRAIT_UNITS: Dict[str, str] = {
     "coi_valid_fraction": "—",
 }
 
+# cgau2 over-report calibration: a single ``(lambda_reported_mean, ratio_mean)``
+# curve obtained by AVERAGING the per-(n) ratios across n in {200, 400, 600} at
+# each lambda_true (the ratio scatters ~7% non-monotonically across n; averaging
+# avoids the false precision of interpolating that, and books a documented ~±5%
+# systematic). Generated VERBATIM (full-precision tokens) from the authoritative
+# tests/data/circumnutation_spatial_cwt_calibration.json n-average — the module
+# does NOT read tests/data at runtime (wheel-safe). Validated by
+# test_in_package_calibration_literal_matches_n_averaged_json. lambda_reported_mean
+# is strictly increasing (well-posed np.interp) and covers lambda_true up to 150
+# px (lambda_reported ~167 px) so the observed real lambda ~142.5 px is in range.
+_CGAU2_LAMBDA_CALIBRATION: tuple = (
+    (21.75218773026324, 1.087609386513162),
+    (31.99480199096912, 1.0664933996989705),
+    (44.06824333041771, 1.1017060832604426),
+    (54.570013065987204, 1.091400261319744),
+    (66.5687339298172, 1.1094788988302866),
+    (90.07371215762747, 1.1259214019703434),
+    (109.88388028063677, 1.0988388028063678),
+    (131.82390622027648, 1.0985325518356372),
+    (157.11793542349366, 1.122270967310669),
+    (166.93309102248887, 1.112887273483259),
+)
+
 
 # ---------------------------------------------------------------------------
 # Input validation helpers
