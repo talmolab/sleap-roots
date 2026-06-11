@@ -113,8 +113,11 @@ def test_compute_rejects_invalid_constants_type():
         traveling_wave.compute(df, cadence_s=300.0, constants=object())
 
 
-@pytest.mark.parametrize("bad", [0.0, 1.5, -0.1])
-def test_compute_rejects_coi_fraction_max_out_of_range(bad):
+# Numeric out-of-range (0.0, 1.5, -0.1) hit the (0, 1] range check; the bool /
+# non-numeric cases (True, "nope", None) hit the type check — both raise
+# ValueError naming the field (ConstantsT does not validate this field itself).
+@pytest.mark.parametrize("bad", [0.0, 1.5, -0.1, True, "nope", None])
+def test_compute_rejects_invalid_coi_fraction_max(bad):
     df = _traj_df()
     with pytest.raises(ValueError, match="COI_FRACTION_MAX"):
         traveling_wave.compute(
