@@ -63,9 +63,9 @@ definitions and overturned two §7.4 "Handoff to PR #10" claims (see Impact). De
   pending the post-extension calibration re-measurement** (4 of 6 tracks currently clamp-extrapolate);
   the cgau2 calibration carries a documented ~±5% systematic and `lambda_spatial_variation` a measured
   argmax-quantization noise floor — neither over-interpreted below those thresholds.
-- **Affected process:** PR #10 has no tracking issue yet (epic #197 expects one). Draft the issue
-  body to the vault, post after user OK (parent #197; labels `enhancement`, `circumnutation`,
-  `multi-pr`), and backfill the number into roadmap line 146.
+- **Affected process:** tracking issue [#232](https://github.com/talmolab/sleap-roots/issues/232)
+  (parent #197; labels `enhancement`, `circumnutation`, `multi-pr`) — drafted to the vault, posted
+  after user OK, and backfilled into roadmap line 146. Use `Closes #232` in the PR body.
 - **Blocked / follow-up:** #230 (L_gz/L_c tip-trail transfer). No downstream consumer expects the
   omitted columns (verified against spec.md + roadmap + theory; the only reference is `parametric.py`'s
   stub docstring, which does not consume them at runtime).

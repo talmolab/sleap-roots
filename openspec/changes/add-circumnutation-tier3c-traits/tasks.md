@@ -8,11 +8,10 @@ shared-module edits (foundation, calibration script). Design + evidence:
 CR2-1..CR2-9); `docs/circumnutation/investigations/2026-06-10-tier3c-traveling-wave/report.md`.
 
 ## 0. PR #10 GitHub tracking issue (vault-draft → user OK → post) (OR: issue-hygiene)
-- [ ] 0.1 Draft the PR #10 issue body to `c:\vaults\sleap-roots\circumnutation\` (parent epic #197;
-  labels `enhancement`, `circumnutation`, `multi-pr`; reduced-scope statement; `Closes #<n>` plan;
-  #230 block-reference; note the `apex_basal_period_consistency` → `lambda_spatial_variation` rename
-  and that this PR corrects two PR #9 §7.4 handoff claims). Show the user; post ONLY after explicit
-  OK; then backfill the issue number into `roadmap.md` line 146 (`⬜` → `[#NNN]`).
+- [x] 0.1 Draft the PR #10 issue body to the vault, post after user OK, backfill roadmap line 146.
+  DONE: issue [#232](https://github.com/talmolab/sleap-roots/issues/232) posted (parent #197; labels
+  `enhancement`, `circumnutation`, `multi-pr`); roadmap line 146 updated (rename + descope cleanup +
+  `#232`, Issue-draft column → ✅). Use `Closes #232` in the PR body.
 
 ## 1. Module scaffold + foundation-test migrations (CR-10, CR2-2)
 - [ ] 1.1 RED: extend `tests/test_circumnutation_foundation.py` — add `"traveling_wave"` (with a
