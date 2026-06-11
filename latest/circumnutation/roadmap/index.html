@@ -3067,9 +3067,9 @@
 <tr>
 <td>11</td>
 <td><code>add-circumnutation-tier4-parametric</code></td>
-<td><code>gamma_over_beta</code> alias + <code>delta_dot_0_estimate</code> (theory.md §7.5); Phase-2 NaN columns (<code>beta</code>, <code>gamma</code>, <code>theta_p</code>).</td>
+<td><strong>⏸ DEFERRED (2026-06-11) — revisit after <a href="https://github.com/talmolab/sleap-roots/issues/230">#230</a> + a Phase-2 gravitropism-stimulus experiment.</strong> Every Tier 4 trait is currently blocked: <code>gamma_over_beta</code> IS the <code>L_c</code> alias (theory §7.5; Meroz 2026 Eq. 6) → blocked on #230 (L_c not measurable from top-view tip-trail κ(s), per the PR #9/#10 descope); <code>delta_dot_0_estimate</code> (theory §7.4: <code>δ̇₀ = ωRΔφ/(2ΔL)</code>, <code>ΔL = L_c</code>) → blocked on #230 + needs an external root-radius <code>R</code>; <code>beta</code>/<code>gamma</code>/<code>theta_p</code> are <strong>Phase 2</strong> (need a gravitropism stimulus to disentangle β from γ). Rather than ship a NaN-only PR, <strong>PR #14 (pipeline DAG) is promoted ahead of PR #11</strong> — it is independently deliverable, gives the program its first end-to-end CSV, and resolves the Tier 0/1 recompute redundancy PR #10 deferred to it. Full deferral rationale + the revisit-handoff: <code>c:\vaults\sleap-roots\circumnutation\new_session_prompt_pr11.md</code>. ~~<code>gamma_over_beta</code> alias + <code>delta_dot_0_estimate</code> (theory.md §7.5); Phase-2 NaN columns (<code>beta</code>, <code>gamma</code>, <code>theta_p</code>).~~</td>
 <td>⬜</td>
-<td>⬜</td>
+<td>⏸</td>
 </tr>
 <tr>
 <td>12</td>
@@ -3088,7 +3088,7 @@
 <tr>
 <td>14</td>
 <td><code>add-circumnutation-pipeline</code></td>
-<td><code>CircumnutationPipeline</code> DAG composition; pickle-ability; integration test on plate 001; CSV writer with full row-identity (CC-4).</td>
+<td><strong>↑ Promoted ahead of PR #11 (2026-06-11)</strong> — done next while Tier 4 is blocked on #230/Phase 2 (see the PR #11 row). <code>CircumnutationPipeline</code> DAG composition; pickle-ability; integration test on plate 001; CSV writer with full row-identity (CC-4). Should dedup the Tier 0/Tier 1 recompute that PR #10 <code>traveling_wave.compute</code> does redundant-by-design.</td>
 <td>⬜</td>
 <td>⬜</td>
 </tr>
