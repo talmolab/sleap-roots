@@ -542,3 +542,138 @@ def test_stationary_track_residual_no_runtimewarning():
     row = result.iloc[0]
     assert np.isnan(row["lambda_expected_px"])
     assert np.isnan(row["traveling_wave_residual"])
+
+
+# ---------------------------------------------------------------------------
+# Task 7 — real plate-001 validation + synthetic recovery / noise floor
+# ---------------------------------------------------------------------------
+
+_PROOFREAD_FIXTURE = (
+    Path(__file__).parent
+    / "data"
+    / "circumnutation_nipponbare_plate_001"
+    / "plate_001_greyscale.tracked_proofread.slp"
+)
+
+
+def _load_plate001_trajectory_df():
+    from sleap_roots.series import Series
+
+    series = Series.load(series_name="plate_001", primary_path=str(_PROOFREAD_FIXTURE))
+    df = series.get_tracked_tips()
+    df["track_id"] = df["track_id"].str.replace("track_", "", regex=False).astype(int)
+    df = df.copy()
+    df["series"] = "plate_001"
+    df["sample_uid"] = "plate_001"
+    df["timepoint"] = "T0"
+    df["plate_id"] = "plate_001"
+    df["plant_id"] = df["track_id"]
+    df["genotype"] = "Nipponbare"
+    df["treatment"] = "none"
+    return df
+
+
+@pytest.mark.skipif(
+    not _PROOFREAD_FIXTURE.exists(),
+    reason=f"Git-LFS proofread fixture not present: {_PROOFREAD_FIXTURE}",
+)
+def test_real_plate001_qpb_result_calibrated():
+    """§7: real compute() on the 6 Nipponbare tracks — QPB residual finite & < 0.30."""
+    df = _load_plate001_trajectory_df()
+    result = traveling_wave.compute(df, cadence_s=300.0)
+    assert len(result) == 6
+
+    res = result["traveling_wave_residual"].to_numpy(dtype=np.float64)
+    var = result["lambda_spatial_variation"].to_numpy(dtype=np.float64)
+    coi = result["coi_valid_fraction"].to_numpy(dtype=np.float64)
+    lam = result["lambda_spatial_median_px"].to_numpy(dtype=np.float64)
+
+    print(
+        "\nplate-001 traveling_wave: "
+        f"lambda_median={np.round(lam, 1).tolist()}; "
+        f"residual={np.round(res, 3).tolist()}; "
+        f"variation={np.round(var, 3).tolist()}; "
+        f"coi_valid={np.round(coi, 3).tolist()}"
+    )
+
+    # QPB holds: all 6 residuals finite and within a generous band (the precise
+    # endpoints depend on the n-averaged calibration; do NOT pin a tight range).
+    assert np.all(np.isfinite(res))
+    assert np.all(res < 0.30), res.tolist()
+    # all spatial gates pass (in-COI fraction well below COI_FRACTION_MAX=0.5)
+    assert np.all(coi >= 0.5), coi.tolist()
+    assert np.all(np.isfinite(var))
+
+
+def test_synthetic_uniform_lambda_recovery_and_noise_floor():
+    """Noise-free uniform-λ synthetic: λ recovered a priori AND variation ≈ 0."""
+    from sleap_roots.circumnutation import synthetic
+
+    growth = 4.29
+    T_s = 3333.0
+    cadence = 300.0
+    lam_apriori = growth * (T_s / cadence)  # ~47.7 px
+
+    df = synthetic.generate_trajectory(
+        T_nutation_s=T_s,
+        n_frames=575,
+        cadence_s=cadence,
+        amplitude_px=2.0,
+        growth_rate_px_per_frame=growth,
+        noise_sigma_px=0.0,
+        random_state=0,
+    ).copy()
+    for col, val in [
+        ("series", "test"),
+        ("sample_uid", "test"),
+        ("timepoint", "T0"),
+        ("plate_id", "plate"),
+        ("plant_id", 0),
+        ("track_id", 0),
+        ("genotype", np.nan),
+        ("treatment", np.nan),
+    ]:
+        df[col] = val
+    result = traveling_wave.compute(df, cadence_s=cadence)
+    row = result.iloc[0]
+    lam = row["lambda_spatial_median_px"]
+    print(
+        f"\nsynthetic recovery: lambda_apriori={lam_apriori:.1f}, "
+        f"lambda_spatial_median_px={lam:.1f}, variation={row['lambda_spatial_variation']:.4f}"
+    )
+    assert abs(lam - lam_apriori) / lam_apriori < 0.25
+    # NO spurious argmax-quantization floor: a uniform-λ trail reads ~0.
+    assert row["lambda_spatial_variation"] < 0.05
+
+
+def test_compute_is_deterministic_across_runs():
+    """Two in-process runs are bit-identical on all 6 float trait columns."""
+    df = _nutating_track_rows(0)
+    r1 = traveling_wave.compute(df, cadence_s=300.0)
+    r2 = traveling_wave.compute(df, cadence_s=300.0)
+    for col in _TRAIT_COLUMNS:
+        np.testing.assert_array_equal(
+            r1[col].to_numpy(), r2[col].to_numpy(), err_msg=col
+        )
+
+
+# Cross-OS regression sentinel on a fixed synthetic (amplitude_px=12,
+# growth_rate=4, T=3333, noise=0, random_state=0). The spatial-λ columns are
+# exact in-process; the v·T-derived columns inherit the Tier-1 scipy tolerance,
+# so the full 6-tuple is asserted at atol=1e-6 cross-OS. MAY be re-captured (in a
+# follow-up commit) if BLAS/scipy/pywt/numpy semantics legitimately shift.
+_CANARY = {
+    "lambda_spatial_median_px": 52.89599405686159,
+    "lambda_spatial_variation": 0.0,
+    "traveling_wave_residual": 0.02539993025468994,
+    "lambda_expected_px": 54.27456420220119,
+    "lambda_spatial_mad_px": 0.0,
+    "coi_valid_fraction": 0.9755671902268761,
+}
+
+
+def test_compute_canary_matches_expected_values():
+    df = _nutating_track_rows(0)
+    row = traveling_wave.compute(df, cadence_s=300.0).iloc[0]
+    for col, expected in _CANARY.items():
+        np.testing.assert_allclose(row[col], expected, atol=1e-6, rtol=0.0, err_msg=col)
