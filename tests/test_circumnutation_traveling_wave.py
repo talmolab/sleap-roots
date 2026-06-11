@@ -382,3 +382,49 @@ def test_in_package_calibration_literal_matches_n_averaged_json():
     axis = [p[0] for p in literal]
     assert all(axis[i + 1] > axis[i] for i in range(len(axis) - 1))
     assert axis[-1] >= 140.0
+
+
+# ---------------------------------------------------------------------------
+# Task 4 — cgau2 calibration consumer + COI gate
+# ---------------------------------------------------------------------------
+
+
+def _make_ridge(in_coi, wavelengths):
+    from sleap_roots.circumnutation.spatial_cwt import SpatialRidgeResult
+
+    in_coi = np.asarray(in_coi, dtype=bool)
+    wavelengths = np.asarray(wavelengths, dtype=np.float64)
+    n = in_coi.size
+    return SpatialRidgeResult(
+        position_indices=np.arange(n, dtype=np.int64),
+        wavelengths_px=wavelengths,
+        amplitudes=np.ones(n, dtype=np.float64),
+        powers=np.ones(n, dtype=np.float64),
+        in_coi=in_coi,
+    )
+
+
+def test_calibrate_recovers_known_knot():
+    """Dividing a knot's lambda_reported_mean by its ratio recovers lambda_true."""
+    # The lambda_true=80 knot: lambda_reported_mean=90.07371..., ratio=1.12592...
+    cal = traveling_wave._calibrate_wavelengths(np.array([90.07371215762747]))
+    assert np.allclose(cal, 80.0, atol=1e-6)
+
+
+def test_coi_gate_exactly_half_does_not_gate():
+    """in_coi fraction exactly 0.5 -> coi_valid_fraction 0.5, NOT gated (strict <)."""
+    ridge = _make_ridge([True] * 5 + [False] * 5, [90.07371215762747] * 10)
+    traits = traveling_wave._ridge_to_traits(ridge, ConstantsT())
+    assert traits["coi_valid_fraction"] == 0.5
+    assert np.isfinite(traits["lambda_spatial_median_px"])
+    assert np.isclose(traits["lambda_spatial_median_px"], 80.0, atol=1e-6)
+
+
+def test_coi_gate_above_half_in_coi_gates_lambda_but_keeps_fraction():
+    """in_coi fraction 0.6 (>COI_FRACTION_MAX) -> lambda NaN, coi_valid_fraction finite."""
+    ridge = _make_ridge([True] * 6 + [False] * 4, [90.0] * 10)
+    traits = traveling_wave._ridge_to_traits(ridge, ConstantsT())
+    assert traits["coi_valid_fraction"] == pytest.approx(0.4)
+    assert np.isnan(traits["lambda_spatial_median_px"])
+    assert np.isnan(traits["lambda_spatial_variation"])
+    assert np.isnan(traits["lambda_spatial_mad_px"])

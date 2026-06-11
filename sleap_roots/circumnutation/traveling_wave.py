@@ -106,6 +106,25 @@ _CGAU2_LAMBDA_CALIBRATION: tuple = (
     (166.93309102248887, 1.112887273483259),
 )
 
+# Precomputed interpolation axes (np.interp clamps beyond the table edges).
+_CALIB_AXIS: np.ndarray = np.array(
+    [p[0] for p in _CGAU2_LAMBDA_CALIBRATION], dtype=np.float64
+)
+_CALIB_RATIO: np.ndarray = np.array(
+    [p[1] for p in _CGAU2_LAMBDA_CALIBRATION], dtype=np.float64
+)
+
+
+def _calibrate_wavelengths(wavelengths_px: np.ndarray) -> np.ndarray:
+    """Convert cgau2-over-reported wavelengths to true px via the n-averaged curve.
+
+    ``lambda_true = lambda_reported / ratio(lambda_reported)``, with ``ratio``
+    interpolated on the strictly-increasing ``lambda_reported_mean`` axis of
+    :data:`_CGAU2_LAMBDA_CALIBRATION` (clamps at the table edges).
+    """
+    ratio = np.interp(wavelengths_px, _CALIB_AXIS, _CALIB_RATIO)
+    return wavelengths_px / ratio
+
 
 # ---------------------------------------------------------------------------
 # Input validation helpers
@@ -153,6 +172,38 @@ def _all_nan_spatial_traits() -> Dict[str, float]:
     return {col: float("nan") for col in _TRAVELING_WAVE_TRAIT_COLUMNS}
 
 
+def _ridge_to_traits(ridge, constants: ConstantsT) -> Dict[str, float]:
+    """Gate on the COI and compute the calibrated along-trail wavelength stats.
+
+    A ridge formed, so ``coi_valid_fraction`` is finite. The COI gate NaNs the 3
+    wavelength stats when the COI-valid fraction is below ``1 − COI_FRACTION_MAX``
+    (strict inequality: an exactly-``COI_FRACTION_MAX`` in-COI fraction does NOT
+    gate), while ``coi_valid_fraction`` stays populated so it diagnoses why a row
+    gated. Wavelengths are calibrated to true px before the statistics.
+    """
+    traits = _all_nan_spatial_traits()
+    n_total = int(ridge.in_coi.size)
+    if n_total == 0:
+        return traits
+    interior = ~ridge.in_coi
+    n_interior = int(interior.sum())
+    coi_valid_fraction = n_interior / n_total
+    traits["coi_valid_fraction"] = float(coi_valid_fraction)
+
+    if coi_valid_fraction < (1.0 - float(constants.COI_FRACTION_MAX)):
+        return traits  # COI gate fired: wavelength stats NaN, fraction finite
+    if n_interior == 0:
+        return traits
+
+    lam = _calibrate_wavelengths(ridge.wavelengths_px[interior])
+    median = float(np.median(lam))
+    mad = float(np.median(np.abs(lam - median)))
+    traits["lambda_spatial_median_px"] = median
+    traits["lambda_spatial_mad_px"] = mad
+    traits["lambda_spatial_variation"] = mad / median if median > 0.0 else float("nan")
+    return traits
+
+
 def _compute_one_track(
     group: pd.DataFrame,
     *,
@@ -168,10 +219,10 @@ def _compute_one_track(
     all-NaN-tip tracks emit an all-NaN row, and a ridge that forms still
     populates ``coi_valid_fraction`` even when the COI gate fires.
 
-    The cgau2 calibration (task 4) and the ``lambda_expected_px`` /
-    ``traveling_wave_residual`` composition (task 5, computed in :func:`compute`
-    from the joined Tier 0/Tier 1 operands) are layered on top in later steps;
-    here the wavelength statistics are still the RAW (un-calibrated) cgau2 ridge.
+    Wavelengths are calibrated to true px (:func:`_ridge_to_traits`); the
+    ``lambda_expected_px`` / ``traveling_wave_residual`` composition is computed
+    in :func:`compute` from the joined Tier 0/Tier 1 operands (those two columns
+    remain NaN in this per-track dict).
     """
     traits = _all_nan_spatial_traits()
 
@@ -205,22 +256,8 @@ def _compute_one_track(
     except ValueError:
         return traits
 
-    # A ridge formed → coi_valid_fraction is defined (finite) from here on.
-    interior = ~ridge.in_coi
-    n_interior = int(interior.sum())
-    traits["coi_valid_fraction"] = float(n_interior / ridge.in_coi.size)
-    if n_interior == 0:
-        return traits  # no COI-valid positions → wavelength stats stay NaN
-
-    lam = ridge.wavelengths_px[
-        interior
-    ]  # RAW cgau2 wavelengths (px); calibrated in task 4
-    median = float(np.median(lam))
-    mad = float(np.median(np.abs(lam - median)))
-    traits["lambda_spatial_median_px"] = median
-    traits["lambda_spatial_mad_px"] = mad
-    traits["lambda_spatial_variation"] = mad / median if median > 0.0 else float("nan")
-    return traits
+    # A ridge formed → gate on the COI and compute the calibrated wavelength stats.
+    return _ridge_to_traits(ridge, constants)
 
 
 def compute(
