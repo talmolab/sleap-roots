@@ -799,6 +799,11 @@ def test_constants_snapshot_reflects_override():
         # add-circumnutation-tier3b-spatial-cwt change removes it from STUB_MODULES
         # above (same Copilot regression PR #4/#5/#7/#8 hit).
         "spatial_cwt",
+        # Added in PR #10: traveling_wave (newly created implementation module;
+        # never a stub — like nutation, it grows the implementation set by
+        # ADDITION). Must be listed explicitly because it is NOT in STUB_MODULES
+        # (same Copilot regression PR #4/#5/#7/#8/#9 hit).
+        "traveling_wave",
     ],
 )
 def test_module_logger_is_namespaced(module_name):
@@ -888,6 +893,7 @@ IMPLEMENTATIONS_WITH_CONSTANTS_KWARG = [
     ("psi_g", "compute"),  # added by PR #7 (stub→impl rename compute_psi_g→compute)
     ("midline", "reconstruct"),  # added by PR #8 (stub→impl, no rename)
     ("spatial_cwt", "compute_scaleogram"),  # added by PR #9 (stub→impl, no rename)
+    ("traveling_wave", "compute"),  # added by PR #10 (new module, never a stub)
 ]
 
 
@@ -1012,6 +1018,35 @@ def test_implementation_accepts_constants_kwarg(module_name, callable_name):
         kappa = np.sin(np.arange(12, dtype=np.float64))
         result = fn(kappa, 5.8, constants=ConstantsT())
         assert isinstance(result, SpatialScaleogramResult)
+    elif module_name == "traveling_wave":
+        # traveling_wave.compute(trajectory_df, cadence_s, constants). PR #10
+        # (add-circumnutation-tier3c-traits). Trait-emission module like
+        # nutation/psi_g: takes a trajectory_df + positional cadence_s, returns
+        # a per-plant DataFrame. Build a 64-frame single-track trajectory (enough
+        # to form a midline + spatial scaleogram). This branch proves CALLABILITY
+        # only (returns a DataFrame, does not raise); a straight-line tip_y=0 track
+        # may emit all-NaN traits, which is fine here — real value coverage lives
+        # in tests/test_circumnutation_traveling_wave.py.
+        rows = []
+        for frame in range(64):
+            rows.append(
+                {
+                    "series": "test",
+                    "sample_uid": "test",
+                    "timepoint": "T0",
+                    "plate_id": "test",
+                    "plant_id": 0,
+                    "track_id": 0,
+                    "genotype": np.nan,
+                    "treatment": np.nan,
+                    "frame": frame,
+                    "tip_x": float(frame),
+                    "tip_y": 0.0,
+                }
+            )
+        df = pd.DataFrame(rows)
+        result = fn(df, 300.0, constants=ConstantsT())
+        assert isinstance(result, pd.DataFrame)
     else:
         # kinematics.compute / qc.compute take a positional trajectory_df.
         # Build a minimal valid 10-frame, 1-track trajectory inline.

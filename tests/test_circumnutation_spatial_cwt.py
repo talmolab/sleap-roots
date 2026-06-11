@@ -686,9 +686,11 @@ def _chain_lambda(kappa, arc):
 
 
 # Measured cgau2 scale2frequency calibration band (from
-# tests/data/circumnutation_spatial_cwt_calibration.json; ratio [1.044, 1.156]).
-# The oracle tolerance is this MEASURED band (not a speculative ±5%) — the cgau2
-# convention over-reports λ; widened slightly to [1.00, 1.25] for per-(n, λ) drift.
+# tests/data/circumnutation_spatial_cwt_calibration.json; ratio ~[1.04, 1.16]
+# across the full lambda_true 20-150 px range after the PR #10 append-only
+# extension). The oracle tolerance is this MEASURED band (not a speculative
+# ±5%) — the cgau2 convention over-reports λ; widened to [1.00, 1.25] for
+# per-(n, λ) drift.
 _CGAU2_RATIO_LO = 1.00
 _CGAU2_RATIO_HI = 1.25
 
