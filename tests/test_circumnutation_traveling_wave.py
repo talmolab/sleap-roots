@@ -6,6 +6,7 @@ circumnutation/spec.md (Requirement: Tier 3c traveling-wave trait emission API).
 """
 
 import logging
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -162,3 +163,140 @@ def test_compute_emits_exactly_one_debug_record(caplog):
     assert "n_tracks=" in debug[0].getMessage()
     assert "cadence_s=" in debug[0].getMessage()
     assert [r for r in records if r.levelno >= logging.INFO] == []
+
+
+# ---------------------------------------------------------------------------
+# Task 3 — per-track spatial chain + error handling
+# ---------------------------------------------------------------------------
+
+_SPATIAL_TRAITS = (
+    "lambda_spatial_median_px",
+    "lambda_spatial_variation",
+    "lambda_spatial_mad_px",
+)
+
+
+def _wavy_track_rows(track_id, n_frames=300, amp=20.0, freq=0.3, plate_id="plate"):
+    """A genuinely curved oscillating trail that forms a non-degenerate ridge."""
+    rows = []
+    for frame in range(n_frames):
+        rows.append(
+            {
+                "series": "test",
+                "sample_uid": "test",
+                "timepoint": "T0",
+                "plate_id": plate_id,
+                "plant_id": track_id,
+                "track_id": track_id,
+                "genotype": np.nan,
+                "treatment": np.nan,
+                "frame": frame,
+                "tip_x": float(frame),
+                "tip_y": amp * np.sin(freq * frame),
+            }
+        )
+    return rows
+
+
+def test_healthy_track_yields_finite_spatial_traits():
+    df = pd.DataFrame(_wavy_track_rows(0))
+    result = traveling_wave.compute(df, cadence_s=300.0)
+    row = result.iloc[0]
+    for col in _SPATIAL_TRAITS:
+        assert np.isfinite(row[col]), col
+    assert np.isfinite(row["coi_valid_fraction"])
+    assert 0.0 <= row["coi_valid_fraction"] <= 1.0
+
+
+def test_stationary_track_all_nan_no_runtimewarning():
+    rows = []
+    for frame in range(64):
+        rows.append(
+            {
+                "series": "test",
+                "sample_uid": "test",
+                "timepoint": "T0",
+                "plate_id": "plate",
+                "plant_id": 0,
+                "track_id": 0,
+                "genotype": np.nan,
+                "treatment": np.nan,
+                "frame": frame,
+                "tip_x": 5.0,
+                "tip_y": 5.0,
+            }
+        )
+    df = pd.DataFrame(rows)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        result = traveling_wave.compute(df, cadence_s=300.0)
+    row = result.iloc[0]
+    for col in _SPATIAL_TRAITS:
+        assert np.isnan(row[col]), col
+    assert np.isnan(row["coi_valid_fraction"])  # no ridge formed
+
+
+def test_short_track_does_not_crash_other_tracks_survive():
+    healthy = _wavy_track_rows(0)
+    short = [
+        {
+            "series": "test",
+            "sample_uid": "test",
+            "timepoint": "T0",
+            "plate_id": "plate",
+            "plant_id": 1,
+            "track_id": 1,
+            "genotype": np.nan,
+            "treatment": np.nan,
+            "frame": f,
+            "tip_x": float(f),
+            "tip_y": 0.0,
+        }
+        for f in range(2)
+    ]
+    df = pd.DataFrame(healthy + short)
+    result = traveling_wave.compute(df, cadence_s=300.0).set_index("track_id")
+    assert np.isfinite(result.loc[0, "lambda_spatial_median_px"])
+    assert np.isnan(result.loc[1, "lambda_spatial_median_px"])
+    assert len(result) == 2
+
+
+def test_all_nan_tip_and_single_frame_tracks_emit_nan_rows():
+    nan_track = [
+        {
+            "series": "test",
+            "sample_uid": "test",
+            "timepoint": "T0",
+            "plate_id": "plate",
+            "plant_id": 0,
+            "track_id": 0,
+            "genotype": np.nan,
+            "treatment": np.nan,
+            "frame": f,
+            "tip_x": np.nan,
+            "tip_y": np.nan,
+        }
+        for f in range(10)
+    ]
+    single = [
+        {
+            "series": "test",
+            "sample_uid": "test",
+            "timepoint": "T0",
+            "plate_id": "plate",
+            "plant_id": 1,
+            "track_id": 1,
+            "genotype": np.nan,
+            "treatment": np.nan,
+            "frame": 0,
+            "tip_x": 1.0,
+            "tip_y": 2.0,
+        }
+    ]
+    df = pd.DataFrame(nan_track + single)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        result = traveling_wave.compute(df, cadence_s=300.0)
+    assert len(result) == 2
+    for col in _SPATIAL_TRAITS + ("coi_valid_fraction",):
+        assert result[col].isna().all(), col

@@ -45,7 +45,7 @@ from typing import Any, Dict, Optional
 import numpy as np
 import pandas as pd
 
-from sleap_roots.circumnutation import temporal_cwt
+from sleap_roots.circumnutation import midline, spatial_cwt, temporal_cwt
 from sleap_roots.circumnutation._constants import ConstantsT
 from sleap_roots.circumnutation._io import (
     _IDENTITY_5_TUPLE,
@@ -136,17 +136,68 @@ def _compute_one_track(
     cadence_s: float,
     constants: ConstantsT,
 ) -> Dict[str, float]:
-    """Compute the 6 Tier 3c traits for a single track's per-frame rows.
+    """Compute the spatial Tier 3c traits for a single track's per-frame rows.
 
-    Always returns a complete 6-key dict and never raises (degenerate, short,
-    or all-NaN-tip tracks emit an all-NaN row). The spatial chain, COI gate,
-    calibration, and Tier 0/1 composition are filled in by subsequent TDD steps.
+    Runs the per-track spatial chain ``midline.reconstruct`` →
+    ``resample_curvature`` → ``compute_scaleogram`` → ``extract_ridge``, gates on
+    the cone of influence, and computes the along-trail wavelength statistics.
+    Always returns a complete 6-key dict and never raises: degenerate, short, or
+    all-NaN-tip tracks emit an all-NaN row, and a ridge that forms still
+    populates ``coi_valid_fraction`` even when the COI gate fires.
+
+    The cgau2 calibration (task 4) and the ``lambda_expected_px`` /
+    ``traveling_wave_residual`` composition (task 5, computed in :func:`compute`
+    from the joined Tier 0/Tier 1 operands) are layered on top in later steps;
+    here the wavelength statistics are still the RAW (un-calibrated) cgau2 ridge.
     """
-    # PR #10 TDD step 2: emission skeleton only — the spatial chain (task 3),
-    # COI gate + calibration (task 4), and Tier 0/1 composition + the trait
-    # formulas (task 5) are implemented next. Until then, every track emits an
-    # all-NaN row (a well-formed 6-key dict).
-    return _all_nan_spatial_traits()
+    traits = _all_nan_spatial_traits()
+
+    sub = group.sort_values("frame")
+    x = sub["tip_x"].to_numpy(dtype=np.float64)
+    y = sub["tip_y"].to_numpy(dtype=np.float64)
+    finite = np.isfinite(x) & np.isfinite(y)
+    x, y = x[finite], y[finite]
+
+    try:
+        mr = midline.reconstruct(x, y, cadence_s=cadence_s, constants=constants)
+    except (ValueError, TypeError):
+        return traits
+    if mr.is_degenerate:
+        return traits
+
+    rs = spatial_cwt.resample_curvature(
+        mr.curvature_px_inv,
+        mr.arc_length_px,
+        mr.velocity_sub_noise_mask,
+        constants=constants,
+    )
+    if rs.is_degenerate:
+        return traits
+
+    try:
+        scaleogram = spatial_cwt.compute_scaleogram(
+            rs.kappa_uniform, rs.ds, constants=constants
+        )
+        ridge = spatial_cwt.extract_ridge(scaleogram, constants=constants)
+    except ValueError:
+        return traits
+
+    # A ridge formed → coi_valid_fraction is defined (finite) from here on.
+    interior = ~ridge.in_coi
+    n_interior = int(interior.sum())
+    traits["coi_valid_fraction"] = float(n_interior / ridge.in_coi.size)
+    if n_interior == 0:
+        return traits  # no COI-valid positions → wavelength stats stay NaN
+
+    lam = ridge.wavelengths_px[
+        interior
+    ]  # RAW cgau2 wavelengths (px); calibrated in task 4
+    median = float(np.median(lam))
+    mad = float(np.median(np.abs(lam - median)))
+    traits["lambda_spatial_median_px"] = median
+    traits["lambda_spatial_mad_px"] = mad
+    traits["lambda_spatial_variation"] = mad / median if median > 0.0 else float("nan")
+    return traits
 
 
 def compute(
