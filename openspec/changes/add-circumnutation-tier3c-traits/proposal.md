@@ -45,8 +45,8 @@ definitions and overturned two §7.4 "Handoff to PR #10" claims (see Impact). De
   8→9 impl, addition scope note, callability scenario, import scenario); ADD "Tier 3c
   traveling-wave trait emission API".
 - **Affected code (new):** `sleap_roots/circumnutation/traveling_wave.py` (incl. an in-package
-  `_CGAU2_LAMBDA_CALIBRATION_N400` literal — the module does NOT read `tests/data` at runtime, so the
-  trait works in an installed wheel — and a `_TRAVELING_WAVE_TRAIT_UNITS` mapping per #222);
+  n-averaged `_CGAU2_LAMBDA_CALIBRATION` literal — the module does NOT read `tests/data` at runtime, so
+  the trait works in an installed wheel — and a `_TRAVELING_WAVE_TRAIT_UNITS` mapping per #222);
   `tests/test_circumnutation_traveling_wave.py`.
 - **Affected code (edits):** `scripts/circumnutation/capture_spatial_coi_factor.py` (append-only
   merge mode); `tests/test_circumnutation_foundation.py` (add `traveling_wave` to the
@@ -58,8 +58,11 @@ definitions and overturned two §7.4 "Handoff to PR #10" claims (see Impact). De
 - **Affected data:** `tests/data/circumnutation_spatial_cwt_calibration.json` (append-only
   extension; existing 18 rows + provenance preserved byte-for-byte; no test reads it today — a new
   regression test pins the existing rows).
-- **Scientific result (D7):** on plate-001, `traveling_wave_residual ≈ 0.10–0.18` (QPB holds to
-  ~9–18%, calibrated) and `lambda_spatial_variation ≈ 0.13–0.37`.
+- **Scientific result (D7, provisional):** on plate-001, `traveling_wave_residual ≈ 0.10–0.18` (QPB
+  holds to ~9–18%, calibrated) and `lambda_spatial_variation ≈ 0.13–0.37`. These are **provisional
+  pending the post-extension calibration re-measurement** (4 of 6 tracks currently clamp-extrapolate);
+  the cgau2 calibration carries a documented ~±5% systematic and `lambda_spatial_variation` a measured
+  argmax-quantization noise floor — neither over-interpreted below those thresholds.
 - **Affected process:** PR #10 has no tracking issue yet (epic #197 expects one). Draft the issue
   body to the vault, post after user OK (parent #197; labels `enhancement`, `circumnutation`,
   `multi-pr`), and backfill the number into roadmap line 146.

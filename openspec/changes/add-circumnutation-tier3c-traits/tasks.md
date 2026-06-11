@@ -62,19 +62,23 @@ CR2-1..CR2-9); `docs/circumnutation/investigations/2026-06-10-tier3c-traveling-w
   around `compute_scaleogram`/`extract_ridge`. Pin the CR-3 `coi_valid_fraction` rule (finite iff a
   ridge formed). Invariant: always returns a full 6-key dict, never raises.
 
-## 4. COI gate + calibration consumer (CR-7, CR-11, OR: packaging)
+## 4. COI gate + calibration consumer (CR-7, CR-11, OR: packaging / n-averaging)
+> ORDERING: tasks 4.2/4.3 (the literal) depend on §6 having regenerated the extended JSON first —
+> do §6 before §4.2/4.3 (or author 4.2 RED, then unblock its GREEN after §6.2).
 - [ ] 4.1 RED: COI gate boundary test — construct (synthetic OR monkeypatched) `SpatialRidgeResult`s
   with `in_coi` fraction EXACTLY 0.5 and > 0.5; assert the exactly-0.5 case does NOT gate (strict
   inequality) and the >0.5 case gates #1–#5 while `coi_valid_fraction` stays finite in both.
   (Hitting exactly 0.5 deterministically requires a constructed/monkeypatched ridge, not real data.)
 - [ ] 4.2 RED: in-package calibration-literal sync test — assert the module-level
-  `_CGAU2_LAMBDA_CALIBRATION_N400` literal equals the authoritative JSON's `n==400` entries
-  (sorted by `λ_reported`, `atol=0`), its `λ_reported` axis is strictly increasing, and it covers
-  `λ_true ≥ 140 px`. Calibration test — `λ_cal = λ_reported / np.interp(λ_reported, axis, ratio)`
-  recovers a known knot. (The module reads the LITERAL, never `tests/data` at runtime — wheel-safe.)
+  `_CGAU2_LAMBDA_CALIBRATION` literal equals the **n-averaged** computation from the authoritative
+  JSON (for each `λ_true`, mean `ratio` across `n ∈ {200,400,600}` + `λ_reported_mean`, sorted by
+  `λ_reported_mean`, `atol=0`), its axis is strictly increasing, and it covers `λ_true ≥ 140 px`.
+  The literal SHALL be generated from full-precision JSON tokens (never hand-rounded). Calibration
+  test — `λ_cal = λ_obs / np.interp(λ_obs, axis, ratio_mean)` recovers a known point. (The module
+  reads the LITERAL, never `tests/data` at runtime — wheel-safe.)
 - [ ] 4.3 GREEN: implement `~in_coi` interior selection, the COI fraction gate
-  (`coi_valid_fraction < 1 − COI_FRACTION_MAX`), the `_CGAU2_LAMBDA_CALIBRATION_N400` literal, and the
-  calibrated-λ helper (one calibrated array used for all three λ-traits). Declare
+  (`coi_valid_fraction < 1 − COI_FRACTION_MAX`), the n-averaged `_CGAU2_LAMBDA_CALIBRATION` literal,
+  and the calibrated-λ helper (one calibrated array used for all three λ-traits). Declare
   `_TRAVELING_WAVE_TRAIT_UNITS` (done in 2.3).
 
 ## 5. Composition (Tier 0/1 recompute + 5-tuple join) + traits + gating (CR-1, CR2-1, CR-4)
@@ -92,25 +96,30 @@ CR2-1..CR2-9); `docs/circumnutation/investigations/2026-06-10-tier3c-traveling-w
   `lambda_spatial_variation = MAD/median`, `lambda_spatial_mad_px`. Division guard: NaN #3/#4 when
   `v` non-finite or `lambda_expected_px ≤ 0`.
 
-## 6. Calibration-table extension (append-only, load-and-passthrough) (CR-8, CR2-4)
+## 6. Calibration-table extension (append-only, load-and-passthrough) (CR-8, CR2-4) — DO BEFORE §4.2/4.3
 - [ ] 6.1 RED: regression test asserting the existing 18 `(n, λ_true)` rows + the entire `provenance`
-  block are byte-for-byte unchanged after the extension; the extended n=400 axis is strictly
-  increasing; and it covers `λ_true ≥ 140 px` (→ `λ_reported ≈ 157 px ≥` the observed real λ ≈ 142.5,
+  block are unchanged after the extension — compared **by `(n, λ_true)` key lookup** (NOT list
+  position, so an end-append can't trip it); the n-averaged axis (task 4.2) is strictly increasing;
+  and the extension covers `λ_true ≥ 140 px` (→ `λ_reported ≈ 157 px ≥` the observed real λ ≈ 142.5,
   so no clamped extrapolation). Headroom is pinned on `λ_true` (≥140), NOT `λ_reported`.
 - [ ] 6.2 GREEN: add an append-only / merge mode to `capture_spatial_coi_factor.py` that **reads the
   existing committed JSON, copies its `provenance` block and existing `wavelength_calibration` rows
-  through verbatim (NO re-measure, do NOT call `_provenance()`), and measures ONLY the new n=400
-  `λ_true` knots (e.g. 100, 120, 140, 150)**, appending them. This makes the byte-for-byte freeze
+  through verbatim (NO re-measure, do NOT call `_provenance()`), and measures ONLY the new `λ_true`
+  knots (e.g. 100, 120, 140, 150) for ALL `n ∈ {200, 400, 600}`** (all three n are needed so the
+  consumer's n-average is defined at the new knots), **appending them at the END** of the
+  `wavelength_calibration` list (existing rows stay a contiguous prefix). This makes the freeze
   mechanical (not environment-dependent). Regenerate the committed JSON via that mode; derive the
-  `_CGAU2_LAMBDA_CALIBRATION_N400` literal (task 4.2/4.3) from the regenerated n=400 slice.
+  n-averaged `_CGAU2_LAMBDA_CALIBRATION` literal (task 4.2/4.3) from the regenerated table.
 - [ ] 6.3 Update the stale `# … ratio [1.044, 1.156]` comment in `tests/test_circumnutation_spatial_cwt.py`
   to reflect the extended range (the hardcoded `[1.00, 1.25]` band still passes; only the comment is stale).
 
 ## 7. Determinism + real-data validation (CR2-8, CR-9, D6, D7)
 - [ ] 7.1 RED: determinism — (a) two runs of the **full composed chain (incl. the np.interp
-  calibration)** are bit-identical IN-PROCESS at `atol=0`; (b) a captured canary tuple on a fixed
-  synthetic input matches hardcoded values to a measured `atol` (target 1e-6 — re-measure, don't
-  cargo-cult) cross-OS. State the canary columns/positions explicitly.
+  calibration)** are bit-identical IN-PROCESS at `atol=0`; (b) capture and assert the integer ridge
+  scale-index array EQUAL cross-OS (an argmax tie-flip is a discrete scale-step jump, not atol-bounded
+  — index-equality is the real cross-OS contract); (c) a captured float canary tuple matches hardcoded
+  values to a measured `atol` (target 1e-6 — re-measure; may need to be looser if a tie-flip shifts the
+  median). State the canary columns/positions explicitly.
 - [ ] 7.2 RED: real-data plate-001 test (all 6 tracks), **gated with
   `@pytest.mark.skipif(not _PROOFREAD_FIXTURE.exists(), …)`** exactly like `test_circumnutation_spatial_cwt.py`
   §7 — `traveling_wave_residual` finite and `< 0.30` (generous band; do NOT pin [0.087, 0.177] — both
@@ -120,6 +129,9 @@ CR2-1..CR2-9); `docs/circumnutation/investigations/2026-06-10-tier3c-traveling-w
   (e.g. `generate_trajectory(amplitude_px=2.0, growth_rate_px_per_frame=4.29, T_nutation_s=3333,
   cadence_s=300, n_frames=575, random_state=0)` → λ_apriori ≈ 47.7 px) so λ_spatial ≈
   `growth_rate·T_frames` a priori; assert `abs(lambda_spatial_median_px − λ_apriori)/λ_apriori < 0.25`.
+  This trajectory is uniform-λ by construction → ALSO capture `lambda_spatial_variation` on it as the
+  **argmax-quantization noise floor**, record it in the test + theory, and assert real-data variation
+  is interpreted relative to that floor (values within the floor = "consistent with uniform").
 - [ ] 7.4 GREEN: reconcile any numeric drift; lock the measured atol + canary values.
 
 ## 8. Spec deltas + docs deviations (CR-12, CR-13, CR2-6)
@@ -131,7 +143,11 @@ CR2-1..CR2-9); `docs/circumnutation/investigations/2026-06-10-tier3c-traveling-w
   `apex_basal_period_consistency`→`lambda_spatial_variation` = MAD/median); correct handoff notes 2
   (line 512) + 4 (line 514) in place; update the PR #9 scope-note dead name (lines 485–495); add
   **Appendix B(6)** preserving the ORIGINAL "bias cancels" + `apex_basal_period_consistency`
-  wording, then the corrections (cite the design + investigation report).
+  wording, then the corrections (cite the design + investigation report). Also document in §7.4 /
+  Appendix B(6): the cgau2 calibration uses an **n-averaged** `ratio(λ)` curve with an irreducible
+  **~±5% systematic** (residual n-scatter), and `lambda_spatial_variation` has an **argmax-quantization
+  noise floor** (measured in task 7.3) — neither should be over-interpreted below those thresholds;
+  the D7 plate-001 numbers are provisional pending the post-extension re-measurement.
 - [ ] 8.3 roadmap.md line 146: rename both `apex_basal_period_consistency` → `lambda_spatial_variation`;
   remove the descoped `B_balance_number`/`L_gz_*` traits + "Applies the L_gz mask" claim (D1); add
   `traveling_wave` to the module enumeration. `docs/changelog.md`: PR #10 entry announces the rename

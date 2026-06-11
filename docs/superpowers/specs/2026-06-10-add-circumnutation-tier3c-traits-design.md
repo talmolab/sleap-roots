@@ -176,7 +176,7 @@ DataFrame) and `_check_cadence_s` (positive finite). `constants` validated as No
   forced low-COI → gated.
 - Schema: exact 8+6 columns in order, dtypes, 5-tuple groupby, per-plant merge.
 - Determinism: two-run canary at the measured atol.
-- **Real plate-001 (all 6 tracks)**: `traveling_wave_residual` finite and ~0.09–0.18 (QPB),
+- **Real plate-001 (all 6 tracks)**: `traveling_wave_residual` finite and ~0.10–0.18 (QPB),
   `lambda_spatial_variation` ~0.13–0.37, all gates pass — the scientific cross-check.
 - Calibration-table extension: regenerated JSON covers observed λ; PR #9 calibration test green.
 

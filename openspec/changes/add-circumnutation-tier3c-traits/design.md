@@ -71,3 +71,28 @@ enumerated in `tasks.md` §8.2; roadmap + changelog propagation in §8.3.
   COI-gate boundary, calibration-literal sync; real-data test `skipif`-gated; tasks 1.1+1.2 land in
   one commit; synthetic-recovery params + tolerance pinned; px⁻¹ vocabulary token confirmed
   not-needed (no px⁻¹ column emitted).
+
+## Round-3 review reconciliation (3rd critical-review pass)
+
+The fresh-eyes pass surfaced scientific gaps the engineering-focused rounds missed; all reconciled:
+- **Calibration n-dependence (decision: average across n).** The cgau2 ratio scatters ~7% across
+  `n ∈ {200,400,600}`, non-monotonically; fixing n=400 injected a ~±5% systematic ≈ the residual
+  signal. Resolution: the consumer uses a single **n-averaged** `ratio(λ)` curve (`_CGAU2_LAMBDA_CALIBRATION`),
+  the extension measures the new λ_true knots for ALL three n, and the ~±5% systematic is DOCUMENTED
+  (spec + theory) so track-to-track residual differences within it are not over-interpreted.
+- **D7 provisional (4/6 clamp, not 2).** 4 of 6 real tracks currently clamp-extrapolate; D7's ~9–18%
+  is restated as provisional pending the post-extension re-measurement; the real-data test asserts the
+  post-extension residual.
+- **`lambda_spatial_variation` noise floor.** Measured on a uniform-λ synthetic (task 7.3); values
+  within the argmax-quantization floor are "consistent with uniform" — the trait is a spread
+  diagnostic, not a calibrated H1 test below the floor.
+- **Determinism = argmax index equality.** The cross-OS canary pins the integer ridge scale-index
+  array equal (tie-flips are discrete scale-step jumps, not atol-bounded); the float atol is measured
+  and may be looser than 1e-6.
+- **`traveling_wave_residual` interpretability regime.** Documented: meaningful only when
+  `lambda_expected_px ≳ one wavelength` (a tiny-but-positive v·T gives a large-but-finite artifact).
+- **"orientation-robust" not "orientation-invariant."** The MAD/median statistic is reversal-invariant
+  but the COI-interior selection depends on the resample `s_a=0` anchor — wording softened.
+- **Mechanics:** append new calibration rows at the END (existing 18 a contiguous prefix); regression
+  compares by `(n, λ_true)` key; the literal is generated from full-precision JSON tokens; §6 precedes
+  §4.2/4.3; `lambda_spatial_mad_px` named among the is_nutating-independent spatial traits.
