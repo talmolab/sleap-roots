@@ -71,10 +71,24 @@ caller knows that path, so the provenance gap is resolved there, not leaked into
 `write_per_plant_csv` hard-enforces 1:1 column coverage + `PIPELINE_UNIT_VOCABULARY` membership.
 Two of five tiers lack a units map. PR #14 adds them, co-located with each tier's
 `_*_TRAIT_COLUMNS` (the kinematics/qc/traveling_wave convention) — additive, no behavior change.
-The pipeline assembles one composed dict: `ROW_IDENTITY_UNITS` ∪ the five tier maps. `_*_TRAIT_UNITS`
-values follow each column's semantics (`px`, `px/frame`, `s`, `rad`, `—`, `bool`, `string`) drawn
-only from `PIPELINE_UNIT_VOCABULARY`. Locked as scenarios under the composition-API requirement
-(they are added to *enable* composition), rather than reproducing the two large tier requirements.
+The pipeline assembles one composed dict: `ROW_IDENTITY_UNITS` ∪ the five tier maps. The exact
+strings are **pinned in the spec** (the writer validates vocabulary membership but NOT semantic
+correctness — an in-vocabulary-but-wrong string would silently mislabel a published column). Traps
+the review surfaced: `noise_floor_estimate` → `"px"` (a median FFT amplitude, NOT `"—"`);
+`helix_signed_area_px2` → `"px²"` (superscript glyph, not ASCII `"px2"`); `handedness` → `"int"`
+(integer sign, matching the type-token convention for non-float columns). The `"s"` period units
+arrive pre-converted from the temporal CWT (`periods_s = scale2frequency(...) / cadence_s`); the
+pipeline does no unit conversion.
+
+**#222 scope (deferred).** #222 is a program-wide *suffix convention* requiring `T_nutation_median`
+→ `T_nutation_median_s` / `T_nutation_iqr` → `T_nutation_iqr_s`, a documented rule, and a foundation
+suffix-gate — NOT just the units maps. PR #14 adds ONLY the maps (keyed on current column names) and
+explicitly defers the rename to #222 (the rename ripples into `traveling_wave`'s internal
+`T_nutation_median` read, the dedup, theory.md, and the nutation tests). The maps re-key when #222
+lands.
+
+Locked as scenarios under the composition-API requirement (the maps are added to *enable*
+composition), rather than reproducing the two large tier requirements.
 
 ## Decision D5 — `growth_axis_unreliable` coalescing: Tier 0 owns it
 
@@ -129,9 +143,6 @@ coercion-with-raise guard on `track_id`/`plant_id` every tier already applies.
 
 ## Open questions (resolve at impl)
 
-- Exact per-column unit strings for the two new maps (derive from each column's semantics; e.g.
-  `is_nutating` → `bool`, `handedness` → likely `—`; pin from `PIPELINE_UNIT_VOCABULARY` after
-  reading each column's definition).
 - Exact `tests/test_circumnutation_foundation.py` edit locations (verify line numbers at impl, per
   the PR #10 CR2-2 lesson — the stub→impl migration touches `STUB_MODULES`,
   `STUBS_WITH_CONSTANTS_KWARG`, the namespaced-logger list, `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG`,

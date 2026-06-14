@@ -13,7 +13,10 @@ parallelization.
 It also resolves a redundancy the tiers shipped by design: `traveling_wave.compute` recomputes
 Tier 0 and a per-track Tier 1 temporal CWT internally to obtain `v_total_median_px_per_frame` and
 `T_nutation_median`. In a full pipeline run those tiers are already computed as emitting tiers, so
-the pipeline must **dedup** rather than pay that cost twice (issue #232 lineage).
+the pipeline must **dedup** rather than pay that cost twice. (PR #10 / issue #232 explicitly
+*delegated* this dedup to PR #14 and noted the one correctness constraint it carries — the
+int64-coercion-or-raise guard on `track_id`/`plant_id`, since `track_id` is not unique across plates
+and a dtype mismatch would silently NaN-join rather than raise.)
 
 This is a **stub → implementation** transition: `pipeline.compute_traits` currently raises
 `NotImplementedError`; PR #14 implements it (implementation modules 9 → 10, stub modules 3 → 2). No
@@ -33,9 +36,13 @@ new science is introduced — every trait is already computed and tested by its 
 - **Dedup Tier 0/Tier 1** via an optional precomputed-frames fast path on
   `traveling_wave.compute`: new keyword-only `tier0_df` / `tier1_df`. When supplied (both), it skips
   the internal Tier 0/Tier 1 recompute; standalone behavior (kwargs omitted) is byte-identical.
-- **Close the #222 units-map gap**: add `_NUTATION_TRAIT_UNITS` to `nutation.py` and
-  `_PSIG_TRAIT_UNITS` to `psi_g.py` (additive module constants) so every emitted column has a unit
-  for the sidecar writer's 1:1 / vocabulary checks.
+- **Add the nutation/psi_g units maps the pipeline needs**: add `_NUTATION_TRAIT_UNITS` to
+  `nutation.py` and `_PSIG_TRAIT_UNITS` to `psi_g.py` (additive module constants, keyed on the
+  CURRENT column names) so every emitted column has a unit for the sidecar writer's 1:1 / vocabulary
+  checks. The exact unit strings are pinned in the spec (semantic-correctness matters — e.g.
+  `noise_floor_estimate` is `"px"`, an amplitude, not `"—"`). This does **not** do the broader #222
+  suffix-convention work (renaming `T_nutation_median` → `T_nutation_median_s` etc. + the foundation
+  suffix-gate), which remains #222's job; the maps will be re-keyed when that rename lands.
 - **Coalesce `growth_axis_unreliable`** (emitted, equal-by-construction, by both Tier 0 and QC):
   Tier 0 owns it in the composed output; QC's copy is dropped before merge.
 - **Integration test** round-trips the real proofread plate-001 `.slp` through the full pipeline
@@ -51,9 +58,11 @@ new science is introduced — every trait is already computed and tested by its 
   DAG; the circumnutation tiers are *per-track DataFrame → DataFrame* functions that do not fit that
   node model. A sequential merge-orchestrator expresses the same dependency structure without the
   impedance mismatch. The stub docstring + roadmap row are corrected as tasks.
-- **`_NUTATION_TRAIT_UNITS` / `_PSIG_TRAIT_UNITS` added now.** These tiers predate the
-  `_*_TRAIT_UNITS` convention (#222). PR #14 surfaces the gap (the pipeline must supply units for
-  every column) and closes it, additively.
+- **`_NUTATION_TRAIT_UNITS` / `_PSIG_TRAIT_UNITS` added now (keyed on current names).** These tiers
+  predate the `_*_TRAIT_UNITS` convention. PR #14 surfaces the gap (the pipeline must supply units
+  for every column) and adds the maps additively. It does NOT do the #222 suffix rename (that
+  ripples into `traveling_wave`'s internal `T_nutation_median` read, the dedup, theory.md, and the
+  nutation test suite) — #222 stays a separate change; these maps re-key when it lands.
 
 ## Capabilities / Spec deltas
 
@@ -65,9 +74,11 @@ new science is introduced — every trait is already computed and tested by its 
   `tier0_df` / `tier1_df` precomputed-frames dedup fast path (both-or-neither; validated;
   result-identical to the recompute; standalone byte-identical).
 - **ADDED — Circumnutation pipeline composition API**: the `CircumnutationPipeline` class +
-  `compute_traits` return contract + the 46-column composed schema + merge-on-5-tuple +
-  `growth_axis_unreliable` coalescing + units-dict assembly (incl. the new nutation/psi_g maps) +
-  `save()` sidecar writing + picklability + determinism + the plate-001 integration contract.
+  `compute_traits` return contract + the 46-column composed schema (the 5 #230-blocked L_gz/L_c
+  Tier 3c traits are deliberately absent, not NaN-reserved) + merge-on-5-tuple +
+  `growth_axis_unreliable` coalescing + units-dict assembly with the pinned nutation/psi_g unit
+  strings + `save()` sidecar writing + picklability + determinism + the plate-001 integration
+  contract.
 
 ## Impact
 
@@ -85,4 +96,6 @@ new science is introduced — every trait is already computed and tested by its 
 ## References
 
 - Design doc: `docs/superpowers/specs/2026-06-14-add-circumnutation-pipeline-design.md`
-- Epic #197; closes the PR #14 roadmap row; surfaces #222 (units maps), #232 (dedup lineage).
+- Epic #197; closes the PR #14 roadmap row. Adds the nutation/psi_g units maps (the units-map
+  portion only; the #222 suffix rename stays out of scope). PR #10 / #232 delegated the Tier 0/Tier 1
+  dedup to this PR. #230 (L_gz/L_c) is informational — its blocked traits stay omitted.
