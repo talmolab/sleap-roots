@@ -192,14 +192,11 @@ def test_2_one_row_per_track_with_unique_5tuple():
 def test_2_trait_units_all_in_pipeline_vocabulary():
     """§2: the 4 declared trait units are all members of PIPELINE_UNIT_VOCABULARY."""
     from sleap_roots.circumnutation._constants import PIPELINE_UNIT_VOCABULARY
+    from sleap_roots.circumnutation.psi_g import _PSIG_TRAIT_UNITS
 
-    units = {
-        "T_psig_median_s": "s",
-        "delta_E_amplitude_proxy_px_per_frame": "px/frame",
-        "handedness": "int",
-        "helix_signed_area_px2": "px²",
-    }
-    for col, unit in units.items():
+    # Single source of truth: the module-level _PSIG_TRAIT_UNITS constant (PR #14
+    # gave these inline-declared units a real home; re-pointed here to avoid drift).
+    for col, unit in _PSIG_TRAIT_UNITS.items():
         assert unit in PIPELINE_UNIT_VOCABULARY, f"{col} unit {unit!r} not in vocab"
 
 

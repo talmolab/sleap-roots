@@ -90,6 +90,26 @@ _NUTATION_TRAIT_COLUMNS: tuple = (
     "cadence_nyquist_ratio",
 )
 
+# Per-column units for the 8 Tier-1 trait/flag columns (GitHub issue #222
+# units-map portion; consumed by the PR #14 pipeline's units-sidecar assembly,
+# mirroring the _TIER0_TRAIT_UNITS precedent). NOTE: ``noise_floor_estimate`` is
+# a median FFT amplitude of the lateral px signal -> "px" (NOT a dimensionless
+# ratio). The "s" period units arrive pre-converted from the temporal CWT
+# (periods_s = scale2frequency(...) / cadence_s). Every value is a member of
+# ``sleap_roots.circumnutation._constants.PIPELINE_UNIT_VOCABULARY``. Keys are on
+# the current (unsuffixed) column names; the broader #222 suffix rename
+# (T_nutation_median -> T_nutation_median_s) is out of scope and will re-key this.
+_NUTATION_TRAIT_UNITS: Dict[str, str] = {
+    "T_nutation_median": "s",
+    "T_nutation_iqr": "s",
+    "A_nutation_envelope_max_px": "px",
+    "band_power_ratio": "—",
+    "noise_floor_estimate": "px",
+    "is_nutating": "bool",
+    "period_residual_vs_derr_reference": "—",
+    "cadence_nyquist_ratio": "—",
+}
+
 # S4 round-1 + Sci-I3 round-2: NaN-gated when is_nutating==False.
 _NAN_GATED_TRAITS: tuple = (
     "T_nutation_median",
