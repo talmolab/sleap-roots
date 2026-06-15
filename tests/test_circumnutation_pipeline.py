@@ -320,6 +320,15 @@ def test_compute_traits_all_degenerate_input():
     assert per_plant_df["is_nutating"].dtype == np.bool_
     assert per_plant_df["handedness"].dtype == np.int64
     assert per_plant_df["growth_axis_unreliable"].dtype == np.bool_
+    # the degenerate path fired in every tier → its float traits are all-NaN
+    for col in (
+        "v_total_median_px_per_frame",  # Tier 0
+        "sg_residual_xy",  # QC
+        "T_nutation_median",  # Tier 1
+        "T_psig_median_s",  # Tier 2
+        "traveling_wave_residual",  # Tier 3c
+    ):
+        assert per_plant_df[col].isna().all(), col
 
 
 def test_compute_traits_echoes_unmodified_trajectory_df():
@@ -508,3 +517,54 @@ def test_real_plate001_full_pipeline_round_trip(tmp_path):
     df2, units2, md = read_per_plant_csv(out)
     assert len(df2) == 6
     assert md["cadence_s"] == 300.0
+
+
+# ---------------------------------------------------------------------------
+# Review reconciliation — input guard + constants threading
+# ---------------------------------------------------------------------------
+
+
+def test_compute_traits_rejects_non_integer_track_id():
+    """A fractional track_id would truncate to int64 and merge distinct plants."""
+    df = pd.DataFrame([r for t in range(2) for r in _track_rows(t)])
+    df["track_id"] = df["track_id"].map({0: 0.3, 1: 0.7})
+    df["plant_id"] = df["track_id"]
+    inputs = CircumnutationInputs(trajectory_df=df, cadence_s=300.0)
+    with pytest.raises(ValueError, match="track_id"):
+        pipeline.compute_traits(inputs)
+
+
+def test_compute_traits_threads_same_constants_and_uses_fast_path(monkeypatch):
+    """The same constants object reaches all 5 tiers + traveling_wave's fast path."""
+    from sleap_roots.circumnutation._constants import ConstantsT
+
+    calls = {}
+
+    def spy(name, fn, cpos):
+        def inner(*a, **k):
+            calls[name] = k["constants"] if "constants" in k else a[cpos]
+            if name == "traveling_wave":
+                calls["tw_fast"] = (k.get("tier0_df"), k.get("tier1_df"))
+            return fn(*a, **k)
+
+        return inner
+
+    monkeypatch.setattr(pipeline.kinematics, "compute", spy("k", kinematics.compute, 1))
+    monkeypatch.setattr(pipeline.qc, "compute", spy("q", qc.compute, 1))
+    monkeypatch.setattr(pipeline.nutation, "compute", spy("n", nutation.compute, 2))
+    monkeypatch.setattr(pipeline.psi_g, "compute", spy("p", psi_g.compute, 2))
+    monkeypatch.setattr(
+        pipeline.traveling_wave,
+        "compute",
+        spy("traveling_wave", traveling_wave.compute, 2),
+    )
+
+    constants = ConstantsT(BAND_POWER_NOISE_RATIO=4)
+    pipeline.CircumnutationPipeline(constants=constants).compute_traits(
+        _inputs(n_tracks=2)
+    )
+
+    for name in ("k", "q", "n", "p", "traveling_wave"):
+        assert calls[name] is constants, name
+    tier0_df, tier1_df = calls["tw_fast"]
+    assert tier0_df is not None and tier1_df is not None  # dedup fast path used

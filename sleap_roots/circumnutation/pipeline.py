@@ -16,6 +16,7 @@ multiprocessing parallelization.
 
 import logging
 from pathlib import Path
+from typing import Optional
 
 import attrs
 import numpy as np
@@ -102,9 +103,11 @@ class CircumnutationPipeline:
             tier. ``None`` (default) uses module-level defaults.
     """
 
-    constants: "ConstantsT | None" = attrs.field(default=None)
+    constants: Optional[ConstantsT] = attrs.field(default=None)
 
-    def compute_traits(self, inputs: CircumnutationInputs):
+    def compute_traits(
+        self, inputs: CircumnutationInputs
+    ) -> "tuple[pd.DataFrame, pd.DataFrame, dict]":
         """Compose the five tiers into one per-plant trait table (pure, no I/O).
 
         Args:
@@ -112,13 +115,36 @@ class CircumnutationPipeline:
 
         Returns:
             Tuple ``(per_plant_df, trajectory_df, units_dict)``: the composed
-            46-column per-plant DataFrame, the (unmodified) input
-            ``trajectory_df`` echoed for provenance, and the column-to-unit
-            mapping covering every emitted column.
+            46-column per-plant DataFrame, the input ``trajectory_df`` echoed for
+            provenance (the SAME object as ``inputs.trajectory_df``, by reference —
+            no tier mutates it, but a caller that mutates the echo also mutates
+            ``inputs``), and the column-to-unit mapping covering every emitted
+            column.
+
+        Raises:
+            ValueError: If ``track_id`` / ``plant_id`` carry non-integer-valued or
+                non-finite values (a fractional key would truncate to int64 in the
+                per-plant merge and silently collapse distinct plants).
         """
         df = inputs.trajectory_df
         cadence_s = inputs.cadence_s
         constants = self.constants
+
+        # The per-plant merge keys are coerced to int64; a fractional float
+        # track_id/plant_id (e.g. 0.3) would truncate to 0 and silently merge
+        # distinct plants into a many-to-many row explosion. Real .slp data is
+        # always integer-valued (sleap_roots.series), so guard the boundary
+        # rather than silently corrupt (mirrors the module's coerce-and-raise rule).
+        for col in ("track_id", "plant_id"):
+            vals = df[col].to_numpy()
+            if not np.all(np.isfinite(vals)) or not np.array_equal(
+                vals, vals.astype(np.int64)
+            ):
+                raise ValueError(
+                    f"{col!r} must be integer-valued and finite; non-integer "
+                    f"values would truncate to int64 and silently merge distinct "
+                    f"plants in the per-plant composition."
+                )
 
         n_tracks = df[list(_IDENTITY_5_TUPLE)].drop_duplicates().shape[0]
         logger.debug(
@@ -224,7 +250,9 @@ class CircumnutationPipeline:
         write_per_plant_csv(out_path, per_plant_df, units, run_metadata)
 
 
-def compute_traits(inputs: CircumnutationInputs, constants=None):
+def compute_traits(
+    inputs: CircumnutationInputs, constants: Optional[ConstantsT] = None
+) -> "tuple[pd.DataFrame, pd.DataFrame, dict]":
     """Run the full circumnutation pipeline on a :class:`CircumnutationInputs`.
 
     Thin module-level wrapper preserving the stub's signature; equal to
