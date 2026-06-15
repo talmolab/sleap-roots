@@ -535,7 +535,15 @@ def test_compute_traits_rejects_non_integer_track_id():
 
 
 def test_compute_traits_threads_same_constants_and_uses_fast_path(monkeypatch):
-    """The same constants object reaches all 5 tiers + traveling_wave's fast path."""
+    """The same constants object reaches all 5 tiers + traveling_wave's fast path.
+
+    Import ``pipeline`` + ``ConstantsT`` function-locally and patch the tiers via
+    ``getattr(pipeline, ...)`` so every object is the SAME module generation as
+    ``sys.modules`` after ``test_no_root_handlers_added_at_import`` reloads the
+    package — a stale-vs-fresh ``ConstantsT`` would make the tiers'
+    ``isinstance(constants, ConstantsT)`` raise ``got ConstantsT`` in full-suite runs.
+    """
+    from sleap_roots.circumnutation import pipeline
     from sleap_roots.circumnutation._constants import ConstantsT
 
     calls = {}
@@ -549,15 +557,15 @@ def test_compute_traits_threads_same_constants_and_uses_fast_path(monkeypatch):
 
         return inner
 
-    monkeypatch.setattr(pipeline.kinematics, "compute", spy("k", kinematics.compute, 1))
-    monkeypatch.setattr(pipeline.qc, "compute", spy("q", qc.compute, 1))
-    monkeypatch.setattr(pipeline.nutation, "compute", spy("n", nutation.compute, 2))
-    monkeypatch.setattr(pipeline.psi_g, "compute", spy("p", psi_g.compute, 2))
-    monkeypatch.setattr(
-        pipeline.traveling_wave,
-        "compute",
-        spy("traveling_wave", traveling_wave.compute, 2),
-    )
+    for name, mod_attr, cpos in (
+        ("k", "kinematics", 1),
+        ("q", "qc", 1),
+        ("n", "nutation", 2),
+        ("p", "psi_g", 2),
+        ("traveling_wave", "traveling_wave", 2),
+    ):
+        mod = getattr(pipeline, mod_attr)
+        monkeypatch.setattr(mod, "compute", spy(name, mod.compute, cpos))
 
     constants = ConstantsT(BAND_POWER_NOISE_RATIO=4)
     pipeline.CircumnutationPipeline(constants=constants).compute_traits(
