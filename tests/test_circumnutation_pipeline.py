@@ -145,3 +145,187 @@ def test_nutation_compute_coordinate_default_is_lateral():
         inspect.signature(nutation.compute).parameters["coordinate"].default
         == "lateral"
     )
+
+
+# ---------------------------------------------------------------------------
+# Task 4 — CircumnutationPipeline.compute_traits (merge-orchestrator)
+# ---------------------------------------------------------------------------
+
+from sleap_roots.circumnutation import pipeline, qc  # noqa: E402
+from sleap_roots.circumnutation._io import _IDENTITY_5_TUPLE  # noqa: E402
+from sleap_roots.circumnutation._types import (  # noqa: E402
+    ROW_IDENTITY_COLUMNS,
+    CircumnutationInputs,
+)
+
+
+def _expected_46_columns():
+    qc_cols = [c for c in qc._QC_TRAIT_COLUMNS if c != "growth_axis_unreliable"]
+    return (
+        list(ROW_IDENTITY_COLUMNS)
+        + list(kinematics._TIER0_TRAIT_COLUMNS)
+        + qc_cols
+        + list(nutation._NUTATION_TRAIT_COLUMNS)
+        + list(psi_g._PSIG_TRAIT_COLUMNS)
+        + list(traveling_wave._TRAVELING_WAVE_TRAIT_COLUMNS)
+    )
+
+
+def _inputs(n_tracks=2, n_plates=1, n_frames=64, float_track_id=True):
+    """Build CircumnutationInputs; multi-plate with overlapping track_ids."""
+    rows = []
+    for p in range(n_plates):
+        for t in range(n_tracks):
+            rows.extend(_track_rows(t, n_frames=n_frames, plate_id=f"plate{p}"))
+    df = pd.DataFrame(rows)
+    if float_track_id:
+        df["track_id"] = df["track_id"].astype(np.float64)
+        df["plant_id"] = df["plant_id"].astype(np.float64)
+    return CircumnutationInputs(trajectory_df=df, cadence_s=300.0)
+
+
+def test_compute_traits_returns_46_column_schema():
+    """3-tuple; per_plant_df has exactly the 46 columns in declared tier order."""
+    inputs = _inputs(n_tracks=2, n_plates=2)
+    out = pipeline.compute_traits(inputs)
+
+    assert isinstance(out, tuple) and len(out) == 3
+    per_plant_df, trajectory_df, units = out
+    assert isinstance(per_plant_df, pd.DataFrame)
+    assert isinstance(trajectory_df, pd.DataFrame)
+    assert isinstance(units, dict)
+
+    assert list(per_plant_df.columns) == _expected_46_columns()
+    assert len(per_plant_df.columns) == 46
+    # one row per 5-tuple (2 plates x 2 tracks = 4)
+    assert per_plant_df[list(_IDENTITY_5_TUPLE)].duplicated().sum() == 0
+    assert len(per_plant_df) == 4
+    # flag dtypes preserved through the merge
+    assert per_plant_df["is_nutating"].dtype == np.bool_
+    assert per_plant_df["handedness"].dtype == np.int64
+
+
+def test_compute_traits_coalesces_growth_axis_unreliable():
+    """Exactly one growth_axis_unreliable column, Tier-0-owned, equals QC's."""
+    inputs = _inputs(n_tracks=2)
+    per_plant_df, _, _ = pipeline.compute_traits(inputs)
+    cols = list(per_plant_df.columns)
+    assert cols.count("growth_axis_unreliable") == 1
+    assert "growth_axis_unreliable_x" not in cols
+    # sits in the Tier 0 block (immediately after the 8 identity + 9 other Tier0)
+    tier0_block = cols[8 : 8 + len(kinematics._TIER0_TRAIT_COLUMNS)]
+    assert "growth_axis_unreliable" in tier0_block
+    # equals what qc.compute emits for the same tracks
+    qc_df = qc.compute(inputs.trajectory_df)
+    keys = list(_IDENTITY_5_TUPLE)
+    merged = per_plant_df[keys + ["growth_axis_unreliable"]].merge(
+        qc_df[keys + ["growth_axis_unreliable"]], on=keys, suffixes=("_p", "_q")
+    )
+    assert (
+        merged["growth_axis_unreliable_p"] == merged["growth_axis_unreliable_q"]
+    ).all()
+
+
+def test_compute_traits_units_dict_covers_all_columns_in_vocab(tmp_path):
+    """units_dict 1:1-covers the 46 columns, all in vocab, and the writer accepts it."""
+    from sleap_roots.circumnutation._io import write_per_plant_csv
+
+    inputs = _inputs(n_tracks=2)
+    per_plant_df, _, units = pipeline.compute_traits(inputs)
+    assert set(units.keys()) == set(per_plant_df.columns)
+    for col, unit in units.items():
+        assert unit in PIPELINE_UNIT_VOCABULARY, f"{col}={unit!r}"
+    assert list(units.keys()).count("growth_axis_unreliable") == 1
+    # writer does not raise the coverage/vocabulary ValueError
+    write_per_plant_csv(tmp_path / "traits.csv", per_plant_df, units, {})
+
+
+def test_compute_traits_dedup_equivalence_with_standalone():
+    """Pipeline Tier 3c columns equal a standalone traveling_wave.compute (atol=0)."""
+    inputs = _inputs(n_tracks=2)
+    per_plant_df, _, _ = pipeline.compute_traits(inputs)
+    standalone = traveling_wave.compute(inputs.trajectory_df, inputs.cadence_s)
+    keys = list(_IDENTITY_5_TUPLE)
+    merged = per_plant_df[keys + list(_TW_TRAIT_COLUMNS)].merge(
+        standalone[keys + list(_TW_TRAIT_COLUMNS)], on=keys, suffixes=("_p", "_s")
+    )
+    for col in _TW_TRAIT_COLUMNS:
+        np.testing.assert_array_equal(
+            merged[f"{col}_p"].to_numpy(), merged[f"{col}_s"].to_numpy(), err_msg=col
+        )
+
+
+def test_compute_traits_computes_tier0_and_tier1_once(monkeypatch):
+    """Tier 0 / Tier 1 are computed exactly once (dedup: not twice via Tier 3c)."""
+    calls = {"kinematics": 0, "nutation": 0}
+    real_k, real_n = kinematics.compute, nutation.compute
+
+    def spy_k(*a, **k):
+        calls["kinematics"] += 1
+        return real_k(*a, **k)
+
+    def spy_n(*a, **k):
+        calls["nutation"] += 1
+        return real_n(*a, **k)
+
+    monkeypatch.setattr(pipeline.kinematics, "compute", spy_k)
+    monkeypatch.setattr(pipeline.nutation, "compute", spy_n)
+    pipeline.compute_traits(_inputs(n_tracks=2))
+    assert calls == {"kinematics": 1, "nutation": 1}
+
+
+def test_compute_traits_performs_no_filesystem_io(tmp_path, monkeypatch):
+    """compute_traits writes zero files (writing is save's job)."""
+    monkeypatch.chdir(tmp_path)
+    pipeline.compute_traits(_inputs(n_tracks=2))
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_compute_traits_negative_units_coverage_raises(tmp_path, monkeypatch):
+    """A tier units map missing a key → the writer raises the coverage error."""
+    from sleap_roots.circumnutation._io import write_per_plant_csv
+
+    broken = dict(nutation._NUTATION_TRAIT_UNITS)
+    broken.pop("band_power_ratio")
+    monkeypatch.setattr(nutation, "_NUTATION_TRAIT_UNITS", broken)
+    per_plant_df, _, units = pipeline.compute_traits(_inputs(n_tracks=1))
+    with pytest.raises(ValueError, match="band_power_ratio"):
+        write_per_plant_csv(tmp_path / "t.csv", per_plant_df, units, {})
+
+
+def test_compute_traits_all_degenerate_input():
+    """Every track degenerate → full 46-col frame, no raise, flag dtypes intact."""
+    rows = []
+    for t in range(3):
+        for frame in range(64):
+            rows.append(
+                {
+                    "series": "test",
+                    "sample_uid": "test",
+                    "timepoint": "T0",
+                    "plate_id": "plate",
+                    "plant_id": t,
+                    "track_id": t,
+                    "genotype": np.nan,
+                    "treatment": np.nan,
+                    "frame": frame,
+                    "tip_x": np.nan,
+                    "tip_y": np.nan,
+                }
+            )
+    inputs = CircumnutationInputs(trajectory_df=pd.DataFrame(rows), cadence_s=300.0)
+    per_plant_df, _, _ = pipeline.compute_traits(inputs)
+    assert list(per_plant_df.columns) == _expected_46_columns()
+    assert len(per_plant_df) == 3
+    assert per_plant_df["is_nutating"].dtype == np.bool_
+    assert per_plant_df["handedness"].dtype == np.int64
+    assert per_plant_df["growth_axis_unreliable"].dtype == np.bool_
+
+
+def test_compute_traits_echoes_unmodified_trajectory_df():
+    """The echoed trajectory_df is the unmodified input object."""
+    inputs = _inputs(n_tracks=2)
+    before = inputs.trajectory_df.copy()
+    _, echoed, _ = pipeline.compute_traits(inputs)
+    assert echoed is inputs.trajectory_df
+    pd.testing.assert_frame_equal(echoed, before)

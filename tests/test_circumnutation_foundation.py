@@ -63,10 +63,16 @@ import pytest
 # IMPLEMENTATIONS_WITH_CONSTANTS_KWARG + the explicit logger-namespace list. PR #9
 # bumps _CONSTANTS_VERSION 5 → 6 (3 new spatial-CWT constants); the L_gz/L_c
 # growth-zone traits are descoped to issue #230.
+# PR #14 (add-circumnutation-pipeline) graduates `pipeline` stub→implementation:
+# the implementation-module count grows 9→10 and the stub-module count shrinks
+# 3→2 (only `parametric`/`plotting` remain). `pipeline` is removed from
+# STUB_MODULES here and added to IMPLEMENTATIONS_WITH_CONSTANTS_KWARG + the
+# explicit logger-namespace list below (it is no longer enumerated via
+# STUB_MODULES). There is no runtime impl/stub count assertion — the counts live
+# only in these comments.
 STUB_MODULES = [
     ("parametric", "compute", 11),
     ("plotting", "scaleogram", 16),
-    ("pipeline", "compute_traits", 14),
 ]
 
 
@@ -804,6 +810,10 @@ def test_constants_snapshot_reflects_override():
         # ADDITION). Must be listed explicitly because it is NOT in STUB_MODULES
         # (same Copilot regression PR #4/#5/#7/#8/#9 hit).
         "traveling_wave",
+        # Added in PR #14: pipeline (now an implementation module, not a stub).
+        # Must be listed explicitly because the add-circumnutation-pipeline change
+        # removes it from STUB_MODULES above (same Copilot regression PR #4-#9 hit).
+        "pipeline",
     ],
 )
 def test_module_logger_is_namespaced(module_name):
@@ -876,9 +886,13 @@ def test_convert_to_mm_inf_rejected(bad):
 # replaces the stub with an implementation that DOES accept `constants=`
 # but the implementation is exercised via `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG`
 # below (no NotImplementedError contract).
-STUBS_WITH_CONSTANTS_KWARG = [
-    ("pipeline", "compute_traits"),
-]
+#
+# PR #14 graduated `pipeline` (the last stub whose canonical callable carried
+# `constants=None`) to an implementation. NO remaining stub (`parametric` /
+# `plotting`) declares `constants=None`, so the former STUBS_WITH_CONSTANTS_KWARG
+# list and its `test_stub_accepts_constants_kwarg` are removed — the "stubs accept
+# constants=None" scenario has no remaining subject. `pipeline` is exercised via
+# IMPLEMENTATIONS_WITH_CONSTANTS_KWARG below.
 
 
 # Implementation modules that accept `constants=ConstantsT()` kwarg without
@@ -894,19 +908,8 @@ IMPLEMENTATIONS_WITH_CONSTANTS_KWARG = [
     ("midline", "reconstruct"),  # added by PR #8 (stub→impl, no rename)
     ("spatial_cwt", "compute_scaleogram"),  # added by PR #9 (stub→impl, no rename)
     ("traveling_wave", "compute"),  # added by PR #10 (new module, never a stub)
+    ("pipeline", "compute_traits"),  # added by PR #14 (stub→impl, no rename)
 ]
-
-
-@pytest.mark.parametrize("module_name,callable_name", STUBS_WITH_CONSTANTS_KWARG)
-def test_stub_accepts_constants_kwarg(module_name, callable_name):
-    """B2: stubs whose tier PR will use ConstantsT accept `constants=...` kwarg now.
-
-    Calling with `constants=...` must raise NotImplementedError (not TypeError).
-    """
-    mod = importlib.import_module(f"sleap_roots.circumnutation.{module_name}")
-    fn = getattr(mod, callable_name)
-    with pytest.raises(NotImplementedError):
-        fn(constants=object())  # any sentinel; should not be argument-validated
 
 
 @pytest.mark.parametrize(
@@ -1047,6 +1050,35 @@ def test_implementation_accepts_constants_kwarg(module_name, callable_name):
         df = pd.DataFrame(rows)
         result = fn(df, 300.0, constants=ConstantsT())
         assert isinstance(result, pd.DataFrame)
+    elif module_name == "pipeline":
+        # pipeline.compute_traits(inputs, constants). PR #14
+        # (add-circumnutation-pipeline). UNLIKE the tier branches, this takes a
+        # CircumnutationInputs (NOT a bare trajectory_df) and returns a 3-tuple,
+        # so the generic `else` branch below (which passes a DataFrame) would
+        # fail — a dedicated branch is mandatory. Build a 64-frame single-track
+        # input; CALLABILITY only (all-NaN traits on a straight line are fine).
+        from sleap_roots.circumnutation import CircumnutationInputs
+
+        rows = []
+        for frame in range(64):
+            rows.append(
+                {
+                    "series": "test",
+                    "sample_uid": "test",
+                    "timepoint": "T0",
+                    "plate_id": "test",
+                    "plant_id": 0,
+                    "track_id": 0,
+                    "genotype": np.nan,
+                    "treatment": np.nan,
+                    "frame": frame,
+                    "tip_x": float(frame),
+                    "tip_y": 0.0,
+                }
+            )
+        inputs = CircumnutationInputs(trajectory_df=pd.DataFrame(rows), cadence_s=300.0)
+        result = fn(inputs, constants=ConstantsT())
+        assert isinstance(result, tuple) and len(result) == 3
     else:
         # kinematics.compute / qc.compute take a positional trajectory_df.
         # Build a minimal valid 10-frame, 1-track trajectory inline.
