@@ -59,12 +59,21 @@ headline dedup).
 ## Decision D3 — Pure `compute_traits` + separate `save()` (Option 1)
 
 `compute_traits` stays pure and returns the stub's `(per_plant_df, trajectory_df, units_dict)`.
-`CircumnutationPipeline.save(out_path, per_plant_df, units, *, input_path, run_id=None)` calls
-`_io.gather_run_metadata(input_path, run_id, constants)` + `_io.write_per_plant_csv(...)`.
+`CircumnutationPipeline.save(out_path, per_plant_df, units, *, inputs, input_path)` calls
+`_io.gather_run_metadata(input_path, run_id=inputs.run_id, constants=self.constants,
+cadence_s=inputs.cadence_s, R_px=inputs.R_px)` + `_io.write_per_plant_csv(...)`.
 **Why separate:** honors the stub tuple (no signature deviation); compute is filesystem-free /
-trivially testable; picklability stays clean. Critically, `gather_run_metadata` needs `input_path`
-(the source `.slp`), which `CircumnutationInputs` does not carry — the `save` boundary is where the
-caller knows that path, so the provenance gap is resolved there, not leaked into `compute`.
+trivially testable; picklability stays clean.
+**Why `save` takes `inputs` (round-3 fix):** three provenance fields — `run_id`, `cadence_s`,
+`R_px` — live on `CircumnutationInputs`, not on `per_plant_df`. `cadence_s` determines every period
+trait and the residual, so omitting it makes the CSV irreproducible from its sidecars alone. Passing
+`inputs` to `save` is the single authoritative source for all three; `input_path` (the source
+`.slp`) is supplied separately (file provenance, not on `inputs`). This requires an additive change
+to foundation `_io.gather_run_metadata` (optional `cadence_s` / `R_px` kwargs, nullable for existing
+callers) + a MODIFIED Run-metadata sidecar requirement.
+**`save` contract:** the parent dir of `out_path` must pre-exist (the writer does not create it) →
+`save` raises a clear error otherwise; files are overwritten; `run_metadata.json` has a fixed name,
+so at most one composed CSV is written per output directory.
 
 ## Decision D4 — Units assembly: add `_NUTATION_TRAIT_UNITS` / `_PSIG_TRAIT_UNITS` (Option X)
 

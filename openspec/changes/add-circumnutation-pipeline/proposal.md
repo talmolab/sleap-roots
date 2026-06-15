@@ -45,6 +45,12 @@ new science is introduced — every trait is already computed and tested by its 
   suffix-gate), which remains #222's job; the maps will be re-keyed when that rename lands.
 - **Coalesce `growth_axis_unreliable`** (emitted, equal-by-construction, by both Tier 0 and QC):
   Tier 0 owns it in the composed output; QC's copy is dropped before merge.
+- **Capture `cadence_s` / `R_px` / `run_id` in provenance** so the composed CSV is reproducible from
+  its sidecars alone: extend `_io.gather_run_metadata` with optional `cadence_s` / `R_px` kwargs
+  (additive — existing callers write `null`), and have `CircumnutationPipeline.save(out_path,
+  per_plant_df, units, *, inputs, input_path)` thread `inputs.cadence_s` / `inputs.R_px` /
+  `inputs.run_id`. Without this, `cadence_s` (which determines every period trait and the residual)
+  is recorded nowhere.
 - **Integration test** round-trips the real proofread plate-001 `.slp` through the full pipeline
   (compute → save → read-back) and asserts the composed schema + all five tiers' columns. The
   general `Series → CircumnutationInputs` adapter is deferred to PR #17 (CLI), where the
@@ -72,7 +78,10 @@ new science is introduced — every trait is already computed and tested by its 
   `constants=None`" scenario dropped (`pipeline` was the last constants-bearing stub).
 - **MODIFIED — Tier 3c traveling-wave trait emission API**: add the optional keyword-only
   `tier0_df` / `tier1_df` precomputed-frames dedup fast path (both-or-neither; validated;
-  result-identical to the recompute; standalone byte-identical).
+  operand-column projection; result-identical to the recompute for nutation-accepted constants;
+  standalone byte-identical).
+- **MODIFIED — Run-metadata sidecar**: `gather_run_metadata` gains optional `cadence_s` / `R_px`
+  fields (nullable; additive) so the run is reproducible from the sidecars alone.
 - **ADDED — Circumnutation pipeline composition API**: the `CircumnutationPipeline` class +
   `compute_traits` return contract + the 46-column composed schema (the 5 #230-blocked L_gz/L_c
   Tier 3c traits are deliberately absent, not NaN-reserved) + merge-on-5-tuple +
@@ -82,10 +91,12 @@ new science is introduced — every trait is already computed and tested by its 
 
 ## Impact
 
-- **Affected specs**: `circumnutation` (2 MODIFIED requirements, 1 ADDED requirement).
+- **Affected specs**: `circumnutation` (3 MODIFIED requirements — Package layout, Tier 3c emission
+  API, Run-metadata sidecar; 1 ADDED requirement — pipeline composition API).
 - **Affected code**: `sleap_roots/circumnutation/pipeline.py` (implement), `traveling_wave.py`
-  (additive fast-path kwargs), `nutation.py` + `psi_g.py` (additive units maps),
-  `tests/test_circumnutation_foundation.py` (stub→impl migration),
+  (additive fast-path kwargs), `nutation.py` + `psi_g.py` (additive units maps), `_io.py`
+  (additive `cadence_s` / `R_px` kwargs on `gather_run_metadata`),
+  `tests/test_circumnutation_foundation.py` (stub→impl migration + run-metadata field assertions),
   `tests/test_circumnutation_pipeline.py` (new).
 - **Docs**: `docs/circumnutation/roadmap.md` (row #14, correct the DAG claim),
   `docs/changelog.md`.

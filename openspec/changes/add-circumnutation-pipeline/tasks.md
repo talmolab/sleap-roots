@@ -50,7 +50,16 @@ foundation stub→impl migration (Task 3) — otherwise the foundation suite goe
   both None: unchanged recompute path. Raise on exactly-one / missing-column.
 - [ ] 3.4 Update the `compute` docstring `Note` to document the fast-path kwargs (replace the
   "Batch callers should route through the pipeline" prose).
-- [ ] 3.5 Confirm `uv run pytest tests/test_circumnutation_traveling_wave.py -q` (the full file +
+- [ ] 3.5 **RED** the fast path SHALL project each supplied frame to `[*_IDENTITY_5_TUPLE, <operand>]`
+  before the operand merge: pass `tier0_df`/`tier1_df` carrying their FULL column sets (the realistic
+  pipeline case) and assert the output still has exactly the 14 columns (8 identity + 6 traits) — no
+  extra tier columns leak in. **GREEN** in 3.3 by routing the supplied frames through the existing
+  `ops` select+outer-merge+int64 block unchanged (bypass only the two `*.compute` calls).
+- [ ] 3.6 **RED** regression-pin `nutation.compute`'s coordinate default: assert
+  `inspect.signature(nutation.compute).parameters["coordinate"].default == "lateral"` (the dedup
+  `atol=0` equivalence depends on the pipeline relying on this default; a future flip must fail
+  loudly at the source). Add a comment at the nutation default referencing this dependency.
+- [ ] 3.7 Confirm `uv run pytest tests/test_circumnutation_traveling_wave.py -q` (the full file +
   canary) fully green — standalone path byte-identical.
 
 ## 4. `CircumnutationPipeline` — pure `compute_traits` (RED → GREEN), composed schema
@@ -69,10 +78,15 @@ foundation stub→impl migration (Task 3) — otherwise the foundation suite goe
   `compute_traits(self, inputs) -> (per_plant_df, trajectory_df, units_dict)`:
   - call `kinematics.compute`, `qc.compute`, `nutation.compute`, `psi_g.compute` once each (thread
     `cadence_s` to the latter two; pass resolved `constants` to all);
-  - drop `growth_axis_unreliable` from the QC frame (Tier 0 owns it); assert equality first;
+  - drop `growth_axis_unreliable` from the QC frame (Tier 0 owns it); assert equality first via
+    `Series.equals` (dtype+value), raising `ValueError` on divergence;
   - call `traveling_wave.compute(df, cadence_s, constants, tier0_df=tier0, tier1_df=tier1)` (dedup);
-  - merge all five on `_IDENTITY_5_TUPLE` (`how="left"` onto `_build_per_plant_template_from_df`,
-    int64 coercion-with-raise guard) in fixed tier order;
+  - build the composed frame by starting from `_build_per_plant_template_from_df(inputs.trajectory_df)`
+    (carries all 8 identity cols, one row per 5-tuple) and left-merging each tier output **projected
+    to `[*_IDENTITY_5_TUPLE, *<that tier's trait cols>]`** (5 keys + only that tier's traits; QC's
+    minus `growth_axis_unreliable`) — NOT merging the full 8-identity tier frames on the 5-tuple
+    (that would suffix `timepoint`/`genotype`/`treatment` to `_x`/`_y` and break the 46-col
+    selection). Apply the int64 coercion-with-raise guard on `track_id`/`plant_id` per merge;
   - assemble `units_dict` = `ROW_IDENTITY_UNITS` (identity cols) ∪ the five tier `_*_TRAIT_UNITS`;
   - module-level tuples for tier order + the 46-column order; `logger.debug` once at start.
 - [ ] 4.5 **GREEN** Module-level `compute_traits(inputs, constants=None)` wrapper =
@@ -89,6 +103,13 @@ foundation stub→impl migration (Task 3) — otherwise the foundation suite goe
 - [ ] 4.8 **RED** (defensive) negative units coverage: monkeypatch one tier's `_*_TRAIT_UNITS` to
   drop a key; assert the assembled `units_dict` → `write_per_plant_csv` raises the coverage
   `ValueError` naming the column (guards the assembly logic against silent regression).
+- [ ] 4.9 **RED** all-degenerate input: a `CircumnutationInputs` where every track is degenerate →
+  `compute_traits` returns the full 46-col frame, one row per 5-tuple, WITHOUT raising (the
+  `growth_axis_unreliable` `Series.equals` coalescing check tolerates the all-degenerate bool
+  column); `is_nutating`/`handedness`/`growth_axis_unreliable` retain bool/int dtype (no all-NaN
+  upcast); a subsequent `save` writes successfully.
+- [ ] 4.10 **RED** echo: the returned `trajectory_df` is the unmodified input
+  (`result[1].equals(inputs.trajectory_df)`); confirm no tier mutated `inputs.trajectory_df`.
 
 ## 5. Foundation stub→impl migration (ATOMIC with the first non-raising `pipeline` commit)
 - [ ] 5.1 In `tests/test_circumnutation_foundation.py`: remove `("pipeline", "compute_traits", 14)`
@@ -114,33 +135,45 @@ foundation stub→impl migration (Task 3) — otherwise the foundation suite goe
   -q`, not just the two files) BEFORE committing — the migration must land atomically with the first
   non-raising `pipeline` commit or the foundation suite goes red between commits.
 
-## 6. `save()` + provenance round-trip
-- [ ] 6.1 **RED** `save(out_path, per_plant_df, units, *, input_path, run_id)` writes the CSV +
-  `<stem>.units.json` + `run_metadata.json`; `_io.read_per_plant_csv` recovers the DataFrame, units,
-  and run_metadata (provenance keys present: git SHA, sleap_roots/sleap_io/numpy/scipy/pandas/python
+## 6. Provenance (`_io` additive change) + `save()` round-trip
+- [ ] 6.1 **RED** (foundation) `_io.gather_run_metadata(input_path, run_id=None, constants=None,
+  cadence_s=None, R_px=None)` writes `cadence_s` and `R_px` into the run_metadata dict; when omitted
+  they are `null`. Update the foundation Run-metadata field-list assertion in
+  `tests/test_circumnutation_foundation.py` to include the two new (nullable) keys.
+- [ ] 6.2 **GREEN** Add optional `cadence_s` / `R_px` kwargs to `_io.gather_run_metadata` (additive;
+  existing callers unaffected → `null`). Confirm the existing foundation run-metadata tests stay
+  green.
+- [ ] 6.3 **RED** `CircumnutationPipeline.save(out_path, per_plant_df, units, *, inputs, input_path)`
+  writes the CSV + `<stem>.units.json` + `run_metadata.json`; `_io.read_per_plant_csv` recovers all
+  three; run_metadata has the provenance keys (git SHA, sleap_roots/sleap_io/numpy/scipy/pandas/python
   versions, platform, ISO timestamp, `_schema_version=1`, `_constants_version=6`,
-  `_constants_snapshot`).
-- [ ] 6.2 **GREEN** Implement `save` delegating to `_io.gather_run_metadata(input_path, run_id,
-  constants)` + `_io.write_per_plant_csv(out_path, per_plant_df, units, run_metadata)`. No I/O in
-  `compute_traits`.
+  `_constants_snapshot`) AND `cadence_s == inputs.cadence_s`, `R_px == inputs.R_px`,
+  `run_id == inputs.run_id` (reproducible from sidecars alone). AND saving into a non-existent parent
+  dir raises a clear error.
+- [ ] 6.4 **GREEN** Implement `save` delegating to `_io.gather_run_metadata(input_path,
+  run_id=inputs.run_id, constants=self.constants, cadence_s=inputs.cadence_s, R_px=inputs.R_px)` +
+  `_io.write_per_plant_csv(...)`. No I/O in `compute_traits`. Document the one-CSV-per-output-dir rule
+  (the fixed `run_metadata.json` name would otherwise clobber).
 
 ## 7. Picklability + determinism
 - [ ] 7.1 **RED** `pickle.loads(pickle.dumps(CircumnutationPipeline()))` round-trips and the
   unpickled instance computes an identical `per_plant_df`. ALSO round-trip a CONFIGURED instance
   `CircumnutationPipeline(constants=ConstantsT(...))` (the only field is `constants`, so this proves
   the `ConstantsT` field pickles).
-- [ ] 7.2 **RED** two in-process `compute_traits` runs are bit-identical on the float columns
-  (`atol=0`).
+- [ ] 7.2 **RED** two in-process `compute_traits` runs are equal as full frames
+  (`pandas.testing.assert_frame_equal`: identical column order, row order, dtypes; float `atol=0`,
+  NaN-equal) — not just the float columns.
 - [ ] 7.3 **GREEN** Ensure no unpicklable state (only `constants`); fix if any test reds.
 
 ## 8. Real plate-001 integration test
 - [ ] 8.1 **RED/validation** Load `tests/data/circumnutation_nipponbare_plate_001/plate_001_greyscale.tracked_proofread.slp`
   via the proven inline pattern (`Series.load` → `get_tracked_tips()` → `track_id` int coercion →
   attach the 8 row-identity columns with plate-001 metadata) → `CircumnutationInputs(cadence_s=300.0)`.
-  Run the full pipeline (compute → save to a tmp dir → read-back). Assert: 6 rows; the 46-column
-  schema in order; all five tiers' columns present; `traveling_wave_residual` finite < 0.30 (the QPB
-  band, matching the traveling_wave real-data test); cross-tier `growth_axis_unreliable` equality.
-  Skip if the Git-LFS fixture is absent.
+  Run the full pipeline (compute → `save(out, df, units, inputs=inputs, input_path=<slp path>)` to a
+  tmp dir → read-back). Assert: 6 rows; the 46-column schema in order; all five tiers' columns
+  present; `traveling_wave_residual` finite < 0.30 (the QPB band, matching the traveling_wave
+  real-data test); cross-tier `growth_axis_unreliable` equality; and `run_metadata["cadence_s"] ==
+  300.0`. Skip if the Git-LFS fixture is absent.
 
 ## 9. Docs + deviation discipline
 - [ ] 9.1 Correct the `pipeline.py` module docstring: sequential merge-orchestrator (not a TraitDef
