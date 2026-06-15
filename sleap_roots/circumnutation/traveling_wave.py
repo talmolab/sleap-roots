@@ -277,10 +277,64 @@ def _compute_one_track(
     return _ridge_to_traits(ridge, constants)
 
 
+def _resolve_tier_operands(
+    trajectory_df: pd.DataFrame,
+    cadence_float: float,
+    resolved_constants: ConstantsT,
+    tier0_df: Optional[pd.DataFrame],
+    tier1_df: Optional[pd.DataFrame],
+) -> "tuple[pd.DataFrame, pd.DataFrame]":
+    """Resolve the Tier 0 / Tier 1 operand frames (recompute or dedup fast path).
+
+    Standalone (both ``None``) recomputes ``kinematics.compute`` (Tier 0) and
+    ``nutation.compute(coordinate="lateral")`` (Tier 1). When BOTH are supplied
+    (the PR #14 dedup fast path) they are used directly after validating each
+    carries the ``_IDENTITY_5_TUPLE`` keys plus the single operand column it
+    supplies. Supplying exactly one raises ``ValueError`` (both-or-neither). The
+    caller's ``ops``-build projects each frame to ``[*5-tuple, operand]``, so any
+    extra trait columns on a supplied full frame are discarded, not merged.
+    """
+    if (tier0_df is None) != (tier1_df is None):
+        raise ValueError(
+            "tier0_df and tier1_df are both-or-neither: supply both precomputed "
+            "frames (the dedup fast path) or neither (standalone recompute)."
+        )
+    if tier0_df is None:
+        # coordinate="lateral": the QPB relation λ_spatial = v·T uses the nutation
+        # period of the LATERAL (perpendicular-to-growth-axis) oscillation (CC-7;
+        # matches Derr's lateral-coordinate oracle). track_id is not unique across
+        # plates, so the operand merge below joins on the full _IDENTITY_5_TUPLE
+        # with int64 coercion (an int64-vs-float64 key mismatch would SILENTLY
+        # produce all-NaN operands, not a KeyError).
+        tier0 = kinematics.compute(trajectory_df, constants=resolved_constants)
+        tier1 = nutation.compute(
+            trajectory_df,
+            cadence_float,
+            coordinate="lateral",
+            constants=resolved_constants,
+        )
+        return tier0, tier1
+    # Dedup fast path: validate the supplied frames carry their operand columns.
+    for frame, name, operand in (
+        (tier0_df, "tier0_df", "v_total_median_px_per_frame"),
+        (tier1_df, "tier1_df", "T_nutation_median"),
+    ):
+        missing = [c for c in (*_IDENTITY_5_TUPLE, operand) if c not in frame.columns]
+        if missing:
+            raise ValueError(
+                f"{name} is missing required column(s) {missing} for the dedup "
+                f"fast path (needs the _IDENTITY_5_TUPLE keys plus {operand!r})."
+            )
+    return tier0_df, tier1_df
+
+
 def compute(
     trajectory_df: pd.DataFrame,
     cadence_s: float,
     constants: Optional[ConstantsT] = None,
+    *,
+    tier0_df: Optional[pd.DataFrame] = None,
+    tier1_df: Optional[pd.DataFrame] = None,
 ) -> pd.DataFrame:
     """Compute Tier 3c traveling-wave validation traits for each track.
 
@@ -291,6 +345,11 @@ def compute(
         constants: Optional :class:`ConstantsT` override-bag. When ``None``
             (default), module-level defaults are used. ``COI_FRACTION_MAX`` is
             validated locally as a float in ``(0, 1]``.
+        tier0_df: Optional precomputed Tier 0 (``kinematics.compute``) per-plant
+            frame for the PR #14 dedup fast path. Keyword-only.
+        tier1_df: Optional precomputed Tier 1 (``nutation.compute``,
+            ``coordinate="lateral"``) per-plant frame for the dedup fast path.
+            Keyword-only. ``tier0_df`` and ``tier1_df`` are both-or-neither.
 
     Returns:
         Per-plant DataFrame with one row per unique
@@ -300,17 +359,19 @@ def compute(
 
     Raises:
         ValueError: If ``trajectory_df`` is empty / missing required columns,
-            ``cadence_s`` is non-positive or non-finite, or ``COI_FRACTION_MAX``
-            is outside ``(0, 1]``.
+            ``cadence_s`` is non-positive or non-finite, ``COI_FRACTION_MAX``
+            is outside ``(0, 1]``, exactly one of ``tier0_df`` / ``tier1_df`` is
+            supplied, or a supplied frame is missing its operand column.
         TypeError: If ``cadence_s`` is a bool/str/list, or ``constants`` is not
             ``None`` / a ``ConstantsT`` instance.
 
     Note:
-        Calling this standalone recomputes Tier 0 (``kinematics.compute``) and a
-        per-track Tier 1 temporal CWT (``nutation.compute``) — redundant by design
-        for a self-contained tier. Batch callers should route through the PR #14
-        pipeline DAG (issue #232 lineage) so Tier 0/Tier 1 are computed once and
-        their outputs are deduped rather than recomputed here.
+        Called standalone (``tier0_df`` / ``tier1_df`` omitted) this recomputes
+        Tier 0 (``kinematics.compute``) and a per-track Tier 1 temporal CWT
+        (``nutation.compute``) — redundant by design for a self-contained tier.
+        The PR #14 pipeline computes Tier 0 / Tier 1 once and passes them via
+        ``tier0_df`` / ``tier1_df`` (the dedup fast path), which skips the
+        recompute and produces identical trait columns.
     """
     if not isinstance(trajectory_df, pd.DataFrame):
         raise ValueError(
@@ -359,22 +420,14 @@ def compute(
 
     result = template.merge(trait_df, on=list(_IDENTITY_5_TUPLE), how="left")
 
-    # Compose with Tier 0 (v) and Tier 1 (T_nutation), recomputed self-contained
-    # (redundant by design — the PR #14 pipeline DAG MUST dedup Tier 0/Tier 1
-    # rather than calling this naively). Join on the FULL _IDENTITY_5_TUPLE with
-    # int64 coercion: track_id is not unique across plates, and an int64-vs-float64
-    # key mismatch would SILENTLY produce all-NaN operands (not a KeyError).
-    tier0 = kinematics.compute(trajectory_df, constants=resolved_constants)
-    # coordinate="lateral": the QPB relation λ_spatial = v·T uses the nutation
-    # period of the LATERAL (perpendicular-to-growth-axis) oscillation — the
-    # component that imprints the spatial wave in the trail. The longitudinal /
-    # raw-x / raw-y periods would not be the physically correct T for this test
-    # (CC-7; matches Derr's lateral-coordinate oracle).
-    tier1 = nutation.compute(
-        trajectory_df,
-        cadence_float,
-        coordinate="lateral",
-        constants=resolved_constants,
+    # Compose with Tier 0 (v) and Tier 1 (T_nutation). Standalone recomputes them
+    # self-contained (redundant by design); the PR #14 pipeline passes them via
+    # tier0_df/tier1_df (dedup fast path). The ops-build below projects each frame
+    # to [*_IDENTITY_5_TUPLE, operand] and joins on the FULL 5-tuple with int64
+    # coercion (track_id is not unique across plates; an int64-vs-float64 key
+    # mismatch would SILENTLY produce all-NaN operands, not a KeyError).
+    tier0, tier1 = _resolve_tier_operands(
+        trajectory_df, cadence_float, resolved_constants, tier0_df, tier1_df
     )
     ops = tier0[list(_IDENTITY_5_TUPLE) + ["v_total_median_px_per_frame"]].merge(
         tier1[list(_IDENTITY_5_TUPLE) + ["T_nutation_median"]],
