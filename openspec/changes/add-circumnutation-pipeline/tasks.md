@@ -29,7 +29,11 @@ foundation stub→impl migration (Task 3) — otherwise the foundation suite goe
   "helix_signed_area_px2": "px²"}`. NOTE: `handedness` is `"int"` (integer sign, matching the
   non-float type-token convention); `helix_signed_area_px2` is the superscript-² glyph `"px²"` (NOT
   ASCII `"px2"` — that is not in vocabulary and would fail the writer). Verify each value is in
-  `PIPELINE_UNIT_VOCABULARY`.
+  `PIPELINE_UNIT_VOCABULARY`. NOTE: these 4 values already match the pre-existing Tier 2 spec
+  scenario "psi_g.compute trait units are all within PIPELINE_UNIT_VOCABULARY"
+  (`openspec/specs/circumnutation/spec.md` ~L1376), confirming `handedness` → `"int"`. If a test
+  currently hardcodes that inline dict, re-point it at the new `_PSIG_TRAIT_UNITS` constant so there
+  is a single source of truth (no drift).
 - [ ] 2.5 Confirm `uv run pytest tests/test_circumnutation_nutation.py tests/test_circumnutation_psi_g.py -q`
   still green (additions are purely new constants).
 
