@@ -63,6 +63,21 @@ _PSIG_TRAIT_COLUMNS: tuple = (
     "helix_signed_area_px2",
 )
 
+# Per-column units for the 4 Tier-2 trait/flag columns (GitHub issue #222
+# units-map portion; consumed by the PR #14 pipeline's units-sidecar assembly,
+# mirroring the _TIER0_TRAIT_UNITS precedent). ``handedness`` is an integer sign
+# in {-1, 0, +1} -> "int" (the type-token convention for non-float columns);
+# ``helix_signed_area_px2`` uses the superscript-2 glyph "px²" (the
+# PIPELINE_UNIT_VOCABULARY token — a literal ASCII "px2" is not in vocabulary).
+# Every value is a member of
+# ``sleap_roots.circumnutation._constants.PIPELINE_UNIT_VOCABULARY``.
+_PSIG_TRAIT_UNITS: Dict[str, str] = {
+    "T_psig_median_s": "s",
+    "delta_E_amplitude_proxy_px_per_frame": "px/frame",
+    "handedness": "int",
+    "helix_signed_area_px2": "px²",
+}
+
 # Per-frame tip columns required on trajectory_df (alongside
 # ROW_IDENTITY_COLUMNS).
 _TIP_X_COLUMN: str = "tip_x"

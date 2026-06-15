@@ -14,6 +14,7 @@ import math
 from typing import Optional
 
 import attrs
+import numpy as np
 import pandas as pd
 
 
@@ -75,6 +76,27 @@ def _validate_trajectory_df(instance, attribute, value: pd.DataFrame) -> None:
             f"trajectory_df is missing required per-frame column(s): "
             f"{', '.join(missing_per_frame)}"
         )
+
+
+def _validate_integer_identity(df: pd.DataFrame) -> None:
+    """Validate ``track_id`` / ``plant_id`` are integer-valued and finite.
+
+    Every per-plant template build coerces these keys to int64. A fractional
+    float key (e.g. ``0.3``) would truncate to ``0`` *without error* and silently
+    collapse distinct plants into a many-to-many merge — the opposite of the
+    "raise rather than silently corrupt" rule. Real ``.slp`` data is always
+    integer-valued (``sleap_roots.series``), so this guards a hand-constructable
+    boundary. Shared by ``pipeline.compute_traits`` and ``traveling_wave.compute``.
+    """
+    for col in ("track_id", "plant_id"):
+        vals = df[col].to_numpy()
+        if not np.all(np.isfinite(vals)) or not np.array_equal(
+            vals, vals.astype(np.int64)
+        ):
+            raise ValueError(
+                f"{col!r} must be integer-valued and finite; non-integer values "
+                f"would truncate to int64 and silently merge distinct plants."
+            )
 
 
 def _coerce_cadence_s(value):

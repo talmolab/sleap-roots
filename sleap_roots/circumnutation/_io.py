@@ -372,6 +372,8 @@ def gather_run_metadata(
     input_path: PathLike,
     run_id: Optional[str] = None,
     constants: Optional[ConstantsT] = None,
+    cadence_s: Optional[float] = None,
+    R_px: Optional[float] = None,
 ) -> dict:
     """Assemble the provenance bundle for one pipeline run.
 
@@ -381,6 +383,13 @@ def gather_run_metadata(
         run_id: Optional human-readable identifier.
         constants: Optional :class:`ConstantsT` override. When ``None``,
             the snapshot reflects the module-level defaults.
+        cadence_s: Optional per-run frame cadence in seconds (added in PR #14).
+            ``cadence_s`` determines every period trait and the traveling-wave
+            residual, and is otherwise unrecoverable from the ``.slp`` at
+            ``input_path``; recording it makes a run reproducible from the
+            sidecars alone. ``None`` (non-pipeline callers) writes ``null``.
+        R_px: Optional root cross-section radius in pixels (added in PR #14;
+            ``None`` writes ``null``).
 
     Returns:
         A JSON-serializable dict containing every required provenance
@@ -400,6 +409,8 @@ def gather_run_metadata(
         "platform": platform.platform(),
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "run_id": run_id,
+        "cadence_s": cadence_s,
+        "R_px": R_px,
         "_schema_version": _SCHEMA_VERSION,
         "_constants_version": _CONSTANTS_VERSION,
         "_constants_snapshot": snapshot,
