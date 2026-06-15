@@ -179,9 +179,11 @@ foundation stub→impl migration (Task 3) — otherwise the foundation suite goe
 - [ ] 9.1 Correct the `pipeline.py` module docstring: sequential merge-orchestrator (not a TraitDef
   DAG); list the composed tiers + the dedup; reference this design.
 - [ ] 9.2 `docs/circumnutation/roadmap.md` row #14: ⬜→ in-progress; correct the "TraitDef DAG"
-  claim → sequential merge-orchestrator (with the Why); note the Tier 0/1 dedup + the
-  nutation/psi_g units-map additions (#222).
-- [ ] 9.3 `docs/changelog.md`: PR #14 entry (pipeline composition; dedup; units-map additions).
+  claim → sequential merge-orchestrator (with the Why); note the Tier 0/1 dedup, the
+  nutation/psi_g units-map additions, and the `cadence_s`/`R_px` provenance addition.
+- [ ] 9.3 `docs/changelog.md`: PR #14 entry (pipeline composition; dedup; nutation/psi_g units maps;
+  **provenance: `cadence_s`/`R_px` now captured in `run_metadata.json`** — a user-visible sidecar
+  schema addition; note the Run-metadata MODIFIED requirement).
 
 ## 10. Verification gates (all must pass before PR)
 - [ ] 10.1 `uv run pytest tests/ -q` fully green; full-suite coverage stays ≥84% (the CI-enforced

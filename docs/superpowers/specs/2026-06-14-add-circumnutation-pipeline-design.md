@@ -182,11 +182,13 @@ CircumnutationPipeline(constants=None)            # picklable attrs; only field 
    │     4. tier2 = psi_g.compute(df, cadence_s, constants)      # 4 cols
    │     5. tier3c = traveling_wave.compute(df, cadence_s, constants,
    │                                        tier0_df=tier0, tier1_df=tier1)   # 6 cols — DEDUP fast path
-   │     6. per_plant_df = reduce(merge on _IDENTITY_5_TUPLE) in fixed tier order
+   │     6. per_plant_df = template(8 identity) ⟕ each tier projected to [5-tuple + its traits]
+   │                       (left-merge in fixed tier order; QC projection drops growth_axis_unreliable)
    │     7. units_dict   = ROW_IDENTITY_UNITS ∪ all five tier _*_TRAIT_UNITS
    │
-   │  .save(out_path, per_plant_df, units, *, input_path, run_id=None)        # I/O
-   │     run_metadata = _io.gather_run_metadata(input_path, run_id, constants)
+   │  .save(out_path, per_plant_df, units, *, inputs, input_path)             # I/O
+   │     run_metadata = _io.gather_run_metadata(input_path, run_id=inputs.run_id, constants,
+   │                                            cadence_s=inputs.cadence_s, R_px=inputs.R_px)
    │     _io.write_per_plant_csv(out_path, per_plant_df, units, run_metadata) # CSV + 2 sidecars
 
 module-level compute_traits(inputs, constants=None) = CircumnutationPipeline(constants).compute_traits(inputs)

@@ -31,8 +31,9 @@ new science is introduced — every trait is already computed and tested by its 
     (module-level wrapper preserved for the stub's signature) that calls each tier's `compute()`
     once in a documented fixed order (Tier 0 / QC / Tier 1 / Tier 2 independent; Tier 3c depends on
     Tier 0 + Tier 1) and merges the per-plant outputs on `_IDENTITY_5_TUPLE` into a 46-column frame.
-  - A separate `save(out_path, per_plant_df, units, *, input_path, run_id=None)` that writes the
-    CSV + units + run-metadata sidecars via the existing `_io` writers (I/O kept out of `compute`).
+  - A separate `save(out_path, per_plant_df, units, *, inputs, input_path)` that writes the
+    CSV + units + run-metadata sidecars via the existing `_io` writers (I/O kept out of `compute`;
+    `inputs` is the authoritative source for the `cadence_s` / `R_px` / `run_id` provenance).
 - **Dedup Tier 0/Tier 1** via an optional precomputed-frames fast path on
   `traveling_wave.compute`: new keyword-only `tier0_df` / `tier1_df`. When supplied (both), it skips
   the internal Tier 0/Tier 1 recompute; standalone behavior (kwargs omitted) is byte-identical.
