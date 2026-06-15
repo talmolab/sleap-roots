@@ -576,3 +576,12 @@ def test_compute_traits_threads_same_constants_and_uses_fast_path(monkeypatch):
         assert calls[name] is constants, name
     tier0_df, tier1_df = calls["tw_fast"]
     assert tier0_df is not None and tier1_df is not None  # dedup fast path used
+
+
+def test_traveling_wave_compute_rejects_non_integer_track_id():
+    """Standalone traveling_wave.compute guards the same fractional-key trap."""
+    df = _traj_df(n_tracks=2)
+    df["track_id"] = df["track_id"].map({0: 0.3, 1: 0.7})
+    df["plant_id"] = df["track_id"]
+    with pytest.raises(ValueError, match="track_id"):
+        traveling_wave.compute(df, cadence_s=300.0)

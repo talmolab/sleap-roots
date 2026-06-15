@@ -39,6 +39,7 @@ from sleap_roots.circumnutation._io import (
 from sleap_roots.circumnutation._types import (
     ROW_IDENTITY_COLUMNS,
     CircumnutationInputs,
+    _validate_integer_identity,
 )
 
 
@@ -132,19 +133,9 @@ class CircumnutationPipeline:
 
         # The per-plant merge keys are coerced to int64; a fractional float
         # track_id/plant_id (e.g. 0.3) would truncate to 0 and silently merge
-        # distinct plants into a many-to-many row explosion. Real .slp data is
-        # always integer-valued (sleap_roots.series), so guard the boundary
-        # rather than silently corrupt (mirrors the module's coerce-and-raise rule).
-        for col in ("track_id", "plant_id"):
-            vals = df[col].to_numpy()
-            if not np.all(np.isfinite(vals)) or not np.array_equal(
-                vals, vals.astype(np.int64)
-            ):
-                raise ValueError(
-                    f"{col!r} must be integer-valued and finite; non-integer "
-                    f"values would truncate to int64 and silently merge distinct "
-                    f"plants in the per-plant composition."
-                )
+        # distinct plants into a many-to-many row explosion. Guard the boundary
+        # rather than silently corrupt (shared with traveling_wave.compute).
+        _validate_integer_identity(df)
 
         n_tracks = df[list(_IDENTITY_5_TUPLE)].drop_duplicates().shape[0]
         logger.debug(

@@ -59,6 +59,7 @@ from sleap_roots.circumnutation._io import (
 )
 from sleap_roots.circumnutation._types import (
     ROW_IDENTITY_COLUMNS,
+    _validate_integer_identity,
     _validate_trajectory_df,
 )
 
@@ -379,6 +380,7 @@ def compute(
             f"{type(trajectory_df).__name__}"
         )
     _validate_trajectory_df(None, None, trajectory_df)
+    _validate_integer_identity(trajectory_df)
     cadence_float = temporal_cwt._validate_cadence_s(cadence_s)
     resolved_constants = _check_constants(constants)
 
