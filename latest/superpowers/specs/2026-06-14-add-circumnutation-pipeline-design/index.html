@@ -12,7 +12,7 @@
         <meta name="author" content="Talmo Lab">
       
       
-        <link rel="canonical" href="https://roots.sleap.ai/latest/reference/sleap_roots/circumnutation/psi_g/">
+        <link rel="canonical" href="https://roots.sleap.ai/latest/superpowers/specs/2026-06-14-add-circumnutation-pipeline-design/">
       
       
       
@@ -20,19 +20,19 @@
         
       
       
-      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <link rel="icon" href="../../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.6">
     
     
       
-        <title>Psi g - sleap-roots</title>
+        <title>Design: add-circumnutation-pipeline (PR #14) - sleap-roots</title>
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,11 +51,11 @@
       
     
     
-      <link rel="stylesheet" href="../../../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../../../../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#sleap_roots.circumnutation.psi_g" class="md-skip">
+        <a href="#design-add-circumnutation-pipeline-pr-14" class="md-skip">
           Skip to content
         </a>
       
@@ -100,7 +100,7 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../../.." title="sleap-roots" class="md-header__button md-logo" aria-label="sleap-roots" data-md-component="logo">
+    <a href="../../.." title="sleap-roots" class="md-header__button md-logo" aria-label="sleap-roots" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -120,7 +120,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Psi g
+              Design: add-circumnutation-pipeline (PR #14)
             
           </span>
         </div>
@@ -232,7 +232,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../../.." class="md-tabs__link">
+      <a href="../../.." class="md-tabs__link">
         
   
   
@@ -253,7 +253,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../getting-started/installation/" class="md-tabs__link">
+        <a href="../../../getting-started/installation/" class="md-tabs__link">
           
   
   
@@ -275,7 +275,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../tutorials/" class="md-tabs__link">
+        <a href="../../../tutorials/" class="md-tabs__link">
           
   
   
@@ -297,7 +297,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../guides/" class="md-tabs__link">
+        <a href="../../../guides/" class="md-tabs__link">
           
   
   
@@ -319,7 +319,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../dev/contributing/" class="md-tabs__link">
+        <a href="../../../dev/contributing/" class="md-tabs__link">
           
   
   
@@ -341,7 +341,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../api/" class="md-tabs__link">
+        <a href="../../../api/" class="md-tabs__link">
           
   
   
@@ -363,7 +363,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../cookbook/" class="md-tabs__link">
+        <a href="../../../cookbook/" class="md-tabs__link">
           
   
   
@@ -383,7 +383,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../../../changelog/" class="md-tabs__link">
+      <a href="../../../changelog/" class="md-tabs__link">
         
   
   
@@ -426,7 +426,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../../.." title="sleap-roots" class="md-nav__button md-logo" aria-label="sleap-roots" data-md-component="logo">
+    <a href="../../.." title="sleap-roots" class="md-nav__button md-logo" aria-label="sleap-roots" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -456,7 +456,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../.." class="md-nav__link">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -545,7 +545,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../getting-started/installation/" class="md-nav__link">
+      <a href="../../../getting-started/installation/" class="md-nav__link">
         
   
   
@@ -573,7 +573,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../getting-started/quickstart/" class="md-nav__link">
+      <a href="../../../getting-started/quickstart/" class="md-nav__link">
         
   
   
@@ -601,7 +601,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../getting-started/what-is-sleap/" class="md-nav__link">
+      <a href="../../../getting-started/what-is-sleap/" class="md-nav__link">
         
   
   
@@ -675,7 +675,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../tutorials/" class="md-nav__link ">
+            <a href="../../../tutorials/" class="md-nav__link ">
               
   
   
@@ -719,7 +719,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../tutorials/dicot-pipeline/" class="md-nav__link">
+      <a href="../../../tutorials/dicot-pipeline/" class="md-nav__link">
         
   
   
@@ -747,7 +747,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../tutorials/younger-monocot-pipeline/" class="md-nav__link">
+      <a href="../../../tutorials/younger-monocot-pipeline/" class="md-nav__link">
         
   
   
@@ -775,7 +775,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../tutorials/older-monocot-pipeline/" class="md-nav__link">
+      <a href="../../../tutorials/older-monocot-pipeline/" class="md-nav__link">
         
   
   
@@ -803,7 +803,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../tutorials/multiple-dicot-pipeline/" class="md-nav__link">
+      <a href="../../../tutorials/multiple-dicot-pipeline/" class="md-nav__link">
         
   
   
@@ -831,7 +831,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../tutorials/multiple-primary-root-pipeline/" class="md-nav__link">
+      <a href="../../../tutorials/multiple-primary-root-pipeline/" class="md-nav__link">
         
   
   
@@ -859,7 +859,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../tutorials/primary-root-pipeline/" class="md-nav__link">
+      <a href="../../../tutorials/primary-root-pipeline/" class="md-nav__link">
         
   
   
@@ -887,7 +887,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../tutorials/lateral-root-pipeline/" class="md-nav__link">
+      <a href="../../../tutorials/lateral-root-pipeline/" class="md-nav__link">
         
   
   
@@ -959,7 +959,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../guides/" class="md-nav__link ">
+            <a href="../../../guides/" class="md-nav__link ">
               
   
   
@@ -1073,7 +1073,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/pipelines/dicot/" class="md-nav__link">
+      <a href="../../../guides/pipelines/dicot/" class="md-nav__link">
         
   
   
@@ -1101,7 +1101,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/pipelines/younger-monocot/" class="md-nav__link">
+      <a href="../../../guides/pipelines/younger-monocot/" class="md-nav__link">
         
   
   
@@ -1129,7 +1129,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/pipelines/older-monocot/" class="md-nav__link">
+      <a href="../../../guides/pipelines/older-monocot/" class="md-nav__link">
         
   
   
@@ -1157,7 +1157,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/pipelines/multiple-primary/" class="md-nav__link">
+      <a href="../../../guides/pipelines/multiple-primary/" class="md-nav__link">
         
   
   
@@ -1185,7 +1185,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/pipelines/multiple-dicot/" class="md-nav__link">
+      <a href="../../../guides/pipelines/multiple-dicot/" class="md-nav__link">
         
   
   
@@ -1213,7 +1213,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/pipelines/primary-root/" class="md-nav__link">
+      <a href="../../../guides/pipelines/primary-root/" class="md-nav__link">
         
   
   
@@ -1241,7 +1241,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/pipelines/lateral-root/" class="md-nav__link">
+      <a href="../../../guides/pipelines/lateral-root/" class="md-nav__link">
         
   
   
@@ -1339,7 +1339,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/data-formats/sleap-files/" class="md-nav__link">
+      <a href="../../../guides/data-formats/sleap-files/" class="md-nav__link">
         
   
   
@@ -1367,7 +1367,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/data-formats/hdf5/" class="md-nav__link">
+      <a href="../../../guides/data-formats/hdf5/" class="md-nav__link">
         
   
   
@@ -1395,7 +1395,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/data-formats/csv-traits/" class="md-nav__link">
+      <a href="../../../guides/data-formats/csv-traits/" class="md-nav__link">
         
   
   
@@ -1431,7 +1431,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/trait-reference/" class="md-nav__link">
+      <a href="../../../guides/trait-reference/" class="md-nav__link">
         
   
   
@@ -1459,7 +1459,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/batch-processing/" class="md-nav__link">
+      <a href="../../../guides/batch-processing/" class="md-nav__link">
         
   
   
@@ -1487,7 +1487,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/custom-pipelines/" class="md-nav__link">
+      <a href="../../../guides/custom-pipelines/" class="md-nav__link">
         
   
   
@@ -1515,7 +1515,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/troubleshooting/" class="md-nav__link">
+      <a href="../../../guides/troubleshooting/" class="md-nav__link">
         
   
   
@@ -1622,7 +1622,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../dev/contributing/" class="md-nav__link">
+      <a href="../../../dev/contributing/" class="md-nav__link">
         
   
   
@@ -1650,7 +1650,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../dev/setup/" class="md-nav__link">
+      <a href="../../../dev/setup/" class="md-nav__link">
         
   
   
@@ -1678,7 +1678,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../dev/architecture/" class="md-nav__link">
+      <a href="../../../dev/architecture/" class="md-nav__link">
         
   
   
@@ -1706,7 +1706,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../dev/creating-pipelines/" class="md-nav__link">
+      <a href="../../../dev/creating-pipelines/" class="md-nav__link">
         
   
   
@@ -1734,7 +1734,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../dev/adding-traits/" class="md-nav__link">
+      <a href="../../../dev/adding-traits/" class="md-nav__link">
         
   
   
@@ -1762,7 +1762,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../dev/testing/" class="md-nav__link">
+      <a href="../../../dev/testing/" class="md-nav__link">
         
   
   
@@ -1790,7 +1790,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../dev/code-style/" class="md-nav__link">
+      <a href="../../../dev/code-style/" class="md-nav__link">
         
   
   
@@ -1818,7 +1818,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../dev/release-process/" class="md-nav__link">
+      <a href="../../../dev/release-process/" class="md-nav__link">
         
   
   
@@ -1886,7 +1886,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../api/" class="md-nav__link ">
+            <a href="../../../api/" class="md-nav__link ">
               
   
   
@@ -1990,7 +1990,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../api/core/series/" class="md-nav__link">
+      <a href="../../../api/core/series/" class="md-nav__link">
         
   
   
@@ -2018,7 +2018,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../api/core/pipelines/" class="md-nav__link">
+      <a href="../../../api/core/pipelines/" class="md-nav__link">
         
   
   
@@ -2128,7 +2128,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../api/traits/lengths/" class="md-nav__link">
+      <a href="../../../api/traits/lengths/" class="md-nav__link">
         
   
   
@@ -2156,7 +2156,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../api/traits/angles/" class="md-nav__link">
+      <a href="../../../api/traits/angles/" class="md-nav__link">
         
   
   
@@ -2184,7 +2184,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../api/traits/tips/" class="md-nav__link">
+      <a href="../../../api/traits/tips/" class="md-nav__link">
         
   
   
@@ -2212,7 +2212,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../api/traits/bases/" class="md-nav__link">
+      <a href="../../../api/traits/bases/" class="md-nav__link">
         
   
   
@@ -2240,7 +2240,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../api/traits/convhull/" class="md-nav__link">
+      <a href="../../../api/traits/convhull/" class="md-nav__link">
         
   
   
@@ -2268,7 +2268,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../api/traits/ellipse/" class="md-nav__link">
+      <a href="../../../api/traits/ellipse/" class="md-nav__link">
         
   
   
@@ -2296,7 +2296,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../api/traits/networklength/" class="md-nav__link">
+      <a href="../../../api/traits/networklength/" class="md-nav__link">
         
   
   
@@ -2324,7 +2324,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../api/traits/scanline/" class="md-nav__link">
+      <a href="../../../api/traits/scanline/" class="md-nav__link">
         
   
   
@@ -2352,7 +2352,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../api/traits/points/" class="md-nav__link">
+      <a href="../../../api/traits/points/" class="md-nav__link">
         
   
   
@@ -2446,7 +2446,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../api/utilities/summary/" class="md-nav__link">
+      <a href="../../../api/utilities/summary/" class="md-nav__link">
         
   
   
@@ -2540,7 +2540,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../api/examples/common-workflows/" class="md-nav__link">
+      <a href="../../../api/examples/common-workflows/" class="md-nav__link">
         
   
   
@@ -2616,7 +2616,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../cookbook/" class="md-nav__link ">
+            <a href="../../../cookbook/" class="md-nav__link ">
               
   
   
@@ -2660,7 +2660,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../cookbook/filtering-data/" class="md-nav__link">
+      <a href="../../../cookbook/filtering-data/" class="md-nav__link">
         
   
   
@@ -2688,7 +2688,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../cookbook/custom-traits/" class="md-nav__link">
+      <a href="../../../cookbook/custom-traits/" class="md-nav__link">
         
   
   
@@ -2716,7 +2716,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../cookbook/batch-optimization/" class="md-nav__link">
+      <a href="../../../cookbook/batch-optimization/" class="md-nav__link">
         
   
   
@@ -2744,7 +2744,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../cookbook/exporting-results/" class="md-nav__link">
+      <a href="../../../cookbook/exporting-results/" class="md-nav__link">
         
   
   
@@ -2779,7 +2779,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../changelog/" class="md-nav__link">
+      <a href="../../../changelog/" class="md-nav__link">
         
   
   
@@ -2827,416 +2827,355 @@
   
 
 
-  <h1>Psi g</h1>
-
-<div class="doc doc-object doc-module">
-
-
-
-<h2 id="sleap_roots.circumnutation.psi_g" class="doc doc-heading">
-            <span class="doc doc-object-name doc-module-name">psi_g</span>
-
-
-<a href="#sleap_roots.circumnutation.psi_g" class="headerlink" title="Permanent link">&para;</a></h2>
-
-    <div class="doc doc-contents first">
-
-        <p>Tier 2 — Bastien-Meroz ψ_g trait emission (PR #7, <code>add-circumnutation-tier2-psi-g</code>).</p>
-<p>Public callable: :func:<code>compute</code> — emits 4 self-contained Tier 2 trait
-columns per track from the unwrapped velocity-direction angle <code>ψ_g(t)</code>
-(<code>_geometry.compute_psi_g</code>, <code>atan2(dx, dy)</code> per BM2016 Eq. 20 /
-<code>docs/circumnutation/theory.md</code> §3.5):</p>
+<h1 id="design-add-circumnutation-pipeline-pr-14">Design: add-circumnutation-pipeline (PR #14)<a class="headerlink" href="#design-add-circumnutation-pipeline-pr-14" title="Permanent link">&para;</a></h1>
+<p><strong>Date</strong>: 2026-06-14
+<strong>Author</strong>: eberrigan (+ Claude)
+<strong>Epic</strong>: #197 — circumnutation analysis program
+<strong>Upstream (merged)</strong>: every trait tier #1–#10 (Tier 0 kinematics, QC, Tier 1 nutation,
+Tier 2 psi_g, Tier 3c traveling_wave) + the PR #1 foundation (<code>_types</code>, <code>_io</code>, <code>_constants</code>)
+<strong>Promotes ahead of</strong>: PR #11 (Tier 4 parametric, deferred — blocked on #230 / Phase 2)
+<strong>Surfaces</strong>: #222 (the nutation/psi_g <code>_*_TRAIT_UNITS</code> gap); #232 (the Tier 0/1 dedup lineage)</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>PR #14 is the <strong>composition</strong> PR: it wires the five trait-emitting tiers into one
+<code>CircumnutationPipeline</code> that produces a single per-plant trait DataFrame, a CSV, and the two
+provenance sidecars — the artifact a downstream user (PR #15 aggregation / PR #16 plots / PR #17
+CLI / PR #18 guide) actually consumes. It introduces <strong>no new science</strong>: every trait is already
+computed and tested by its tier. The work is correct composition (merge on the per-plant 5-tuple),
+units aggregation, the headline <strong>Tier 0/Tier 1 dedup</strong>, provenance writing, pickle-ability, and a
+real-data plate-001 integration test.</p>
+<p>This is a <strong>stub → implementation</strong> transition. <code>pipeline.compute_traits</code> currently raises
+<code>NotImplementedError</code>; the foundation tests track it in <code>STUB_MODULES</code> /
+<code>STUBS_WITH_CONSTANTS_KWARG</code>. PR #14 moves it to the implemented set (impl 9→10, stub 3→2).</p>
+<h2 id="the-five-tiers-being-composed">The five tiers being composed<a class="headerlink" href="#the-five-tiers-being-composed" title="Permanent link">&para;</a></h2>
+<p>All five are per-track, per-plant <code>DataFrame → DataFrame</code> functions with the 8 row-identity
+columns and a 5-tuple (<code>series, sample_uid, plate_id, plant_id, track_id</code>) groupby, mergeable on
+<code>_IDENTITY_5_TUPLE</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Module</th>
+<th>Signature</th>
+<th>Cadence?</th>
+<th>Trait cols</th>
+<th>Has <code>_*_TRAIT_UNITS</code>?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td><code>kinematics.compute(df, constants=None)</code></td>
+<td>no cadence</td>
+<td>10</td>
+<td>✓ <code>_TIER0_TRAIT_UNITS</code></td>
+<td></td>
+</tr>
+<tr>
+<td>QC</td>
+<td><code>qc.compute(df, constants=None)</code></td>
+<td>no cadence</td>
+<td>11</td>
+<td>✓ <code>_QC_TRAIT_UNITS</code></td>
+<td></td>
+</tr>
+<tr>
+<td>1</td>
+<td><code>nutation.compute(df, cadence_s, coordinate="lateral", constants=None)</code></td>
+<td>needs</td>
+<td>8</td>
+<td>✗ <strong>add</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>psi_g.compute(df, cadence_s, constants=None)</code></td>
+<td>needs</td>
+<td>4</td>
+<td>✗ <strong>add</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>3c</td>
+<td><code>traveling_wave.compute(df, cadence_s, constants=None)</code></td>
+<td>needs</td>
+<td>6</td>
+<td>✓ <code>_TRAVELING_WAVE_TRAIT_UNITS</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Tier 3c internally <strong>recomputes</strong> Tier 0 (<code>kinematics.compute</code>) and a per-track Tier 1 temporal
+CWT (<code>nutation.compute</code>, lateral) to obtain <code>v_total_median_px_per_frame</code> and <code>T_nutation_median</code>
+for its <code>lambda_expected_px</code> / <code>traveling_wave_residual</code> composition — redundant by design for a
+self-contained tier, and the dedup target here.</p>
+<h2 id="decisions-d1d8">Decisions (D1–D8)<a class="headerlink" href="#decisions-d1d8" title="Permanent link">&para;</a></h2>
+<h3 id="d1-pipeline-shape-sequential-merge-orchestrator-not-the-per-frame-networkx-dag">D1 — Pipeline shape: SEQUENTIAL MERGE-ORCHESTRATOR (not the per-frame networkx DAG)<a class="headerlink" href="#d1-pipeline-shape-sequential-merge-orchestrator-not-the-per-frame-networkx-dag" title="Permanent link">&para;</a></h3>
+<p><code>CircumnutationPipeline</code> is a purpose-built <code>attrs</code> class that calls each tier's <code>compute()</code> once
+and merges the per-plant outputs on <code>_IDENTITY_5_TUPLE</code>. It honors the DAG <em>intent</em> — a documented
+fixed tier order (Tier 0 / QC / Tier 1 / Tier 2 independent; Tier 3c depends on Tier 0 + Tier 1),
+pure, picklable — <strong>without</strong> the per-frame node model of <code>trait_pipelines.Pipeline</code>.</p>
+<blockquote>
+<p><strong>⚠ DEVIATION (record in spec + design):</strong> the <code>pipeline.py</code> stub docstring and the roadmap row
+say PR #14 builds a "TraitDef DAG matching the <code>Pipeline</code> base class pattern". PR #14
+<strong>deliberately does not</strong>. <strong>Why:</strong> <code>trait_pipelines.Pipeline</code> is a <em>per-frame</em> networkx
+<code>TraitDef</code> DAG; the circumnutation tiers are <em>per-track DataFrame → DataFrame</em> functions that do
+not fit that node model cleanly. A sequential merge-orchestrator expresses the same dependency
+structure with far less impedance mismatch. The stub docstring + roadmap row are corrected as
+tasks.</p>
+</blockquote>
+<h3 id="d2-tier-0tier-1-dedup-precomputed-frames-fast-path-option-a">D2 — Tier 0/Tier 1 dedup: PRECOMPUTED-FRAMES FAST PATH (Option A)<a class="headerlink" href="#d2-tier-0tier-1-dedup-precomputed-frames-fast-path-option-a" title="Permanent link">&para;</a></h3>
+<p>Add optional keyword-only <code>tier0_df=None</code> / <code>tier1_df=None</code> to <code>traveling_wave.compute</code>. When the
+pipeline supplies them (it has already computed Tier 0 and Tier 1 as emitting tiers), <code>compute</code>
+skips the internal recompute (current lines ~367–378) and uses them directly. When omitted
+(standalone path), <code>compute</code> recomputes exactly as today.</p>
 <ul>
-<li><code>T_psig_median_s</code> — COI-masked median of the smoothed-ridge periods of
-  the SG-detrended ψ_g (composes <code>temporal_cwt.compute_scaleogram</code> →
-  <code>extract_ridge</code> → <code>smooth_ridge</code>). The ONLY trait that uses the
-  conditioned signal + CWT.</li>
-<li><code>delta_E_amplitude_proxy_px_per_frame</code> — <code>median(√(dx²+dy²))</code> over raw
-  finite velocity samples (Eq. 21 amplitude proxy; px/frame, no COI).</li>
-<li><code>handedness</code> — <code>int(np.sign(ψ_g[-1] − ψ_g[0]))</code> over all finite frames
-  (net unwrapped rotation; COI-free). <code>+1</code> ⇔ positive <code>dψ_g/dt</code>.</li>
-<li><code>helix_signed_area_px2</code> — y-down Shoelace area
-  (<code>_geometry.compute_signed_area</code>) of the <strong>growth-detrended</strong> tip
-  trajectory (per-axis linear detrend removes the growth ribbon so the
-  enclosed area reflects the nutation orbit). <code>sign(area)</code> confirms
-  <code>handedness</code> on genuinely 2-D-circulating real data (≥5/6 on plate-001;
-  raw un-detrended Shoelace agreed only 1/6 — the growth ribbon dominated).</li>
+<li>The spatial chain (<code>_compute_one_track</code>, calibration, COI gating) and the delicate
+  <code>lambda_expected_px</code> / <code>traveling_wave_residual</code> composition (current lines ~389–411) stay
+  entirely inside <code>traveling_wave</code> — <strong>single source of truth</strong>; the pipeline never re-derives that
+  logic.</li>
+<li><strong>Standalone behavior is byte-identical when the kwargs are omitted</strong> → the merged module's 37
+  tests + cross-OS canary stay green untouched.</li>
+<li>Reusability is sound: <code>kinematics.compute</code> has no coordinate axis, and <code>nutation.compute</code>
+  <strong>defaults to <code>coordinate="lateral"</code></strong> (<a href="../../../sleap_roots/circumnutation/nutation.py#L562">nutation.py:562</a>)
+  — exactly the coordinate Tier 3c needs — so the pipeline's <em>emitted</em> Tier 1 frame is the correct
+  operand frame to pass in.</li>
 </ul>
-<p>Tier 2 is self-contained: it does NOT consume Tier 1 output. The 5th §7.3
-trait <code>psig_long_consistency</code> (cross-tier <code>T_psig ↔ T_nutation</code>) is
-deferred to the roadmapped PR #13 Layer-3 work.</p>
-<p>Anchors: spec at
-<code>openspec/changes/add-circumnutation-tier2-psi-g/specs/circumnutation/spec.md</code>;
-design at <code>openspec/changes/add-circumnutation-tier2-psi-g/design.md</code> +
-<code>docs/superpowers/specs/2026-06-05-add-circumnutation-tier2-psi-g-design.md</code>
-§13; <code>docs/circumnutation/theory.md</code> §3.5 (ψ_g) + §7.3 (Tier 2 trait table).</p>
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="sleap_roots.circumnutation.psi_g.compute" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">compute</span>
-
-
-<a href="#sleap_roots.circumnutation.psi_g.compute" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">compute</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">trajectory_df</span><span class="p">:</span> <span class="n"><span title="pandas.DataFrame">DataFrame</span></span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">cadence_s</span><span class="p">:</span> <span class="n"><span title="float">float</span></span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">constants</span><span class="p">:</span> <span class="n"><span title="typing.Optional">Optional</span></span><span class="p">[</span><span class="n"><span title="sleap_roots.circumnutation._constants.ConstantsT">ConstantsT</span></span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="pandas.DataFrame">DataFrame</span></span>
+<p><strong>Kwarg semantics (pin in the spec):</strong>
+- <strong>Both-or-neither.</strong> Supplying exactly one of <code>tier0_df</code> / <code>tier1_df</code> is a <code>ValueError</code>
+  (ambiguous: half-deduped would silently recompute the other half).
+- <strong>Same <code>constants</code>.</strong> The pipeline passes the same resolved <code>constants</code> to all tiers and to the
+  fast path, so an override is honored consistently.
+- <strong>Validated, not trusted blindly.</strong> The fast path verifies each passed frame carries
+  <code>_IDENTITY_5_TUPLE</code> + the single operand column it consumes
+  (<code>v_total_median_px_per_frame</code> from <code>tier0_df</code>, <code>T_nutation_median</code> from <code>tier1_df</code>) and raises a
+  named <code>ValueError</code> if missing — cheaper than a recompute and prevents a silent all-NaN join.
+- The standalone docstring <code>Note</code> (currently telling batch callers to route through the pipeline)
+  is updated to document the new fast-path kwargs.</p>
+<h3 id="d3-output-contract-pure-compute_traits-separate-save-option-1">D3 — Output contract: PURE <code>compute_traits</code> + separate <code>save()</code> (Option 1)<a class="headerlink" href="#d3-output-contract-pure-compute_traits-separate-save-option-1" title="Permanent link">&para;</a></h3>
+<p><code>compute_traits(inputs, constants=None)</code> stays <strong>pure</strong> (no I/O) and returns the stub's tuple
+<code>(per_plant_df, trajectory_df, units_dict)</code>. Writing is a separate
+<code>CircumnutationPipeline.save(out_path, per_plant_df, units, *, input_path, run_id=None)</code> that calls
+<code>_io.gather_run_metadata(input_path, run_id, constants)</code> + <code>_io.write_per_plant_csv(out_path, df,
+units, run_metadata)</code> (which writes the CSV + <code>&lt;stem&gt;.units.json</code> + <code>run_metadata.json</code>).</p>
+<ul>
+<li><strong>Why separate:</strong> the stub return tuple is honored verbatim (no signature deviation); compute is
+  trivially unit-testable with no filesystem; picklability stays clean. Critically,
+  <code>gather_run_metadata</code> requires <code>input_path</code> (the source <code>.slp</code> path), which
+  <code>CircumnutationInputs</code> does <strong>not</strong> carry — the <code>save</code> boundary is where the caller actually knows
+  that path, so the provenance gap is resolved there instead of leaking into the compute signature.</li>
+<li>The integration test exercises compute → save → <code>_io.read_per_plant_csv</code> round-trip.</li>
+</ul>
+<h3 id="d4-units-assembly-add-__trait_units-to-nutation-psi_g-option-x">D4 — Units assembly: ADD <code>_*_TRAIT_UNITS</code> TO <code>nutation</code> + <code>psi_g</code> (Option X)<a class="headerlink" href="#d4-units-assembly-add-__trait_units-to-nutation-psi_g-option-x" title="Permanent link">&para;</a></h3>
+<p><code>write_per_plant_csv</code> hard-enforces (before writing anything) that the units dict 1:1-covers the
+DataFrame columns <strong>and</strong> that every value is in <code>PIPELINE_UNIT_VOCABULARY</code>. Two of five tiers lack
+a units map. PR #14 closes the <strong>#222</strong> gap properly: add <code>_NUTATION_TRAIT_UNITS</code> to <code>nutation.py</code>
+and <code>_PSIG_TRAIT_UNITS</code> to <code>psi_g.py</code>, co-located with their <code>_*_TRAIT_COLUMNS</code> (the established
+kinematics/qc/traveling_wave convention) — <strong>additive only</strong>, no behavior change, existing tier
+tests stay green.</p>
+<p>The pipeline assembles one composed units dict by merging, in tier order: <code>ROW_IDENTITY_UNITS</code>
+(restricted to the identity columns) ∪ <code>_TIER0_TRAIT_UNITS</code> ∪ <code>_QC_TRAIT_UNITS</code> ∪
+<code>_NUTATION_TRAIT_UNITS</code> ∪ <code>_PSIG_TRAIT_UNITS</code> ∪ <code>_TRAVELING_WAVE_TRAIT_UNITS</code>. The
+<code>growth_axis_unreliable</code> key appears in both Tier 0 and QC maps with the <strong>same</strong> value (<code>"bool"</code>),
+so the dict-merge dedups it; the pipeline asserts the two source values are equal before merging
+(guards a future divergence). Each new per-column unit follows the column's existing semantics
+(<code>px</code>, <code>px/frame</code>, <code>s</code>, <code>rad</code>, <code>—</code>, <code>bool</code>, <code>string</code>) drawn only from <code>PIPELINE_UNIT_VOCABULARY</code>;
+the writer's membership + 1:1 checks validate the result.</p>
+<h3 id="d5-growth_axis_unreliable-coalescing-tier-0-owns-it">D5 — <code>growth_axis_unreliable</code> coalescing: TIER 0 OWNS IT<a class="headerlink" href="#d5-growth_axis_unreliable-coalescing-tier-0-owns-it" title="Permanent link">&para;</a></h3>
+<p>Both Tier 0 and QC emit <code>growth_axis_unreliable</code> (QC recomputes it locally with the same formula
+and inputs as Tier 0 — <a href="../../../sleap_roots/circumnutation/qc.py#L207-L231">qc.py:207–231</a> — and
+an existing cross-tier equality test guarantees element-wise equality). A naive per-plant merge
+would collide them into <code>_x</code> / <code>_y</code>.</p>
+<p><strong>Resolution:</strong> Tier 0 owns the column in the composed output (it sits in the Tier 0 block next to
+<code>principal_axis_angle</code>, the computation it flags). QC's copy is <strong>dropped before QC merges in</strong>, so
+QC contributes 10 columns instead of 11. The plate-001 integration test re-asserts cross-tier
+equality at the composed level (defense-in-depth; cheap; documents the invariant).</p>
+<h3 id="d6-adapter-integration-test-inline-in-test-defer-adapter-to-pr-17-option-6a">D6 — Adapter + integration test: INLINE IN TEST, DEFER ADAPTER TO PR #17 (Option 6a)<a class="headerlink" href="#d6-adapter-integration-test-inline-in-test-defer-adapter-to-pr-17-option-6a" title="Permanent link">&para;</a></h3>
+<p>The plate-001 integration test builds the trajectory DataFrame inline using the proven pattern from
+<a href="../../../tests/test_circumnutation_traveling_wave.py#L562-L576">test_circumnutation_traveling_wave.py:562–576</a>
+(<code>Series.load</code> → <code>get_tracked_tips()</code> → coerce <code>track_id</code> <code>"track_N"</code>→int → attach the 8
+row-identity columns with hardcoded plate-001 metadata), constructs <code>CircumnutationInputs</code>, and
+round-trips compute → save → read-back.</p>
+<p>A general <code>Series → CircumnutationInputs</code> adapter is <strong>deferred to PR #17 (CLI)</strong>, where the
+metadata-sourcing design (sample_uid / timepoint / genotype / treatment come from CLI args or a
+metadata file, <strong>not</strong> the <code>.slp</code>) is properly motivated. Building it now would pull
+metadata-provenance design into PR #14 and risk locking an interface before the CLI's needs are
+known. The integration test still exercises the real public entry point
+(<code>CircumnutationInputs</code> → <code>compute_traits</code> → <code>save</code>).</p>
+<h3 id="d7-validation-cadence-threading">D7 — Validation &amp; cadence threading<a class="headerlink" href="#d7-validation-cadence-threading" title="Permanent link">&para;</a></h3>
+<p><code>compute_traits(inputs, constants=None)</code> receives an already-validated <code>CircumnutationInputs</code> (its
+<code>attrs</code> validators run <code>_validate_trajectory_df</code> + cadence/<code>R_px</code> checks at construction), and each
+tier re-validates <code>trajectory_df</code> internally. The pipeline therefore adds <strong>no redundant validation
+of its own</strong>. It reads <code>inputs.trajectory_df</code> + <code>inputs.cadence_s</code>, passes <code>trajectory_df</code> to all
+five tiers, and threads <code>cadence_s</code> <strong>only</strong> to nutation / psi_g / traveling_wave (Tier 0 / QC take
+no cadence). <code>R_px</code> is unused by these five (pure-pixel, CC-3) and is carried in provenance only.</p>
+<h3 id="d8-constants-determinism-picklability">D8 — Constants / determinism / picklability<a class="headerlink" href="#d8-constants-determinism-picklability" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Constants:</strong> no new <em>physical</em> constant. Tier order and composed column order are module-level
+  tuples in <code>pipeline.py</code>, not <code>ConstantsT</code> fields. <strong><code>_CONSTANTS_VERSION</code> stays 6.</strong></li>
+<li><strong>Picklability:</strong> <code>CircumnutationPipeline</code> holds only <code>constants</code> (an optional, picklable
+  <code>ConstantsT</code>). A <code>pickle.loads(pickle.dumps(pipeline))</code> round-trip test guards it.</li>
+<li><strong>Determinism:</strong> <strong>no composed-output canary.</strong> Each tier already owns its canary; a composed
+  canary would re-pin values the tiers already pin and add brittleness. Guards instead: a cheap
+  in-process two-run bit-identical determinism test, plus the plate-001 integration test (schema +
+  all-five-tiers'-columns present + the QPB band from the traveling_wave real-data test) as the
+  scientific cross-check.</li>
+</ul>
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>inputs: CircumnutationInputs(trajectory_df, cadence_s, R_px=None, run_id=None)
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>   │
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>CircumnutationPipeline(constants=None)            # picklable attrs; only field = constants
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>   │  .compute_traits(inputs) -&gt; (per_plant_df, trajectory_df, units_dict)   # PURE
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>   │     1. tier0 = kinematics.compute(df, constants)            # 10 cols
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>   │     2. qc    = qc.compute(df, constants)                    # 11 cols → drop growth_axis_unreliable → 10
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>   │     3. tier1 = nutation.compute(df, cadence_s, constants)   # 8 cols  (coordinate=&quot;lateral&quot; default)
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>   │     4. tier2 = psi_g.compute(df, cadence_s, constants)      # 4 cols
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>   │     5. tier3c = traveling_wave.compute(df, cadence_s, constants,
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>   │                                        tier0_df=tier0, tier1_df=tier1)   # 6 cols — DEDUP fast path
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>   │     6. per_plant_df = template(8 identity) ⟕ each tier projected to [5-tuple + its traits]
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>   │                       (left-merge in fixed tier order; QC projection drops growth_axis_unreliable)
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>   │     7. units_dict   = ROW_IDENTITY_UNITS ∪ all five tier _*_TRAIT_UNITS
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>   │
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>   │  .save(out_path, per_plant_df, units, *, inputs, input_path)             # I/O
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>   │     run_metadata = _io.gather_run_metadata(input_path, run_id=inputs.run_id, constants,
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>   │                                            cadence_s=inputs.cadence_s, R_px=inputs.R_px)
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>   │     _io.write_per_plant_csv(out_path, per_plant_df, units, run_metadata) # CSV + 2 sidecars
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>module-level compute_traits(inputs, constants=None) = CircumnutationPipeline(constants).compute_traits(inputs)
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>   # thin wrapper preserving the stub&#39;s module-level signature
 </span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Emit Tier 2 ψ_g traits per track (PR #7, theory.md §3.5 + §7.3).</p>
-<p>The 4 trait columns are emitted in declared order: <code>T_psig_median_s</code>
-(s), <code>delta_E_amplitude_proxy_px_per_frame</code> (px/frame), <code>handedness</code>
-(int64 {−1, 0, +1}), <code>helix_signed_area_px2</code> (px²). See the module
-docstring for each trait's definition.</p>
-<p>Unlike <code>nutation.compute</code>, there is no <code>coordinate</code> parameter: ψ_g is
-computed from the raw 2-D tip trajectory <code>(tip_x, tip_y)</code> via
-<code>_geometry.compute_psi_g</code> (<code>atan2(dx, dy)</code>), so there is no
-1-D-projection choice.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>trajectory_df</code>
-            </td>
-            <td>
-                  <code><span title="pandas.DataFrame">DataFrame</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Per-frame tip-trajectory DataFrame with the eight
-row-identity columns + <code>frame</code>, <code>tip_x</code>, <code>tip_y</code>.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>cadence_s</code>
-            </td>
-            <td>
-                  <code><span title="float">float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Frame cadence in seconds. Positive finite float.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>constants</code>
-            </td>
-            <td>
-                  <code><span title="typing.Optional">Optional</span>[<span title="sleap_roots.circumnutation._constants.ConstantsT">ConstantsT</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Optional :class:<code>ConstantsT</code> override-bag. <code>None</code>
-(default) resolves to module-level defaults.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-<th>Name</th>          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-<td></td>            <td>
-                  <code><span title="pandas.DataFrame">DataFrame</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Per-plant DataFrame with 1 row per unique</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-<td></td>            <td>
-                  <code><span title="pandas.DataFrame">DataFrame</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p><code>(series, sample_uid, plate_id, plant_id, track_id)</code> 5-tuple.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-<td><code>Columns</code></td>            <td>
-                  <code><span title="pandas.DataFrame">DataFrame</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>8 row-identity columns + 4 trait columns in declared order</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-<td></td>            <td>
-                  <code><span title="pandas.DataFrame">DataFrame</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>(3 <code>float64</code> + 1 <code>int64</code>).</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>sleap_roots/circumnutation/psi_g.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-305">305</a></span>
-<span class="normal"><a href="#__codelineno-0-306">306</a></span>
-<span class="normal"><a href="#__codelineno-0-307">307</a></span>
-<span class="normal"><a href="#__codelineno-0-308">308</a></span>
-<span class="normal"><a href="#__codelineno-0-309">309</a></span>
-<span class="normal"><a href="#__codelineno-0-310">310</a></span>
-<span class="normal"><a href="#__codelineno-0-311">311</a></span>
-<span class="normal"><a href="#__codelineno-0-312">312</a></span>
-<span class="normal"><a href="#__codelineno-0-313">313</a></span>
-<span class="normal"><a href="#__codelineno-0-314">314</a></span>
-<span class="normal"><a href="#__codelineno-0-315">315</a></span>
-<span class="normal"><a href="#__codelineno-0-316">316</a></span>
-<span class="normal"><a href="#__codelineno-0-317">317</a></span>
-<span class="normal"><a href="#__codelineno-0-318">318</a></span>
-<span class="normal"><a href="#__codelineno-0-319">319</a></span>
-<span class="normal"><a href="#__codelineno-0-320">320</a></span>
-<span class="normal"><a href="#__codelineno-0-321">321</a></span>
-<span class="normal"><a href="#__codelineno-0-322">322</a></span>
-<span class="normal"><a href="#__codelineno-0-323">323</a></span>
-<span class="normal"><a href="#__codelineno-0-324">324</a></span>
-<span class="normal"><a href="#__codelineno-0-325">325</a></span>
-<span class="normal"><a href="#__codelineno-0-326">326</a></span>
-<span class="normal"><a href="#__codelineno-0-327">327</a></span>
-<span class="normal"><a href="#__codelineno-0-328">328</a></span>
-<span class="normal"><a href="#__codelineno-0-329">329</a></span>
-<span class="normal"><a href="#__codelineno-0-330">330</a></span>
-<span class="normal"><a href="#__codelineno-0-331">331</a></span>
-<span class="normal"><a href="#__codelineno-0-332">332</a></span>
-<span class="normal"><a href="#__codelineno-0-333">333</a></span>
-<span class="normal"><a href="#__codelineno-0-334">334</a></span>
-<span class="normal"><a href="#__codelineno-0-335">335</a></span>
-<span class="normal"><a href="#__codelineno-0-336">336</a></span>
-<span class="normal"><a href="#__codelineno-0-337">337</a></span>
-<span class="normal"><a href="#__codelineno-0-338">338</a></span>
-<span class="normal"><a href="#__codelineno-0-339">339</a></span>
-<span class="normal"><a href="#__codelineno-0-340">340</a></span>
-<span class="normal"><a href="#__codelineno-0-341">341</a></span>
-<span class="normal"><a href="#__codelineno-0-342">342</a></span>
-<span class="normal"><a href="#__codelineno-0-343">343</a></span>
-<span class="normal"><a href="#__codelineno-0-344">344</a></span>
-<span class="normal"><a href="#__codelineno-0-345">345</a></span>
-<span class="normal"><a href="#__codelineno-0-346">346</a></span>
-<span class="normal"><a href="#__codelineno-0-347">347</a></span>
-<span class="normal"><a href="#__codelineno-0-348">348</a></span>
-<span class="normal"><a href="#__codelineno-0-349">349</a></span>
-<span class="normal"><a href="#__codelineno-0-350">350</a></span>
-<span class="normal"><a href="#__codelineno-0-351">351</a></span>
-<span class="normal"><a href="#__codelineno-0-352">352</a></span>
-<span class="normal"><a href="#__codelineno-0-353">353</a></span>
-<span class="normal"><a href="#__codelineno-0-354">354</a></span>
-<span class="normal"><a href="#__codelineno-0-355">355</a></span>
-<span class="normal"><a href="#__codelineno-0-356">356</a></span>
-<span class="normal"><a href="#__codelineno-0-357">357</a></span>
-<span class="normal"><a href="#__codelineno-0-358">358</a></span>
-<span class="normal"><a href="#__codelineno-0-359">359</a></span>
-<span class="normal"><a href="#__codelineno-0-360">360</a></span>
-<span class="normal"><a href="#__codelineno-0-361">361</a></span>
-<span class="normal"><a href="#__codelineno-0-362">362</a></span>
-<span class="normal"><a href="#__codelineno-0-363">363</a></span>
-<span class="normal"><a href="#__codelineno-0-364">364</a></span>
-<span class="normal"><a href="#__codelineno-0-365">365</a></span>
-<span class="normal"><a href="#__codelineno-0-366">366</a></span>
-<span class="normal"><a href="#__codelineno-0-367">367</a></span>
-<span class="normal"><a href="#__codelineno-0-368">368</a></span>
-<span class="normal"><a href="#__codelineno-0-369">369</a></span>
-<span class="normal"><a href="#__codelineno-0-370">370</a></span>
-<span class="normal"><a href="#__codelineno-0-371">371</a></span>
-<span class="normal"><a href="#__codelineno-0-372">372</a></span>
-<span class="normal"><a href="#__codelineno-0-373">373</a></span>
-<span class="normal"><a href="#__codelineno-0-374">374</a></span>
-<span class="normal"><a href="#__codelineno-0-375">375</a></span>
-<span class="normal"><a href="#__codelineno-0-376">376</a></span>
-<span class="normal"><a href="#__codelineno-0-377">377</a></span>
-<span class="normal"><a href="#__codelineno-0-378">378</a></span>
-<span class="normal"><a href="#__codelineno-0-379">379</a></span>
-<span class="normal"><a href="#__codelineno-0-380">380</a></span>
-<span class="normal"><a href="#__codelineno-0-381">381</a></span>
-<span class="normal"><a href="#__codelineno-0-382">382</a></span>
-<span class="normal"><a href="#__codelineno-0-383">383</a></span>
-<span class="normal"><a href="#__codelineno-0-384">384</a></span>
-<span class="normal"><a href="#__codelineno-0-385">385</a></span>
-<span class="normal"><a href="#__codelineno-0-386">386</a></span>
-<span class="normal"><a href="#__codelineno-0-387">387</a></span>
-<span class="normal"><a href="#__codelineno-0-388">388</a></span>
-<span class="normal"><a href="#__codelineno-0-389">389</a></span>
-<span class="normal"><a href="#__codelineno-0-390">390</a></span>
-<span class="normal"><a href="#__codelineno-0-391">391</a></span>
-<span class="normal"><a href="#__codelineno-0-392">392</a></span>
-<span class="normal"><a href="#__codelineno-0-393">393</a></span>
-<span class="normal"><a href="#__codelineno-0-394">394</a></span>
-<span class="normal"><a href="#__codelineno-0-395">395</a></span>
-<span class="normal"><a href="#__codelineno-0-396">396</a></span>
-<span class="normal"><a href="#__codelineno-0-397">397</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-305"><a id="__codelineno-0-305" name="__codelineno-0-305"></a><span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span>
-</span><span id="__span-0-306"><a id="__codelineno-0-306" name="__codelineno-0-306"></a>    <span class="n">trajectory_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
-</span><span id="__span-0-307"><a id="__codelineno-0-307" name="__codelineno-0-307"></a>    <span class="n">cadence_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span id="__span-0-308"><a id="__codelineno-0-308" name="__codelineno-0-308"></a>    <span class="n">constants</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ConstantsT</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-309"><a id="__codelineno-0-309" name="__codelineno-0-309"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-</span><span id="__span-0-310"><a id="__codelineno-0-310" name="__codelineno-0-310"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Emit Tier 2 ψ_g traits per track (PR #7, theory.md §3.5 + §7.3).</span>
-</span><span id="__span-0-311"><a id="__codelineno-0-311" name="__codelineno-0-311"></a>
-</span><span id="__span-0-312"><a id="__codelineno-0-312" name="__codelineno-0-312"></a><span class="sd">    The 4 trait columns are emitted in declared order: ``T_psig_median_s``</span>
-</span><span id="__span-0-313"><a id="__codelineno-0-313" name="__codelineno-0-313"></a><span class="sd">    (s), ``delta_E_amplitude_proxy_px_per_frame`` (px/frame), ``handedness``</span>
-</span><span id="__span-0-314"><a id="__codelineno-0-314" name="__codelineno-0-314"></a><span class="sd">    (int64 {−1, 0, +1}), ``helix_signed_area_px2`` (px²). See the module</span>
-</span><span id="__span-0-315"><a id="__codelineno-0-315" name="__codelineno-0-315"></a><span class="sd">    docstring for each trait&#39;s definition.</span>
-</span><span id="__span-0-316"><a id="__codelineno-0-316" name="__codelineno-0-316"></a>
-</span><span id="__span-0-317"><a id="__codelineno-0-317" name="__codelineno-0-317"></a><span class="sd">    Unlike ``nutation.compute``, there is no ``coordinate`` parameter: ψ_g is</span>
-</span><span id="__span-0-318"><a id="__codelineno-0-318" name="__codelineno-0-318"></a><span class="sd">    computed from the raw 2-D tip trajectory ``(tip_x, tip_y)`` via</span>
-</span><span id="__span-0-319"><a id="__codelineno-0-319" name="__codelineno-0-319"></a><span class="sd">    ``_geometry.compute_psi_g`` (``atan2(dx, dy)``), so there is no</span>
-</span><span id="__span-0-320"><a id="__codelineno-0-320" name="__codelineno-0-320"></a><span class="sd">    1-D-projection choice.</span>
-</span><span id="__span-0-321"><a id="__codelineno-0-321" name="__codelineno-0-321"></a>
-</span><span id="__span-0-322"><a id="__codelineno-0-322" name="__codelineno-0-322"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-323"><a id="__codelineno-0-323" name="__codelineno-0-323"></a><span class="sd">        trajectory_df: Per-frame tip-trajectory DataFrame with the eight</span>
-</span><span id="__span-0-324"><a id="__codelineno-0-324" name="__codelineno-0-324"></a><span class="sd">            row-identity columns + ``frame``, ``tip_x``, ``tip_y``.</span>
-</span><span id="__span-0-325"><a id="__codelineno-0-325" name="__codelineno-0-325"></a><span class="sd">        cadence_s: Frame cadence in seconds. Positive finite float.</span>
-</span><span id="__span-0-326"><a id="__codelineno-0-326" name="__codelineno-0-326"></a><span class="sd">        constants: Optional :class:`ConstantsT` override-bag. ``None``</span>
-</span><span id="__span-0-327"><a id="__codelineno-0-327" name="__codelineno-0-327"></a><span class="sd">            (default) resolves to module-level defaults.</span>
-</span><span id="__span-0-328"><a id="__codelineno-0-328" name="__codelineno-0-328"></a>
-</span><span id="__span-0-329"><a id="__codelineno-0-329" name="__codelineno-0-329"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-330"><a id="__codelineno-0-330" name="__codelineno-0-330"></a><span class="sd">        Per-plant DataFrame with 1 row per unique</span>
-</span><span id="__span-0-331"><a id="__codelineno-0-331" name="__codelineno-0-331"></a><span class="sd">        ``(series, sample_uid, plate_id, plant_id, track_id)`` 5-tuple.</span>
-</span><span id="__span-0-332"><a id="__codelineno-0-332" name="__codelineno-0-332"></a><span class="sd">        Columns: 8 row-identity columns + 4 trait columns in declared order</span>
-</span><span id="__span-0-333"><a id="__codelineno-0-333" name="__codelineno-0-333"></a><span class="sd">        (3 ``float64`` + 1 ``int64``).</span>
-</span><span id="__span-0-334"><a id="__codelineno-0-334" name="__codelineno-0-334"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-335"><a id="__codelineno-0-335" name="__codelineno-0-335"></a>    <span class="c1"># Input validation (mirrors nutation.compute boundary). cadence_s reuses</span>
-</span><span id="__span-0-336"><a id="__codelineno-0-336" name="__codelineno-0-336"></a>    <span class="c1"># the importable temporal_cwt._validate_cadence_s rather than a private copy.</span>
-</span><span id="__span-0-337"><a id="__codelineno-0-337" name="__codelineno-0-337"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">trajectory_df</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
-</span><span id="__span-0-338"><a id="__codelineno-0-338" name="__codelineno-0-338"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-339"><a id="__codelineno-0-339" name="__codelineno-0-339"></a>            <span class="sa">f</span><span class="s2">&quot;trajectory_df must be a pandas DataFrame, got &quot;</span>
-</span><span id="__span-0-340"><a id="__codelineno-0-340" name="__codelineno-0-340"></a>            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">trajectory_df</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
-</span><span id="__span-0-341"><a id="__codelineno-0-341" name="__codelineno-0-341"></a>        <span class="p">)</span>
-</span><span id="__span-0-342"><a id="__codelineno-0-342" name="__codelineno-0-342"></a>    <span class="n">_validate_trajectory_df</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">trajectory_df</span><span class="p">)</span>
-</span><span id="__span-0-343"><a id="__codelineno-0-343" name="__codelineno-0-343"></a>    <span class="n">cadence_float</span> <span class="o">=</span> <span class="n">temporal_cwt</span><span class="o">.</span><span class="n">_validate_cadence_s</span><span class="p">(</span><span class="n">cadence_s</span><span class="p">)</span>
-</span><span id="__span-0-344"><a id="__codelineno-0-344" name="__codelineno-0-344"></a>    <span class="n">resolved_constants</span> <span class="o">=</span> <span class="n">_check_constants</span><span class="p">(</span><span class="n">constants</span><span class="p">)</span>
-</span><span id="__span-0-345"><a id="__codelineno-0-345" name="__codelineno-0-345"></a>
-</span><span id="__span-0-346"><a id="__codelineno-0-346" name="__codelineno-0-346"></a>    <span class="n">n_tracks</span> <span class="o">=</span> <span class="n">trajectory_df</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">_IDENTITY_5_TUPLE</span><span class="p">)]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-</span><span id="__span-0-347"><a id="__codelineno-0-347" name="__codelineno-0-347"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;psi_g.compute(n_tracks=</span><span class="si">%d</span><span class="s2">, cadence_s=</span><span class="si">%.6f</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">n_tracks</span><span class="p">,</span> <span class="n">cadence_float</span><span class="p">)</span>
-</span><span id="__span-0-348"><a id="__codelineno-0-348" name="__codelineno-0-348"></a>
-</span><span id="__span-0-349"><a id="__codelineno-0-349" name="__codelineno-0-349"></a>    <span class="c1"># Per-track loop (mirrors kinematics.py / qc.py / nutation.py precedent).</span>
-</span><span id="__span-0-350"><a id="__codelineno-0-350" name="__codelineno-0-350"></a>    <span class="n">trait_rows</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="__span-0-351"><a id="__codelineno-0-351" name="__codelineno-0-351"></a>    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">trajectory_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
-</span><span id="__span-0-352"><a id="__codelineno-0-352" name="__codelineno-0-352"></a>        <span class="nb">list</span><span class="p">(</span><span class="n">_IDENTITY_5_TUPLE</span><span class="p">),</span> <span class="n">dropna</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span>
-</span><span id="__span-0-353"><a id="__codelineno-0-353" name="__codelineno-0-353"></a>    <span class="p">):</span>
-</span><span id="__span-0-354"><a id="__codelineno-0-354" name="__codelineno-0-354"></a>        <span class="n">traits</span> <span class="o">=</span> <span class="n">_compute_one_track</span><span class="p">(</span>
-</span><span id="__span-0-355"><a id="__codelineno-0-355" name="__codelineno-0-355"></a>            <span class="n">group</span><span class="p">,</span> <span class="n">cadence_s</span><span class="o">=</span><span class="n">cadence_float</span><span class="p">,</span> <span class="n">constants</span><span class="o">=</span><span class="n">resolved_constants</span>
-</span><span id="__span-0-356"><a id="__codelineno-0-356" name="__codelineno-0-356"></a>        <span class="p">)</span>
-</span><span id="__span-0-357"><a id="__codelineno-0-357" name="__codelineno-0-357"></a>        <span class="n">identity</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">_IDENTITY_5_TUPLE</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
-</span><span id="__span-0-358"><a id="__codelineno-0-358" name="__codelineno-0-358"></a>        <span class="n">trait_rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="o">**</span><span class="n">identity</span><span class="p">,</span> <span class="o">**</span><span class="n">traits</span><span class="p">})</span>
-</span><span id="__span-0-359"><a id="__codelineno-0-359" name="__codelineno-0-359"></a>
-</span><span id="__span-0-360"><a id="__codelineno-0-360" name="__codelineno-0-360"></a>    <span class="n">trait_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-</span><span id="__span-0-361"><a id="__codelineno-0-361" name="__codelineno-0-361"></a>        <span class="n">trait_rows</span><span class="p">,</span>
-</span><span id="__span-0-362"><a id="__codelineno-0-362" name="__codelineno-0-362"></a>        <span class="n">columns</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">_IDENTITY_5_TUPLE</span><span class="p">)</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">_PSIG_TRAIT_COLUMNS</span><span class="p">),</span>
-</span><span id="__span-0-363"><a id="__codelineno-0-363" name="__codelineno-0-363"></a>    <span class="p">)</span>
-</span><span id="__span-0-364"><a id="__codelineno-0-364" name="__codelineno-0-364"></a>
-</span><span id="__span-0-365"><a id="__codelineno-0-365" name="__codelineno-0-365"></a>    <span class="c1"># Per-plant template via the shared `_io._build_per_plant_template_from_df`</span>
-</span><span id="__span-0-366"><a id="__codelineno-0-366" name="__codelineno-0-366"></a>    <span class="c1"># helper (mirrors kinematics.compute / nutation.compute). Coerce trait_df&#39;s</span>
-</span><span id="__span-0-367"><a id="__codelineno-0-367" name="__codelineno-0-367"></a>    <span class="c1"># identity dtypes to match the template&#39;s int64 keys BEFORE merge so merges</span>
-</span><span id="__span-0-368"><a id="__codelineno-0-368" name="__codelineno-0-368"></a>    <span class="c1"># don&#39;t silently fall through to all-NaN on numeric-string IDs.</span>
-</span><span id="__span-0-369"><a id="__codelineno-0-369" name="__codelineno-0-369"></a>    <span class="n">template</span> <span class="o">=</span> <span class="n">_build_per_plant_template_from_df</span><span class="p">(</span><span class="n">trajectory_df</span><span class="p">)</span>
-</span><span id="__span-0-370"><a id="__codelineno-0-370" name="__codelineno-0-370"></a>    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;track_id&quot;</span><span class="p">,</span> <span class="s2">&quot;plant_id&quot;</span><span class="p">):</span>
-</span><span id="__span-0-371"><a id="__codelineno-0-371" name="__codelineno-0-371"></a>        <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">trait_df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">template</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-</span><span id="__span-0-372"><a id="__codelineno-0-372" name="__codelineno-0-372"></a>            <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-0-373"><a id="__codelineno-0-373" name="__codelineno-0-373"></a>                <span class="n">trait_df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">trait_df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">template</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-</span><span id="__span-0-374"><a id="__codelineno-0-374" name="__codelineno-0-374"></a>            <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
-</span><span id="__span-0-375"><a id="__codelineno-0-375" name="__codelineno-0-375"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-376"><a id="__codelineno-0-376" name="__codelineno-0-376"></a>                    <span class="sa">f</span><span class="s2">&quot;trait_df[</span><span class="si">{</span><span class="n">col</span><span class="si">!r}</span><span class="s2">] cannot be cast to template dtype &quot;</span>
-</span><span id="__span-0-377"><a id="__codelineno-0-377" name="__codelineno-0-377"></a>                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">template</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="si">!r}</span><span class="s2">; this would silently break the &quot;</span>
-</span><span id="__span-0-378"><a id="__codelineno-0-378" name="__codelineno-0-378"></a>                    <span class="sa">f</span><span class="s2">&quot;per-plant merge and produce all-NaN traits.&quot;</span>
-</span><span id="__span-0-379"><a id="__codelineno-0-379" name="__codelineno-0-379"></a>                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
-</span><span id="__span-0-380"><a id="__codelineno-0-380" name="__codelineno-0-380"></a>
-</span><span id="__span-0-381"><a id="__codelineno-0-381" name="__codelineno-0-381"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">trait_df</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">_IDENTITY_5_TUPLE</span><span class="p">),</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
-</span><span id="__span-0-382"><a id="__codelineno-0-382" name="__codelineno-0-382"></a>
-</span><span id="__span-0-383"><a id="__codelineno-0-383" name="__codelineno-0-383"></a>    <span class="c1"># Enforce trait dtypes: 3 float64 + 1 int64. handedness uses fillna(0)</span>
-</span><span id="__span-0-384"><a id="__codelineno-0-384" name="__codelineno-0-384"></a>    <span class="c1"># before astype(int64) (mirrors nutation&#39;s is_nutating fillna(False)</span>
-</span><span id="__span-0-385"><a id="__codelineno-0-385" name="__codelineno-0-385"></a>    <span class="c1"># defensive pattern) — 0 is the documented neutral value, safe only under</span>
-</span><span id="__span-0-386"><a id="__codelineno-0-386" name="__codelineno-0-386"></a>    <span class="c1"># the 5-tuple merge invariant (template derives from the same</span>
-</span><span id="__span-0-387"><a id="__codelineno-0-387" name="__codelineno-0-387"></a>    <span class="c1"># trajectory_df → no unmatched rows in practice).</span>
-</span><span id="__span-0-388"><a id="__codelineno-0-388" name="__codelineno-0-388"></a>    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">_PSIG_TRAIT_COLUMNS</span><span class="p">:</span>
-</span><span id="__span-0-389"><a id="__codelineno-0-389" name="__codelineno-0-389"></a>        <span class="k">if</span> <span class="n">col</span> <span class="o">==</span> <span class="s2">&quot;handedness&quot;</span><span class="p">:</span>
-</span><span id="__span-0-390"><a id="__codelineno-0-390" name="__codelineno-0-390"></a>            <span class="n">result</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-</span><span id="__span-0-391"><a id="__codelineno-0-391" name="__codelineno-0-391"></a>        <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-392"><a id="__codelineno-0-392" name="__codelineno-0-392"></a>            <span class="n">result</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-</span><span id="__span-0-393"><a id="__codelineno-0-393" name="__codelineno-0-393"></a>
-</span><span id="__span-0-394"><a id="__codelineno-0-394" name="__codelineno-0-394"></a>    <span class="c1"># Enforce declared column order: 8 row-identity + 4 trait.</span>
-</span><span id="__span-0-395"><a id="__codelineno-0-395" name="__codelineno-0-395"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">ROW_IDENTITY_COLUMNS</span><span class="p">)</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">_PSIG_TRAIT_COLUMNS</span><span class="p">)]</span>
-</span><span id="__span-0-396"><a id="__codelineno-0-396" name="__codelineno-0-396"></a>
-</span><span id="__span-0-397"><a id="__codelineno-0-397" name="__codelineno-0-397"></a>    <span class="k">return</span> <span class="n">result</span>
-</span></code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-
-
-  </div>
-
-    </div>
-
-</div>
+<h3 id="composed-schema-per-plant-csv">Composed schema (per-plant CSV)<a class="headerlink" href="#composed-schema-per-plant-csv" title="Permanent link">&para;</a></h3>
+<p>8 <code>ROW_IDENTITY_COLUMNS</code> + 38 trait columns = <strong>46 columns</strong>, in fixed tier order:</p>
+<table>
+<thead>
+<tr>
+<th>Block</th>
+<th>Source</th>
+<th># cols</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Row identity</td>
+<td><code>ROW_IDENTITY_COLUMNS</code></td>
+<td>8</td>
+<td>series … treatment</td>
+</tr>
+<tr>
+<td>Tier 0</td>
+<td><code>_TIER0_TRAIT_COLUMNS</code></td>
+<td>10</td>
+<td><strong>owns <code>growth_axis_unreliable</code></strong></td>
+</tr>
+<tr>
+<td>QC</td>
+<td><code>_QC_TRAIT_COLUMNS</code> − <code>growth_axis_unreliable</code></td>
+<td>10</td>
+<td><code>track_is_clean</code>, <code>qc_failure_reason</code>, …</td>
+</tr>
+<tr>
+<td>Tier 1</td>
+<td><code>_NUTATION_TRAIT_COLUMNS</code></td>
+<td>8</td>
+<td><code>is_nutating</code> (bool), …</td>
+</tr>
+<tr>
+<td>Tier 2</td>
+<td><code>_PSIG_TRAIT_COLUMNS</code></td>
+<td>4</td>
+<td><code>handedness</code>, …</td>
+</tr>
+<tr>
+<td>Tier 3c</td>
+<td><code>_TRAVELING_WAVE_TRAIT_COLUMNS</code></td>
+<td>6</td>
+<td>all float64</td>
+</tr>
+</tbody>
+</table>
+<p>Mixed dtypes across blocks are expected (each tier emits its own; bool/string flags survive the
+left-merge). The 5-tuple merge is <code>how="left"</code> onto the shared per-plant template
+(<code>_build_per_plant_template_from_df</code>), with the int64 coercion-with-raise guard on
+<code>track_id</code>/<code>plant_id</code> that every tier already applies — so a dtype mismatch raises instead of
+silently producing all-NaN.</p>
+<h2 id="files-touched">Files touched<a class="headerlink" href="#files-touched" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><code>sleap_roots/circumnutation/pipeline.py</code></strong> — implement <code>CircumnutationPipeline</code> + <code>compute_traits</code></li>
+<li><code>save</code>; module-level tier-order + column-order tuples; <code>logger.debug</code> per CC-9.</li>
+<li><strong><code>sleap_roots/circumnutation/traveling_wave.py</code></strong> — add the <code>tier0_df</code>/<code>tier1_df</code> fast-path kwargs
+  (additive, standalone path unchanged); update the docstring <code>Note</code>.</li>
+<li><strong><code>sleap_roots/circumnutation/nutation.py</code></strong> — add <code>_NUTATION_TRAIT_UNITS</code> (additive).</li>
+<li><strong><code>sleap_roots/circumnutation/psi_g.py</code></strong> — add <code>_PSIG_TRAIT_UNITS</code> (additive).</li>
+<li><strong><code>tests/test_circumnutation_foundation.py</code></strong> — stub→impl migration for <code>pipeline</code>: remove from
+  <code>STUB_MODULES</code> / <code>STUBS_WITH_CONSTANTS_KWARG</code>; add to the implemented + namespaced-logger lists +
+  an <code>IMPLEMENTATIONS_WITH_CONSTANTS_KWARG</code> entry + a dedicated
+  <code>test_implementation_accepts_constants_kwarg</code> branch (verify exact locations at impl time).</li>
+<li><strong><code>tests/test_circumnutation_pipeline.py</code></strong> (new) — unit + integration tests.</li>
+<li><strong>Docs/specs:</strong> <code>openspec/specs/circumnutation/spec.md</code> (Package layout 9→10 / 3→2 + new
+  composition-API requirement + import scenario); <code>docs/circumnutation/roadmap.md</code> (row #14 ⬜→
+  in-progress, correct the "TraitDef DAG" claim, note the dedup + units additions);
+  <code>docs/changelog.md</code>.</li>
+</ul>
+<h2 id="testing-strategy-tdd">Testing strategy (TDD)<a class="headerlink" href="#testing-strategy-tdd" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Composition unit tests</strong> (synthetic multi-track, ≥2 plates with overlapping <code>track_id</code> to
+  exercise the 5-tuple merge): composed schema = exactly the 46 columns in declared order; every
+  tier's columns present; one row per 5-tuple; dtypes preserved per block.</li>
+<li><strong>Dedup equivalence:</strong> <code>traveling_wave.compute(df, cadence_s)</code> (standalone) vs the pipeline's
+  fast-path call (<code>tier0_df</code>/<code>tier1_df</code> supplied) produce <strong>identical</strong> Tier 3c columns — the dedup
+  changes performance, not results. Plus: supplying one of two kwargs raises; a frame missing its
+  operand column raises.</li>
+<li><strong>Units:</strong> the assembled units dict 1:1-covers the 46 columns and passes the writer's vocabulary
+  check; <code>growth_axis_unreliable</code> present exactly once; <code>_NUTATION_TRAIT_UNITS</code> /
+  <code>_PSIG_TRAIT_UNITS</code> cover their tiers' columns.</li>
+<li><strong><code>growth_axis_unreliable</code> coalescing:</strong> exactly one such column post-merge (no <code>_x</code>/<code>_y</code>); equals
+  both source tiers' values.</li>
+<li><strong>save() round-trip:</strong> compute → save → <code>read_per_plant_csv</code> recovers the DataFrame, units, and
+  run_metadata (with provenance keys: git SHA, versions, ISO timestamp, <code>_schema_version=1</code>,
+  <code>_constants_version=6</code>, <code>_constants_snapshot</code>).</li>
+<li><strong>Picklability:</strong> <code>pickle.loads(pickle.dumps(CircumnutationPipeline()))</code> round-trips and the
+  unpickled instance computes identically.</li>
+<li><strong>Determinism:</strong> two in-process <code>compute_traits</code> runs are bit-identical on the float columns.</li>
+<li><strong>Real plate-001 integration:</strong> load the proofread <code>.slp</code>, run the full pipeline, write the CSV +
+  sidecars; assert 6 rows, the 46-column schema, all five tiers' columns present and finite where
+  expected, the QPB residual band (matching the traveling_wave real-data test), and cross-tier
+  <code>growth_axis_unreliable</code> equality. Skipped if the Git-LFS fixture is absent.</li>
+</ul>
+<h2 id="risks-trade-offs">Risks / Trade-offs<a class="headerlink" href="#risks-trade-offs" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Touching the merged <code>traveling_wave.py</code></strong> (dedup fast path) → mitigated: additive optional
+  kwargs; standalone path byte-identical; the dedup-equivalence test pins identical results; the 37
+  existing tests + canary must stay green (verification gate).</li>
+<li><strong>Touching merged <code>nutation.py</code> / <code>psi_g.py</code></strong> (units maps) → mitigated: additive module
+  constants, no behavior change.</li>
+<li><strong>Mixed-dtype composed frame</strong> → expected and tested; the left-merge preserves bool/string flags;
+  no global float64 coercion (unlike a single-tier frame).</li>
+</ul>
+<h2 id="open-questions-resolve-at-impl">Open questions (resolve at impl)<a class="headerlink" href="#open-questions-resolve-at-impl" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Exact per-column unit strings for <code>_NUTATION_TRAIT_UNITS</code> / <code>_PSIG_TRAIT_UNITS</code> (derive from each
+  column's semantics; e.g. <code>handedness</code> and <code>is_nutating</code> unit choice from <code>PIPELINE_UNIT_VOCABULARY</code>
+  — likely <code>—</code> / <code>bool</code>; pin in the proposal tasks after reading each column's definition).</li>
+<li>Exact foundation-test edit locations (verify line numbers at impl, per the PR #10 CR2-2 lesson).</li>
+</ul>
+<h2 id="decisions-log">Decisions log<a class="headerlink" href="#decisions-log" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>D1</strong> Sequential merge-orchestrator, not the per-frame networkx DAG (deviation from stub/roadmap;
+  recorded with Why).</li>
+<li><strong>D2</strong> Tier 0/1 dedup via optional <code>tier0_df</code>/<code>tier1_df</code> fast-path kwargs on <code>traveling_wave.compute</code>
+  (Option A); both-or-neither; validated; standalone byte-identical.</li>
+<li><strong>D3</strong> Pure <code>compute_traits</code> returning the stub tuple + separate <code>save()</code> (Option 1); <code>input_path</code>
+  provenance handled at the write boundary.</li>
+<li><strong>D4</strong> Add <code>_NUTATION_TRAIT_UNITS</code> / <code>_PSIG_TRAIT_UNITS</code> to their tiers (Option X, the #222
+  follow-up); pipeline merges row-identity + five tier maps.</li>
+<li><strong>D5</strong> Tier 0 owns <code>growth_axis_unreliable</code>; QC's copy dropped pre-merge; cross-tier equality
+  re-asserted.</li>
+<li><strong>D6</strong> Integration test builds the df inline (plate-001 pattern); <code>Series → Inputs</code> adapter
+  deferred to PR #17.</li>
+<li><strong>D7</strong> No redundant pipeline validation; cadence only to Tier 1/2/3c; <code>R_px</code> provenance-only.</li>
+<li><strong>D8</strong> <code>_CONSTANTS_VERSION</code> stays 6; picklable attrs (only <code>constants</code>); no composed canary —
+  integration test is the cross-check.</li>
+</ul>
 
 
 
@@ -3319,12 +3258,12 @@ row-identity columns + <code>frame</code>, <code>tip_x</code>, <code>tip_y</code
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.follow", "toc.integrate", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.follow", "toc.integrate", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
-        <script src="../../../../javascripts/mathjax.js"></script>
+        <script src="../../../javascripts/mathjax.js"></script>
       
         <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
       
