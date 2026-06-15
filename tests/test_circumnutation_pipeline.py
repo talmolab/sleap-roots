@@ -390,3 +390,113 @@ def test_save_raises_on_missing_parent_dir(tmp_path):
             inputs=inputs,
             input_path="src.slp",
         )
+
+
+# ---------------------------------------------------------------------------
+# Task 7 — picklability + determinism
+# ---------------------------------------------------------------------------
+
+
+def test_pipeline_is_picklable_and_computes_identically():
+    """Default + configured instances pickle; unpickled computes identical frame."""
+    import pickle
+
+    from sleap_roots.circumnutation._constants import ConstantsT
+
+    inputs = _inputs(n_tracks=2)
+    for pipe in (
+        pipeline.CircumnutationPipeline(),
+        pipeline.CircumnutationPipeline(constants=ConstantsT(BAND_POWER_NOISE_RATIO=4)),
+    ):
+        restored = pickle.loads(pickle.dumps(pipe))
+        assert restored.constants == pipe.constants
+        a, _, _ = pipe.compute_traits(inputs)
+        b, _, _ = restored.compute_traits(inputs)
+        pd.testing.assert_frame_equal(a, b)
+
+
+def test_compute_traits_deterministic_full_frame():
+    """Two in-process runs are equal as full frames (order, dtypes, values)."""
+    inputs = _inputs(n_tracks=3)
+    a, _, _ = pipeline.compute_traits(inputs)
+    b, _, _ = pipeline.compute_traits(inputs)
+    pd.testing.assert_frame_equal(a, b)
+
+
+# ---------------------------------------------------------------------------
+# Task 8 — real plate-001 integration test
+# ---------------------------------------------------------------------------
+
+from pathlib import Path  # noqa: E402
+
+_PROOFREAD_FIXTURE = (
+    Path(__file__).parent
+    / "data"
+    / "circumnutation_nipponbare_plate_001"
+    / "plate_001_greyscale.tracked_proofread.slp"
+)
+
+
+def _load_plate001_inputs():
+    from sleap_roots.series import Series
+
+    series = Series.load(series_name="plate_001", primary_path=str(_PROOFREAD_FIXTURE))
+    df = series.get_tracked_tips()
+    df["track_id"] = df["track_id"].str.replace("track_", "", regex=False).astype(int)
+    df = df.copy()
+    df["series"] = "plate_001"
+    df["sample_uid"] = "plate_001"
+    df["timepoint"] = "T0"
+    df["plate_id"] = "plate_001"
+    df["plant_id"] = df["track_id"]
+    df["genotype"] = "Nipponbare"
+    df["treatment"] = "none"
+    return CircumnutationInputs(trajectory_df=df, cadence_s=300.0)
+
+
+@pytest.mark.skipif(
+    not _PROOFREAD_FIXTURE.exists(),
+    reason=f"Git-LFS proofread fixture not present: {_PROOFREAD_FIXTURE}",
+)
+def test_real_plate001_full_pipeline_round_trip(tmp_path):
+    """Round-trip the real plate-001 .slp through the full pipeline + save."""
+    from sleap_roots.circumnutation._io import read_per_plant_csv
+
+    inputs = _load_plate001_inputs()
+    per_plant_df, _, units = pipeline.compute_traits(inputs)
+
+    # composed schema: 6 plants x the 46 columns in declared order
+    assert len(per_plant_df) == 6
+    assert list(per_plant_df.columns) == _expected_46_columns()
+    # all five tiers represented
+    for col in (
+        "v_total_median_px_per_frame",  # Tier 0
+        "track_is_clean",  # QC
+        "T_nutation_median",  # Tier 1
+        "handedness",  # Tier 2
+        "traveling_wave_residual",  # Tier 3c
+    ):
+        assert col in per_plant_df.columns
+
+    # QPB band (matches the traveling_wave real-data test)
+    res = per_plant_df["traveling_wave_residual"].to_numpy(dtype=float)
+    assert np.all(np.isfinite(res)) and np.all(res < 0.30), res.tolist()
+
+    # cross-tier growth_axis_unreliable equality at the composed level
+    qc_df = qc.compute(inputs.trajectory_df)
+    keys = list(_IDENTITY_5_TUPLE)
+    merged = per_plant_df[keys + ["growth_axis_unreliable"]].merge(
+        qc_df[keys + ["growth_axis_unreliable"]], on=keys, suffixes=("_p", "_q")
+    )
+    assert (
+        merged["growth_axis_unreliable_p"] == merged["growth_axis_unreliable_q"]
+    ).all()
+
+    # save → read-back, provenance records cadence_s
+    out = tmp_path / "traits_per_plant.csv"
+    pipeline.CircumnutationPipeline().save(
+        out, per_plant_df, units, inputs=inputs, input_path=str(_PROOFREAD_FIXTURE)
+    )
+    df2, units2, md = read_per_plant_csv(out)
+    assert len(df2) == 6
+    assert md["cadence_s"] == 300.0
