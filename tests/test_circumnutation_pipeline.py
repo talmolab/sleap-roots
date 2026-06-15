@@ -329,3 +329,64 @@ def test_compute_traits_echoes_unmodified_trajectory_df():
     _, echoed, _ = pipeline.compute_traits(inputs)
     assert echoed is inputs.trajectory_df
     pd.testing.assert_frame_equal(echoed, before)
+
+
+# ---------------------------------------------------------------------------
+# Task 6 — provenance (_io cadence_s/R_px) + save()
+# ---------------------------------------------------------------------------
+
+
+def _inputs_with_meta(cadence_s=300.0, R_px=12.0, run_id="r1"):
+    df = pd.DataFrame([r for t in range(2) for r in _track_rows(t)])
+    return CircumnutationInputs(
+        trajectory_df=df, cadence_s=cadence_s, R_px=R_px, run_id=run_id
+    )
+
+
+def test_gather_run_metadata_captures_cadence_and_r_px():
+    """gather_run_metadata records cadence_s/R_px; null when omitted."""
+    from sleap_roots.circumnutation._io import gather_run_metadata
+
+    md = gather_run_metadata("x.slp", cadence_s=300.0, R_px=12.0)
+    assert md["cadence_s"] == 300.0
+    assert md["R_px"] == 12.0
+    md2 = gather_run_metadata("x.slp")
+    assert md2["cadence_s"] is None and md2["R_px"] is None
+
+
+def test_save_writes_csv_sidecars_and_provenance(tmp_path):
+    """save writes CSV + 2 sidecars; round-trip recovers + cadence/R_px/run_id."""
+    from sleap_roots.circumnutation._io import read_per_plant_csv
+
+    inputs = _inputs_with_meta()
+    per_plant_df, _, units = pipeline.compute_traits(inputs)
+    out = tmp_path / "traits_per_plant.csv"
+    pipeline.CircumnutationPipeline().save(
+        out, per_plant_df, units, inputs=inputs, input_path="src.slp"
+    )
+
+    assert out.exists()
+    assert (tmp_path / "traits_per_plant.units.json").exists()
+    assert (tmp_path / "run_metadata.json").exists()
+
+    df2, units2, md = read_per_plant_csv(out)
+    assert list(df2.columns) == list(per_plant_df.columns)
+    assert units2 == units
+    assert md["cadence_s"] == 300.0
+    assert md["R_px"] == 12.0
+    assert md["run_id"] == "r1"
+    assert md["_constants_version"] == 6
+
+
+def test_save_raises_on_missing_parent_dir(tmp_path):
+    """save raises a clear error when the out_path parent dir is absent."""
+    inputs = _inputs_with_meta()
+    per_plant_df, _, units = pipeline.compute_traits(inputs)
+    with pytest.raises((FileNotFoundError, OSError, ValueError)):
+        pipeline.CircumnutationPipeline().save(
+            tmp_path / "missing" / "t.csv",
+            per_plant_df,
+            units,
+            inputs=inputs,
+            input_path="src.slp",
+        )

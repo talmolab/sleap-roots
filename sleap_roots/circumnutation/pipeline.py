@@ -15,6 +15,7 @@ multiprocessing parallelization.
 """
 
 import logging
+from pathlib import Path
 
 import attrs
 import numpy as np
@@ -31,6 +32,8 @@ from sleap_roots.circumnutation._constants import ROW_IDENTITY_UNITS, ConstantsT
 from sleap_roots.circumnutation._io import (
     _IDENTITY_5_TUPLE,
     _build_per_plant_template_from_df,
+    gather_run_metadata,
+    write_per_plant_csv,
 )
 from sleap_roots.circumnutation._types import (
     ROW_IDENTITY_COLUMNS,
@@ -175,6 +178,50 @@ class CircumnutationPipeline:
         result = result[list(_COMPOSED_COLUMN_ORDER)]
         units = _assemble_units()
         return result, df, units
+
+    def save(
+        self,
+        out_path,
+        per_plant_df: pd.DataFrame,
+        units: dict,
+        *,
+        inputs: CircumnutationInputs,
+        input_path,
+    ) -> None:
+        """Write the per-plant CSV plus its units and run-metadata sidecars.
+
+        Args:
+            out_path: Destination CSV path. Its parent directory MUST already
+                exist (the writer does not create it). ``run_metadata.json`` has
+                a fixed name in that directory, so write at most one composed CSV
+                per output directory (a second ``save`` clobbers the first's
+                provenance).
+            per_plant_df: The composed per-plant DataFrame from
+                :meth:`compute_traits`.
+            units: The column-to-unit mapping from :meth:`compute_traits`.
+            inputs: The same :class:`CircumnutationInputs` passed to
+                :meth:`compute_traits`; the authoritative source for the
+                ``cadence_s`` / ``R_px`` / ``run_id`` provenance.
+            input_path: Source data path (the ``.slp``) for provenance; file
+                provenance, supplied by the caller (not carried on ``inputs``).
+
+        Raises:
+            FileNotFoundError: If ``out_path``'s parent directory does not exist.
+        """
+        out_path = Path(out_path)
+        if not out_path.parent.is_dir():
+            raise FileNotFoundError(
+                f"save: parent directory of out_path does not exist: "
+                f"{out_path.parent!s} (create it before saving)."
+            )
+        run_metadata = gather_run_metadata(
+            input_path,
+            run_id=inputs.run_id,
+            constants=self.constants,
+            cadence_s=inputs.cadence_s,
+            R_px=inputs.R_px,
+        )
+        write_per_plant_csv(out_path, per_plant_df, units, run_metadata)
 
 
 def compute_traits(inputs: CircumnutationInputs, constants=None):

@@ -725,6 +725,8 @@ def test_run_metadata_required_fields(tmp_csv_setup):
         "python_version",
         "timestamp",
         "run_id",
+        "cadence_s",  # added by PR #14 (nullable; pipeline records inputs.cadence_s)
+        "R_px",  # added by PR #14 (nullable)
         "_schema_version",
         "_constants_version",
         "_constants_snapshot",
