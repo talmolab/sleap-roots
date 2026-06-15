@@ -398,9 +398,17 @@ def test_save_raises_on_missing_parent_dir(tmp_path):
 
 
 def test_pipeline_is_picklable_and_computes_identically():
-    """Default + configured instances pickle; unpickled computes identical frame."""
+    """Default + configured instances pickle; unpickled computes identical frame.
+
+    NOTE: import ``pipeline`` and ``ConstantsT`` function-locally so the class
+    objects match ``sys.modules`` after ``test_no_root_handlers_added_at_import``
+    reloads ``sleap_roots.circumnutation.*`` — pickle resolves a class by its
+    module+qualname, so a stale module-level reference would raise
+    ``PicklingError: not the same object`` in full-suite runs.
+    """
     import pickle
 
+    from sleap_roots.circumnutation import pipeline
     from sleap_roots.circumnutation._constants import ConstantsT
 
     inputs = _inputs(n_tracks=2)
