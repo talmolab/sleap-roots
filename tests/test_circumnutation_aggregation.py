@@ -13,7 +13,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from sleap_roots.circumnutation import aggregation
 from sleap_roots.circumnutation.aggregation import (
     _float_trait_columns,
     _stat_plan,
@@ -186,6 +185,28 @@ def test_iqr_nan_when_trait_has_one_finite_value_in_multi_plant_group():
     assert np.isnan(g["T_nutation_median_iqr"].iloc[0])
 
 
+def test_trait_all_nan_among_passing_plants_median_and_iqr_nan():
+    """A trait that is NaN for every passing plant -> median & IQR NaN, no crash.
+
+    The plants still pass QC (so frac_nutating reflects them); only the trait's
+    own per-trait sample is empty. Locks the module-docstring's headline caveat
+    that per-trait finite n can be 0 while n_plants_passing_qc > 0.
+    """
+    df, units = _make_per_plant(
+        [
+            {"T_nutation_median": np.nan, "is_nutating": False},
+            {"T_nutation_median": np.nan, "is_nutating": False},
+            {"T_nutation_median": np.nan, "is_nutating": True},
+        ]
+    )
+    g, _ = aggregate_by_genotype(df, units)
+    assert g["n_plants_passing_qc"].iloc[0] == 3
+    assert np.isnan(g["T_nutation_median_median"].iloc[0])
+    assert np.isnan(g["T_nutation_median_iqr"].iloc[0])
+    # frac_nutating still computed over all 3 passing plants (1 of 3 nutating)
+    assert g["frac_nutating"].iloc[0] == pytest.approx(1 / 3)
+
+
 def test_scipy_iqr_behavior_guard():
     """Pin the behavior _iqr_or_nan depends on across scipy versions."""
     import scipy.stats
@@ -288,6 +309,9 @@ def test_nan_group_key_is_grouped_not_dropped():
         [{"treatment": "none"}, {"treatment": "none"}, {"treatment": np.nan}]
     )
     g, _ = aggregate_by_genotype(df, units)
+    # dropna=False: the NaN-treatment plant forms its OWN group (2 rows), not
+    # silently merged into the "none" group.
+    assert len(g) == 2
     assert (g["n_plants_passing_qc"] + g["n_plants_excluded"]).sum() == 3
 
 

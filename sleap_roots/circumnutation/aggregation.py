@@ -45,7 +45,6 @@ Design notes (see ``openspec/changes/add-circumnutation-per-genotype-aggregation
 """
 
 import logging
-import warnings
 from collections import Counter
 from typing import List, Tuple
 
@@ -246,7 +245,9 @@ def _aggregate_one_group(key, group: pd.DataFrame, plan) -> dict:
     """Aggregate one ``(plate_id, genotype, treatment)`` group into one output row."""
     row = dict(zip(_GROUP_KEYS, key))
 
-    clean = group["track_is_clean"].to_numpy(dtype=bool)
+    # fillna(False) so a NaN clean-flag is conservatively EXCLUDED, never
+    # silently counted as passing (a bare bool cast maps NaN -> True).
+    clean = group["track_is_clean"].fillna(False).to_numpy(dtype=bool)
     passing = group.loc[clean]
     excluded = group.loc[~clean]
     n_pass = int(len(passing))
@@ -292,7 +293,13 @@ def aggregate_by_genotype(
             :meth:`CircumnutationPipeline.compute_traits`'s return). Must carry
             the row-identity columns and the QC/special columns
             (``track_is_clean``, ``is_nutating``, ``handedness``,
-            ``qc_failure_reason``).
+            ``qc_failure_reason``). The composed frame guarantees the dtypes this
+            function relies on: ``track_is_clean`` / ``is_nutating`` are boolean
+            (the QC and Tier-1 emitters coerce via ``astype(bool)`` /
+            ``fillna(False)``) and ``handedness`` is integer (psi_g
+            ``fillna(0).astype(int64)``). A NaN ``track_is_clean`` is treated as
+            *not clean* (conservatively excluded); a non-integer ``handedness``
+            among passing plants is outside this contract.
         units: The per-plant column → unit-string mapping (the third element of
             ``compute_traits``), 1:1 covering ``per_plant_df``'s columns.
 
@@ -331,12 +338,15 @@ def aggregate_by_genotype(
         ordered_cols += [f"{prefix}_median", f"{prefix}_iqr"]
     ordered_cols += ["frac_nutating", "handedness_mode", "handedness_consensus_frac"]
 
+    # No warning suppression needed: _nanmedian / _iqr_or_nan / the n_pass==0
+    # branch pre-filter to finite and short-circuit before any np.median /
+    # scipy.stats.iqr / mean on an empty or <2 slice, so degenerate groups emit
+    # NaN without a RuntimeWarning. (A blanket filter here would also hide
+    # unrelated warnings and mutate process-global state.)
     rows: List[dict] = []
     if not df.empty:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")  # all-NaN/empty-slice on degenerate groups
-            for key, group in df.groupby(list(_GROUP_KEYS), dropna=False, sort=True):
-                rows.append(_aggregate_one_group(key, group, plan))
+        for key, group in df.groupby(list(_GROUP_KEYS), dropna=False, sort=True):
+            rows.append(_aggregate_one_group(key, group, plan))
 
     # Build the frame column-wise with explicit dtypes (preserves int64 for
     # counts/handedness_mode even on a mixed or empty frame — a list-of-dicts
