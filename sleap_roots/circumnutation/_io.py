@@ -258,6 +258,77 @@ def read_run_metadata(in_path: PathLike) -> dict:
 # ---------------------------------------------------------------------------
 
 
+def _validate_units_coverage(df: pd.DataFrame, units: dict, *, fn_name: str) -> None:
+    """Raise ``ValueError`` unless ``units`` keys 1:1 cover ``df`` columns.
+
+    Shared by :func:`write_per_plant_csv`, :func:`write_per_genotype_csv`, and
+    :func:`sleap_roots.circumnutation.aggregation.aggregate_by_genotype`'s input
+    validation. Coverage only — the writers run the separate
+    :data:`PIPELINE_UNIT_VOCABULARY` membership check inline (the aggregation
+    input does not need it; per-plant units are pipeline output already in the
+    vocabulary).
+
+    Args:
+        df: The DataFrame whose columns must each have a unit.
+        units: Column-name → unit-string mapping.
+        fn_name: Caller name, prefixed onto the error message.
+
+    Raises:
+        ValueError: If any column lacks a unit, or ``units`` has an extra key,
+            naming the offending column(s). Raised before any side effect.
+    """
+    df_cols = set(df.columns)
+    units_keys = set(units.keys())
+    missing_in_units = df_cols - units_keys
+    extra_in_units = units_keys - df_cols
+    if missing_in_units or extra_in_units:
+        parts = []
+        if missing_in_units:
+            parts.append(
+                f"DataFrame columns missing from units dict: "
+                f"{sorted(missing_in_units)}"
+            )
+        if extra_in_units:
+            parts.append(
+                f"units keys not present in DataFrame: " f"{sorted(extra_in_units)}"
+            )
+        raise ValueError(
+            f"{fn_name}: units dict does not 1:1 cover DataFrame "
+            "columns. " + "; ".join(parts) + ". Fix the units mapping before "
+            "writing the sidecar."
+        )
+
+
+def _validate_units_vocabulary(units: dict, *, fn_name: str) -> None:
+    """Raise ``ValueError`` unless every unit string is in the closed vocabulary.
+
+    The split vocabularies are the structural defense of the pure-pixel
+    contract; without writer enforcement that defense is documentation-only.
+    Fails loud and atomic — no files written when validation fails.
+
+    Args:
+        units: Column-name → unit-string mapping.
+        fn_name: Caller name, prefixed onto the error message.
+
+    Raises:
+        ValueError: If any unit string is outside
+            :data:`PIPELINE_UNIT_VOCABULARY`, naming the offending pairs.
+    """
+    invalid = [
+        (col, u) for col, u in units.items() if u not in PIPELINE_UNIT_VOCABULARY
+    ]
+    if invalid:
+        offending = ", ".join(f"{col!r}: {u!r}" for col, u in invalid)
+        raise ValueError(
+            f"{fn_name}: units dict contains values outside "
+            f"PIPELINE_UNIT_VOCABULARY (the closed sidecar vocabulary). "
+            f"Offending column/unit pairs: {offending}. The pure-pixel "
+            f"contract requires sidecar values to use only px-based or "
+            f"calibration-independent units; mm-based values must come "
+            f"from convert_to_mm() output, not pipeline emission."
+        )
+
+
 def write_per_plant_csv(
     out_path: PathLike,
     df: pd.DataFrame,
@@ -281,49 +352,12 @@ def write_per_plant_csv(
             ``df`` should be present).
         run_metadata: Mapping returned by :func:`gather_run_metadata`.
     """
-    # F2: enforce 1:1 coverage between units dict keys and DataFrame columns
-    # BEFORE writing any files. The spec says "every column from the CSV is
-    # a key in the JSON mapping" — extra keys signal stale state, missing
-    # keys silently violate the sidecar contract.
-    df_cols = set(df.columns)
-    units_keys = set(units.keys())
-    missing_in_units = df_cols - units_keys
-    extra_in_units = units_keys - df_cols
-    if missing_in_units or extra_in_units:
-        parts = []
-        if missing_in_units:
-            parts.append(
-                f"DataFrame columns missing from units dict: "
-                f"{sorted(missing_in_units)}"
-            )
-        if extra_in_units:
-            parts.append(
-                f"units keys not present in DataFrame: " f"{sorted(extra_in_units)}"
-            )
-        raise ValueError(
-            "write_per_plant_csv: units dict does not 1:1 cover DataFrame "
-            "columns. " + "; ".join(parts) + ". Fix the units mapping before "
-            "writing the sidecar."
-        )
-
-    # B4: validate every unit string against PIPELINE_UNIT_VOCABULARY BEFORE
-    # writing anything to disk. The split vocabularies were the structural
-    # defense of the pure-pixel contract; without writer enforcement that
-    # defense is documentation-only. Fail loud and atomic — no CSV / sidecar
-    # files written when validation fails.
-    invalid = [
-        (col, u) for col, u in units.items() if u not in PIPELINE_UNIT_VOCABULARY
-    ]
-    if invalid:
-        offending = ", ".join(f"{col!r}: {u!r}" for col, u in invalid)
-        raise ValueError(
-            f"write_per_plant_csv: units dict contains values outside "
-            f"PIPELINE_UNIT_VOCABULARY (the closed sidecar vocabulary). "
-            f"Offending column/unit pairs: {offending}. The pure-pixel "
-            f"contract requires sidecar values to use only px-based or "
-            f"calibration-independent units; mm-based values must come "
-            f"from convert_to_mm() output, not pipeline emission."
-        )
+    # F2/B4: enforce 1:1 units coverage + closed-vocabulary membership BEFORE
+    # writing any files. Coverage is the shared helper (also used by
+    # write_per_genotype_csv and aggregate_by_genotype); vocabulary membership
+    # stays here. Fail loud and atomic — no CSV / sidecar files written on error.
+    _validate_units_coverage(df, units, fn_name="write_per_plant_csv")
+    _validate_units_vocabulary(units, fn_name="write_per_plant_csv")
 
     csv_path = Path(out_path)
     df.to_csv(csv_path.as_posix(), index=False, encoding="utf-8")
@@ -354,6 +388,88 @@ def read_per_plant_csv(
     df = pd.read_csv(csv_path.as_posix())
 
     # Mirror the writer: strip only the final `.csv` extension.
+    units_path = csv_path.parent / f"{csv_path.stem}.units.json"
+    units = read_units_sidecar(units_path) if units_path.exists() else {}
+
+    metadata_path = csv_path.parent / "run_metadata.json"
+    metadata = read_run_metadata(metadata_path) if metadata_path.exists() else {}
+
+    return df, units, metadata
+
+
+# ---------------------------------------------------------------------------
+# Per-genotype CSV + sidecar bundle
+# ---------------------------------------------------------------------------
+
+
+def write_per_genotype_csv(
+    out_path: PathLike,
+    df: pd.DataFrame,
+    units: dict,
+    run_metadata: dict,
+) -> None:
+    """Write a per-genotype aggregation CSV with sibling units/run-metadata sidecars.
+
+    Mirrors :func:`write_per_plant_csv` for the per-genotype output of
+    :func:`sleap_roots.circumnutation.aggregation.aggregate_by_genotype`. The
+    CSV is written via ``DataFrame.to_csv`` with no index; siblings are placed
+    in the same directory:
+
+    - ``<csv_stem>.units.json`` — column → unit-string
+    - ``run_metadata.json`` — provenance bundle
+
+    .. note::
+        ``run_metadata.json`` has a **fixed name** in the output directory. Writing
+        a per-genotype CSV alongside a per-plant CSV (or a second per-genotype CSV)
+        in the same directory overwrites the earlier ``run_metadata.json``. Write at
+        most one CSV artifact per output directory, mirroring
+        :meth:`CircumnutationPipeline.save`'s constraint. A stem-prefixed metadata
+        filename to remove this fixed-name clobber is tracked as a follow-up issue
+        ("stem-prefixed run_metadata.json name to remove the _io fixed-name
+        clobber").
+
+    Args:
+        out_path: CSV path; parent directory must exist.
+        df: Per-genotype DataFrame (output of ``aggregate_by_genotype``).
+        units: Column-name → unit-string mapping (every column present, 1:1).
+        run_metadata: Mapping returned by :func:`gather_run_metadata`.
+
+    Raises:
+        ValueError: If ``units`` does not 1:1 cover the columns, or contains a
+            unit outside :data:`PIPELINE_UNIT_VOCABULARY`. Raised before any
+            file is written.
+    """
+    _validate_units_coverage(df, units, fn_name="write_per_genotype_csv")
+    _validate_units_vocabulary(units, fn_name="write_per_genotype_csv")
+
+    csv_path = Path(out_path)
+    df.to_csv(csv_path.as_posix(), index=False, encoding="utf-8")
+
+    # Only strip the final `.csv` extension — never intermediate dots.
+    units_path = csv_path.parent / f"{csv_path.stem}.units.json"
+    write_units_sidecar(units_path, units)
+
+    metadata_path = csv_path.parent / "run_metadata.json"
+    write_run_metadata(metadata_path, run_metadata)
+
+
+def read_per_genotype_csv(
+    in_path: PathLike,
+) -> Tuple[pd.DataFrame, dict, dict]:
+    """Read a per-genotype CSV and its sibling sidecars.
+
+    Args:
+        in_path: CSV path.
+
+    Returns:
+        ``(df, units, run_metadata)`` triple. ``df`` is the loaded DataFrame;
+        ``units`` is the loaded units sidecar (or ``{}`` if missing);
+        ``run_metadata`` is the loaded run-metadata sidecar (or ``{}`` if
+        missing).
+    """
+    csv_path = Path(in_path)
+    df = pd.read_csv(csv_path.as_posix())
+
     units_path = csv_path.parent / f"{csv_path.stem}.units.json"
     units = read_units_sidecar(units_path) if units_path.exists() else {}
 

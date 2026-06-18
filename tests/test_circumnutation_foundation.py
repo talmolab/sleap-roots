@@ -816,6 +816,13 @@ def test_constants_snapshot_reflects_override():
         # Must be listed explicitly because the add-circumnutation-pipeline change
         # removes it from STUB_MODULES above (same Copilot regression PR #4-#9 hit).
         "pipeline",
+        # Added in PR #15: aggregation (newly created implementation module;
+        # never a stub — like nutation/traveling_wave, it grows the implementation
+        # set by ADDITION). Must be listed explicitly because it is NOT in
+        # STUB_MODULES (same Copilot regression PR #4-#10 hit). It is NOT added to
+        # IMPLEMENTATIONS_WITH_CONSTANTS_KWARG: aggregate_by_genotype takes no
+        # `constants=` parameter.
+        "aggregation",
     ],
 )
 def test_module_logger_is_namespaced(module_name):

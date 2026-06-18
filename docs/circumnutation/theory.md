@@ -554,6 +554,8 @@ For pure i.i.d. noise on a stationary signal, $\text{MSD}(\tau \to 0) = 4\sigma^
 
 The above are per-track. Per-plant aggregation is median across the 6 tracks of the same plant. Per-genotype aggregation is median ± IQR across plants, with explicit `n_plants_passing_qc` count. Plants where `track_is_clean = False` for all tracks are excluded from aggregation but flagged in the trait CSV with reason.
 
+> **Implementation note (PR #15, `aggregate_by_genotype`).** In the current codebase `track_id` and `plant_id` are 1:1, so the composed per-plant frame is already one row per plant and the per-genotype layer aggregates median ± IQR directly across plants per `(plate_id, genotype, treatment)`. The literal two-level per-track→per-plant collapse above is deferred to a follow-up issue and **guarded**: `aggregate_by_genotype` raises if any plant maps to more than one row (a future track↔plant divergence) rather than silently aggregating per-track. The absolute reference angle `principal_axis_angle` (a wrapping circular quantity) is excluded from the linear median/IQR (a circular-statistics summary is a deferred follow-up); `helix_signed_area_px2` is aggregated by its magnitude (chirality direction is reported via `handedness_mode`/`handedness_consensus_frac`).
+
 ---
 
 ## 8. Validation strategy
