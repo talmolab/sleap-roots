@@ -3095,9 +3095,9 @@
 <tr>
 <td>15</td>
 <td><code>add-circumnutation-per-genotype-aggregation</code></td>
-<td><code>aggregate_by_genotype(per_plant_df, units) -&gt; (per_genotype_df, units)</code> per theory.md §7.7 (median ± IQR; <code>n_plants_passing_qc</code>; exclusion reasons). NEW <code>aggregation</code> module (impl 10 → 11 by ADDITION). Groups by <code>(plate_id, genotype, treatment)</code>, plates not pooled (<code>dropna=False</code>); <strong>73-column</strong> output. <code>principal_axis_angle</code> dropped (wrapping circular angle); <code>helix_signed_area_px2</code> aggregated by magnitude; <code>growth_axis_unreliable</code> dropped. Fails loud on a track↔plant 1:1 violation (two-level per-plant collapse deferred to a follow-up). New <code>_io.write_per_genotype_csv</code>/<code>read_per_genotype_csv</code> + shared <code>_validate_units_coverage</code>. No new constants (<code>_CONSTANTS_VERSION</code> stays 6).</td>
-<td>🟡</td>
-<td>⬜</td>
+<td><code>aggregate_by_genotype(per_plant_df, units) -&gt; (per_genotype_df, units)</code> per theory.md §7.7 (median ± IQR; <code>n_plants_passing_qc</code>; exclusion reasons). NEW <code>aggregation</code> module (impl 10 → 11 by ADDITION). Groups by <code>(plate_id, genotype, treatment)</code>, plates not pooled (<code>dropna=False</code>); <strong>73-column</strong> output. <code>principal_axis_angle</code> dropped (wrapping circular angle); <code>helix_signed_area_px2</code> aggregated by magnitude; <code>growth_axis_unreliable</code> dropped. Fails loud on a track↔plant 1:1 violation (two-level per-plant collapse deferred to a follow-up). New <code>_io.write_per_genotype_csv</code>/<code>read_per_genotype_csv</code> + shared <code>_validate_units_coverage</code>. No new constants (<code>_CONSTANTS_VERSION</code> stays 6). <a href="https://github.com/talmolab/sleap-roots/issues/236">#236</a> · <a href="https://github.com/talmolab/sleap-roots/pull/240">PR #240</a></td>
+<td>✅</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>16</td>
