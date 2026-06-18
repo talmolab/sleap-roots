@@ -245,9 +245,11 @@ def _aggregate_one_group(key, group: pd.DataFrame, plan) -> dict:
     """Aggregate one ``(plate_id, genotype, treatment)`` group into one output row."""
     row = dict(zip(_GROUP_KEYS, key))
 
-    # fillna(False) so a NaN clean-flag is conservatively EXCLUDED, never
-    # silently counted as passing (a bare bool cast maps NaN -> True).
-    clean = group["track_is_clean"].fillna(False).to_numpy(dtype=bool)
+    # .eq(True) treats any NaN / non-True clean-flag as "not clean" (NaN.eq(True)
+    # is False), so an off-contract NaN is conservatively EXCLUDED rather than
+    # silently counted as passing (a bare bool cast maps NaN -> True). Avoids the
+    # fillna object-downcast FutureWarning; a no-op on a genuine bool column.
+    clean = group["track_is_clean"].eq(True).to_numpy(dtype=bool)
     passing = group.loc[clean]
     excluded = group.loc[~clean]
     n_pass = int(len(passing))
