@@ -11,7 +11,8 @@ Roadmap row 16 scope: *"Scaleograms (Tier 1 + Tier 3); trail overlay
 (κ-color-coded); 6-up plate panel; `--no-plots` flag."* PNGs are written to a
 `plots/` subdirectory of the output directory.
 
-`matplotlib` + `seaborn` are **already** dependencies — no new dependency.
+`matplotlib` is **already** a dependency — no new dependency. The renderers are
+**matplotlib-only**; `seaborn` (also already present) is not used.
 
 ### Substrate (verified against current code)
 
@@ -59,7 +60,13 @@ Roadmap row 16 scope: *"Scaleograms (Tier 1 + Tier 3); trail overlay
   canonical name** (stub contract). Polymorphic via `isinstance` dispatch:
   `ScaleogramResult` → temporal axes (`time [s]` / `period [s]`),
   `SpatialScaleogramResult` → spatial axes (`arc length [px]` /
-  `wavelength [px]`); `TypeError` on any other type. `ridge_result` is optional.
+  `wavelength [px]`); `TypeError` on any other scaleogram type. `ridge_result`
+  is optional, but **its type must agree with the scaleogram type**
+  (`ScaleogramResult`↔`RidgeResult`, `SpatialScaleogramResult`↔
+  `SpatialRidgeResult`) — the two ridge types expose different fields
+  (`frame_indices`/`periods_s` vs `position_indices`/`wavelengths_px`), so a
+  mismatched pair is rejected with a `TypeError` naming both expected types
+  rather than left to surface as an `AttributeError`. Tested (R3).
 - `trail_overlay(midline_result, out_path)` — consumes a `MidlineResult`.
 - `plate_panel(midline_results, out_path)` — consumes an ordered collection of
   `MidlineResult` (one per plant).
@@ -101,55 +108,99 @@ the orchestrator owns the guard + log.
   physical units (`time [s] = frame_index·cadence_s` / `arc length [px] =
   sample_index·ds`); the COI region (`coi_mask`) dimmed as unreliable; the
   optional ridge overlaid as a line (solid where `in_coi==False`, faded inside
-  COI); labeled colorbar `power |C|²`. The overlaid ridge is the **raw**
-  `extract_ridge` output (the scaleogram's own argmax, so the line matches the
-  heatmap), not the post-filtered `smooth_ridge`.
+  COI); labeled colorbar `power |C|²`. **`LogNorm` floor (R7):** power has exact
+  zeros at degenerate cells, and `LogNorm` rejects `vmin<=0`; set `vmin` to the
+  smallest *positive* power (or a low positive percentile) so the norm never sees
+  a non-positive bound. **Which ridge is overlaid (R2b):** `save_plots` passes the
+  ridge that the tier *analyzed* — for **temporal**, that is the
+  `smooth_ridge(extract_ridge(...))` output (its median-filtered period is what
+  produces `T_nutation_median`), so the overlay reflects the measurement (it
+  tracks the argmax closely, a light median filter); for **spatial**, there is no
+  smoothing stage, so the raw `extract_ridge` *is* the analyzed ridge. (This
+  supersedes an earlier draft that overlaid the raw temporal ridge and over-claimed
+  "plotted == analyzed" — see Review reconciliation R2b.)
 - **trail_overlay:** the tip path `(x_smooth_px, y_smooth_px)` as a
-  `LineCollection`, segments colored by `curvature_px_inv` on a diverging
-  colormap (`RdBu_r`) with a **symmetric** norm centered at 0, limits
-  `±q` where `q = 98th percentile of |κ| over finite values` (robust to the few
-  near-blow-up frames that survive the NaN sweep); NaN-κ segments rendered in a
-  neutral `set_bad` color; y-axis inverted (image y-down); equal aspect; colorbar
+  `LineCollection` of **N−1 segments** from consecutive point pairs; per-segment
+  color = the **midpoint average** of the two endpoints' `curvature_px_inv`, so
+  `set_array` receives a length-(N−1) array (NOT length N) — a segment adjacent to
+  a NaN-κ frame averages to NaN (R7). Diverging colormap (`RdBu_r`) with a
+  **symmetric** norm centered at 0, limits `±q` where `q = 98th percentile of |κ|
+  over finite values` (robust to the few near-blow-up frames that survive the NaN
+  sweep); NaN segments rendered via a **copied** colormap's `set_bad`
+  (`cmap.copy()` first — never mutate a global colormap, same process-global hazard
+  as the Agg backend); y-axis inverted (image y-down); equal aspect; colorbar
   `κ [px⁻¹]`.
 - **plate_panel:** a 2×3 grid of trail overlays, one per plant; a **single**
   symmetric κ norm computed across all plants on the plate and applied to every
-  subplot, with **one shared colorbar** (so equal color == equal curvature across
-  plants); empty cells hidden when fewer than 6 plants.
+  subplot, with **one shared colorbar** driven by an explicit
+  `matplotlib.cm.ScalarMappable(norm, cmap)` passed to `fig.colorbar(sm,
+  ax=axes)` (R7); empty cells hidden when fewer than 6 plants. Cell→plant mapping
+  follows the same deterministic groupby order as the re-derivation (R-groupby),
+  so the structural test can assert which plant is in which cell.
 
 ### D5 — `save_plots` re-derives Results from `inputs` (reusing the exact tier helpers)
 `compute_traits` discards the intermediate Results, so `save_plots` re-derives
 them per plant by calling the **identical** helper functions the analysis used
 (not a reimplementation), with the **same** `constants`. Plotted == analyzed by
-construction.
+construction — with one documented temporal-ridge nuance (R2b): the period trait
+`T_nutation_median` derives from the *smoothed* ridge, so `save_plots` overlays
+the smoothed ridge (see D3) to keep that equality honest.
 
-- **Tier 1 (temporal):**
-  `_geometry.project_to_growth_axis_perpendicular(tip_x, tip_y)` → if
-  `not np.isfinite(raw_signal).any()` skip → `_noise.compute_sg_detrended(raw,
+**Grouping contract (R-groupby).** `save_plots` iterates plants by grouping
+`inputs.trajectory_df` on the `_IDENTITY_5_TUPLE` (`series, sample_uid, plate_id,
+plant_id, track_id`) with `dropna=False, sort=False` — the **exact** pattern
+`nutation.compute` and `traveling_wave.compute` use. Identical grouping is what
+makes plotted == analyzed and fixes a deterministic plant order (drives panel
+cell assignment and the order of the returned `list[Path]`, which the integration
+test asserts).
+
+- **Tier 1 (temporal)** — mirrors `nutation._compute_one_track`
+  (`nutation.py:418-450`) guard-for-guard, reusing its helpers:
+  `try: raw = _select_signal(group, "lateral") except ValueError: skip` (the
+  `lateral` branch is `project_to_growth_axis_perpendicular`, which **raises**
+  `ValueError` on a NaN/inf tip column — real `.slp` tracks carry NaN frames, so
+  this guard is load-bearing, not the `isfinite(...).any()` check) → if
+  `not np.isfinite(raw).any()` skip → `signal = _noise.compute_sg_detrended(raw,
   window=int(constants.SG_WINDOW_DETREND), polynomial_order=int(constants.SG_DEGREE))`
-  → if not finite-any skip → `temporal_cwt.compute_scaleogram(signal,
-  cadence_s=cadence_s, constants=constants)` → `temporal_cwt.extract_ridge(...,
-  constants=constants)`. (Mirrors `nutation.py:423-449`.)
-- **Tier 3 (spatial):**
-  `midline.reconstruct(x, y, cadence_s=cadence_s, constants=constants)` (this
+  → if `not np.isfinite(signal).any()` skip → `try: sg =
+  temporal_cwt.compute_scaleogram(signal, cadence_s, constants=constants) except
+  ValueError: skip` (the "signal too short for the scale grid" case) →
+  `raw_ridge = temporal_cwt.extract_ridge(sg, constants=constants)` →
+  `ridge = temporal_cwt.smooth_ridge(raw_ridge, constants=constants)` (the overlaid
+  ridge, per D3/R2b). `cadence_s` is passed positionally (its real signature).
+- **Tier 3 (spatial)** — mirrors `traveling_wave._compute_one_track`
+  (`traveling_wave.py:241-273`): first **drop non-finite tips**
+  (`finite = np.isfinite(x) & np.isfinite(y); x, y = x[finite], y[finite]`)
+  because `midline.reconstruct` *rejects* non-finite input (R2c) →
+  `mr = midline.reconstruct(x, y, cadence_s=cadence_s, constants=constants)` (this
   `MidlineResult` also feeds the trail/panel) → if `mr.is_degenerate` skip →
-  `spatial_cwt.resample_curvature(mr.curvature_px_inv, mr.arc_length_px,
+  `rs = spatial_cwt.resample_curvature(mr.curvature_px_inv, mr.arc_length_px,
   mr.velocity_sub_noise_mask, constants=constants)` → if `rs.is_degenerate` skip →
-  `spatial_cwt.compute_scaleogram(rs.kappa_uniform, rs.ds, constants=constants)`
-  → `spatial_cwt.extract_ridge(..., constants=constants)`. (Mirrors
-  `traveling_wave.py:248-273`.) `midline.reconstruct` is called **once** per
-  plant and reused for the trail, the panel, and the spatial scaleogram chain.
-- A plant whose Tier 1 (or Tier 3) chain is degenerate skips only its affected
-  plot, logged at DEBUG; the rest still render.
+  `sg = spatial_cwt.compute_scaleogram(rs.kappa_uniform, rs.ds, constants=constants)`
+  → `ridge = spatial_cwt.extract_ridge(sg, constants=constants)` (no smoothing
+  stage exists spatially → the raw ridge IS analyzed). `midline.reconstruct` is
+  called **once** per plant and reused for the trail, the panel, and the spatial
+  scaleogram chain.
+- A plant whose Tier 1 (or Tier 3) chain hits a skip/degeneracy gate omits only
+  its affected plot, logged at DEBUG; the rest still render. The panel includes a
+  plant's trail whenever its `MidlineResult` is non-degenerate.
 
 ### D5 — output location & naming
 - `plots/` subdirectory of `out_dir`, created with `mkdir(parents=True,
   exist_ok=True)`. (Unlike `pipeline.save()`, which does not create directories,
   `plots/` is a fresh subdir `save_plots` owns. The `plots/` subdir also sidesteps
   the `run_metadata` stem issue #238.)
-- Filenames keyed on per-plant identity (`{plate_id}`, `{plant_id}`) to guarantee
-  uniqueness (#237 guard): `{plate_id}_plant{plant_id}_scaleogram_temporal.png`,
-  `{plate_id}_plant{plant_id}_scaleogram_spatial.png`,
-  `{plate_id}_plant{plant_id}_trail.png`, and one `{plate_id}_panel.png` per plate.
+- Filenames keyed on **`track_id`** — the one identity field
+  `_validate_integer_identity` guarantees is integer-valued and finite
+  (`_types.py`). `plate_id`/`plant_id` are documented as *aspirational* (no
+  upstream produces them; they may populate as `NaN`), so keying on them would
+  collapse every plant to `nan_plantnan_*.png` on un-decorated `.slp` data — the
+  very #237 collision we mean to guard (R-filenames). Scheme:
+  `plant{track_id}_scaleogram_temporal.png`, `plant{track_id}_scaleogram_spatial.png`,
+  `plant{track_id}_trail.png`, and one `panel.png` per `save_plots` call (one plate
+  per output dir, matching the one-CSV-per-dir contract). When `plate_id` *is*
+  populated it may be prefixed (`{plate_id}_…`), but `track_id` alone carries the
+  uniqueness guarantee.
 
 ### D6 — constants & figure-leak hygiene
 - Display knobs are **structural**, not analysis parameters, so they live as
@@ -176,7 +227,11 @@ The first non-raising `plotting` commit MUST be atomic with removing
 (`tests/test_circumnutation_foundation.py:73-76`) so the foundation suite never
 goes red. `scaleogram` has **no** `constants=` kwarg, so it is **not** added to
 `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG`; instead add explicit callability tests
-(the lines 782–822 pattern for non-`STUB_MODULES` impl callables).
+(the lines 782–822 pattern for non-`STUB_MODULES` impl callables). **Also (R5):**
+`plotting` is currently covered by the logger-namespace test only via its
+`STUB_MODULES` membership; removing that row drops it from that coverage, so the
+same commit MUST add `plotting` to the explicit list in
+`test_module_logger_is_namespaced` (`test_circumnutation_foundation.py`).
 
 ## Alternatives Considered
 
@@ -236,10 +291,14 @@ trail} + 1 panel = 19 PNGs) assumes no plant is degenerate. The existing
 `traveling_wave_residual < 0.30` finite-for-all-6 invariant
 (`test_circumnutation_pipeline.py:498-500`) confirms the **spatial** chain
 succeeds for all 6; the **temporal** chain is very likely fine too but is not
-separately asserted today. → Mitigation: if TDD reveals a degenerate plant, the
-count drops; the test will assert the produced subset (via the `list[Path]`
-returned by `save_plots`) — or this is recorded as a deviation — the assertion
-will not be silently weakened.
+separately asserted today. → Mitigation (R4): the integration test does **not**
+hard-code 19. It derives the expected count from the per-plant DataFrame —
+`expected = (#plants with finite T_nutation_median) + (#plants with finite
+traveling_wave_residual) + (#plants with a non-degenerate trail) + 1 panel` — and
+asserts the `list[Path]` returned by `save_plots` matches that **self-consistent**
+count. On the current plate-001 that evaluates to 19, but a future degenerate
+plant yields a correct lower count rather than a red magic-number assertion. The
+count is never silently weakened.
 
 ## Deviation — no `L_gz` arc-length marker (D4)
 
@@ -256,8 +315,9 @@ TraitDef-DAG deviation discipline.)
 1. Add `_build_*_figure` builders + public renderers + `save_plots` to
    `plotting.py` (TDD; structural tests first).
 2. In the **same** commit as the first non-raising `plotting` callable, remove
-   `("plotting", "scaleogram", 16)` from `STUB_MODULES` and add the explicit
-   plotting callability tests.
+   `("plotting", "scaleogram", 16)` from `STUB_MODULES`, add the explicit
+   plotting callability tests, AND add `plotting` to the explicit
+   `test_module_logger_is_namespaced` list (R5).
 3. Update the spec: MODIFY "Package layout" (impl 11→12, stub 2→1; drop the
    plotting stub-callable row); ADD a "Circumnutation diagnostic plots API"
    requirement with callability scenarios for the new public symbols.
@@ -275,3 +335,51 @@ TraitDef-DAG deviation discipline.)
 
 - None outstanding. (The `save_plots` return-paths question was resolved — see D1
   "Return types"; the follow-up dedup/MCP issue was filed as #241.)
+
+## Review reconciliation (adversarial critical-review of design.md, round 1)
+
+Each BLOCKING/IMPORTANT finding and where it is now addressed:
+
+- **R2a (BLOCKING) — Tier 1 re-derivation used the wrong guard mechanism.**
+  `project_to_growth_axis_perpendicular` *raises* `ValueError` on NaN/inf tips
+  (not all-NaN-return), so the draft's `isfinite(...).any()` check would never run
+  — real `.slp` tracks would crash. **Fixed:** D5 Tier 1 now mirrors
+  `nutation._compute_one_track` (`nutation.py:418-450`) guard-for-guard — reuses
+  `_select_signal(group, "lateral")` inside `try/except ValueError`, both
+  finite-any short-circuits, and the `try/except ValueError` around
+  `compute_scaleogram`.
+- **R2b (BLOCKING) — "plotted == analyzed" was false for the temporal ridge.**
+  `T_nutation_median` derives from `smooth_ridge`, but the draft overlaid the raw
+  ridge. **Fixed:** D5/D3 now overlay the **smoothed** ridge for temporal
+  (`smooth_ridge(extract_ridge(...))`, returns `RidgeResult`) and the raw ridge for
+  spatial (no smoothing stage exists there); the over-claim is corrected.
+- **R-filenames (BLOCKING) — `{plate_id}_plant{plant_id}` collapses to
+  `nan_plantnan`.** `plate_id`/`plant_id` are documented aspirational (may be NaN);
+  only `track_id` is guaranteed integer by `_validate_integer_identity`. **Fixed:**
+  D5 naming now keys on `track_id` (`plant{track_id}_*.png`), optional `plate_id`
+  prefix only when populated.
+- **R2c (IMPORTANT) — Tier 3 chain omitted the finite-tip pre-filter.**
+  `midline.reconstruct` rejects non-finite input. **Fixed:** D5 Tier 3 now shows
+  `finite = isfinite(x)&isfinite(y); x,y = x[finite],y[finite]` before `reconstruct`.
+- **R3 (IMPORTANT) — cross-type ridge/scaleogram mismatch unguarded.** **Fixed:**
+  D1 adds a ridge-pairing `TypeError` guard (temporal↔`RidgeResult`,
+  spatial↔`SpatialRidgeResult`), with a test.
+- **R5 (IMPORTANT) — logger-namespace coverage drops `plotting` on `STUB_MODULES`
+  removal.** **Fixed:** Atomic-migration note + Migration Plan step 2 now add
+  `plotting` to the explicit `test_module_logger_is_namespaced` list.
+- **R7 (IMPORTANT) — matplotlib mechanics hand-waved.** **Fixed in D3:** `LogNorm`
+  `vmin` set to smallest positive power (no `vmin<=0`); `LineCollection` uses N−1
+  segments with midpoint-averaged κ for `set_array`; NaN via a **copied** colormap's
+  `set_bad`; shared panel colorbar via an explicit `ScalarMappable(norm, cmap)`.
+- **R4 (IMPORTANT) — "exact 19 PNGs" magic number.** **Fixed:** D7 risk note now
+  derives the expected count from finite per-plant trait counts and asserts the
+  returned `list[Path]` against that self-consistent value.
+- **R-groupby (MINOR) — grouping/cell-order unspecified.** **Fixed:** D5 pins the
+  `_IDENTITY_5_TUPLE` `dropna=False, sort=False` groupby (matching the tiers) and
+  ties panel cell→plant order to it.
+- **R-seaborn (MINOR).** **Fixed:** Context now states matplotlib-only; seaborn unused.
+
+Confirmed correct as written (no change): COI mask polarity (`True`=inside=
+unreliable), signed-κ diverging colormap, `isinstance` dispatch validity (classes
+are distinct), the no-`constants=`/explicit-callability migration logic, and
+`CircumnutationInputs` field coverage.
