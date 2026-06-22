@@ -118,7 +118,14 @@ the orchestrator owns the guard + log.
   tracks the argmax closely, a light median filter); for **spatial**, there is no
   smoothing stage, so the raw `extract_ridge` *is* the analyzed ridge. (This
   supersedes an earlier draft that overlaid the raw temporal ridge and over-claimed
-  "plotted == analyzed" — see Review reconciliation R2b.)
+  "plotted == analyzed" — see Review reconciliation R2b.) **Spatial faithfulness
+  caveat (R-S1):** the spatial `wavelengths_px` are raw pywt-convention values and
+  the overlaid spatial ridge is **ungated**, whereas the emitted `lambda_spatial_*`
+  traits are COI-gated and cgau2-**calibrated** (theory.md §7.4 notes 2–3). So the
+  spatial wavelength axis is labeled *uncalibrated convention px* and spatial ridge
+  positions with `in_coi==True` are faded exactly as the temporal ridge — a reader
+  must not mistake the plotted wavelength for the authoritative
+  `lambda_spatial_median_px`.
 - **trail_overlay:** the tip path `(x_smooth_px, y_smooth_px)` as a
   `LineCollection` of **N−1 segments** from consecutive point pairs; per-segment
   color = the **midpoint average** of the two endpoints' `curvature_px_inv`, so
@@ -129,7 +136,12 @@ the orchestrator owns the guard + log.
   sweep); NaN segments rendered via a **copied** colormap's `set_bad`
   (`cmap.copy()` first — never mutate a global colormap, same process-global hazard
   as the Agg backend); y-axis inverted (image y-down); equal aspect; colorbar
-  `κ [px⁻¹]`.
+  `κ [px⁻¹]` with **`extend="both"`** so the ~2% clipped at the 98th-pct limits is
+  visible (R-S2). **All-NaN-κ edge (R-S6):** a non-degenerate `MidlineResult` whose
+  `curvature_px_inv` is entirely NaN gives `np.percentile([], 98)` no finite input;
+  such a plant is skipped (DEBUG-logged) or rendered with a default symmetric limit,
+  never crashing the norm — and the `plate_panel` pooled-κ norm guards the
+  empty-pool case the same way.
 - **plate_panel:** a 2×3 grid of trail overlays, one per plant; a **single**
   symmetric κ norm computed across all plants on the plate and applied to every
   subplot, with **one shared colorbar** driven by an explicit
@@ -167,7 +179,8 @@ test asserts).
   ValueError: skip` (the "signal too short for the scale grid" case) →
   `raw_ridge = temporal_cwt.extract_ridge(sg, constants=constants)` →
   `ridge = temporal_cwt.smooth_ridge(raw_ridge, constants=constants)` (the overlaid
-  ridge, per D3/R2b). `cadence_s` is passed positionally (its real signature).
+  ridge, per D3/R2b). `cadence_s` is passed as a keyword (`cadence_s=cadence_s`),
+  matching the `nutation.py:444` call site.
 - **Tier 3 (spatial)** — mirrors `traveling_wave._compute_one_track`
   (`traveling_wave.py:241-273`): first **drop non-finite tips**
   (`finite = np.isfinite(x) & np.isfinite(y); x, y = x[finite], y[finite]`)
@@ -190,6 +203,14 @@ test asserts).
   exist_ok=True)`. (Unlike `pipeline.save()`, which does not create directories,
   `plots/` is a fresh subdir `save_plots` owns. The `plots/` subdir also sidesteps
   the `run_metadata` stem issue #238.)
+- **Provenance sidecar (R-S4):** when any plot is written, `save_plots` also writes
+  `plots/plots_metadata.json` — strict-JSON (finite floats; numpy/`Path` coerced to
+  native, the sleap-roots-analyze #241 convention) — recording `_CONSTANTS_VERSION`,
+  the resolved display constants (`_KAPPA_PCT`, colormaps, `_DPI`, figsizes), the
+  per-plant `_IDENTITY_5_TUPLE` tuples plotted, the written PNG filenames, and a
+  relative back-reference to the run's `run_metadata.json`. This ties each PNG to
+  the run + constants that produced it (the CSV's `run_metadata.json` otherwise has
+  no link to the plots). No sidecar is written when `enabled=False`.
 - Filenames keyed on **`track_id`** — the one identity field
   `_validate_integer_identity` guarantees is integer-valued and finite
   (`_types.py`). `plate_id`/`plant_id` are documented as *aspirational* (no
@@ -333,8 +354,11 @@ TraitDef-DAG deviation discipline.)
 
 ## Open Questions
 
-- None outstanding. (The `save_plots` return-paths question was resolved — see D1
-  "Return types"; the follow-up dedup/MCP issue was filed as #241.)
+- None outstanding. **R-S4 resolved:** `save_plots` writes a
+  `plots/plots_metadata.json` provenance sidecar (decided with the user; see D5
+  output section). **#242 reconciliation:** the user chose to edit the tracking
+  issue body to record the `track_id`-filename + derived-count supersessions; the
+  edit is drafted to the vault for per-item OK before posting.
 
 ## Review reconciliation (adversarial critical-review of design.md, round 1)
 
@@ -383,3 +407,44 @@ Confirmed correct as written (no change): COI mask polarity (`True`=inside=
 unreliable), signed-κ diverging colormap, `isinstance` dispatch validity (classes
 are distinct), the no-`constants=`/explicit-callability migration logic, and
 `CircumnutationInputs` field coverage.
+
+## Review reconciliation (openspec-review 5-subagent panel, round 1)
+
+- **B1 (BLOCKING) — spec named the wrong Tier-1 helper.** The ADDED requirement
+  listed `_geometry.project_to_growth_axis_perpendicular` for the re-derivation,
+  but the analyzed path calls `nutation._select_signal(group, "lateral")` (which
+  performs that projection after extracting the tip columns). **Fixed:** the spec
+  ADDED requirement now names `nutation._select_signal`; tasks 6.2 require
+  module-qualified helper calls. (design.md D5 was already correct.)
+- **R-S1 (IMPORTANT, scientific) — spatial ridge faithfulness.** The plotted
+  spatial `wavelengths_px` are raw/uncalibrated and the ridge is ungated, but the
+  emitted `lambda_spatial_*` traits are COI-gated + cgau2-calibrated (theory §7.4).
+  **Fixed:** D3 + spec label the spatial wavelength axis "uncalibrated convention
+  px" and fade `in_coi==True` spatial ridge positions.
+- **R-S2 (IMPORTANT) — κ clipping invisible.** The ±98th-pct symmetric norm clips
+  ~2% of |κ|. **Fixed:** D3 + spec require colorbar `extend="both"`.
+- **R-S6 (IMPORTANT) — all-NaN-κ non-degenerate plant.** `np.percentile([], 98)`
+  is undefined. **Fixed:** D3 + spec skip/default-limit such a plant and guard the
+  empty-pool panel; tasks 4.2b/5.1b test it.
+- **R-spec-degenerate (IMPORTANT) — normative SHALL lacked a scenario.** **Fixed:**
+  added "save_plots skips a degenerate plant" scenario to the ADDED requirement.
+- **R-spec-constants (IMPORTANT) — silent normative removal.** The intro sentence
+  requiring stubs to carry `constants=None` was dropped (parametric has none).
+  **Fixed:** the PR #16 scope note now records the removal for auditability.
+- **R-tests (IMPORTANT) — test gaps.** **Fixed in tasks.md:** G1 (no-mm/`px_per_mm`
+  signature+label test), G2 (no-`L_gz` signature test), G4 (junk `ridge_result` →
+  `TypeError`), G6 (spy at the `plotting.<helper>` binding; module-qualified calls),
+  G7 (`plate_panel` >6-plants behavior decided+tested), autouse `plt.close("all")`
+  teardown (no leak cascade), colormap-global-unchanged assertion, the atomic
+  commit boundary made explicit (2.3) incl. the module-docstring `L_gz` drop, a
+  named degenerate fixture for skip-branch coverage, and the integration test's
+  file/skipif placement.
+- **R-align (IMPORTANT) — tracking issue #242 drift.** PR #16 deliberately
+  supersedes #242's `{plate_id}_plant{plant_id}` filename scheme (→ `track_id`) and
+  its "exact 19-PNG" assertion (→ derived count). **Action pending user OK:** edit
+  #242 (or comment) to record the supersession so issue and PR don't contradict.
+- **R-S4 (IMPORTANT, provenance) — plots not traceable to the run.** Open decision
+  surfaced to the user (sidecar vs CC-9 log); see Open Questions.
+- **MINOR (design labels):** duplicate `### D5` headers and dangling `D4`/`D7`
+  references noted by the spec reviewer; left as-is (the deviation/integration
+  sections are clearly titled) — a renumber is deferred to avoid churn.
