@@ -226,13 +226,16 @@ test asserts).
   and is NOT reused). It records `_CONSTANTS_VERSION`, the resolved display constants
   (`_KAPPA_PCT`, colormaps, `_DPI`, figsizes), the per-plant `_IDENTITY_5_TUPLE`
   tuples plotted, the written PNG filenames, and `inputs.run_id`/`cadence_s`/`R_px`.
-  **The `run_id` is the authoritative join key (R2-B1):** `save_plots(inputs,
-  out_dir)` is NOT given the `.slp` `input_path` or the CSV path (those live only on
-  the separate `pipeline.save` call; `CircumnutationInputs` has no `input_path`), so
-  it cannot construct a reliable filesystem back-reference — it records `run_id` (the
-  same key `run_metadata.json` carries) plus an optional best-effort
-  `"../run_metadata.json"` hint documented as present only when the CSV was written
-  to the parent of `out_dir`. No sidecar is written when `enabled=False`.
+  **The `run_id` is the join key (R2-B1):** `save_plots(inputs, out_dir)` is NOT
+  given the `.slp` `input_path` or the CSV path (those live only on the separate
+  `pipeline.save` call; `CircumnutationInputs` has no `input_path`), so it cannot
+  construct a reliable filesystem back-reference — it records `run_id` (the same key
+  `run_metadata.json` carries) plus an optional best-effort `"../run_metadata.json"`
+  hint. **Caveat (R3-I2):** `run_id` is `Optional[str]` defaulting to `None`, so the
+  join is meaningful only when the caller supplies a non-`None` `run_id` (both files
+  record `null` otherwise; `run_metadata.json` separately keeps `input_path` as a
+  disambiguator the sidecar can't reach). `save_plots` logs DEBUG when `run_id` is
+  `None`. No sidecar is written when `enabled=False`.
 - Filenames keyed on **`track_id`** — the one identity field
   `_validate_integer_identity` guarantees is integer-valued and finite
   (`_types.py`). `plate_id`/`plant_id` are documented as *aspirational* (no
@@ -516,3 +519,39 @@ are distinct), the no-`constants=`/explicit-callability migration logic, and
   `series.py` precedent.
 - **R2-probe7 — benchmarks.** Confirmed `save_plots` is outside the benchmarked path;
   no action.
+
+## Review reconciliation (openspec-review panel, round 3 — converged)
+
+Round 3 found **no BLOCKING** (both subagents; the completeness critic explicitly
+declared convergence). Corrections applied:
+
+- **R3-I1 (IMPORTANT) — tasks self-contradiction.** Task 6.6 GREEN still said
+  `mkdir(parents=True, exist_ok=True)`, contradicting the 6.5b FileNotFoundError
+  contract (the R2 GREEN step re-introduced it). **Fixed:** 6.6 now uses
+  `(out_dir/"plots").mkdir(exist_ok=True)`.
+- **R3-I2 (IMPORTANT) — `run_id` null-on-null.** `run_id` defaults to `None`, so the
+  "authoritative join key" framing was overstated. **Fixed:** spec + design qualify
+  it (meaningful only when non-`None`; `run_metadata.json` keeps `input_path` as the
+  disambiguator the sidecar can't reach; DEBUG-log when `None`).
+- **R3-M1 (MINOR) — wrong `QuadMesh` shape in task 3.1b.** Correct invariant is
+  `(n_scales+1, n_frames+1, 2)` via `get_coordinates()`. **Fixed.**
+- **R3-M2 (MINOR) — identity tuples can carry `NaN`.** `plate_id`/`plant_id` may be
+  `NaN`; `allow_nan=False` would raise. **Fixed:** the coercion helper must map
+  non-finite identity values to `null`/strings.
+- **R3-F1 (IMPORTANT, accuracy) — coverage is NOT CI-enforced.** `codecov.yml` is
+  `informational`; no `--cov-fail-under`. **Fixed:** task 8.2 reworded ("local
+  target, not a CI gate") and notes CI does check out Git-LFS so the real-data
+  branches run.
+- **R3-F2 (MINOR) — no matplotlib floor.** Design uses `cmap.copy()` (3.4+). **Noted:**
+  task 8.2 suggests adding `matplotlib>=3.4` to `pyproject.toml` (optional hardening;
+  the locked env is 3.10).
+- **R3-F3 (MINOR) — negative `track_id`.** Filename-safe; no change needed (hand-
+  constructable boundary only).
+- **#242 re-synced** to the final contract (the first edit carried a stale
+  `parents=True`/back-reference; corrected and re-applied).
+
+Verified clean by round 3: the re-derivation helper signatures (all match the call
+sites), `smooth_ridge` return shape, the foundation migration (STUB_MODULES /
+logger-list / `IMPLEMENTATIONS_WITH_CONSTANTS_KWARG` exclusion), import-time backend
+neutrality, the docs auto-gen page, and `openspec archive`-ability of the large
+MODIFIED requirement. **Three adversarial panels have converged.**
