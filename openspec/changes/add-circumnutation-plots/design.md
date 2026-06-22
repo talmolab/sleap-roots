@@ -106,7 +106,13 @@ the orchestrator owns the guard + log.
 - **scaleogram:** `pcolormesh` of power `|C|² = |scaleogram|²` with a `LogNorm`
   color norm; y-axis log-scaled (`period [s]` / `wavelength [px]`); x-axis in
   physical units (`time [s] = frame_index·cadence_s` / `arc length [px] =
-  sample_index·ds`); the COI region (`coi_mask`) dimmed as unreliable; the
+  sample_index·ds`); **centers-vs-edges (R2-probe3, the heatmap twin of the
+  `LineCollection` N−1 issue):** `pcolormesh` needs the coordinate arrays and the
+  `(n_scales, n_frames)` power array to agree — use explicit `shading` or build
+  `n+1` edge arrays (geometric-midpoint edges for the log period/wavelength axis,
+  linear for the physical x-axis) so no scale/frame row is silently dropped and the
+  render is matplotlib-version-stable; the structural test pins the `QuadMesh`
+  coordinate shape. The COI region (`coi_mask`) dimmed as unreliable; the
   optional ridge overlaid as a line (solid where `in_coi==False`, faded inside
   COI); labeled colorbar `power |C|²`. **`LogNorm` floor (R7):** power has exact
   zeros at degenerate cells, and `LogNorm` rejects `vmin<=0`; set `vmin` to the
@@ -153,10 +159,12 @@ the orchestrator owns the guard + log.
 ### D5 — `save_plots` re-derives Results from `inputs` (reusing the exact tier helpers)
 `compute_traits` discards the intermediate Results, so `save_plots` re-derives
 them per plant by calling the **identical** helper functions the analysis used
-(not a reimplementation), with the **same** `constants`. Plotted == analyzed by
-construction — with one documented temporal-ridge nuance (R2b): the period trait
-`T_nutation_median` derives from the *smoothed* ridge, so `save_plots` overlays
-the smoothed ridge (see D3) to keep that equality honest.
+(not a reimplementation), with the **same** `constants`. Plotted == analyzed
+**input** by construction — with two documented exceptions: (i) the temporal-ridge
+nuance (R2b) — `T_nutation_median` derives from the *smoothed* ridge, so
+`save_plots` overlays the smoothed ridge (see D3); and (ii) the spatial-wavelength
+caveat (R-S1) — the plotted spatial wavelength is the uncalibrated pywt convention,
+not the COI-gated/calibrated `lambda_spatial_*` trait.
 
 **Grouping contract (R-groupby).** `save_plots` iterates plants by grouping
 `inputs.trajectory_df` on the `_IDENTITY_5_TUPLE` (`series, sample_uid, plate_id,
@@ -199,18 +207,32 @@ test asserts).
   plant's trail whenever its `MidlineResult` is non-degenerate.
 
 ### D5 — output location & naming
-- `plots/` subdirectory of `out_dir`, created with `mkdir(parents=True,
-  exist_ok=True)`. (Unlike `pipeline.save()`, which does not create directories,
-  `plots/` is a fresh subdir `save_plots` owns. The `plots/` subdir also sidesteps
-  the `run_metadata` stem issue #238.)
+- `out_dir` MUST already exist (consistent with `pipeline.save`/`_io` "parent must
+  exist"); `save_plots` raises `FileNotFoundError` if it does not and creates only
+  the `plots/` **leaf** (`(out_dir/"plots").mkdir(exist_ok=True)`, **not**
+  `parents=True` — it does not silently create a missing `out_dir`, R2-probe5). The
+  `plots/` subdir sidesteps the `run_metadata`-stem clobber #238 for the CSV stem.
+- **One plate per `out_dir` (R2-I2):** `track_id` and the fixed `panel.png` /
+  `plots_metadata.json` names are unique only within a plate, so `save_plots` is
+  contractually one-plate-per-`out_dir` (mirroring `pipeline.save`'s
+  one-CSV-per-dir); callers give each plate its own `out_dir`. (Note R2-I3: the
+  `plots_metadata.json` is itself a fixed-name sidecar — fine under the
+  one-plate-per-dir contract, but a second plate into the same dir would clobber it,
+  the same documented constraint as the CSV's `run_metadata.json`.)
 - **Provenance sidecar (R-S4):** when any plot is written, `save_plots` also writes
-  `plots/plots_metadata.json` — strict-JSON (finite floats; numpy/`Path` coerced to
-  native, the sleap-roots-analyze #241 convention) — recording `_CONSTANTS_VERSION`,
-  the resolved display constants (`_KAPPA_PCT`, colormaps, `_DPI`, figsizes), the
-  per-plant `_IDENTITY_5_TUPLE` tuples plotted, the written PNG filenames, and a
-  relative back-reference to the run's `run_metadata.json`. This ties each PNG to
-  the run + constants that produced it (the CSV's `run_metadata.json` otherwise has
-  no link to the plots). No sidecar is written when `enabled=False`.
+  `plots/plots_metadata.json` — strict-JSON via a new coercion helper (finite floats;
+  numpy/`Path` coerced to native, `json.dumps(allow_nan=False)`, the
+  sleap-roots-analyze #241 convention — `_io.write_run_metadata` uses `default=str`
+  and is NOT reused). It records `_CONSTANTS_VERSION`, the resolved display constants
+  (`_KAPPA_PCT`, colormaps, `_DPI`, figsizes), the per-plant `_IDENTITY_5_TUPLE`
+  tuples plotted, the written PNG filenames, and `inputs.run_id`/`cadence_s`/`R_px`.
+  **The `run_id` is the authoritative join key (R2-B1):** `save_plots(inputs,
+  out_dir)` is NOT given the `.slp` `input_path` or the CSV path (those live only on
+  the separate `pipeline.save` call; `CircumnutationInputs` has no `input_path`), so
+  it cannot construct a reliable filesystem back-reference — it records `run_id` (the
+  same key `run_metadata.json` carries) plus an optional best-effort
+  `"../run_metadata.json"` hint documented as present only when the CSV was written
+  to the parent of `out_dir`. No sidecar is written when `enabled=False`.
 - Filenames keyed on **`track_id`** — the one identity field
   `_validate_integer_identity` guarantees is integer-valued and finite
   (`_types.py`). `plate_id`/`plant_id` are documented as *aspirational* (no
@@ -448,3 +470,49 @@ are distinct), the no-`constants=`/explicit-callability migration logic, and
 - **MINOR (design labels):** duplicate `### D5` headers and dangling `D4`/`D7`
   references noted by the spec reviewer; left as-is (the deviation/integration
   sections are clearly titled) — a renumber is deferred to avoid churn.
+
+## Review reconciliation (openspec-review 5-subagent panel, round 2)
+
+- **R2-B1 (BLOCKING) — sidecar back-reference not constructible.** The
+  `plots_metadata.json` "back-reference to `run_metadata.json`" needs the `.slp`
+  `input_path`/CSV path, which `save_plots(inputs, out_dir)` never receives
+  (`CircumnutationInputs` has no `input_path`; `run_metadata.json` is written by the
+  separate `pipeline.save(input_path=...)`). **Fixed:** the sidecar now records
+  `inputs.run_id` as the authoritative join key (plus an optional best-effort
+  `"../run_metadata.json"` hint, documented as conditional). Spec/design/tasks updated.
+- **R2-probe3 (IMPORTANT) — `pcolormesh` centers-vs-edges off-by-one.** The heatmap
+  twin of round 1's `LineCollection` N−1 fix, previously unaddressed. **Fixed:** D3 +
+  spec require an explicit `shading`/`n+1` edge-array contract (geometric-midpoint
+  edges on the log axis); task 3.1b pins the `QuadMesh` coordinate shape.
+- **R2-probe5 (IMPORTANT) — silent `out_dir` creation.** `mkdir(parents=True)` would
+  silently create a missing `out_dir`, diverging from `pipeline.save`/`_io`
+  "parent must exist". **Fixed:** `out_dir` must pre-exist (`FileNotFoundError`
+  otherwise); only the `plots/` leaf is created. Spec scenario + task 6.5b added.
+- **R2-I2 (IMPORTANT) — cross-plate filename collision.** `track_id`/`panel.png` are
+  unique only within a plate. **Fixed:** the one-plate-per-`out_dir` contract is now
+  explicit in spec + design (mirroring one-CSV-per-dir).
+- **R2-I3 (noted) — `plots_metadata.json` is itself a fixed-name sidecar.** Fine
+  under the one-plate-per-dir contract; documented in D5.
+- **R2-I1 (IMPORTANT) — no strict-JSON helper to "mirror".** `_io.write_run_metadata`
+  uses `default=str` (permits non-finite tokens). **Fixed:** spec/tasks now say PR #16
+  ADDS a coercion helper (`allow_nan=False`), not reuses one.
+- **R2-probe9 (IMPORTANT) — "plotted == analyzed" contradicted the R-S1 caveat.**
+  **Fixed:** D5 + spec qualify it ("== analyzed input", minus the documented
+  temporal-smoothed-ridge and spatial-uncalibrated-wavelength exceptions).
+- **R2-probe2 (IMPORTANT) — `__init__.py` stub docstring stale beyond `plotting`.**
+  It still lists `pipeline` (merged) as a stub. **Fixed:** task 8.1 now corrects the
+  whole enumeration (only `parametric` remains).
+- **R2-probe8 (IMPORTANT) — no changelog task.** **Fixed:** task 8.4 adds the
+  `docs/changelog.md` entry (per-PR convention).
+- **R2-probe6 (MINOR) — pytest-xdist leak baseline.** **Fixed:** task 1.2 autouse
+  fixture now closes figures at BOTH setup and teardown.
+- **R2-probe4 (MINOR) — untested branches.** **Fixed:** task 6.4 adds a
+  too-short-but-finite fixture (the `compute_scaleogram` `ValueError` branch) + a
+  zero-plant case; task 5.1b adds `plate_panel([])`.
+- **R2-N1 (MINOR) — spatial label string drift.** **Fixed:** pinned to `wavelength
+  [px]` + an "uncalibrated convention" annotation across spec/design/tasks.
+- **R2-probe1 (MINOR) — undefined mkdocs pass.** **Fixed:** task 8.2 states bare
+  `mkdocs build` (no `--strict`); matplotlib/`Path` refs are tolerated warnings per
+  `series.py` precedent.
+- **R2-probe7 — benchmarks.** Confirmed `save_plots` is outside the benchmarked path;
+  no action.
