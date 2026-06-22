@@ -519,6 +519,60 @@ def test_real_plate001_full_pipeline_round_trip(tmp_path):
     assert md["cadence_s"] == 300.0
 
 
+@pytest.mark.skipif(
+    not _PROOFREAD_FIXTURE.exists(),
+    reason=f"Git-LFS proofread fixture not present: {_PROOFREAD_FIXTURE}",
+)
+def test_real_plate001_save_plots(tmp_path):
+    """PR #16: save_plots on the real plate-001 writes a self-consistent PNG set."""
+    import json as _json
+
+    from sleap_roots.circumnutation import plotting
+
+    inputs = _load_plate001_inputs()
+
+    # The spatial chain (midline→resample→CWT) succeeds non-degenerately for all
+    # 6 plants — anchored by the finite traveling_wave_residual invariant — so
+    # every plant yields a trail + a spatial scaleogram.
+    per_plant_df, _, _ = pipeline.compute_traits(inputs)
+    res = per_plant_df["traveling_wave_residual"].to_numpy(dtype=float)
+    assert np.all(np.isfinite(res))
+    n_spatial_expected = int(len(per_plant_df))  # 6
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    written = plotting.save_plots(inputs, out_dir)
+
+    plots = out_dir / "plots"
+    assert plots.is_dir()
+    assert written, "expected a non-empty plot set on real plate-001"
+    assert all(p.exists() and p.stat().st_size > 0 for p in written)
+
+    png_names = {p.name for p in plots.iterdir() if p.suffix == ".png"}
+    assert {p.name for p in written} == png_names  # returned list == files on disk
+
+    n_trail = sum(n.endswith("_trail.png") for n in png_names)
+    n_spatial = sum(n.endswith("_scaleogram_spatial.png") for n in png_names)
+    n_temporal = sum(n.endswith("_scaleogram_temporal.png") for n in png_names)
+    assert n_trail == n_spatial_expected
+    assert n_spatial == n_spatial_expected
+    assert 1 <= n_temporal <= n_spatial_expected  # temporal may degenerate per-plant
+    assert "panel.png" in png_names
+    # Self-consistent total: per-plant plots + 1 panel.
+    assert len(written) == n_trail + n_spatial + n_temporal + 1
+
+    # Provenance sidecar present + strict JSON.
+    meta = _json.loads((plots / "plots_metadata.json").read_text(encoding="utf-8"))
+    assert meta["constants_version"] == plotting._CONSTANTS_VERSION
+    assert len(meta["plants"]) >= 1
+
+    # enabled=False is a no-op (separate output dir).
+    out2 = tmp_path / "out2"
+    out2.mkdir()
+    assert plotting.save_plots(inputs, out2, enabled=False) == []
+    assert not (out2 / "plots").exists()
+
+
 # ---------------------------------------------------------------------------
 # Review reconciliation — input guard + constants threading
 # ---------------------------------------------------------------------------

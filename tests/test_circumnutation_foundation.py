@@ -891,9 +891,17 @@ def test_plotting_trail_panel_save_plots_callable(tmp_path):
     for frame in range(40):
         rows.append(
             {
-                "series": "p", "sample_uid": "p", "timepoint": "T0", "plate_id": "p",
-                "plant_id": 0, "track_id": 0, "genotype": "g", "treatment": "n",
-                "frame": frame, "tip_x": float(x[frame]), "tip_y": float(y[frame]),
+                "series": "p",
+                "sample_uid": "p",
+                "timepoint": "T0",
+                "plate_id": "p",
+                "plant_id": 0,
+                "track_id": 0,
+                "genotype": "g",
+                "treatment": "n",
+                "frame": frame,
+                "tip_x": float(x[frame]),
+                "tip_y": float(y[frame]),
             }
         )
     inputs = CircumnutationInputs(trajectory_df=pd.DataFrame(rows), cadence_s=300.0)
