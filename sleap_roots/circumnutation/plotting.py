@@ -73,6 +73,7 @@ _CMAP_SCALEOGRAM: str = "viridis"
 _CMAP_KAPPA: str = "RdBu_r"
 _KAPPA_PCT: float = 98.0
 _KAPPA_FALLBACK: float = 1.0  # symmetric ±limit when no finite κ exists
+_LOG_EDGE_FACTOR: float = 1.5  # half-decade-ish edge spread for a single log center
 _NAN_COLOR: str = "lightgray"
 _PANEL_ROWS: int = 2
 _PANEL_COLS: int = 3
@@ -105,7 +106,7 @@ def _edges_log(centers: np.ndarray) -> np.ndarray:
     centers = np.asarray(centers, dtype=np.float64)
     if centers.size == 1:
         c = float(centers[0])
-        return np.array([c / 1.5, c * 1.5])
+        return np.array([c / _LOG_EDGE_FACTOR, c * _LOG_EDGE_FACTOR])
     return np.exp(_edges_linear(np.log(centers)))
 
 
@@ -175,7 +176,7 @@ def _scaleogram_axes_spec(
 def _build_scaleogram_figure(
     scaleogram_result: Union[ScaleogramResult, SpatialScaleogramResult],
     ridge_result=None,
-) -> "plt.Figure":
+) -> plt.Figure:
     """Build (but do not save) the scaleogram diagnostic figure.
 
     Returns the :class:`matplotlib.figure.Figure` for structural introspection;
@@ -253,6 +254,14 @@ def scaleogram(scaleogram_result, out_path, *, ridge_result=None) -> Path:
         ridge_result: Optional ridge to overlay. Its type MUST agree with the
             scaleogram type (``ScaleogramResult`` with ``RidgeResult``,
             ``SpatialScaleogramResult`` with ``SpatialRidgeResult``).
+
+    Note:
+        For a spatial scaleogram the overlaid ridge is the **raw** ridge — the
+        ``wavelength [px]`` axis is the uncalibrated pywt convention (annotated as
+        such) AND the ridge is **not COI-gated**, so it is a "where the energy is"
+        diagnostic, not the authoritative, COI-gated + cgau2-calibrated
+        ``lambda_spatial_median_px`` trait (theory.md §7.4). The COI region is
+        visually dimmed and the ridge is faded inside it.
 
     Returns:
         The ``out_path`` (as a :class:`pathlib.Path`) of the written PNG.
@@ -334,7 +343,7 @@ def _draw_trail_on_ax(ax, midline_result: MidlineResult, norm, cmap) -> None:
     ax.set_ylabel("y [px]")
 
 
-def _build_trail_figure(midline_result: MidlineResult) -> "plt.Figure":
+def _build_trail_figure(midline_result: MidlineResult) -> plt.Figure:
     """Build (but do not save) the single-plant κ-trail figure."""
     q = _kappa_limit(np.asarray(midline_result.curvature_px_inv, dtype=np.float64))
     norm = Normalize(vmin=-q, vmax=q)
@@ -378,7 +387,7 @@ def trail_overlay(midline_result, out_path) -> Path:
 # --------------------------------------------------------------------------- #
 # plate_panel
 # --------------------------------------------------------------------------- #
-def _build_panel_figure(midline_results) -> "plt.Figure":
+def _build_panel_figure(midline_results) -> plt.Figure:
     """Build (but do not save) the 2×3 per-plate panel figure.
 
     All subplots share a single κ normalization computed over the pooled finite
@@ -643,14 +652,19 @@ def save_plots(inputs, out_dir, *, constants=None, enabled=True) -> list[Path]:
     # the sidecar. Raise rather than corrupt (the pipeline's contract). Note we
     # validate ONLY `track_id` — `plant_id`/`plate_id` are aspirational and may be
     # NaN by design, which is exactly why filenames use `track_id`.
-    track_vals = df["track_id"].to_numpy()
+    # Coerce via pd.to_numeric (errors="coerce") so a non-numeric/object-dtype
+    # track_id surfaces as the friendly ValueError below rather than a bare
+    # TypeError from np.isfinite.
+    track_vals = pd.to_numeric(df["track_id"], errors="coerce").to_numpy(
+        dtype=np.float64
+    )
     if not np.all(np.isfinite(track_vals)) or not np.array_equal(
         track_vals, track_vals.astype(np.int64)
     ):
         raise ValueError(
             "track_id must be integer-valued and finite for plot filenames; "
-            "non-integer values would truncate to int64 and silently overwrite "
-            "another plant's plots."
+            "non-integer (or non-numeric) values would truncate to int64 and "
+            "silently overwrite another plant's plots."
         )
 
     plots_dir = out_dir / "plots"

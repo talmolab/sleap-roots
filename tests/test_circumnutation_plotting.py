@@ -434,6 +434,30 @@ def test_no_lgz_parameter_anywhere():
 # --------------------------------------------------------------------------- #
 # Review-reconciliation edge cases (pre-push /review-pr)
 # --------------------------------------------------------------------------- #
+def test_save_plots_mixed_degenerate_and_good_plant(tmp_path):
+    """One degenerate + one good plant: the good plant's plots are written, the bad one's omitted."""
+    good = _track_rows(1)  # curved, non-degenerate
+    bad = _track_rows(0)
+    for r in bad:  # stationary -> degenerates both tier chains
+        r["tip_x"] = 5.0
+        r["tip_y"] = 5.0
+    inputs = CircumnutationInputs(
+        trajectory_df=pd.DataFrame(good + bad), cadence_s=300.0
+    )
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    written = plotting.save_plots(inputs, out_dir)
+    names = {p.name for p in written}
+    assert any(n.startswith("plant1_") for n in names)  # good plant rendered
+    assert not any(n.startswith("plant0_") for n in names)  # degenerate plant skipped
+    assert "panel.png" in names  # at least one non-degenerate plant -> panel
+    # the sidecar's `plants` reflects only the plant(s) that produced plots
+    meta = json.loads(
+        (out_dir / "plots" / "plots_metadata.json").read_text(encoding="utf-8")
+    )
+    assert all(p["track_id"] == 1 for p in meta["plants"])
+
+
 def test_save_plots_rejects_non_integer_track_id(tmp_path):
     """Two plants whose track_id truncates to the same int must NOT silently collide."""
     rows = _track_rows(0)
