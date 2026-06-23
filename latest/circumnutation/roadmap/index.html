@@ -3102,9 +3102,9 @@
 <tr>
 <td>16</td>
 <td><code>add-circumnutation-plots</code></td>
-<td>Scaleograms (Tier 1 + Tier 3); trail overlay (κ-color-coded); 6-up plate panel; <code>--no-plots</code> flag.</td>
-<td>⬜</td>
-<td>⬜</td>
+<td>Scaleograms (Tier 1 + Tier 3); trail overlay (κ-color-coded); 6-up plate panel; <code>--no-plots</code> flag. <code>plotting</code> graduated <strong>stub → impl</strong> (impl 11 → 12, stub 2 → 1 — only <code>parametric</code>/PR #11 remains). <code>scaleogram</code> (polymorphic temporal/spatial, <code>LogNorm</code> power heatmap + COI dimming + ridge overlay), <code>trail_overlay</code> (signed-κ diverging <code>LineCollection</code>, image-y-down), <code>plate_panel</code> (2×3 shared-norm + one colorbar), <code>save_plots</code> orchestrator (re-derives via the exact tier helpers; writes <code>plots/</code> PNGs keyed on integer <code>track_id</code> + a <code>plots_metadata.json</code> provenance sidecar; <code>enabled</code> is the <code>--no-plots</code> hook for PR #17). Agg + structural/smoke tests (no pixel baselines); pure-pixel (CC-3). <strong>Deviation:</strong> <code>L_gz</code> arc-length marker omitted (blocked on #230). No new constants (<code>_CONSTANTS_VERSION</code> stays 6). Follow-up <a href="https://github.com/talmolab/sleap-roots/issues/241">#241</a> (MCP-serializable Result artifacts). <a href="https://github.com/talmolab/sleap-roots/issues/242">#242</a> · <a href="https://github.com/talmolab/sleap-roots/pull/243">PR #243</a></td>
+<td>✅</td>
+<td>✅</td>
 </tr>
 <tr>
 <td>17</td>
