@@ -38,8 +38,12 @@ utility, and per-module logging convention. Tier PRs land tier-by-tier:
 - ``psi_g`` — Tier 2 ψ_g traits (PR #7, merged)
 - ``midline`` — Tier 3a midline reconstruction (PR #8, merged)
 - ``spatial_cwt`` — Tier 3b spatial CWT machinery (PR #9, merged)
-- ``parametric``, ``plotting``, ``pipeline`` — remaining stubs, raise
-  ``NotImplementedError`` until their tier PRs land.
+- ``traveling_wave`` — Tier 3c traveling-wave traits (PR #10, merged)
+- ``pipeline`` — pipeline composition (PR #14, merged)
+- ``aggregation`` — per-genotype aggregation (PR #15, merged)
+- ``plotting`` — diagnostic plots (PR #16, merged)
+- ``parametric`` — the remaining stub (PR #11), raises
+  ``NotImplementedError`` until its tier PR lands.
 
 Pure-pixel convention: the pipeline never accepts ``px_per_mm`` and
 never emits ``[mm]`` columns. Calibration is always a downstream

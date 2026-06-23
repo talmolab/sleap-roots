@@ -70,9 +70,17 @@ import pytest
 # explicit logger-namespace list below (it is no longer enumerated via
 # STUB_MODULES). There is no runtime impl/stub count assertion — the counts live
 # only in these comments.
+# PR #16 (add-circumnutation-plots) graduates `plotting` stub→implementation: the
+# implementation-module count grows 11→12 and the stub-module count shrinks 2→1
+# (only `parametric`/PR #11 remains a stub). `plotting` is removed from
+# STUB_MODULES here and added to the explicit logger-namespace list below (it is no
+# longer enumerated via STUB_MODULES). The canonical callable `scaleogram` KEEPS
+# its name; it takes no `constants=` kwarg, so — like `aggregation` — it is NOT
+# added to IMPLEMENTATIONS_WITH_CONSTANTS_KWARG and instead gets explicit
+# callability tests below. There is no runtime impl/stub count assertion — the
+# counts live only in these comments.
 STUB_MODULES = [
     ("parametric", "compute", 11),
-    ("plotting", "scaleogram", 16),
 ]
 
 
@@ -823,6 +831,12 @@ def test_constants_snapshot_reflects_override():
         # IMPLEMENTATIONS_WITH_CONSTANTS_KWARG: aggregate_by_genotype takes no
         # `constants=` parameter.
         "aggregation",
+        # Added in PR #16: plotting (now an implementation module, not a stub).
+        # Must be listed explicitly because the add-circumnutation-plots change
+        # removes it from STUB_MODULES above (same Copilot regression PR #4-#15
+        # hit). It is NOT added to IMPLEMENTATIONS_WITH_CONSTANTS_KWARG: its
+        # canonical callable `scaleogram` takes no `constants=` parameter.
+        "plotting",
     ],
 )
 def test_module_logger_is_namespaced(module_name):
@@ -831,6 +845,70 @@ def test_module_logger_is_namespaced(module_name):
     mod = importlib.import_module(full_name)
     if hasattr(mod, "logger"):
         assert mod.logger.name == full_name
+
+
+# ---------------------------------------------------------------------------
+# PR #16: plotting graduated stub→implementation. Its 4 public callables are NEW
+# public symbols (scaleogram KEEPS its stub name; trail_overlay/plate_panel/
+# save_plots are additions), so they do not appear in the stub-callable table —
+# their callability contracts are locked here (spec: MODIFIED Package layout).
+# ---------------------------------------------------------------------------
+
+
+def test_plotting_scaleogram_no_longer_raises_not_implemented(tmp_path):
+    """`plotting.scaleogram` writes a PNG and returns its Path (no NotImplementedError)."""
+    import numpy as np
+
+    from pathlib import Path
+
+    from sleap_roots.circumnutation import plotting, temporal_cwt
+
+    sig = 8.0 * np.sin(2.0 * np.pi * np.arange(64) / 16.0)
+    sg = temporal_cwt.compute_scaleogram(sig, 300.0)
+    out = plotting.scaleogram(sg, tmp_path / "s.png")
+    assert isinstance(out, Path)
+    assert out.exists() and out.stat().st_size > 0
+
+
+def test_plotting_trail_panel_save_plots_callable(tmp_path):
+    """`trail_overlay`/`plate_panel`/`save_plots` are callable without raising."""
+    import numpy as np
+    import pandas as pd
+
+    from pathlib import Path
+
+    from sleap_roots.circumnutation import midline, plotting
+    from sleap_roots.circumnutation._types import CircumnutationInputs
+
+    t = np.linspace(0.0, 1.0, 40)
+    y = 200.0 * t
+    x = 50.0 + 8.0 * np.sin(2.0 * np.pi * (y / 50.0))
+    mr = midline.reconstruct(x, y, 300.0)
+    assert isinstance(plotting.trail_overlay(mr, tmp_path / "t.png"), Path)
+    assert isinstance(plotting.plate_panel([mr], tmp_path / "p.png"), Path)
+
+    rows = []
+    for frame in range(40):
+        rows.append(
+            {
+                "series": "p",
+                "sample_uid": "p",
+                "timepoint": "T0",
+                "plate_id": "p",
+                "plant_id": 0,
+                "track_id": 0,
+                "genotype": "g",
+                "treatment": "n",
+                "frame": frame,
+                "tip_x": float(x[frame]),
+                "tip_y": float(y[frame]),
+            }
+        )
+    inputs = CircumnutationInputs(trajectory_df=pd.DataFrame(rows), cadence_s=300.0)
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    written = plotting.save_plots(inputs, out_dir)
+    assert isinstance(written, list) and all(isinstance(p, Path) for p in written)
 
 
 def test_no_root_handlers_added_at_import():
