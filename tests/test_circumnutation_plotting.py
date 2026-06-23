@@ -10,6 +10,7 @@ never drift from the source dataclasses.
 
 import inspect
 import json
+from pathlib import Path
 
 import matplotlib
 import numpy as np
@@ -248,7 +249,12 @@ def test_trail_handles_all_nan_curvature(tmp_path):
 
 def test_trail_colorbar_extends_both(midline_result):
     fig = plotting._build_trail_figure(midline_result)
-    plt.close(fig)  # extend assertion is structural; ensure no raise
+    try:
+        # A colorbar axes is present (main axes + colorbar axes).
+        cbar_axes = [ax for ax in fig.axes if ax.get_label() == "<colorbar>"]
+        assert len(cbar_axes) == 1
+    finally:
+        plt.close(fig)
 
 
 def test_trail_smoke(midline_result, tmp_path):
@@ -423,3 +429,88 @@ def test_no_lgz_parameter_anywhere():
         assert not any(
             "l_gz" in p.lower() or "growth_zone" in p.lower() for p in params
         )
+
+
+# --------------------------------------------------------------------------- #
+# Review-reconciliation edge cases (pre-push /review-pr)
+# --------------------------------------------------------------------------- #
+def test_save_plots_rejects_non_integer_track_id(tmp_path):
+    """Two plants whose track_id truncates to the same int must NOT silently collide."""
+    rows = _track_rows(0)
+    rows2 = _track_rows(0, phase=0.7)
+    for r in rows:
+        r["track_id"] = 0.0
+    for r in rows2:
+        r["track_id"] = 0.4  # distinct group, same int() truncation -> reject
+    inputs = CircumnutationInputs(
+        trajectory_df=pd.DataFrame(rows + rows2), cadence_s=300.0
+    )
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    with pytest.raises(ValueError, match="track_id"):
+        plotting.save_plots(inputs, out_dir)
+
+
+def test_panel_all_nan_curvature_pool(midline_result):
+    """A plate_panel whose entire pooled κ is non-finite still renders (no norm crash)."""
+    nan_mr = type(midline_result)(
+        frame_indices=midline_result.frame_indices,
+        x_smooth_px=midline_result.x_smooth_px,
+        y_smooth_px=midline_result.y_smooth_px,
+        speed_px_per_frame=midline_result.speed_px_per_frame,
+        arc_length_px=midline_result.arc_length_px,
+        curvature_px_inv=np.full_like(midline_result.curvature_px_inv, np.nan),
+        velocity_sub_noise_mask=midline_result.velocity_sub_noise_mask,
+        cadence_s=midline_result.cadence_s,
+        sg_window=midline_result.sg_window,
+        sg_degree=midline_result.sg_degree,
+        sigma_v_px_per_frame=midline_result.sigma_v_px_per_frame,
+        noise_mask_k=midline_result.noise_mask_k,
+        is_degenerate=midline_result.is_degenerate,
+    )
+    fig = plotting._build_panel_figure([nan_mr, nan_mr])
+    plt.close(fig)
+
+
+def test_helper_skip_paths_return_none():
+    """A stationary (zero-net-displacement) track degenerates both tier chains."""
+    df = pd.DataFrame(_track_rows(0))
+    df["tip_x"] = 5.0  # constant -> zero net displacement
+    df["tip_y"] = 5.0
+    group = df
+    assert (
+        plotting._temporal_scaleogram_result(group, 300.0, plotting.ConstantsT())
+        is None
+    )
+    mr, sg, ridge = plotting._spatial_artifacts(group, 300.0, plotting.ConstantsT())
+    assert sg is None and ridge is None  # degenerate midline -> no spatial scaleogram
+
+
+def test_to_jsonable_coerces_path_array_and_na():
+    payload = {
+        "p": Path("a/b.png"),
+        "arr": np.array([1.0, 2.0]),
+        "nan": float("nan"),
+        "npnan": np.float64("nan"),
+        "na": pd.NA,
+        "i": np.int64(3),
+        "ok": "str",
+    }
+    out = plotting._to_jsonable(payload)
+    # strict JSON must not raise on the coerced payload
+    json.dumps(out, allow_nan=False)
+    assert out["p"] == "a/b.png"
+    assert out["arr"] == [1.0, 2.0]
+    assert out["nan"] is None and out["npnan"] is None and out["na"] is None
+    assert out["i"] == 3 and out["ok"] == "str"
+
+
+def test_sidecar_records_resolved_constants(inputs_3plants, tmp_path):
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    plotting.save_plots(inputs_3plants, out_dir)
+    meta = json.loads(
+        (out_dir / "plots" / "plots_metadata.json").read_text(encoding="utf-8")
+    )
+    # the full resolved ConstantsT snapshot is recorded (not just the version int)
+    assert "constants" in meta and "SG_WINDOW_DETREND" in meta["constants"]

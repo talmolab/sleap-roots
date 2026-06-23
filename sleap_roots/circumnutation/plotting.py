@@ -32,6 +32,7 @@ import logging
 from pathlib import Path
 from typing import Optional, Union
 
+import attrs
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -476,6 +477,13 @@ def _to_jsonable(value):
         return _to_jsonable(value.tolist())
     if value is None or isinstance(value, (str, int)):
         return value
+    # Scalar NA/NaN/NaT (e.g. a pandas-nullable plate_id) -> JSON null, so a
+    # non-finite identity value cannot become the literal string "<NA>".
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
     return str(value)
 
 
@@ -485,6 +493,10 @@ def _plots_metadata(
     """Assemble the ``plots_metadata.json`` provenance payload."""
     return {
         "constants_version": _CONSTANTS_VERSION,
+        # The full resolved ConstantsT snapshot, so two runs with different
+        # overrides (but the same constants_version) are distinguishable — the
+        # version integer alone is not a reproducibility key.
+        "constants": attrs.asdict(constants),
         "display_constants": {
             "dpi": _DPI,
             "figsize_scaleogram": list(_FIGSIZE_SCALEOGRAM),
@@ -576,7 +588,7 @@ def _spatial_artifacts(group: pd.DataFrame, cadence_s, constants):
     return mr, sg, ridge
 
 
-def save_plots(inputs, out_dir, *, constants=None, enabled=True) -> "list[Path]":
+def save_plots(inputs, out_dir, *, constants=None, enabled=True) -> list[Path]:
     """Write the per-plant diagnostic plot set into a ``plots/`` subdirectory.
 
     Re-derives the per-plant ``ScaleogramResult`` / ``SpatialScaleogramResult`` /
@@ -585,6 +597,12 @@ def save_plots(inputs, out_dir, *, constants=None, enabled=True) -> "list[Path]"
     analyzed input. For each non-degenerate plant it writes a temporal
     scaleogram, a spatial scaleogram, and a trail overlay; it writes one per-plate
     panel and a ``plots_metadata.json`` provenance sidecar.
+
+    The temporal scaleogram is built from the **lateral** nutation signal (the
+    ``nutation.compute`` default that the pipeline uses); it is not faithful to a
+    bespoke ``coordinate="x"``/``"y"`` analysis run. This function does not select
+    a matplotlib backend — a headless caller (CI, the PR #17 CLI) must set
+    ``matplotlib.use("Agg")`` before calling it.
 
     Args:
         inputs: A
@@ -618,18 +636,31 @@ def save_plots(inputs, out_dir, *, constants=None, enabled=True) -> "list[Path]"
     cadence_s = inputs.cadence_s
     df = inputs.trajectory_df
 
+    # Filenames key on the integer `track_id`. `save_plots` is a public entry
+    # point that does not run the pipeline's `_validate_integer_identity`, so
+    # guard `track_id` here: a fractional float (e.g. 0.0 vs 0.4) would truncate
+    # to the same `int()` and silently overwrite another plant's PNGs + corrupt
+    # the sidecar. Raise rather than corrupt (the pipeline's contract). Note we
+    # validate ONLY `track_id` — `plant_id`/`plate_id` are aspirational and may be
+    # NaN by design, which is exactly why filenames use `track_id`.
+    track_vals = df["track_id"].to_numpy()
+    if not np.all(np.isfinite(track_vals)) or not np.array_equal(
+        track_vals, track_vals.astype(np.int64)
+    ):
+        raise ValueError(
+            "track_id must be integer-valued and finite for plot filenames; "
+            "non-integer values would truncate to int64 and silently overwrite "
+            "another plant's plots."
+        )
+
     plots_dir = out_dir / "plots"
-    written: "list[Path]" = []
+    written: list[Path] = []
     identities: list = []
     midline_results: list = []
 
     for key, group in df.groupby(list(_IDENTITY_5_TUPLE), dropna=False, sort=False):
         identity = key if isinstance(key, tuple) else (key,)
-        track_id = dict(zip(_IDENTITY_5_TUPLE, identity)).get("track_id")
-        try:
-            track_label = int(track_id)
-        except (TypeError, ValueError):
-            track_label = track_id
+        track_label = int(dict(zip(_IDENTITY_5_TUPLE, identity))["track_id"])
         plant_written = False
 
         # Tier 1 — temporal scaleogram (nutation chain; no frame sort).
