@@ -60,7 +60,7 @@ a flat `circumnutation-analyze` or a bare `analyze` so future subcommands
 | `SLP_PATH` (arg) | `click.Path(exists=True, path_type=Path)` | input `.slp` |
 | `--cadence-s` | `float`, **required** | feeds all period/freq traits; no default (not recoverable from `.slp`) |
 | `--sample-uid` | `str`, **required** | QR / stable sample id; the metadata-CSV join key |
-| `--output-dir, -o` | `click.Path(path_type=Path)` | created if missing (parents) |
+| `--output-dir, -o` | `click.Path(path_type=Path)` | default `./<series_name>_circumnutation/`; `mkdir(parents=True, exist_ok=True)` |
 | `--series-name` | `str` | default = `.slp` filename stem (human recording label) |
 | `--metadata-csv` | `click.Path(exists=True, path_type=Path)` | optional; `Series` metadata join source |
 | `--timepoint` | `str` | default NaN (override/fallback) |
@@ -87,6 +87,16 @@ A randomly minted UUID would break both. Therefore:
 - **`--series-name` defaults to the `.slp` filename stem** (the human recording
   label; "series" = the time-lapse of frames, the circumnutation analog of the
   RSA multi-scan series).
+
+**`--output-dir` default — follows the repo convention.** Other pipelines default
+output to cwd and disambiguate runs by embedding `series_name`
+(`compute_plant_traits` writes `output_dir="." / f"{series_name}{suffix}"`;
+`compute_multiple_dicots_traits_for_groups` defaults `output_dir="grouped_traits"`
+with `mkdir(parents=True, exist_ok=True)`; `viewer` defaults to `viewer.html`).
+Since `analyze` emits a *tree* rather than a single file, the faithful
+translation is to default `--output-dir` to `./<series_name>_circumnutation/` —
+cwd-relative, `series_name`-disambiguated (no clobber across `.slp`), and
+descriptively self-labeled.
 
 ## D2 — the `Series` → `CircumnutationInputs` adapter
 
