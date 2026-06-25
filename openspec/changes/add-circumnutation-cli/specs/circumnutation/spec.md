@@ -243,8 +243,8 @@ The adapter SHALL:
 #### Scenario: track_id prefix strip is anchored, not global
 - **GIVEN** a `Series` with a track named `"track_track_1"` (an interior `"track_"` occurrence)
 - **WHEN** `series_to_inputs(...)` derives the integer `track_id`
-- **THEN** it yields `track_1` (i.e. integer `1`) via the prefix-anchored strip
-- **AND** a global `str.replace("track_", "")` (which would yield `"1"` here but corrupt other interior cases) is NOT used
+- **THEN** it raises `ValueError` naming the offending name — the prefix-anchored strip removes only the leading `"track_"`, leaving `"track_1"`, which is not a pure integer, so it fails loud
+- **AND** a global `str.replace("track_", "")` (which would silently corrupt `"track_track_1"` to `1`) is NOT used — the anchored strip refuses to silently mangle a non-`track_<int>` name
 
 #### Scenario: Non-integer track name raises a clear ValueError
 - **GIVEN** a `Series` with a track named `"track_2a"` (or `"primary"`) that does not yield an integer after the prefix strip
@@ -376,12 +376,6 @@ The CLI SHALL also write the shared run-metadata to a **top-level `<output-dir>/
 - **WHEN** the `run_metadata.json` files are read
 - **THEN** `metadata_csv_path == null` and `metadata_csv_sha256 == null`
 - **AND** `identity_source` is total over the six fields with no `"metadata_csv"` values (`genotype == "flag"`, the unsupplied ones `"absent"`, `series` `"default"` or `"flag"`)
-
-#### Scenario: partial genotype is a hard error before any write
-- **GIVEN** a tracked `.slp` with ≥ 2 tracks and a `--metadata-csv` whose row resolves `genotype` for some plants but leaves at least one plant's `genotype` NaN
-- **WHEN** `analyze <slp> --cadence-s 300 --sample-uid plate_001 --metadata-csv <csv> -o <tmp_path>` is invoked (aggregation on)
-- **THEN** the command exits with code 1 via `click.ClickException`
-- **AND** no output tree is written
 
 #### Scenario: re-running overwrites prior outputs
 - **GIVEN** a completed `analyze` run that populated `<tmp_path>`

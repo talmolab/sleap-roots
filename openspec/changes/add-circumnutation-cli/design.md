@@ -116,3 +116,35 @@ Rollback = revert the PR; no data migration.
 None outstanding — all D1–D8 decisions and the three reviewer-surfaced calls
 (genotype hard-error → `--no-aggregate`, re-run overwrite, provenance) are resolved
 in the brainstorm doc and reflected here.
+
+## Implementation reconciliation (2026-06-25)
+
+Two spec scenarios were corrected during TDD implementation (the spec deltas were
+updated to match the implemented, correct behavior):
+
+### Why `track_track_1` raises instead of yielding `1`
+The round-1 adapter scenario claimed the interior-`track_` name `"track_track_1"`
+"yields integer `1`" under a prefix-anchored strip. That is self-contradictory:
+`removeprefix("track_")` leaves `"track_1"`, which is **not** a pure integer. The
+*correct* behavior — and the program's "raise rather than silently corrupt" rule —
+is to **raise** `ValueError` (a global `.replace` would silently corrupt it to `1`;
+the anchored strip refuses to). The scenario now asserts it raises.
+
+### Why the "partial genotype" scenario was removed
+The adapter fills `genotype` **uniformly** across all tracks of a run
+(`df["genotype"] = genotype_val`), and the `--metadata-csv` join keys on a single
+`sample_uid` per `Series` — so one plate resolves exactly one genotype. A "partial"
+genotype (some tracks resolved, some NaN) is therefore unreachable in v1. The
+existing "genotype unresolved with aggregation on" scenario (all-NaN ⟺ any-NaN under
+uniform fill) covers the real case; the redundant partial scenario was dropped.
+
+### Minor implementation notes (not spec deviations)
+- The CLI loads the `.slp` via the `Series.load(primary_path=...)` slot (matching
+  the `_load_plate001_inputs` blueprint); `get_tracked_tips` auto-detects the single
+  populated path. A future `--root-type` could generalize to lateral/crown `.slp`.
+- The default `--output-dir` derives from `Path.stem`, which strips only the final
+  `.slp` — a dotted name like `plate_001_greyscale.tracked_proofread.slp` yields
+  `plate_001_greyscale.tracked_proofread_circumnutation/`. Users pass `--series-name`
+  or `-o` for a cleaner name. Documented in `--help`.
+- `click` 8.3's `CliRunner` separates `result.stderr` but `result.output` is the
+  combined stream (no `mix_stderr` param); the `-v` test asserts on `result.stderr`.

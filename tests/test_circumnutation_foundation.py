@@ -765,6 +765,42 @@ def test_constants_snapshot_reflects_override():
     )
 
 
+def test_run_metadata_identity_provenance_fields():
+    """PR #17: gather_run_metadata records metadata_csv_path/sha256/identity_source.
+
+    The three params are appended after R_px and default to None, so existing
+    callers (which pass nothing past input_path positionally) write null.
+    """
+    from sleap_roots.circumnutation._io import gather_run_metadata
+
+    src = {
+        "series": "default",
+        "sample_uid": "flag",
+        "timepoint": "metadata_csv",
+        "plate_id": "absent",
+        "genotype": "metadata_csv",
+        "treatment": "flag",
+    }
+    md = gather_run_metadata(
+        input_path="x.slp",
+        run_id="r",
+        cadence_s=300.0,
+        R_px=None,
+        metadata_csv_path="/abs/meta.csv",
+        metadata_csv_sha256="deadbeef",
+        identity_source=src,
+    )
+    assert md["metadata_csv_path"] == "/abs/meta.csv"
+    assert md["metadata_csv_sha256"] == "deadbeef"
+    assert md["identity_source"] == src
+
+    # Omitting the three new params writes null (backward-compatible).
+    md2 = gather_run_metadata(input_path="x.slp")
+    assert md2["metadata_csv_path"] is None
+    assert md2["metadata_csv_sha256"] is None
+    assert md2["identity_source"] is None
+
+
 # ---------------------------------------------------------------------------
 # Logging tests (spec: Per-module logger convention)
 # ---------------------------------------------------------------------------
@@ -837,6 +873,12 @@ def test_constants_snapshot_reflects_override():
         # hit). It is NOT added to IMPLEMENTATIONS_WITH_CONSTANTS_KWARG: its
         # canonical callable `scaleogram` takes no `constants=` parameter.
         "plotting",
+        # Added in PR #17: adapters + cli (newly created implementation modules;
+        # never stubs — like nutation/traveling_wave/aggregation, they grow the
+        # implementation set by ADDITION, 12 -> 14). Must be listed explicitly
+        # because neither is in STUB_MODULES (same Copilot regression PR #4-#16 hit).
+        "adapters",
+        "cli",
     ],
 )
 def test_module_logger_is_namespaced(module_name):
@@ -845,6 +887,17 @@ def test_module_logger_is_namespaced(module_name):
     mod = importlib.import_module(full_name)
     if hasattr(mod, "logger"):
         assert mod.logger.name == full_name
+
+
+@pytest.mark.parametrize("module_name", ["adapters", "cli"])
+def test_pr17_modules_import_cleanly(module_name):
+    """PR #17: `adapters` and `cli` import without raising (Package layout scenario).
+
+    Both are net-new implementation modules (impl count 12 -> 14 by ADDITION); the
+    "All stub modules import cleanly" scenario now lists them.
+    """
+    mod = importlib.import_module(f"sleap_roots.circumnutation.{module_name}")
+    assert mod is not None
 
 
 # ---------------------------------------------------------------------------
