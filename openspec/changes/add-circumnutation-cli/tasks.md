@@ -9,20 +9,29 @@ hits the Windows numpy-reload bug). `black --check` + `pydocstyle
 ## 1. Test scaffolding & synthetic-`.slp` fixture helper
 
 - [ ] 1.1 Add `tests/test_circumnutation_adapters.py` and `tests/test_circumnutation_cli.py` skeletons.
-- [ ] 1.2 **Test first:** write a unit test for a `_make_synthetic_tracked_slp(tmp_path, *, n_tracks=2, n_frames=64, noise_sigma_px>0)` helper asserting it produces a loadable `.slp` whose `Series.load(...).get_tracked_tips()` returns `n_tracks` tracks × `n_frames` frames.
-- [ ] 1.3 Implement the helper: `synthetic.generate_trajectory(...)` → per-row `sio.Instance.from_numpy([[tip_x, tip_y]], skeleton=Skeleton([Node("tip")]), track=Track("track_<i>"))` → `sio.LabeledFrame(video, frame_idx, instances)` over a PIL-built TIFF `sio.Video.from_filename(...)` → `sio.Labels(...)` → `sio.save_slp(...)`. `n_frames ≥ 64`, `noise_sigma_px > 0` so the Tier-1 CWT (min 9 frames) runs non-degenerately.
+- [ ] 1.2 **Test first:** write a unit test for a `_make_synthetic_tracked_slp(tmp_path, *, n_tracks=2, n_frames=64, noise_sigma_px=2.0)` helper asserting it produces a loadable `.slp` whose `Series.load(...).get_tracked_tips()` returns `n_tracks` tracks × `n_frames` frames.
+- [ ] 1.3 Implement the helper: `synthetic.generate_trajectory(..., n_frames=n_frames, noise_sigma_px=noise_sigma_px)` (verify these exact kwarg names against `synthetic.py`) → per-row `sio.Instance.from_numpy([[tip_x, tip_y]], skeleton=Skeleton([Node("tip")]), track=Track("track_<i>"))` → `sio.LabeledFrame(video, frame_idx, instances)` over a **PIL-built TIFF** `sio.Video.from_filename(...)` (the TIFF/Video is mandatory — `sio.save_slp` needs a `Video` per `LabeledFrame`) → `sio.Labels(...)` → `sio.save_slp(...)`. `n_frames ≥ 64` clears every tier the full pipeline runs: Tier 1 CWT (min 9), **Tier 2 ψ_g (min 24)**, and the Tier 3 midline/spatial chain — not just Tier 1. `noise_sigma_px > 0` (theory.md §8 mandates noise for Layer-1 validation; avoids degenerate QC/ridge).
+- [ ] 1.4 **Test first + impl:** add a helper variant (or option) that injects, at one `(track, frame)`, a `sio.PredictedInstance` shadowed by a user-corrected `sio.Instance`, and assert `get_tracked_tips` dedups to one row — so the predicted-vs-user-corrected dedup path is covered WITHOUT the LFS fixture (the plain-`Instance` helper never exercises it).
 
 ## 2. `adapters.series_to_inputs` (TDD)
 
-- [ ] 2.1 **Tests first** (`test_circumnutation_adapters.py`), one per spec scenario of Requirement: Series-to-CircumnutationInputs adapter:
-  - builds `CircumnutationInputs` with all 8 identity columns; `track_id`/`plant_id` integer, `plant_id == track_id`;
+- [ ] 2.1 **Tests first** (`test_circumnutation_adapters.py`), one **distinct test function** per spec scenario of Requirement: Series-to-CircumnutationInputs adapter:
+  - returns a 2-tuple `(inputs, identity_provenance)`; `inputs.trajectory_df` has all 8 identity columns; `track_id`/`plant_id` integer, `plant_id == track_id`;
   - prefix-anchored `track_id` strip (incl. interior-`track_` name `"track_track_1"` → `1`);
   - non-integer track name (`"track_2a"`) → `ValueError` naming the offender;
-  - metadata precedence: flag overrides a real CSV value + INFO override log; CSV value used when no flag; blank CSV cell + no flag → no spurious log; neither → `NaN`;
+  - metadata precedence — flag overrides a real CSV value + INFO override log (one test);
+  - CSV value used when no flag, **blank CSV cell + no flag → NO spurious log** (a **separate** test from the next);
+  - **neither CSV nor flag → `NaN`** (its own test);
   - `timepoint` from a numeric CSV cell (`0`) → string `"0"` via raw `get_metadata` (not `Series.timepoint`);
-  - malformed `--metadata-csv` → clear `ValueError`, not a pandas traceback.
-- [ ] 2.2 Implement `sleap_roots/circumnutation/adapters.py::series_to_inputs(series, *, cadence_s, sample_uid, series_name=None, timepoint=None, plate_id=None, genotype=None, treatment=None, r_px=None, run_id=None)` to pass 2.1. No `click` import. Google-style docstring.
-- [ ] 2.3 Add the adapter callability scenario test from the MODIFIED Package layout requirement (`series_to_inputs` on a valid Series does not raise `NotImplementedError`).
+  - malformed `--metadata-csv` → clear `ValueError`, not a pandas traceback;
+  - **identity provenance**: `identity_provenance["metadata_csv_path"]` resolved-absolute (or `None`); `identity_source` records `flag`/`metadata_csv`/`default` per field.
+- [ ] 2.2 Implement `sleap_roots/circumnutation/adapters.py::series_to_inputs(...) -> tuple[CircumnutationInputs, dict]` to pass 2.1: returns the inputs + the identity-provenance dict (`metadata_csv_path` + per-field `identity_source`). No `click` import. Google-style docstring.
+- [ ] 2.3 Add the adapter callability scenario test from the MODIFIED Package layout requirement (`series_to_inputs` on a valid Series returns the tuple, does not raise `NotImplementedError`).
+
+## 2b. Provenance fields in `gather_run_metadata` (TDD)
+
+- [ ] 2b.1 **Test first** (extend the `gather_run_metadata` tests in `tests/test_circumnutation_foundation.py`): `gather_run_metadata(..., metadata_csv_path=<abs>, identity_source={...})` records both keys; omitting them writes `null`/absent-safe defaults (existing callers unaffected). Maps to the MODIFIED Run-metadata sidecar scenarios.
+- [ ] 2b.2 Implement: add `metadata_csv_path=None, identity_source=None` optional kwargs to `sleap_roots/circumnutation/_io.py::gather_run_metadata`, recorded in the returned dict (backward-compatible — existing `save()`/foundation callers write `null`).
 
 ## 3. `cli.analyze` command (TDD)
 
@@ -31,13 +40,17 @@ hits the Windows numpy-reload bug). `black --check` + `pydocstyle
   - missing `--cadence-s` / `--sample-uid` → exit 2; nonexistent `SLP_PATH` → exit 2;
   - genotype unresolved + aggregation on → exit 1 `ClickException` naming the three flags, no output tree;
   - `--no-aggregate` (no genotype) → exit 0, `per_plant/` + `plots/`, no `per_genotype/`;
-  - `--no-plots` → no `plots/`;
-  - bad `--cadence-s` (0 / negative / non-numeric) → non-zero exit, clean message, no traceback;
+  - `--no-plots` → no `plots/`; **`--no-plots` + `--no-aggregate` together** → `per_plant/` only;
+  - **non-positive `--cadence-s` (0/negative) → exit 1** clean `ClickException`, no traceback; **non-numeric `--cadence-s` → exit 2** (click parse), no traceback (two separate tests);
   - `--metadata-csv` populates `genotype`/`treatment`; `--genotype` override logged;
-  - `run_metadata.json` (both subdirs) records resolved-absolute `input_path` + identical `cadence_s`/`R_px`/`run_id`;
-  - CC-3: `--help` has no `--px-per-mm` and points to `convert_to_mm`.
-- [ ] 3.2 Implement `sleap_roots/circumnutation/cli.py`: `@click.group() circumnutation` + `@circumnutation.command() analyze` with the full option set. Lazy imports inside the command body (mirroring `viewer/cli.py`).
-- [ ] 3.3 Implement the orchestration body: resolve identity & `--output-dir`; `mkdir` `per_plant/` (+ `per_genotype/` when aggregating); `Series.load(csv_path=metadata_csv)` → `series_to_inputs(...)`; genotype-missing hard error when aggregation on; `compute_traits` → `save(..., input_path=resolved_slp)`; aggregation path → `aggregate_by_genotype` → `gather_run_metadata` → `write_per_genotype_csv`; plotting path → `matplotlib.use("Agg", force=True)` → lazy import `plotting` → `save_plots(..., enabled=True)`.
+  - **partial genotype** (CSV resolves some plants, ≥1 NaN, aggregation on) → exit 1, no output tree;
+  - **re-run overwrite**: a second `analyze` into the same `-o` exits 0, overwrites in place (no `FileExistsError`, no appended rows);
+  - **default `--output-dir`**: no `-o` → outputs under `./<stem>_circumnutation/`;
+  - **`-v`/`-vv` logging** via `CliRunner(mix_stderr=False)`: INFO/DEBUG on stderr at the right verbosity, result summary on stdout;
+  - `run_metadata.json` (both subdirs) records resolved-absolute `input_path`, `metadata_csv_path`, identical `identity_source`, and identical `cadence_s`/`R_px`(`null` when `--r-px` omitted)/`run_id`/`timestamp`;
+  - CC-3: `--help` has no `--px-per-mm`, points to `convert_to_mm`, documents the y-down pixel coordinate convention and the `timepoint` string-label note.
+- [ ] 3.2 Implement `sleap_roots/circumnutation/cli.py`: `@click.group() circumnutation` + `@circumnutation.command() analyze` with the full option set. Lazy imports inside the command body (mirroring `viewer/cli.py`); module top-level stays import-light (only `click`) so `import sleap_roots.cli` is cheap and `import sleap_roots` stays green.
+- [ ] 3.3 Implement the orchestration body: resolve identity & `--output-dir`; `mkdir` `per_plant/` (+ `per_genotype/` when aggregating); `Series.load(csv_path=metadata_csv)` → `inputs, identity_provenance = series_to_inputs(...)`; genotype-missing hard error when aggregation on; `compute_traits`; assemble run-metadata **ONCE** via `gather_run_metadata(input_path=resolved_slp, ..., metadata_csv_path=resolved_csv_or_None, identity_source=identity_provenance["identity_source"])`; `write_per_plant_csv(per_plant/csv, per_plant_df, units, run_metadata)` (NOT `save()` — the CLI shares one provenance snapshot); aggregation path → `aggregate_by_genotype` → `write_per_genotype_csv(per_genotype/csv, ..., run_metadata)` (same dict); plotting path → `matplotlib.use("Agg", force=True)` → lazy import `plotting` → `save_plots(..., enabled=True)`.
 - [ ] 3.4 Implement the error contract: `try/except (ValueError, FileNotFoundError)` → `click.ClickException(str(e))`; no broad catch-all.
 - [ ] 3.5 Implement `_configure_logging(verbose)` (count → WARNING/INFO/DEBUG, stderr) and the final `click.echo` summary to stdout.
 
@@ -46,10 +59,11 @@ hits the Windows numpy-reload bug). `black --check` + `pydocstyle
 - [ ] 4.1 **Test first:** assert `circumnutation` is a registered command on `sleap_roots.cli:main` and that `circumnutation analyze --help` exits 0 (the MODIFIED Package layout `cli` scenario).
 - [ ] 4.2 Add `from sleap_roots.circumnutation.cli import circumnutation` + `main.add_command(circumnutation)` to `sleap_roots/cli.py`.
 
-## 5. Package-layout scenarios (TDD)
+## 5. Package-layout & foundation-convention scenarios (TDD)
 
-- [ ] 5.1 Extend the package-import test so `import sleap_roots.circumnutation.adapters` and `import sleap_roots.circumnutation.cli` are covered (MODIFIED "All stub modules import cleanly" scenario now lists both).
+- [ ] 5.1 Extend the package-import test in `tests/test_circumnutation_foundation.py` so `import sleap_roots.circumnutation.adapters` and `import sleap_roots.circumnutation.cli` are covered (MODIFIED "All stub modules import cleanly" scenario now lists both).
 - [ ] 5.2 Confirm the "Calling each remaining stub" test still asserts exactly 1 remaining stub (`parametric`) and the 14-impl/1-stub accounting holds.
+- [ ] 5.3 **Convention every prior PR followed:** append `"adapters"` and `"cli"` to the `test_module_logger_is_namespaced` parametrize list in `tests/test_circumnutation_foundation.py` (~lines 773–841) — both new modules must define a namespaced `logger = logging.getLogger(__name__)` (CC-9). Without this the logger-namespace convention silently skips them.
 
 ## 6. Real plate-001 end-to-end (skipif-guarded)
 

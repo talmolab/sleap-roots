@@ -12,7 +12,7 @@ Each stub module SHALL define exactly one canonical callable per the table below
 |---|---|---|
 | `parametric` | `compute(tier3_df, R_px, omega, Delta_phi)` | 11 |
 
-The `kinematics` module SHALL be importable on the same terms as the other modules (clean import, namespaced logger) and SHALL expose `compute(trajectory_df, constants=None)` per Requirement: Tier 0 raw kinematic traits. The `qc` module SHALL be importable on the same terms and SHALL expose `compute(trajectory_df, constants=None)` per Requirement: QC tier per-track quality traits. The `synthetic` module SHALL be importable on the same terms and SHALL expose `generate_trajectory(...)` per Requirement: Synthetic trajectory generator. The `temporal_cwt` module SHALL be importable on the same terms and SHALL expose `compute_scaleogram(x, cadence_s, constants=None) -> ScaleogramResult` and `extract_ridge(scaleogram_result, constants=None) -> RidgeResult` per Requirement: Temporal CWT scaleogram API and Requirement: Temporal CWT ridge API, AND SHALL ALSO expose `smooth_ridge(ridge_result, window=None, constants=None) -> RidgeResult` per Requirement: Temporal CWT ridge-continuity smoothing API. The `nutation` module SHALL be importable on the same terms and SHALL expose `compute(trajectory_df, cadence_s, coordinate="lateral", constants=None) -> pd.DataFrame` per Requirement: Tier 1 nutation trait emission API. The `psi_g` module SHALL be importable on the same terms and SHALL expose `compute(trajectory_df, cadence_s, constants=None) -> pd.DataFrame` per Requirement: Tier 2 ψ_g trait emission API. The `midline` module SHALL be importable on the same terms and SHALL expose `reconstruct(x, y, cadence_s, sg_window=None, constants=None) -> MidlineResult` per Requirement: Tier 3a midline reconstruction API. The `spatial_cwt` module SHALL be importable on the same terms and SHALL expose `compute_scaleogram(kappa, ds, constants=None) -> SpatialScaleogramResult` and `extract_ridge(scaleogram_result, constants=None) -> SpatialRidgeResult` per Requirement: Tier 3b spatial CWT scaleogram API and Requirement: Tier 3b spatial CWT ridge API, AND SHALL ALSO expose `resample_curvature(curvature_px_inv, arc_length_px, velocity_sub_noise_mask=None, constants=None) -> ResampleResult` per Requirement: Tier 3b spatial curvature resample API. The `traveling_wave` module SHALL be importable on the same terms and SHALL expose `compute(trajectory_df, cadence_s, constants=None, *, tier0_df=None, tier1_df=None) -> pd.DataFrame` per Requirement: Tier 3c traveling-wave trait emission API. The `pipeline` module SHALL be importable on the same terms and SHALL expose `compute_traits(inputs, constants=None) -> tuple[pd.DataFrame, pd.DataFrame, dict]` and the `CircumnutationPipeline` class per Requirement: Circumnutation pipeline composition API. The `aggregation` module SHALL be importable on the same terms and SHALL expose `aggregate_by_genotype(per_plant_df, units) -> tuple[pd.DataFrame, dict]` per Requirement: Per-genotype aggregation API. The `plotting` module SHALL be importable on the same terms and SHALL expose `scaleogram(scaleogram_result, out_path, *, ridge_result=None) -> Path`, `trail_overlay(midline_result, out_path) -> Path`, `plate_panel(midline_results, out_path) -> Path`, and `save_plots(inputs, out_dir, *, constants=None, enabled=True) -> list[Path]` per Requirement: Circumnutation diagnostic plots API. The `adapters` module SHALL be importable on the same terms and SHALL expose `series_to_inputs(series, *, cadence_s, sample_uid, series_name=None, timepoint=None, plate_id=None, genotype=None, treatment=None, r_px=None, run_id=None) -> CircumnutationInputs` per Requirement: Series-to-CircumnutationInputs adapter. The `cli` module SHALL be importable on the same terms and SHALL expose a `circumnutation` `click` group containing an `analyze` command (registered on the root `sleap_roots.cli:main` group via `main.add_command(circumnutation)`) per Requirement: Circumnutation analyze CLI. Unlike the stub modules, calling `kinematics.compute`, `qc.compute`, `synthetic.generate_trajectory`, `temporal_cwt.compute_scaleogram`, `nutation.compute`, `psi_g.compute`, `midline.reconstruct`, `spatial_cwt.resample_curvature`, `spatial_cwt.compute_scaleogram`, `spatial_cwt.extract_ridge`, `traveling_wave.compute`, `pipeline.compute_traits`, `aggregation.aggregate_by_genotype`, `plotting.scaleogram`, `plotting.trail_overlay`, `plotting.plate_panel`, `plotting.save_plots`, or `adapters.series_to_inputs` with a valid input SHALL NOT raise `NotImplementedError`.
+The `kinematics` module SHALL be importable on the same terms as the other modules (clean import, namespaced logger) and SHALL expose `compute(trajectory_df, constants=None)` per Requirement: Tier 0 raw kinematic traits. The `qc` module SHALL be importable on the same terms and SHALL expose `compute(trajectory_df, constants=None)` per Requirement: QC tier per-track quality traits. The `synthetic` module SHALL be importable on the same terms and SHALL expose `generate_trajectory(...)` per Requirement: Synthetic trajectory generator. The `temporal_cwt` module SHALL be importable on the same terms and SHALL expose `compute_scaleogram(x, cadence_s, constants=None) -> ScaleogramResult` and `extract_ridge(scaleogram_result, constants=None) -> RidgeResult` per Requirement: Temporal CWT scaleogram API and Requirement: Temporal CWT ridge API, AND SHALL ALSO expose `smooth_ridge(ridge_result, window=None, constants=None) -> RidgeResult` per Requirement: Temporal CWT ridge-continuity smoothing API. The `nutation` module SHALL be importable on the same terms and SHALL expose `compute(trajectory_df, cadence_s, coordinate="lateral", constants=None) -> pd.DataFrame` per Requirement: Tier 1 nutation trait emission API. The `psi_g` module SHALL be importable on the same terms and SHALL expose `compute(trajectory_df, cadence_s, constants=None) -> pd.DataFrame` per Requirement: Tier 2 ψ_g trait emission API. The `midline` module SHALL be importable on the same terms and SHALL expose `reconstruct(x, y, cadence_s, sg_window=None, constants=None) -> MidlineResult` per Requirement: Tier 3a midline reconstruction API. The `spatial_cwt` module SHALL be importable on the same terms and SHALL expose `compute_scaleogram(kappa, ds, constants=None) -> SpatialScaleogramResult` and `extract_ridge(scaleogram_result, constants=None) -> SpatialRidgeResult` per Requirement: Tier 3b spatial CWT scaleogram API and Requirement: Tier 3b spatial CWT ridge API, AND SHALL ALSO expose `resample_curvature(curvature_px_inv, arc_length_px, velocity_sub_noise_mask=None, constants=None) -> ResampleResult` per Requirement: Tier 3b spatial curvature resample API. The `traveling_wave` module SHALL be importable on the same terms and SHALL expose `compute(trajectory_df, cadence_s, constants=None, *, tier0_df=None, tier1_df=None) -> pd.DataFrame` per Requirement: Tier 3c traveling-wave trait emission API. The `pipeline` module SHALL be importable on the same terms and SHALL expose `compute_traits(inputs, constants=None) -> tuple[pd.DataFrame, pd.DataFrame, dict]` and the `CircumnutationPipeline` class per Requirement: Circumnutation pipeline composition API. The `aggregation` module SHALL be importable on the same terms and SHALL expose `aggregate_by_genotype(per_plant_df, units) -> tuple[pd.DataFrame, dict]` per Requirement: Per-genotype aggregation API. The `plotting` module SHALL be importable on the same terms and SHALL expose `scaleogram(scaleogram_result, out_path, *, ridge_result=None) -> Path`, `trail_overlay(midline_result, out_path) -> Path`, `plate_panel(midline_results, out_path) -> Path`, and `save_plots(inputs, out_dir, *, constants=None, enabled=True) -> list[Path]` per Requirement: Circumnutation diagnostic plots API. The `adapters` module SHALL be importable on the same terms and SHALL expose `series_to_inputs(series, *, cadence_s, sample_uid, series_name=None, timepoint=None, plate_id=None, genotype=None, treatment=None, r_px=None, run_id=None) -> tuple[CircumnutationInputs, dict]` (the `CircumnutationInputs` plus an identity-provenance dict) per Requirement: Series-to-CircumnutationInputs adapter. The `cli` module SHALL be importable on the same terms and SHALL expose a `circumnutation` `click` group containing an `analyze` command (registered on the root `sleap_roots.cli:main` group via `main.add_command(circumnutation)`) per Requirement: Circumnutation analyze CLI. Unlike the stub modules, calling `kinematics.compute`, `qc.compute`, `synthetic.generate_trajectory`, `temporal_cwt.compute_scaleogram`, `nutation.compute`, `psi_g.compute`, `midline.reconstruct`, `spatial_cwt.resample_curvature`, `spatial_cwt.compute_scaleogram`, `spatial_cwt.extract_ridge`, `traveling_wave.compute`, `pipeline.compute_traits`, `aggregation.aggregate_by_genotype`, `plotting.scaleogram`, `plotting.trail_overlay`, `plotting.plate_panel`, `plotting.save_plots`, or `adapters.series_to_inputs` with a valid input SHALL NOT raise `NotImplementedError`.
 
 The `_noise` and `_geometry` modules are private (underscore-prefixed) shared internals; their canonical callables are documented under Requirement: Tier 0 helper modules (and, for `_geometry.compute_signed_area`, under Requirement: Tier 2 ψ_g trait emission API; and, for `_noise.compute_sg_derivative` / `_geometry.compute_path_curvature`, under Requirement: Tier 3a midline reconstruction API).
 
@@ -147,7 +147,7 @@ The `_noise` and `_geometry` modules are private (underscore-prefixed) shared in
 #### Scenario: `adapters.series_to_inputs` is callable on a valid Series without raising
 - **GIVEN** a valid tracked `Series` (loaded from a `.slp` whose tracks yield `get_tracked_tips()` rows) and a positive finite `cadence_s` plus a `sample_uid`
 - **WHEN** `sleap_roots.circumnutation.adapters.series_to_inputs(series, cadence_s=300.0, sample_uid="plate_001", genotype="Nipponbare")` is invoked
-- **THEN** the call returns a `CircumnutationInputs` without raising `NotImplementedError`
+- **THEN** the call returns a 2-tuple `(CircumnutationInputs, identity_provenance_dict)` without raising `NotImplementedError`
 - **AND** since `adapters` is a NEW module introduced by PR #17 (not a transition from a prior stub), it does not appear in the stub-callable table — its callability contract is locked here in the MODIFIED Package layout requirement
 
 #### Scenario: `cli` exposes the `circumnutation analyze` command registered on the root CLI
@@ -168,10 +168,42 @@ The `_noise` and `_geometry` modules are private (underscore-prefixed) shared in
 - **AND** `sleap_roots.CircumnutationInputs` is accessible
 - **AND** `sleap_roots.convert_to_mm` is accessible
 
+### Requirement: Run-metadata sidecar
+For every per-plant CSV the system SHALL write a sibling `run_metadata.json` capturing: `input_path`, `sleap_roots_git_sha`, `sleap_roots_version`, `sleap_io_version`, `numpy_version`, `scipy_version`, `pandas_version`, `python_version`, `platform`, `timestamp` (ISO 8601 UTC), `run_id`, `cadence_s`, `R_px`, `metadata_csv_path`, `identity_source`, `_schema_version`, `_constants_version`, `_constants_snapshot`. The `cadence_s` and `R_px` fields (added in PR #14) capture the per-run acquisition inputs from `CircumnutationInputs` so a run is reproducible from the sidecars alone — `cadence_s` determines every period trait (`*_s`) and the traveling-wave residual, and is otherwise unrecoverable from the `.slp` at `input_path`. The `metadata_csv_path` and `identity_source` fields (added in PR #17) capture identity provenance so a reader of the sidecar can determine, without re-running, **where each row-identity field came from**: `metadata_csv_path` is the resolved-absolute path of the `--metadata-csv` (or `null` when no metadata CSV was used), and `identity_source` is a JSON-serializable mapping from each populated row-identity field (`series`, `sample_uid`, `timepoint`, `plate_id`, `genotype`, `treatment`) to the literal source that won it — one of `"flag"` (an explicit CLI option / adapter argument), `"metadata_csv"` (a non-null cell resolved via `Series.get_metadata`), or `"default"` (the filename-stem default for `series`, or the `NaN` fallback when neither flag nor CSV supplied a value). `gather_run_metadata` SHALL accept `cadence_s`, `R_px`, `metadata_csv_path`, and `identity_source` as optional keyword parameters (default `None`), so callers that omit them write `null` (mirroring the nullable `run_id`); the PR #14 pipeline `save` SHALL pass `inputs.cadence_s` and `inputs.R_px`, and the PR #17 CLI SHALL additionally pass `metadata_csv_path` and `identity_source` (the adapter-computed identity provenance) to BOTH the per-plant and per-genotype writes so the two sidecars carry identical identity provenance. The `_constants_snapshot` SHALL be a JSON-serializable mapping from every name in `_constants.py` to its value at write time. The numpy / scipy / pandas / platform fields support numerical reproducibility (IEEE float rounding can differ between numpy versions and across BLAS implementations).
+
+#### Scenario: Run-metadata sidecar contains required fields
+- **WHEN** the foundation writes a CSV
+- **THEN** a sibling `run_metadata.json` exists in the same directory
+- **AND** every key listed above is present and non-null (except `run_id`, `cadence_s`, `R_px`, `metadata_csv_path`, and `identity_source`, which may be null when not supplied)
+- **AND** `_schema_version` and `_constants_version` are integers
+- **AND** `_constants_snapshot` contains every name in `_constants.py` with its current value
+- **AND** `numpy_version`, `scipy_version`, `pandas_version` are present as version strings (e.g. `"2.3.4"`, `"1.16.3"`, `"2.2.0"`) or `"unknown"` if the dependency could not be imported
+- **AND** `platform` is a non-empty string (the value of `platform.platform()`)
+
+#### Scenario: Run-metadata captures cadence_s and R_px from the pipeline
+- **GIVEN** the PR #14 pipeline `save` invoked with `inputs.cadence_s == 300.0` and `inputs.R_px == 12.0`
+- **WHEN** `gather_run_metadata(input_path, run_id=inputs.run_id, constants=..., cadence_s=300.0, R_px=12.0)` writes the sidecar
+- **THEN** `run_metadata["cadence_s"] == 300.0` and `run_metadata["R_px"] == 12.0`
+- **AND** WHEN `cadence_s` / `R_px` are omitted (a non-pipeline caller), both keys are present with value `null`
+
+#### Scenario: Run-metadata captures identity provenance from the CLI
+- **GIVEN** the PR #17 CLI run with `--metadata-csv <csv>` (resolving `genotype` from the CSV) and an explicit `--treatment MOCK` flag
+- **WHEN** `gather_run_metadata(..., metadata_csv_path=<resolved-abs csv>, identity_source={"genotype": "metadata_csv", "treatment": "flag", ...})` writes the sidecar
+- **THEN** `run_metadata["metadata_csv_path"]` is the resolved-absolute CSV path
+- **AND** `run_metadata["identity_source"]["genotype"] == "metadata_csv"` and `run_metadata["identity_source"]["treatment"] == "flag"`
+- **AND** a run with no `--metadata-csv` writes `metadata_csv_path == null` and an `identity_source` whose flag/default origins are recorded (no `"metadata_csv"` values)
+- **AND** the per-plant and per-genotype `run_metadata.json` carry identical `metadata_csv_path` and `identity_source`
+
+#### Scenario: Constants snapshot reflects override
+- **GIVEN** a custom `ConstantsT` override passed to the writer with `BAND_POWER_NOISE_RATIO = 4`
+- **WHEN** the foundation writes the metadata
+- **THEN** `_constants_snapshot["BAND_POWER_NOISE_RATIO"] == 4`
+- **AND** the default-valued constants reflect the unmodified defaults
+
 ## ADDED Requirements
 
 ### Requirement: Series-to-CircumnutationInputs adapter
-The system SHALL provide `sleap_roots.circumnutation.adapters.series_to_inputs(series, *, cadence_s, sample_uid, series_name=None, timepoint=None, plate_id=None, genotype=None, treatment=None, r_px=None, run_id=None) -> CircumnutationInputs`. This is the single bridge from `sleap_roots.series.Series` into the pure circumnutation core; it carries NO `click` dependency and SHALL be independently testable. It formalizes the mechanical transform of the `_load_plate001_inputs()` test blueprint (`tests/test_circumnutation_pipeline.py`), replacing that blueprint's hardcoded test literals (`genotype="Nipponbare"`, `treatment="none"`, `timepoint="T0"`) with the CSV/flag/NaN sourcing below.
+The system SHALL provide `sleap_roots.circumnutation.adapters.series_to_inputs(series, *, cadence_s, sample_uid, series_name=None, timepoint=None, plate_id=None, genotype=None, treatment=None, r_px=None, run_id=None) -> tuple[CircumnutationInputs, dict]`. It returns the constructed `CircumnutationInputs` AND an **identity-provenance dict** `{"metadata_csv_path": <resolved-absolute str | None>, "identity_source": {<field>: "flag" | "metadata_csv" | "default"}}` so the caller can persist which source populated each row-identity field (consumed by the CLI's provenance, per Requirement: Run-metadata sidecar). This is the single bridge from `sleap_roots.series.Series` into the pure circumnutation core; it carries NO `click` dependency and SHALL be independently testable. It formalizes the mechanical transform of the `_load_plate001_inputs()` test blueprint (`tests/test_circumnutation_pipeline.py`), replacing that blueprint's hardcoded test literals (`genotype="Nipponbare"`, `treatment="none"`, `timepoint="T0"`) with the CSV/flag/NaN sourcing below.
 
 The adapter SHALL:
 
@@ -179,7 +211,9 @@ The adapter SHALL:
 2. Derive an integer `track_id` by stripping a **prefix-anchored** `"track_"` (e.g. `removeprefix("track_")` / a `^track_` match — NOT a global `str.replace`, which would corrupt an interior occurrence) and coercing to `int`. If any track name does not yield an integer after the prefix strip, it SHALL raise `ValueError` naming the offending track name(s) rather than allow a cryptic `astype(int)` error.
 3. Set `plant_id = track_id` (the current track↔plant 1:1 convention).
 4. Populate the 8 `ROW_IDENTITY_COLUMNS` (`series`, `sample_uid`, `timepoint`, `plate_id`, `plant_id`, `track_id`, `genotype`, `treatment`): `sample_uid` from the required argument; `series` from `series_name` (defaulting to `series.series_name`); and `timepoint`/`plate_id`/`genotype`/`treatment` via the metadata precedence below.
-5. Construct and return `CircumnutationInputs(trajectory_df=df, cadence_s=cadence_s, R_px=r_px, run_id=run_id)`, letting that data class's validators raise `ValueError` for an empty `trajectory_df`, non-positive/non-finite `cadence_s`, etc.
+5. Construct `CircumnutationInputs(trajectory_df=df, cadence_s=cadence_s, R_px=r_px, run_id=run_id)`, letting that data class's validators raise `ValueError` for an empty `trajectory_df`, non-positive/non-finite `cadence_s`, etc., and return it together with the identity-provenance dict.
+
+**Identity provenance.** The adapter SHALL record, per row-identity field it populates, the literal source that won the value: `"flag"` when the explicit argument was non-`None`, `"metadata_csv"` when a non-null cell was resolved from the `--metadata-csv` via `Series.get_metadata`, or `"default"` for the filename-stem default of `series` and for the `NaN` fallback. It SHALL also surface the resolved-absolute metadata-CSV path (or `None`). The CLI threads this dict into `gather_run_metadata` for BOTH the per-plant and per-genotype writes (Requirement: Run-metadata sidecar).
 
 **Metadata precedence — CSV-as-source, flags-as-override.** For each of `genotype`/`treatment`/`timepoint`, the adapter SHALL resolve a single value with a `pd.notna`-keyed rule, because `Series.get_metadata` returns `np.nan` indistinguishably for "no CSV", "missing column", and "empty cell": the per-field CSV value is `series.get_metadata(field)` when the `Series` carries a `csv_path` (the raw cell, NOT a coercing property such as `Series.timepoint`); the resolved value is the explicit flag argument when it is not `None`, otherwise the CSV value; and an INFO-level override log SHALL be emitted only when the flag is not `None` AND the CSV value is non-null (`pd.notna`) AND `str(flag) != str(csv_value)`. With neither flag nor a non-null CSV value, the field is `NaN`.
 
@@ -190,9 +224,15 @@ The adapter SHALL:
 #### Scenario: Adapter builds CircumnutationInputs with the 8 identity columns
 - **GIVEN** a tracked `Series` whose `get_tracked_tips()` yields ≥ 2 tracks named `"track_0"`, `"track_1"` with ≥ 64 frames each
 - **WHEN** `series_to_inputs(series, cadence_s=300.0, sample_uid="plate_001", genotype="Nipponbare")` is invoked
-- **THEN** it returns a `CircumnutationInputs` whose `trajectory_df` carries all 8 `ROW_IDENTITY_COLUMNS`
+- **THEN** it returns a 2-tuple `(inputs, identity_provenance)` where `inputs.trajectory_df` carries all 8 `ROW_IDENTITY_COLUMNS`
 - **AND** `track_id` and `plant_id` are integer-valued (`0`, `1`) with `plant_id == track_id`
 - **AND** `sample_uid == "plate_001"`, `series` defaults to `series.series_name`, and `genotype == "Nipponbare"`
+
+#### Scenario: Adapter reports identity provenance per field
+- **GIVEN** a `Series` with `csv_path` whose row has `genotype="Nipponbare"`, `treatment="MOCK"`, and an empty `plate_id`
+- **WHEN** `series_to_inputs(series, cadence_s=300.0, sample_uid="plate_001", treatment="DROUGHT")` is invoked (genotype from CSV, treatment overridden by flag, plate_id absent)
+- **THEN** the returned `identity_provenance["metadata_csv_path"]` is the resolved-absolute CSV path
+- **AND** `identity_provenance["identity_source"]` records `{"sample_uid": "flag", "genotype": "metadata_csv", "treatment": "flag", "plate_id": "default", ...}`
 
 #### Scenario: track_id prefix strip is anchored, not global
 - **GIVEN** a `Series` with a track named `"track_track_1"` (an interior `"track_"` occurrence)
@@ -235,21 +275,23 @@ The adapter SHALL:
 - **AND** it does NOT leak a raw pandas parser exception
 
 ### Requirement: Circumnutation analyze CLI
-The system SHALL provide `sleap_roots.circumnutation.cli`, defining a `circumnutation` `click` group containing an `analyze` command, registered on the root `sleap_roots.cli:main` group via `main.add_command(circumnutation)` (mirroring the existing `main.add_command(viewer)`). `analyze` SHALL compose the full pipeline on one `.slp`: `Series.load` → `series_to_inputs` → `pipeline.compute_traits` → `CircumnutationPipeline.save` (per-plant CSV) → (optionally) `aggregate_by_genotype` → `write_per_genotype_csv` → (optionally) `save_plots`.
+The system SHALL provide `sleap_roots.circumnutation.cli`, defining a `circumnutation` `click` group containing an `analyze` command, registered on the root `sleap_roots.cli:main` group via `main.add_command(circumnutation)` (mirroring the existing `main.add_command(viewer)`). `analyze` SHALL compose the full pipeline on one `.slp`: `Series.load` → `series_to_inputs` → `pipeline.compute_traits` → (assemble provenance via `gather_run_metadata`) → `write_per_plant_csv` (per-plant CSV) → (optionally) `aggregate_by_genotype` → `write_per_genotype_csv` → (optionally) `save_plots`.
 
 **Options.** `analyze` SHALL accept: a positional `SLP_PATH` (`click.Path(exists=True)`); a **required** `--cadence-s` (`float`); a **required** `--sample-uid` (`str`); `--output-dir`/`-o` (default `./<series_name>_circumnutation/`); `--series-name` (default the `.slp` filename stem); `--metadata-csv` (`click.Path(exists=True)`, optional); `--timepoint`, `--plate-id`, `--genotype`, `--treatment` (`str`, optional identity overrides); `--r-px` (`float`, optional); `--run-id` (`str`, optional); `--no-plots` (flag); `--no-aggregate` (flag); and `-v`/`--verbose` (count). It SHALL NOT expose a `--px-per-mm` or any calibration option (CC-3).
 
-**Output tree.** `analyze` SHALL write into distinct subdirectories of `--output-dir` so each `_io` writer's fixed-name `run_metadata.json` lives in its own directory (this sidesteps issue #238 without modifying the foundation `_io` contract; the CLI references #238 but does NOT close it): `per_plant/` (per-plant CSV + `.units.json` + `run_metadata.json`), `per_genotype/` (only when aggregation runs), and `plots/` (only when plotting runs). The CLI SHALL `mkdir(parents=True, exist_ok=True)` `--output-dir` and the `per_plant/` leaf always, and the `per_genotype/` leaf only on the aggregation path, BEFORE the writes (`CircumnutationPipeline.save` requires its parent dir to exist). Re-running on the same `.slp` overwrites prior outputs (documented behavior).
+**Output tree.** `analyze` SHALL write into distinct subdirectories of `--output-dir` so each `_io` writer's fixed-name `run_metadata.json` lives in its own directory (this sidesteps issue #238 without modifying the foundation `_io` contract; the CLI references #238 but does NOT close it): `per_plant/` (per-plant CSV + `.units.json` + `run_metadata.json`), `per_genotype/` (only when aggregation runs), and `plots/` (only when plotting runs). The CLI SHALL `mkdir(parents=True, exist_ok=True)` `--output-dir` and the `per_plant/` leaf always, and the `per_genotype/` leaf only on the aggregation path, BEFORE the writes (the `_io` writers require their parent dir to exist). Re-running on the same `.slp` overwrites prior outputs (documented behavior; the help text notes that distinct `--cadence-s`/`--r-px` runs should use distinct `-o` so provenance is not clobbered).
 
 **Gated per-genotype aggregation.** Per-genotype aggregation SHALL be gated by `--no-aggregate`. When aggregation is on (default) and any plant's resolved `genotype` is `NaN`, `analyze` SHALL raise a `click.ClickException` (exit code 1) BEFORE writing any output, naming `--genotype` / `--metadata-csv` / `--no-aggregate`. When `--no-aggregate` is passed, `analyze` SHALL skip aggregation and the `per_genotype/` directory entirely and SHALL NOT require `genotype`.
 
 **Headless plotting.** When plotting is enabled, `analyze` SHALL call `matplotlib.use("Agg", force=True)` BEFORE importing `sleap_roots.circumnutation.plotting`, then call `save_plots(inputs, out_dir=<output-dir>, enabled=True)`. When `--no-plots` is passed, `analyze` SHALL skip the matplotlib backend selection and the `plotting` import entirely, and the `plots/` directory SHALL NOT be created.
 
-**Provenance.** `analyze` SHALL thread the resolved-absolute `.slp` path (`Path(SLP_PATH).resolve()`) as `input_path` into `CircumnutationPipeline.save(...)` and, on the aggregation path, into `gather_run_metadata(input_path=..., run_id=..., constants=None, cadence_s=..., R_px=...)` for the per-genotype write.
+**Provenance.** `analyze` SHALL assemble the run-metadata **once** via a single `gather_run_metadata(input_path=Path(SLP_PATH).resolve(), run_id=inputs.run_id, constants=None, cadence_s=inputs.cadence_s, R_px=inputs.R_px, metadata_csv_path=<resolved-abs --metadata-csv or None>, identity_source=<adapter identity_source>)` and pass that SAME dict to `write_per_plant_csv` and (on the aggregation path) `write_per_genotype_csv`, so both `run_metadata.json` files carry byte-identical provenance (same `timestamp`, `input_path`, `metadata_csv_path`, and `identity_source`). The CLI does NOT route the per-plant write through `CircumnutationPipeline.save()` (which would gather provenance internally and could not carry the CLI's `metadata_csv_path`/`identity_source`); it calls `write_per_plant_csv` directly with the shared run-metadata. (This supersedes the earlier "keep `save()`" design note: a single shared snapshot is what makes the identity provenance complete and the two sidecars identical.) The resolved-absolute `.slp` path is recorded as `input_path`; a relative path is meaningless in `run_metadata.json`.
 
 **Error contract.** `click`'s built-in validation SHALL surface missing required options and a nonexistent `SLP_PATH` as exit code 2. `analyze` SHALL wrap the pipeline body in a single `try/except (ValueError, FileNotFoundError)` that re-raises as `click.ClickException(str(e))` (exit code 1, clean one-line message, no traceback); the adapter normalizes its own raisers (non-integer track name, malformed metadata CSV) to `ValueError`. `analyze` SHALL NOT use a broad `except Exception` — genuinely unanticipated errors surface as tracebacks.
 
 **Logging (CC-9).** `-v`/`--verbose` SHALL set the log level: `0 → WARNING`, `1 → INFO`, `≥2 → DEBUG`, configured to write to stderr. User-facing result summaries SHALL go to stdout via `click.echo`.
+
+**Help-text documentation.** The `analyze` `--help`/docstring SHALL document, beyond the CC-3 pure-pixel note: (a) the image pixel coordinate convention (origin top-left, y increases downward — the SLEAP convention `get_tracked_tips` emits), since the sign of direction-bearing traits depends on it; and (b) that the `timepoint` column is a free-form string label (so a downstream join against a numeric metadata table must cast).
 
 #### Scenario: analyze runs the full pipeline and writes the output tree
 - **GIVEN** a tracked `.slp` (≥ 2 tracks, ≥ 64 frames) and an empty `tmp_path`
@@ -289,9 +331,14 @@ The system SHALL provide `sleap_roots.circumnutation.cli`, defining a `circumnut
 - **THEN** the command exits 0
 - **AND** `<tmp_path>/plots/` does NOT exist
 
-#### Scenario: bad cadence is a clean error, not a traceback
-- **WHEN** `analyze <slp> --cadence-s 0 --sample-uid plate_001 --genotype WT` (or a negative / non-numeric cadence) is invoked via `CliRunner`
-- **THEN** the command exits non-zero with a clean one-line message
+#### Scenario: non-positive cadence is a clean ClickException (exit 1)
+- **WHEN** `analyze <slp> --cadence-s 0 --sample-uid plate_001 --genotype WT` (or a negative cadence) is invoked via `CliRunner`
+- **THEN** the command exits with code 1 (the `CircumnutationInputs` `ValueError` re-raised as `ClickException`)
+- **AND** a clean one-line message is printed, no Python traceback
+
+#### Scenario: non-numeric cadence is a click usage error (exit 2)
+- **WHEN** `analyze <slp> --cadence-s abc --sample-uid plate_001 --genotype WT` is invoked via `CliRunner`
+- **THEN** the command exits with code 2 (click `float` type parse failure, before the pipeline body)
 - **AND** no Python traceback is printed
 
 #### Scenario: metadata CSV populates identity; flag override is logged
@@ -300,13 +347,39 @@ The system SHALL provide `sleap_roots.circumnutation.cli`, defining a `circumnut
 - **THEN** the per-plant CSV rows carry `genotype=Nipponbare`, `treatment=MOCK`
 - **AND** adding `--genotype KitaakeX` instead yields `genotype=KitaakeX` in the output with an INFO log recording the override
 
-#### Scenario: run_metadata records the resolved-absolute input path
-- **GIVEN** a successful default (aggregating) run
+#### Scenario: run_metadata records resolved-absolute input path and identity provenance
+- **GIVEN** a successful default (aggregating) run with `--metadata-csv <csv>` (no `--r-px`)
 - **WHEN** `per_plant/run_metadata.json` and `per_genotype/run_metadata.json` are read
 - **THEN** both record `input_path` equal to the resolved-absolute `.slp` path
-- **AND** both record the same `cadence_s`, `R_px`, and `run_id`
+- **AND** both record `metadata_csv_path` equal to the resolved-absolute CSV path and the same `identity_source` mapping
+- **AND** both record the same `cadence_s`, `run_id`, `timestamp`, and `R_px` (which is `null` when `--r-px` is omitted — identical `null` in both, not a `None`-vs-`NaN` mismatch)
+
+#### Scenario: partial genotype is a hard error before any write
+- **GIVEN** a tracked `.slp` with ≥ 2 tracks and a `--metadata-csv` whose row resolves `genotype` for some plants but leaves at least one plant's `genotype` NaN
+- **WHEN** `analyze <slp> --cadence-s 300 --sample-uid plate_001 --metadata-csv <csv> -o <tmp_path>` is invoked (aggregation on)
+- **THEN** the command exits with code 1 via `click.ClickException`
+- **AND** no output tree is written
+
+#### Scenario: re-running overwrites prior outputs
+- **GIVEN** a completed `analyze` run that populated `<tmp_path>`
+- **WHEN** `analyze` is invoked a second time on the same `.slp` with the same `-o <tmp_path>`
+- **THEN** the second command exits 0
+- **AND** the outputs reflect the second run (overwritten in place, no `FileExistsError`, no appended rows)
+
+#### Scenario: default output-dir derives from series_name
+- **GIVEN** a tracked `.slp` named `plate_xyz.slp` and no `-o`
+- **WHEN** `analyze plate_xyz.slp --cadence-s 300 --sample-uid plate_001 --genotype WT --no-plots` is invoked from an empty working directory
+- **THEN** the command exits 0
+- **AND** the outputs are written under `./plate_xyz_circumnutation/`
+
+#### Scenario: verbose flag sets log level on stderr; results on stdout
+- **GIVEN** a successful run invoked with `click.testing.CliRunner(mix_stderr=False)`
+- **WHEN** `analyze ... -v` (INFO) versus no `-v` (WARNING) versus `-vv` (DEBUG) is invoked
+- **THEN** INFO/DEBUG log lines appear on stderr only at the corresponding verbosity
+- **AND** the final result summary appears on stdout (not stderr)
 
 #### Scenario: no calibration option (CC-3)
 - **WHEN** `analyze --help` is inspected via `CliRunner`
 - **THEN** there is no `--px-per-mm` (or any calibration) option
 - **AND** the help text states outputs are pixel-native and points to `sleap_roots.circumnutation.units.convert_to_mm` for mm conversion
+- **AND** the help text documents the image pixel coordinate convention (origin top-left, y-down) and that `timepoint` is a string label

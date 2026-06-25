@@ -15,7 +15,8 @@ This `design.md` captures the decisions a reviewer needs without re-deriving the
   `convert_to_mm`); no `ConstantsT` override surface in v1; no
   `trajectory_per_plant/<id>.csv` dumps (pipeline doesn't emit them); does NOT fix
   #238 (sidestepped via layout); does NOT widen `save_plots` to record
-  `input_path` (#241 follow-up).
+  `input_path` in its `plots_metadata.json` (a dedicated follow-up issue will track
+  this — it is NOT #241, which is scoped to MCP-serializable `Result` views).
 
 ## Decisions
 
@@ -47,17 +48,29 @@ This `design.md` captures the decisions a reviewer needs without re-deriving the
   #238; does not close it.
 - **Headless plotting.** `--no-plots` skips the matplotlib import entirely;
   otherwise `matplotlib.use("Agg", force=True)` runs before `plotting` is imported.
-  `force=True` because `CliRunner` runs in-process where `pyplot` may already be
-  imported by an earlier test.
+  `force=True` is load-bearing on **every** invocation (not just under `CliRunner`):
+  `sleap_roots.series` imports `matplotlib.pyplot` at module top, so by the time
+  `analyze` runs, `Series.load` has already imported `pyplot` — a plain `use("Agg")`
+  after import would warn and may not switch the backend.
 - **Error contract.** Click handles usage errors (exit 2); the adapter normalizes
   its raisers to `ValueError`; the CLI wraps the pipeline body in `try/except
   (ValueError, FileNotFoundError)` → `ClickException` (exit 1); no catch-all
   (genuine bugs surface tracebacks). `cadence_s`/`R_px` validated only in
   `CircumnutationInputs` (single source of truth). Mirrors `viewer/cli.py`.
-- **Provenance.** Resolved-absolute `.slp` path threaded as `input_path` into
-  `save()` and (aggregation path) the per-genotype `gather_run_metadata`. Keep the
-  blessed `save()` API (two `gather_run_metadata` calls, ms-apart timestamps —
-  benign; content identical).
+- **Provenance — full traceability (supersedes the brainstorm's "keep `save()`").**
+  Per review, `run_metadata.json` must record not just the `.slp` path but the
+  `--metadata-csv` path and a per-field `identity_source` map (`flag` /
+  `metadata_csv` / `default`), so a reader knows where each row-identity field came
+  from. The adapter computes this (it does the resolution) and returns it alongside
+  the inputs. To put a single complete snapshot in BOTH sidecars, the CLI assembles
+  run-metadata **once** via `gather_run_metadata` (extended with `metadata_csv_path`
+  + `identity_source`) and writes via `write_per_plant_csv` / `write_per_genotype_csv`
+  directly — NOT through `CircumnutationPipeline.save()` (which gathers internally
+  and can't carry the CLI's identity provenance). This reverses your-call-3 (the
+  brainstorm's "keep `save()`") for a good reason: a single shared snapshot is the
+  only way to make identity provenance complete and the two sidecars byte-identical
+  (same `timestamp` too). `gather_run_metadata` gains two optional, backward-
+  compatible params (existing callers write `null`).
 - **Testing — synthetic-`.slp` round-trip as the primary happy path.** All `*.slp`
   are LFS-tracked → real-fixture tests are skipif-guarded. A
   `_make_synthetic_tracked_slp` helper (PIL TIFF → `sio.Video` →
