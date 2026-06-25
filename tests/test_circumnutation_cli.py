@@ -358,6 +358,28 @@ def test_genotype_unresolved_hard_error(synth, tmp_path):
     assert not (out / "run_metadata.json").exists()
 
 
+def test_blank_genotype_triggers_hard_error(synth, tmp_path):
+    """A whitespace --genotype is treated as unresolved → aggregation hard-errors."""
+    slp, _ = synth
+    out = tmp_path / "out"
+    r = _analyze(
+        [
+            str(slp),
+            "--cadence-s",
+            "300",
+            "--sample-uid",
+            "plate_001",
+            "--genotype",
+            "   ",
+            "-o",
+            str(out),
+        ]
+    )
+    assert r.exit_code == 1
+    assert "--genotype" in r.output
+    assert not (out / "per_plant").exists()
+
+
 def test_no_aggregate_without_genotype(synth, tmp_path):
     """--no-aggregate runs per-plant + plots without genotype; no per_genotype/."""
     slp, _ = synth

@@ -221,3 +221,69 @@ def test_no_csv_provenance_is_null(tmp_path):
     assert prov["metadata_csv_sha256"] is None
     assert "metadata_csv" not in prov["identity_source"].values()
     assert prov["identity_source"]["genotype"] == "flag"
+
+
+@pytest.mark.parametrize("bad", ["track_-1", "track_1_2", "track_ 1", "track_+1"])
+def test_int_like_but_invalid_track_names_raise(tmp_path, bad):
+    """Names Python's int() would silently mis-coerce raise instead (strict \\d+)."""
+    from sleap_roots.circumnutation.adapters import series_to_inputs
+
+    series = _series_with_tracks(tmp_path, [bad], n_frames=3)
+    with pytest.raises(ValueError, match="track_id"):
+        series_to_inputs(series, cadence_s=300.0, sample_uid="s")
+
+
+def test_blank_genotype_flag_is_absent(tmp_path):
+    """An empty/whitespace --genotype is treated as not supplied (absent/NaN)."""
+    from sleap_roots.circumnutation.adapters import series_to_inputs
+
+    series = _series_with_tracks(tmp_path, ["track_0"], n_frames=3)
+    inputs, prov = series_to_inputs(
+        series, cadence_s=300.0, sample_uid="s", genotype="   "
+    )
+    assert inputs.trajectory_df["genotype"].isna().all()
+    assert prov["identity_source"]["genotype"] == "absent"
+
+
+def test_blank_csv_genotype_cell_is_absent(tmp_path):
+    """A whitespace-only CSV genotype cell resolves to absent (not a real value)."""
+    from sleap_roots.circumnutation.adapters import series_to_inputs
+
+    csv = _CSV_HEADER + "plate_001,   ,MOCK,6,0\n"
+    series = _series_with_tracks(
+        tmp_path, ["track_0"], n_frames=3, csv_content=csv, sample_uid="plate_001"
+    )
+    inputs, prov = series_to_inputs(series, cadence_s=300.0, sample_uid="plate_001")
+    assert inputs.trajectory_df["genotype"].isna().all()
+    assert prov["identity_source"]["genotype"] == "absent"
+
+
+def test_identity_columns_are_object_dtype(tmp_path):
+    """The string identity columns are object dtype even when all-NaN."""
+    from sleap_roots.circumnutation.adapters import series_to_inputs
+
+    series = _series_with_tracks(tmp_path, ["track_0"], n_frames=3)
+    inputs, _ = series_to_inputs(series, cadence_s=300.0, sample_uid="s")
+    df = inputs.trajectory_df
+    for col in (
+        "series",
+        "sample_uid",
+        "timepoint",
+        "plate_id",
+        "genotype",
+        "treatment",
+    ):
+        assert df[col].dtype == object
+
+
+def test_unmatched_sample_uid_warns(tmp_path, caplog):
+    """A --metadata-csv whose plant_qr_code never matches sample_uid logs a WARNING."""
+    from sleap_roots.circumnutation.adapters import series_to_inputs
+
+    csv = _CSV_HEADER + "plate_001,Nipponbare,MOCK,6,0\n"
+    series = _series_with_tracks(
+        tmp_path, ["track_0"], n_frames=3, csv_content=csv, sample_uid="WRONG_QR"
+    )
+    with caplog.at_level(logging.WARNING, logger="sleap_roots.circumnutation.adapters"):
+        series_to_inputs(series, cadence_s=300.0, sample_uid="WRONG_QR")
+    assert any("matches no plant_qr_code" in r.message for r in caplog.records)

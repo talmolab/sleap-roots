@@ -515,8 +515,9 @@ def gather_run_metadata(
             one). ``None`` writes ``null``.
         metadata_csv_sha256: Optional SHA-256 hex digest of the metadata-CSV bytes
             (added in PR #17). The CSV is an external mutable input recorded by
-            reference; the hash lets a reader verify the identity join and detect
-            post-run drift. ``None`` writes ``null``.
+            reference; the hash fingerprints the **whole file** so a reader can
+            detect post-run CSV drift (it verifies the file is unchanged, not the
+            matched row specifically). ``None`` writes ``null``.
         identity_source: Optional mapping from each row-identity field to the
             source that won it — ``"flag"`` / ``"metadata_csv"`` / ``"default"`` /
             ``"absent"`` (added in PR #17). ``None`` writes ``null``.

@@ -138,6 +138,24 @@ genotype (some tracks resolved, some NaN) is therefore unreachable in v1. The
 existing "genotype unresolved with aggregation on" scenario (all-NaN ⟺ any-NaN under
 uniform fill) covers the real case; the redundant partial scenario was dropped.
 
+### Pre-PR subagent-review hardening (2026-06-25)
+The 5-subagent `/review-pr` self-review (no BLOCKING; code-quality 8/10, testing
+100% line+branch on the new modules) surfaced four worthwhile hardenings, applied
+before opening the PR:
+- **Blank genotype no longer defeats the gate.** `--genotype "  "` / a whitespace
+  CSV cell now resolves to `"absent"` (NaN) — `_resolve_field` treats a blank
+  (`None`/empty/whitespace) flag *or* CSV cell as not-supplied — so the genotype
+  hard error fires instead of forming a degenerate empty-string genotype group.
+- **`track_id` strict-digit match.** `_coerce_track_id` now requires
+  `re.fullmatch(r"\d+", remainder)`, rejecting names `int()` would silently
+  mis-coerce (`"track_1_2"`→12, `"track_-1"`, `"track_ 1"`, `"track_+1"`).
+- **Unmatched-`sample_uid` WARNING.** When `--metadata-csv` is supplied but
+  `sample_uid` matches no `plant_qr_code` row, the adapter logs a WARNING (the join
+  would otherwise silently ship all-NaN metadata for a mistyped `--sample-uid`).
+- **Identity-column dtype stability.** The six string identity columns are forced to
+  `object` dtype even when all-NaN (was float64 when NaN), via `_PROVENANCE_FIELDS`.
+The spec scenarios were extended to lock all four.
+
 ### Minor implementation notes (not spec deviations)
 - The CLI loads the `.slp` via the `Series.load(primary_path=...)` slot (matching
   the `_load_plate001_inputs` blueprint); `get_tracked_tips` auto-detects the single

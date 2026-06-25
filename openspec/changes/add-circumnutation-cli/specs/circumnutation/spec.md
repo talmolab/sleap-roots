@@ -214,14 +214,16 @@ The system SHALL provide `sleap_roots.circumnutation.adapters.series_to_inputs(s
 The adapter SHALL:
 
 1. Call `series.get_tracked_tips()` to obtain the per-frame `["track_id", "frame", "tip_x", "tip_y"]` long-format DataFrame.
-2. Derive an integer `track_id` by stripping a **prefix-anchored** `"track_"` (e.g. `removeprefix("track_")` / a `^track_` match — NOT a global `str.replace`, which would corrupt an interior occurrence) and coercing to `int`. If any track name does not yield an integer after the prefix strip, it SHALL raise `ValueError` naming the offending track name(s) rather than allow a cryptic `astype(int)` error.
+2. Derive an integer `track_id` by stripping a **prefix-anchored** `"track_"` (e.g. `removeprefix("track_")` / a `^track_` match — NOT a global `str.replace`, which would corrupt an interior occurrence). The remainder MUST be an **unsigned run of digits** (`re.fullmatch(r"\d+", ...)`) — this rejects both non-numeric remainders (`"track_2a"`, `"track_track_1"`) AND names that Python's `int()` would silently mis-coerce (signed `"track_-1"`, whitespace-padded `"track_ 1"`, underscore-separated `"track_1_2"` → `12`). Any name that does not match SHALL raise `ValueError` naming the offending track name(s) rather than be silently coerced.
 3. Set `plant_id = track_id` (the current track↔plant 1:1 convention).
 4. Populate the 8 `ROW_IDENTITY_COLUMNS` (`series`, `sample_uid`, `timepoint`, `plate_id`, `plant_id`, `track_id`, `genotype`, `treatment`): `sample_uid` from the required argument; `series` from `series_name` (defaulting to `series.series_name`); and `timepoint`/`plate_id`/`genotype`/`treatment` via the metadata precedence below.
 5. Construct `CircumnutationInputs(trajectory_df=df, cadence_s=cadence_s, R_px=r_px, run_id=run_id)`, letting that data class's validators raise `ValueError` for an empty `trajectory_df`, non-positive/non-finite `cadence_s`, etc., and return it together with the identity-provenance dict.
 
 **Identity provenance.** The adapter SHALL record, for each of the six fields `series`/`sample_uid`/`timepoint`/`plate_id`/`genotype`/`treatment` (the map is total — all six always present), the literal source that won the value: `"flag"` when the explicit argument was non-`None`, `"metadata_csv"` when a non-null cell was resolved from the `--metadata-csv` via `Series.get_metadata`, `"default"` for the filename-stem default of `series` (a real derived value), or `"absent"` for the `NaN` fallback of `genotype`/`treatment`/`timepoint`/`plate_id`. `plant_id`/`track_id` are excluded (mechanically derived from track names, not flag/CSV-sourced). It SHALL also surface the resolved-absolute metadata-CSV path (or `None`) and the SHA-256 of the CSV bytes (or `None`). The CLI threads this dict into `gather_run_metadata` for the top-level, per-plant, and per-genotype writes (Requirement: Run-metadata sidecar).
 
-**Metadata precedence — CSV-as-source, flags-as-override.** For each of `genotype`/`treatment`/`timepoint`, the adapter SHALL resolve a single value with a `pd.notna`-keyed rule, because `Series.get_metadata` returns `np.nan` indistinguishably for "no CSV", "missing column", and "empty cell": the per-field CSV value is `series.get_metadata(field)` when the `Series` carries a `csv_path` (the raw cell, NOT a coercing property such as `Series.timepoint`); the resolved value is the explicit flag argument when it is not `None`, otherwise the CSV value; and an INFO-level override log SHALL be emitted only when the flag is not `None` AND the CSV value is non-null (`pd.notna`) AND `str(flag) != str(csv_value)`. With neither flag nor a non-null CSV value, the field is `NaN`.
+**Metadata precedence — CSV-as-source, flags-as-override.** For each of `genotype`/`treatment`/`timepoint`, the adapter SHALL resolve a single value treating a **blank** value (`None`, empty string, or whitespace-only) as **not supplied** for both the flag and the CSV cell — because `Series.get_metadata` returns `np.nan` indistinguishably for "no CSV", "missing column", and "empty cell", and a whitespace-only cell (or an explicit `--genotype ""`) must NOT become a degenerate empty-string identity group. The per-field CSV value is `series.get_metadata(field)` when the `Series` carries a `csv_path` (the raw cell, NOT a coercing property such as `Series.timepoint`); the resolved value is the flag argument when it is non-blank, otherwise the non-blank CSV value, otherwise `NaN`. An INFO-level override log SHALL be emitted only when a non-blank flag shadows a non-blank, different CSV value.
+
+**Unmatched `sample_uid` warning.** When a `--metadata-csv` is supplied but `sample_uid` matches no `plant_qr_code` row, the adapter SHALL log a WARNING (the `Series.get_metadata` join would otherwise return `NaN` for every field, silently shipping all-NaN metadata for a mistyped `--sample-uid`).
 
 **`timepoint` dtype.** `timepoint` SHALL be an object/string label: the adapter reads the raw CSV cell via `series.get_metadata("timepoint")` (NOT the `Series.timepoint` property, which coerces to `float` and raises on a non-numeric value) and `str()`-normalizes both the flag and the CSV value so the column dtype is uniform.
 
@@ -251,6 +253,22 @@ The adapter SHALL:
 - **WHEN** `series_to_inputs(...)` is invoked
 - **THEN** it raises `ValueError` whose message names the offending track name(s)
 - **AND** it does NOT surface a cryptic pandas `astype(int)` error
+
+#### Scenario: int()-mis-coercible track names raise instead of silently corrupting
+- **GIVEN** a `Series` with a track named `"track_1_2"` (or `"track_-1"`, `"track_ 1"`, `"track_+1"`)
+- **WHEN** `series_to_inputs(...)` derives the integer `track_id`
+- **THEN** it raises `ValueError` — the strict `\d+` match rejects names that Python's `int()` would silently coerce (`int("1_2") == 12`, `int("-1") == -1`, `int(" 1") == 1`)
+
+#### Scenario: Blank flag or CSV cell resolves to absent, not an empty group
+- **GIVEN** an explicit `genotype="   "` (whitespace) flag, or a metadata-CSV `genotype` cell that is whitespace-only
+- **WHEN** `series_to_inputs(...)` resolves `genotype`
+- **THEN** the resolved `genotype` is `NaN` and `identity_source["genotype"] == "absent"`
+- **AND** (at the CLI) with aggregation on this triggers the genotype hard error rather than a degenerate empty-string genotype group
+
+#### Scenario: Unmatched sample_uid against the metadata CSV warns
+- **GIVEN** a `Series` with a `--metadata-csv` whose `plant_qr_code` column has no row equal to `sample_uid`
+- **WHEN** `series_to_inputs(...)` is invoked
+- **THEN** a WARNING is logged naming the unmatched `sample_uid` (the join would otherwise silently yield all-NaN metadata)
 
 #### Scenario: Metadata precedence — flag overrides a real CSV value and logs at INFO
 - **GIVEN** a `Series` loaded with `csv_path` pointing at a metadata CSV whose row has `genotype="Nipponbare"`, joined on `plant_qr_code == sample_uid`
