@@ -485,6 +485,65 @@ def test_genotype_flag_overrides_csv_logged_on_stderr(synth, tmp_path):
     assert "Analysis complete" not in r.stderr
 
 
+def test_logging_state_restored_after_run(synth, tmp_path):
+    """The CLI restores the `sleap_roots` logger level/handlers after the command.
+
+    Guards against the global logging config leaking into a host process / the test
+    session (an unrestored level would gate later bare `caplog.at_level(...)` tests).
+    """
+    import logging
+
+    pkg = logging.getLogger("sleap_roots")
+    level_before = pkg.level
+    tagged_before = [h for h in pkg.handlers if getattr(h, "_tag", None)]
+    slp, _ = synth
+    r = _analyze(
+        [
+            str(slp),
+            "--cadence-s",
+            "300",
+            "--sample-uid",
+            "plate_001",
+            "--genotype",
+            "WT",
+            "--no-plots",
+            "--no-aggregate",
+            "-vv",
+            "-o",
+            str(tmp_path / "out"),
+        ]
+    )
+    assert r.exit_code == 0, r.output
+    assert pkg.level == level_before  # level restored (not left at DEBUG)
+    tagged_after = [h for h in pkg.handlers if getattr(h, "_tag", None)]
+    assert len(tagged_after) == len(tagged_before)  # our handler removed
+
+
+def test_vv_enables_debug_on_stderr(synth, tmp_path):
+    """-vv sets DEBUG: the adapter's debug line appears on stderr."""
+    slp, _ = synth
+    out = tmp_path / "out"
+    r = _analyze(
+        [
+            str(slp),
+            "--cadence-s",
+            "300",
+            "--sample-uid",
+            "plate_001",
+            "--genotype",
+            "WT",
+            "--no-plots",
+            "--no-aggregate",
+            "-vv",
+            "-o",
+            str(out),
+        ]
+    )
+    assert r.exit_code == 0, r.output
+    # `series_to_inputs` emits a DEBUG line; only visible at -vv.
+    assert "series_to_inputs" in r.stderr
+
+
 def test_rerun_overwrites(synth, tmp_path):
     slp, _ = synth
     out = tmp_path / "out"

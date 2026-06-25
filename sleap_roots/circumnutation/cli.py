@@ -171,6 +171,8 @@ def analyze(
     Re-running on the same .slp overwrites prior outputs; use a distinct
     --output-dir for runs with different --cadence-s / --r-px.
     """
+    pkg_logger = logging.getLogger("sleap_roots")
+    prior_level = pkg_logger.level
     _configure_logging(verbose)
 
     # Lazy imports (keep module import — and `import sleap_roots.cli` — cheap).
@@ -270,7 +272,17 @@ def analyze(
             from sleap_roots.circumnutation import plotting
 
             plotting.save_plots(inputs, out_dir=out_dir, enabled=True)
+
+        click.echo(f"Analysis complete -> {out_dir}")
     except (ValueError, FileNotFoundError) as exc:
         raise click.ClickException(str(exc))
-
-    click.echo(f"Analysis complete -> {out_dir}")
+    finally:
+        # Restore the package logger so the CLI's global logging config does not
+        # leak into a long-lived host process or the in-process test session
+        # (an unrestored level would gate later bare `caplog.at_level(...)` tests).
+        pkg_logger.setLevel(prior_level)
+        pkg_logger.handlers = [
+            h
+            for h in pkg_logger.handlers
+            if getattr(h, "_tag", None) != _LOG_HANDLER_TAG
+        ]

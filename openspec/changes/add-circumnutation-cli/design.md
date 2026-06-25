@@ -156,6 +156,20 @@ before opening the PR:
   `object` dtype even when all-NaN (was float64 when NaN), via `_PROVENANCE_FIELDS`.
 The spec scenarios were extended to lock all four.
 
+### Post-PR subagent-review fixes (2026-06-25)
+A second 5-subagent `/review-pr` on the open PR (no BLOCKING; code-quality 8.5/10)
+surfaced three cheap, worthwhile fixes, applied before merge:
+- **CLI restores the `sleap_roots` logger** (level + tagged handler) in a `finally`,
+  so the CLI's global logging config no longer persists past the command — guards
+  against an unrestored level gating a later bare `caplog.at_level(...)` test.
+- **`track_id` match tightened to ASCII `[0-9]+`** (was `\d+`, which also matches
+  non-ASCII Unicode decimal digits that `int()` would accept).
+- **`-vv` DEBUG coverage** — a CLI test exercises the DEBUG branch (the residual
+  Codecov gap) and asserts the adapter's debug line lands on stderr.
+Deferred as follow-ups (noted in the PR review): the 6×-per-run metadata-CSV reads
+(read-once optimization; negligible for per-plate CSVs), `save_plots`' pre-existing
+double-CWT recompute, and a possible `metadata_csv_matched` provenance field.
+
 ### Minor implementation notes (not spec deviations)
 - The CLI loads the `.slp` via the `Series.load(primary_path=...)` slot (matching
   the `_load_plate001_inputs` blueprint); `get_tracked_tips` auto-detects the single

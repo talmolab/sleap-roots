@@ -51,14 +51,15 @@ def _coerce_track_id(track_id: pd.Series) -> pd.Series:
     r"""Coerce a ``"track_<int>"`` (or bare-integer) track-name Series to int64.
 
     The leading ``"track_"`` prefix is stripped **once** (anchored, not a global
-    ``str.replace``) and the remainder must be an unsigned run of digits
-    (``re.fullmatch(r"\d+", ...)``). A name that is not ``"track_<int>"`` (e.g.
+    ``str.replace``) and the remainder must be an unsigned run of **ASCII** digits
+    (``re.fullmatch(r"[0-9]+", ...)``). A name that is not ``"track_<int>"`` (e.g.
     ``"track_2a"`` or the interior-prefix ``"track_track_1"``, which leaves
     ``"track_1"``) raises ``ValueError`` naming the offender rather than being
     silently mangled — the pipeline's "raise rather than silently corrupt" contract.
-    The strict digit match also rejects names that Python's ``int()`` would silently
-    accept: signed (``"track_-1"``), whitespace-padded (``"track_ 1"``), and
-    underscore-separated (``"track_1_2"`` → ``int`` would yield ``12``).
+    The strict ASCII digit match also rejects names that Python's ``int()`` would
+    silently accept: signed (``"track_-1"``), whitespace-padded (``"track_ 1"``),
+    underscore-separated (``"track_1_2"`` → ``int`` yields ``12``), and non-ASCII
+    Unicode decimal digits.
 
     Args:
         track_id: The ``track_id`` column from ``Series.get_tracked_tips()``.
@@ -77,7 +78,10 @@ def _coerce_track_id(track_id: pd.Series) -> pd.Series:
         remainder = (
             name[len(_TRACK_PREFIX) :] if name.startswith(_TRACK_PREFIX) else name
         )
-        if re.fullmatch(r"\d+", remainder):
+        # ASCII digits only (`[0-9]+`, not `\d+`) — `\d` also matches Unicode
+        # decimal digits (e.g. fullwidth/Arabic-Indic), which `int()` accepts and
+        # which two distinct spellings could collapse onto one integer.
+        if re.fullmatch(r"[0-9]+", remainder):
             coerced.append(int(remainder))
         else:
             offenders.append(name)

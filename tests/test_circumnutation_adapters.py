@@ -223,9 +223,15 @@ def test_no_csv_provenance_is_null(tmp_path):
     assert prov["identity_source"]["genotype"] == "flag"
 
 
-@pytest.mark.parametrize("bad", ["track_-1", "track_1_2", "track_ 1", "track_+1"])
+@pytest.mark.parametrize(
+    "bad", ["track_-1", "track_1_2", "track_ 1", "track_+1", "track_１"]
+)
 def test_int_like_but_invalid_track_names_raise(tmp_path, bad):
-    """Names Python's int() would silently mis-coerce raise instead (strict \\d+)."""
+    """Names Python's int() would silently mis-coerce raise instead (strict [0-9]+).
+
+    Includes a fullwidth Unicode digit (``track_１``) — ``\\d`` would match it and
+    ``int()`` would accept it, but the ASCII-only ``[0-9]+`` match rejects it.
+    """
     from sleap_roots.circumnutation.adapters import series_to_inputs
 
     series = _series_with_tracks(tmp_path, [bad], n_frames=3)
