@@ -67,7 +67,8 @@ This `design.md` captures the decisions a reviewer needs without re-deriving the
   `--metadata-csv` path and a per-field `identity_source` map (`flag` /
   `metadata_csv` / `default`), so a reader knows where each row-identity field came
   from. The adapter computes this (it does the resolution) and returns it alongside
-  the inputs. To put a single complete snapshot in BOTH sidecars, the CLI assembles
+  the inputs. To put a single complete snapshot in all three sidecars (top-level +
+  per-plant + per-genotype), the CLI assembles
   run-metadata **once** via `gather_run_metadata` (extended with `metadata_csv_path`
   + `identity_source`) and writes via `write_per_plant_csv` / `write_per_genotype_csv`
   directly — NOT through `CircumnutationPipeline.save()` (which gathers internally
@@ -83,7 +84,9 @@ This `design.md` captures the decisions a reviewer needs without re-deriving the
   are distinct so a reader can tell a derived value from a missing one (review round
   2). `metadata_csv_sha256` hashes the CSV bytes so the join is verifiable even
   though the CSV is an external mutable input recorded by reference (its contents
-  aren't snapshotted by value like `cadence_s`).
+  aren't snapshotted by value like `cadence_s`). Whole-file hashing is the v1
+  primitive: it flags edits to *unrelated* rows as drift (conservative — never a
+  false "unchanged"); a tighter resolved-row hash is a possible future refinement.
 - **Testing — synthetic-`.slp` round-trip as the primary happy path.** All `*.slp`
   are LFS-tracked → real-fixture tests are skipif-guarded. A
   `_make_synthetic_tracked_slp` helper (PIL TIFF → `sio.Video` →

@@ -86,7 +86,7 @@ Design highlights (full rationale in `design.md` and the brainstorm doc
 - **Affected code:** `sleap_roots/circumnutation/cli.py` (new),
   `sleap_roots/circumnutation/adapters.py` (new), `sleap_roots/cli.py` (one-line
   registration), `sleap_roots/circumnutation/_io.py` (`gather_run_metadata` gains
-  two optional provenance params). No new dependency (`click` is already required).
+  three optional provenance params). No new dependency (`click` is already required).
 - **Tests:** `tests/test_circumnutation_cli.py` (new, `click.testing.CliRunner` +
   synthetic-`.slp` round-trip + real plate-001 skipif-guarded e2e),
   `tests/test_circumnutation_adapters.py` (new); plus extending
