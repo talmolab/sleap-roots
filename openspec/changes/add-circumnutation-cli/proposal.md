@@ -24,10 +24,10 @@ and the formalized `series_to_inputs` adapter the roadmap says lands here.
   `main.add_command(circumnutation)` (mirrors `main.add_command(viewer)`).
 - **MODIFY** `sleap_roots/cli.py` — add the `main.add_command(circumnutation)`
   line.
-- **MODIFY** `sleap_roots/circumnutation/_io.py::gather_run_metadata` — add two
-  optional keyword params `metadata_csv_path=None` and `identity_source=None`,
-  recorded in `run_metadata.json` (additive, backward-compatible; existing callers
-  write `null`).
+- **MODIFY** `sleap_roots/circumnutation/_io.py::gather_run_metadata` — append three
+  optional keyword params `metadata_csv_path=None`, `metadata_csv_sha256=None`, and
+  `identity_source=None` (after `R_px`), recorded in `run_metadata.json` (additive,
+  backward-compatible; existing callers write `null`).
 - **MODIFY** the `circumnutation` spec **Package layout** requirement: grow the
   implementation-module count **12 → 14** by ADDITION of `cli` and `adapters`
   (net-new modules, never stubs; same addition shape as PR #15's `aggregation`);
@@ -63,14 +63,19 @@ Design highlights (full rationale in `design.md` and the brainstorm doc
   (ValueError, FileNotFoundError)` → `ClickException` (exit 1); no catch-all
   (genuine bugs surface tracebacks). Mirrors `viewer/cli.py`.
 - **Provenance (full traceability):** the CLI assembles run-metadata **once** via
-  a single `gather_run_metadata` (resolved-absolute `input_path`, plus the new
-  `metadata_csv_path` and per-field `identity_source` map) and writes it to BOTH
-  the per-plant and per-genotype `run_metadata.json` via `write_per_plant_csv` /
-  `write_per_genotype_csv` — byte-identical provenance, and a reader can tell
-  whether each identity field came from a flag, the metadata CSV, or a default.
-  (This supersedes the brainstorm's "keep `save()`" note — a single shared snapshot
-  is what makes the identity provenance complete; the CLI does not route the
-  per-plant write through `CircumnutationPipeline.save()`.)
+  a single `gather_run_metadata` (resolved-absolute `input_path`, `metadata_csv_path`,
+  `metadata_csv_sha256` of the CSV bytes, and a total per-field `identity_source` map
+  with labels `flag`/`metadata_csv`/`default`/`absent`) and writes it to a **top-level
+  `<output-dir>/run_metadata.json`** plus the per-plant and per-genotype
+  `run_metadata.json` via `write_per_plant_csv` / `write_per_genotype_csv` — all
+  three byte-identical. A reader can tell whether each identity field came from a
+  flag, the metadata CSV, or is absent, and can verify the join via the CSV hash.
+  The top-level file is also the target of `save_plots`' hardcoded
+  `run_metadata_ref: "../run_metadata.json"` (plotting.py:521) — without it, the
+  `per_plant/` subdir split would leave that pointer dangling and plots
+  unprovenanced. (This supersedes the brainstorm's "keep `save()`" note — a single
+  shared snapshot is what makes the identity provenance complete; the CLI does not
+  route the per-plant write through `CircumnutationPipeline.save()`.)
 - **CC-3 / CC-9:** no `--px-per-mm` (pure-pixel; `--help` points to
   `convert_to_mm`); `-v`/`-vv` set WARNING/INFO/DEBUG to stderr.
 

@@ -41,11 +41,16 @@ This `design.md` captures the decisions a reviewer needs without re-deriving the
   unresolved → **hard `ClickException` before any output** (never a vacuous
   `(NaN,NaN,NaN)` per-genotype CSV, and explicitly NOT auto-skip-and-warn — per
   Elizabeth's directive). `--no-aggregate` opts out (per-plant + plots only).
-- **Output tree — distinct subdirs.** `per_plant/`, `per_genotype/`, `plots/`. Each
-  `_io` writer's fixed-name `run_metadata.json` lives in its own dir, so #238's
-  clobber is sidestepped with zero `_io` contract change. The CLI `mkdir`s the
-  CSV leaves before writing (`save()` requires the parent to exist). References
-  #238; does not close it.
+- **Output tree — distinct subdirs + a canonical top-level provenance file.**
+  `per_plant/`, `per_genotype/`, `plots/`. Each `_io` writer's fixed-name
+  `run_metadata.json` lives in its own dir, so #238's clobber is sidestepped with
+  zero `_io` contract change. The CLI `mkdir`s the CSV leaves before writing (the
+  `_io` writers require the parent to exist). References #238; does not close it.
+  The CLI ALSO writes a **top-level `<output-dir>/run_metadata.json`** (the shared
+  snapshot) — `save_plots` writes `plots/plots_metadata.json` with a hardcoded
+  `run_metadata_ref: "../run_metadata.json"` (plotting.py:521), so without the
+  top-level file the `per_plant/` subdir split would dangle that pointer and leave
+  plots unprovenanced (caught in review round 2).
 - **Headless plotting.** `--no-plots` skips the matplotlib import entirely;
   otherwise `matplotlib.use("Agg", force=True)` runs before `plotting` is imported.
   `force=True` is load-bearing on **every** invocation (not just under `CliRunner`):
@@ -68,9 +73,17 @@ This `design.md` captures the decisions a reviewer needs without re-deriving the
   directly — NOT through `CircumnutationPipeline.save()` (which gathers internally
   and can't carry the CLI's identity provenance). This reverses your-call-3 (the
   brainstorm's "keep `save()`") for a good reason: a single shared snapshot is the
-  only way to make identity provenance complete and the two sidecars byte-identical
-  (same `timestamp` too). `gather_run_metadata` gains two optional, backward-
-  compatible params (existing callers write `null`).
+  only way to make identity provenance complete and the three sidecars (top-level +
+  per-plant + per-genotype) byte-identical (same `timestamp` too).
+  `gather_run_metadata` gains three optional, backward-compatible params
+  (`metadata_csv_path`, `metadata_csv_sha256`, `identity_source`; existing callers
+  write `null`). The `identity_source` map is **total** over the six
+  adapter-populated fields with a closed label set — `flag` / `metadata_csv` /
+  `default` (the `series` stem) / `absent` (NaN fallback); `default` and `absent`
+  are distinct so a reader can tell a derived value from a missing one (review round
+  2). `metadata_csv_sha256` hashes the CSV bytes so the join is verifiable even
+  though the CSV is an external mutable input recorded by reference (its contents
+  aren't snapshotted by value like `cadence_s`).
 - **Testing — synthetic-`.slp` round-trip as the primary happy path.** All `*.slp`
   are LFS-tracked → real-fixture tests are skipif-guarded. A
   `_make_synthetic_tracked_slp` helper (PIL TIFF → `sio.Video` →
