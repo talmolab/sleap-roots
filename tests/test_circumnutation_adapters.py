@@ -276,6 +276,24 @@ def test_identity_columns_are_object_dtype(tmp_path):
         assert df[col].dtype == object
 
 
+def test_metadata_csv_without_qr_column_no_warn_no_crash(tmp_path, caplog):
+    """A parseable metadata CSV lacking `plant_qr_code` resolves to absent, no crash."""
+    from sleap_roots.circumnutation.adapters import series_to_inputs
+
+    # Parseable, but no `plant_qr_code` join column.
+    csv = "some_col,genotype\nfoo,Nipponbare\n"
+    series = _series_with_tracks(
+        tmp_path, ["track_0"], n_frames=3, csv_content=csv, sample_uid="plate_001"
+    )
+    with caplog.at_level(logging.WARNING, logger="sleap_roots.circumnutation.adapters"):
+        inputs, prov = series_to_inputs(series, cadence_s=300.0, sample_uid="plate_001")
+    # No `matches no plant_qr_code` warning fires (the helper returns early).
+    assert not any("matches no plant_qr_code" in r.message for r in caplog.records)
+    # genotype is unresolved (the join column is absent).
+    assert inputs.trajectory_df["genotype"].isna().all()
+    assert prov["identity_source"]["genotype"] == "absent"
+
+
 def test_unmatched_sample_uid_warns(tmp_path, caplog):
     """A --metadata-csv whose plant_qr_code never matches sample_uid logs a WARNING."""
     from sleap_roots.circumnutation.adapters import series_to_inputs
