@@ -70,6 +70,7 @@ a flat `circumnutation-analyze` or a bare `analyze` so future subcommands
 | `--r-px` | `float` | default `None` |
 | `--run-id` | `str` | default `None` |
 | `--no-plots` | flag | gates plotting + matplotlib import (D4) |
+| `--no-aggregate` | flag | skip per-genotype aggregation; `per_genotype/` not written (D3) |
 | `-v, --verbose` | count | log level (D8) |
 
 No `--constants` / `--px-per-mm`.
@@ -88,18 +89,29 @@ A randomly minted UUID would break both. Therefore:
   label; "series" = the time-lapse of frames, the circumnutation analog of the
   RSA multi-scan series).
 
-**`genotype` is effectively required (hard error when unresolved).** `analyze`
-always runs `aggregate_by_genotype`, which is meaningless without genotype labels:
-an all-NaN identity (the bare invocation) would group all plants under one
-`(NaN, NaN, NaN)` key and emit a scientifically vacuous per-genotype CSV.
-Per Elizabeth's directive, this is a **hard error**, not a silent emit: after
-identity resolution, if any plant's `genotype` is NaN, `analyze` raises a clean
-`ClickException` (exit 1) — *"genotype is required for per-genotype aggregation;
-supply --genotype or a --metadata-csv with a genotype column."* So a successful
-run requires genotype from **either** `--genotype` **or** a `--metadata-csv`
-carrying a `genotype` column. `plate_id` and `treatment` remain optional (NaN-keyed
-groups are valid for those — they are aspirational per CC-4); only `genotype` gates
-the run.
+**Per-genotype aggregation is a gated step; genotype is required only when it
+runs.** The per-genotype aggregation (`aggregate_by_genotype`) is fully separable —
+`compute_traits` → `save` (per-plant) and `save_plots` never touch genotype, so the
+pipeline can produce per-plant traits + plots without any genotype info. The
+per-genotype CSV is meaningless without genotype labels, though: an all-NaN
+identity would group all plants under one `(NaN, NaN, NaN)` key and emit a
+scientifically vacuous file. So aggregation is gated on `--no-aggregate` (symmetric
+with `--no-plots`):
+
+- **Aggregation on (default), genotype resolvable** (`--genotype` or
+  `--metadata-csv` with a `genotype` column) → full pipeline incl. `per_genotype/`.
+- **Aggregation on (default), genotype NaN for any plant** → **hard error** (exit 1)
+  *before any output is written*: *"genotype is required for per-genotype
+  aggregation; supply --genotype / --metadata-csv, or pass --no-aggregate."* (Per
+  Elizabeth's directive — never silently emit a vacuous per-genotype CSV, and never
+  auto-skip-and-warn.)
+- **`--no-aggregate`** → skip the per-genotype step and the `per_genotype/` dir
+  entirely; per-plant + plots still produced; genotype not required.
+
+`--no-aggregate` and `--genotype` are orthogonal — a user may still supply genotype
+to populate the per-plant identity columns while skipping the per-genotype CSV.
+`plate_id` and `treatment` remain optional (NaN-keyed groups are valid for those —
+aspirational per CC-4); only `genotype` gates the aggregation step.
 
 **`--output-dir` default — follows the repo convention.** Other pipelines default
 output to cwd and disambiguate runs by embedding `series_name`
@@ -196,11 +208,16 @@ subdirs** (does not fix the underlying `_io` API foot-gun):
 changes to the foundation `_io` contract.** The proposal references #238 and
 states explicitly that PR #17 sidesteps but does **not** close it.
 
-**The CLI creates `per_plant/` and `per_genotype/` itself (I1).** `pipeline.save()`
-and `write_per_genotype_csv` require their parent dir to *already exist* — `save()`
-raises `FileNotFoundError` otherwise (pipeline.py:228-233). So the CLI must
-`mkdir(parents=True, exist_ok=True)` the `per_plant/` and `per_genotype/` leaves
-(not just `--output-dir`) **before** the writes. (If skipped, the happy path raises
+**Conditional subdirs.** `per_genotype/` is written only when aggregation runs —
+`--no-aggregate` omits it entirely (like `--no-plots` omits `plots/`). So the tree
+above is the *full* (default, genotype-resolvable) shape; `--no-aggregate` yields
+`per_plant/` + `plots/` only.
+
+**The CLI creates `per_plant/` (and `per_genotype/` when aggregating) itself (I1).**
+`pipeline.save()` and `write_per_genotype_csv` require their parent dir to *already
+exist* — `save()` raises `FileNotFoundError` otherwise (pipeline.py:228-233). So
+the CLI `mkdir(parents=True, exist_ok=True)` the `per_plant/` leaf always, and the
+`per_genotype/` leaf only on the aggregation path, **before** the writes. (If skipped, the happy path raises
 `FileNotFoundError`, which D6 would then mis-surface as a clean exit-1 "domain
 error" — masking a CLI bug. Creating the leaves up front prevents that.)
 
@@ -282,8 +299,11 @@ pipeline validation; a noise-free synthetic risks degenerate QC/ridge behavior).
   assert the D3 output tree; per-plant row count = `n_tracks`; identity columns
   populated; per-genotype CSV has the expected genotype group(s).
 - **Genotype-missing hard error** → bare invocation (no `--genotype`, no
-  `--metadata-csv`) → exit 1, clean `ClickException` naming `--genotype` /
-  `--metadata-csv`; no partial output tree left behind.
+  `--metadata-csv`, no `--no-aggregate`) → exit 1, clean `ClickException` naming
+  `--genotype` / `--metadata-csv` / `--no-aggregate`; no partial output tree left
+  behind.
+- **`--no-aggregate` without genotype** → exit 0; `per_plant/` + `plots/` written,
+  **no `per_genotype/`** dir; succeeds despite absent genotype.
 - `--metadata-csv` (synthetic CSV) → output CSV carries `genotype`/`treatment`;
   `--genotype` flag overrides CSV value (assert override logged via `caplog`).
 - `--no-plots` → no `plots/` dir; exit 0.
@@ -324,11 +344,12 @@ Mirrors `viewer/cli.py`: catch the known domain exception, convert, no catch-all
   single source of truth (rejects ≤0, NaN, inf, non-numeric, bool) — *not* also
   at the click layer, so every bad-cadence case yields the same exit code (1) and
   messaging.
-- **Genotype-missing hard error** (your-call 1): after identity resolution, if any
-  plant's `genotype` is NaN, the CLI raises `click.ClickException` (exit 1) naming
-  `--genotype` / `--metadata-csv` — *before* writing any output, so no partial tree
-  is left behind. This is a deliberate CLI-layer guard (genotype is essential to
-  the per-genotype aggregation), distinct from the core's own `ValueError`s.
+- **Genotype-missing hard error** (your-call 1, gated): when aggregation is on
+  (no `--no-aggregate`), after identity resolution, if any plant's `genotype` is
+  NaN, the CLI raises `click.ClickException` (exit 1) naming `--genotype` /
+  `--metadata-csv` / `--no-aggregate` — *before* writing any output, so no partial
+  tree is left behind. With `--no-aggregate` the check is skipped (genotype not
+  required). A deliberate CLI-layer guard, distinct from the core's `ValueError`s.
 - **Adapter normalizes its raisers to `ValueError` (I3).** The two non-`ValueError`
   leak surfaces — a malformed `--metadata-csv` (`pd.read_csv` → pandas error) and a
   non-integer track name (`astype(int)` → could surface a pandas error) — are
@@ -339,8 +360,9 @@ Mirrors `viewer/cli.py`: catch the known domain exception, convert, no catch-all
 ## D7 — provenance: threading `input_path` through `save`
 
 - The CLI computes `slp_path = Path(SLP_PATH).resolve()` once and passes
-  `str(slp_path)` as `input_path` into **both** provenance writers: `pipeline.save(
-  per_plant/…csv, …, input_path=slp_path)` and, for the per-genotype artifact,
+  `str(slp_path)` as `input_path` into the per-plant writer `pipeline.save(
+  per_plant/…csv, …, input_path=slp_path)`, and — **only on the aggregation path
+  (not under `--no-aggregate`)** — into the per-genotype writer via
   `gather_run_metadata(input_path=slp_path, run_id=inputs.run_id, constants=None,
   cadence_s=inputs.cadence_s, R_px=inputs.R_px)` → `write_per_genotype_csv`.
   **Resolved-absolute** (a relative path is meaningless in `run_metadata.json`).
@@ -412,7 +434,7 @@ behaves as described). Design + test findings and their resolutions:
 | I2 | "Formalizes `_load_plate001_inputs`" conflicts with NaN-defaults (blueprint hardcodes `"none"`/`"T0"`) | D2 clarifies: generalizes the *mechanical* transform, replaces the hardcoded test literals with CSV/flag/NaN sourcing |
 | I3 | Malformed `--metadata-csv` → pandas error leaks past `except (ValueError, FileNotFoundError)` | Adapter wraps the metadata read → clear `ValueError` (D2, D6) |
 | M | `matplotlib.use("Agg")` without `force=True` is a `CliRunner`-in-process hazard | D4 → `use("Agg", force=True)`; stale contradicting paragraph removed |
-| your-call 1 | All-NaN `genotype` default produces a vacuous per-genotype CSV | **Hard error** — genotype effectively required via `--genotype`/`--metadata-csv`; `ClickException` exit 1 before any output (D1, D2, D6) |
+| your-call 1 | All-NaN `genotype` default produces a vacuous per-genotype CSV | Per-genotype aggregation is a **gated step** (`--no-aggregate`, parallels `--no-plots`); default-on + genotype NaN → **hard error** (exit 1, before output); `--no-aggregate` → per-plant + plots only, genotype not required. No auto-skip-and-warn. (D1, D2, D3, D5, D6) |
 | your-call 2 | Re-run same-`.slp` silent overwrite | Overwrite + documented in `--help` (deliberate; matches repo convention) (D3) |
 | your-call 3 | Double `gather_run_metadata` (2 git subprocs, ms-apart stamps) | Keep blessed `save()` API; accept as benign (D7) |
 | M3 | Prefix-anchored strip needs an interior-`track_` test | Added `"track_track_1"` adapter test (D5) |
