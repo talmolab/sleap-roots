@@ -15,8 +15,8 @@ This `design.md` captures the decisions a reviewer needs without re-deriving the
   `convert_to_mm`); no `ConstantsT` override surface in v1; no
   `trajectory_per_plant/<id>.csv` dumps (pipeline doesn't emit them); does NOT fix
   #238 (sidestepped via layout); does NOT widen `save_plots` to record
-  `input_path` in its `plots_metadata.json` (a dedicated follow-up issue will track
-  this — it is NOT #241, which is scoped to MCP-serializable `Result` views).
+  `input_path` in its `plots_metadata.json` (tracked as follow-up #245 — it is NOT
+  #241, which is scoped to MCP-serializable `Result` views).
 
 ## Decisions
 

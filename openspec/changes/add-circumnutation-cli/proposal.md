@@ -92,11 +92,9 @@ Design highlights (full rationale in `design.md` and the brainstorm doc
   `tests/test_circumnutation_adapters.py` (new); plus extending
   `tests/test_circumnutation_foundation.py` (logger-namespace + module-import
   lists) and the `gather_run_metadata` provenance tests.
-- **Related issues:** parent #197 (a PR #17 tracking issue is drafted to the vault
-  and posted, with its number filled into #197, before merge — `Closes #N` added
-  then); #238 (run_metadata clobber — sidestepped, referenced, not closed); #230
-  (`L_gz`, informational). A dedicated follow-up issue will track threading
-  `input_path` into `save_plots`' own `plots_metadata.json` (the plots sidecar still
-  cannot record the source `.slp`; this is NOT what #241 covers — #241 is scoped to
-  MCP-serializable `Result` views and recompute removal). PR #18 (user guide)
-  consumes this CLI.
+- **Related issues:** parent #197; tracking issue **#244** (`Closes #244`); #238
+  (run_metadata clobber — sidestepped, referenced, not closed); #230 (`L_gz`,
+  informational). Follow-up **#245** tracks threading `input_path` into `save_plots`'
+  own `plots_metadata.json` (the plots sidecar still cannot record the source `.slp`;
+  this is NOT what #241 covers — #241 is scoped to MCP-serializable `Result` views
+  and recompute removal). PR #18 (user guide) consumes this CLI.
