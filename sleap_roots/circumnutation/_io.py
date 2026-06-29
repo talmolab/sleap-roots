@@ -490,6 +490,9 @@ def gather_run_metadata(
     constants: Optional[ConstantsT] = None,
     cadence_s: Optional[float] = None,
     R_px: Optional[float] = None,
+    metadata_csv_path: Optional[str] = None,
+    metadata_csv_sha256: Optional[str] = None,
+    identity_source: Optional[dict] = None,
 ) -> dict:
     """Assemble the provenance bundle for one pipeline run.
 
@@ -506,6 +509,18 @@ def gather_run_metadata(
             sidecars alone. ``None`` (non-pipeline callers) writes ``null``.
         R_px: Optional root cross-section radius in pixels (added in PR #14;
             ``None`` writes ``null``).
+        metadata_csv_path: Optional resolved-absolute path of the metadata CSV
+            (added in PR #17). Identity provenance: records that genotype /
+            treatment / timepoint may have been populated from a CSV (and which
+            one). ``None`` writes ``null``.
+        metadata_csv_sha256: Optional SHA-256 hex digest of the metadata-CSV bytes
+            (added in PR #17). The CSV is an external mutable input recorded by
+            reference; the hash fingerprints the **whole file** so a reader can
+            detect post-run CSV drift (it verifies the file is unchanged, not the
+            matched row specifically). ``None`` writes ``null``.
+        identity_source: Optional mapping from each row-identity field to the
+            source that won it — ``"flag"`` / ``"metadata_csv"`` / ``"default"`` /
+            ``"absent"`` (added in PR #17). ``None`` writes ``null``.
 
     Returns:
         A JSON-serializable dict containing every required provenance
@@ -527,6 +542,9 @@ def gather_run_metadata(
         "run_id": run_id,
         "cadence_s": cadence_s,
         "R_px": R_px,
+        "metadata_csv_path": metadata_csv_path,
+        "metadata_csv_sha256": metadata_csv_sha256,
+        "identity_source": identity_source,
         "_schema_version": _SCHEMA_VERSION,
         "_constants_version": _CONSTANTS_VERSION,
         "_constants_snapshot": snapshot,

@@ -2,6 +2,7 @@
 
 import click
 
+from sleap_roots.circumnutation.cli import circumnutation
 from sleap_roots.viewer.cli import viewer
 
 
@@ -13,6 +14,7 @@ def main():
 
 
 main.add_command(viewer)
+main.add_command(circumnutation)
 
 
 if __name__ == "__main__":
