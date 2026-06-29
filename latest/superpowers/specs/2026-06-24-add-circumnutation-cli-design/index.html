@@ -12,7 +12,7 @@
         <meta name="author" content="Talmo Lab">
       
       
-        <link rel="canonical" href="https://roots.sleap.ai/latest/reference/sleap_roots/cli/">
+        <link rel="canonical" href="https://roots.sleap.ai/latest/superpowers/specs/2026-06-24-add-circumnutation-cli-design/">
       
       
       
@@ -25,7 +25,7 @@
     
     
       
-        <title>Cli - sleap-roots</title>
+        <title>add-circumnutation-cli — design (PR #17) - sleap-roots</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#sleap_roots.cli" class="md-skip">
+        <a href="#add-circumnutation-cli-design-pr-17" class="md-skip">
           Skip to content
         </a>
       
@@ -120,7 +120,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Cli
+              add-circumnutation-cli — design (PR #17)
             
           </span>
         </div>
@@ -2827,82 +2827,524 @@
   
 
 
-  <h1>Cli</h1>
-
-<div class="doc doc-object doc-module">
-
-
-
-<h2 id="sleap_roots.cli" class="doc doc-heading">
-            <span class="doc doc-object-name doc-module-name">cli</span>
-
-
-<a href="#sleap_roots.cli" class="headerlink" title="Permanent link">&para;</a></h2>
-
-    <div class="doc doc-contents first">
-
-        <p>Command-line interface for sleap-roots.</p>
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="sleap_roots.cli.main" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">main</span>
-
-
-<a href="#sleap_roots.cli.main" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">main</span><span class="p">()</span>
+<h1 id="add-circumnutation-cli-design-pr-17">add-circumnutation-cli — design (PR #17)<a class="headerlink" href="#add-circumnutation-cli-design-pr-17" title="Permanent link">&para;</a></h1>
+<p><strong>Date:</strong> 2026-06-24
+<strong>Branch:</strong> <code>elizabeth/add-circumnutation-cli</code>
+<strong>OpenSpec change-id:</strong> <code>add-circumnutation-cli</code>
+<strong>Parent issue:</strong> #197 · <strong>Closes:</strong> (PR #17 tracking issue, drafted to vault)
+<strong>Roadmap row:</strong> 17 — <code>sleap-roots circumnutation analyze</code></p>
+<h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
+<p>PR #17 adds the user-facing CLI for the circumnutation pipeline: a single
+<code>circumnutation analyze</code> command that composes the whole pipeline on one <code>.slp</code>
+(load → adapt → <code>compute_traits</code> → <code>save</code> → <code>aggregate_by_genotype</code> → write →
+plots). It also formalizes the <strong><code>Series</code> → <code>CircumnutationInputs</code> adapter</strong> that
+the roadmap says lands here (today it exists only as test code,
+<code>_load_plate001_inputs()</code> in <code>tests/test_circumnutation_pipeline.py</code>).</p>
+<p>This is an <strong>addition</strong>, not a stub→impl graduation: there is no <code>cli</code> stub (PR</p>
+<h1 id="16-graduated-the-last-one-only-the-deferred-tier-4-parametric-stub-remains">16 graduated the last one; only the deferred Tier-4 <code>parametric</code> stub remains).<a class="headerlink" href="#16-graduated-the-last-one-only-the-deferred-tier-4-parametric-stub-remains" title="Permanent link">&para;</a></h1>
+<p>PR #17 adds <code>sleap_roots/circumnutation/cli.py</code> + <code>sleap_roots/circumnutation/
+adapters.py</code> and registers the command on the existing click CLI.</p>
+<h3 id="scope-non-goals">Scope / non-goals<a class="headerlink" href="#scope-non-goals" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>In:</strong> <code>circumnutation</code> click group + <code>analyze</code> command; the <code>series_to_inputs</code>
+  adapter; output tree (per-plant CSV, per-genotype CSV, plots); pure-pixel
+  contract surfaced in <code>--help</code>; logging via <code>-v</code>.</li>
+<li><strong>Out (deliberate):</strong> no <code>--px-per-mm</code> / calibration surface (CC-3); no
+  <code>ConstantsT</code> override surface in v1; no <code>trajectory_per_plant/&lt;id&gt;.csv</code> dumps
+  (the pipeline doesn't emit them today — the roadmap line-16 sketch is
+  aspirational); does <strong>not</strong> fix #238 (sidestepped via layout); does <strong>not</strong>
+  widen <code>save_plots</code> to record <code>input_path</code> (noted as a follow-up).</li>
+</ul>
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
+<p>Three new/changed surfaces:</p>
+<ol>
+<li><strong><code>sleap_roots/circumnutation/adapters.py</code></strong> (new) — <code>series_to_inputs(series,
+   *, cadence_s, sample_uid, series_name, timepoint, plate_id, genotype,
+   treatment, r_px, run_id) -&gt; CircumnutationInputs</code>. The single bridge from
+   <code>sleap_roots.series</code> into the pure circumnutation core. <strong>No click
+   dependency</strong> (unit-testable without <code>CliRunner</code>); <strong>no <code>Series</code> import in
+   <code>_types.py</code></strong> (keeps the data class decoupled from the heavier
+   <code>series</code>/<code>sleap_io</code> stack).</li>
+<li><strong><code>sleap_roots/circumnutation/cli.py</code></strong> (new) — a <code>@click.group()
+   circumnutation</code> holding the <code>analyze</code> command. Mirrors
+   <code>sleap_roots/viewer/cli.py</code>: lazy imports inside the command body, descriptive
+   <code>--help</code>, <code>ClickException</code> for domain errors.</li>
+<li><strong><code>sleap_roots/cli.py</code></strong> (modified) — <code>main.add_command(circumnutation)</code>,
+   exactly mirroring the existing <code>main.add_command(viewer)</code> line.</li>
+</ol>
+<h2 id="d1-cli-shape-option-surface">D1 — CLI shape &amp; option surface<a class="headerlink" href="#d1-cli-shape-option-surface" title="Permanent link">&para;</a></h2>
+<p><code>circumnutation</code> group + <code>analyze</code> command (mirrors <code>viewer/cli.py</code>); chosen over
+a flat <code>circumnutation-analyze</code> or a bare <code>analyze</code> so future subcommands
+(<code>aggregate</code>, <code>plot</code>, <code>convert-units</code>) slot in with no restructuring.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Default / Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SLP_PATH</code> (arg)</td>
+<td><code>click.Path(exists=True, path_type=Path)</code></td>
+<td>input <code>.slp</code></td>
+</tr>
+<tr>
+<td><code>--cadence-s</code></td>
+<td><code>float</code>, <strong>required</strong></td>
+<td>feeds all period/freq traits; no default (not recoverable from <code>.slp</code>)</td>
+</tr>
+<tr>
+<td><code>--sample-uid</code></td>
+<td><code>str</code>, <strong>required</strong></td>
+<td>QR / stable sample id; the metadata-CSV join key</td>
+</tr>
+<tr>
+<td><code>--output-dir, -o</code></td>
+<td><code>click.Path(path_type=Path)</code></td>
+<td>default <code>./&lt;series_name&gt;_circumnutation/</code>; <code>mkdir(parents=True, exist_ok=True)</code></td>
+</tr>
+<tr>
+<td><code>--series-name</code></td>
+<td><code>str</code></td>
+<td>default = <code>.slp</code> filename stem (human recording label)</td>
+</tr>
+<tr>
+<td><code>--metadata-csv</code></td>
+<td><code>click.Path(exists=True, path_type=Path)</code></td>
+<td>optional; <code>Series</code> metadata join source</td>
+</tr>
+<tr>
+<td><code>--timepoint</code></td>
+<td><code>str</code></td>
+<td>default NaN; object/string label (override/fallback)</td>
+</tr>
+<tr>
+<td><code>--plate-id</code></td>
+<td><code>str</code></td>
+<td>default NaN (NaN-keyed group is allowed)</td>
+</tr>
+<tr>
+<td><code>--genotype</code></td>
+<td><code>str</code></td>
+<td><strong>effectively required</strong> via flag <em>or</em> <code>--metadata-csv</code>; NaN → hard error (see below)</td>
+</tr>
+<tr>
+<td><code>--treatment</code></td>
+<td><code>str</code></td>
+<td>default NaN (NaN-keyed group is allowed)</td>
+</tr>
+<tr>
+<td><code>--r-px</code></td>
+<td><code>float</code></td>
+<td>default <code>None</code></td>
+</tr>
+<tr>
+<td><code>--run-id</code></td>
+<td><code>str</code></td>
+<td>default <code>None</code></td>
+</tr>
+<tr>
+<td><code>--no-plots</code></td>
+<td>flag</td>
+<td>gates plotting + matplotlib import (D4)</td>
+</tr>
+<tr>
+<td><code>--no-aggregate</code></td>
+<td>flag</td>
+<td>skip per-genotype aggregation; <code>per_genotype/</code> not written (D3)</td>
+</tr>
+<tr>
+<td><code>-v, --verbose</code></td>
+<td>count</td>
+<td>log level (D8)</td>
+</tr>
+</tbody>
+</table>
+<p>No <code>--constants</code> / <code>--px-per-mm</code>.</p>
+<h3 id="identity-semantics-the-sample_uid-series_name-decision">Identity semantics (the <code>sample_uid</code> / <code>series_name</code> decision)<a class="headerlink" href="#identity-semantics-the-sample_uid-series_name-decision" title="Permanent link">&para;</a></h3>
+<p><code>Series.get_metadata</code> joins <code>df[df["plant_qr_code"] == self.sample_uid]</code>, so
+<code>sample_uid</code> is <strong>not</strong> a display label — it is the stable, unique physical-sample
+identifier (the plate's QR code). It must be user-supplied so a pre-authored
+metadata CSV can be keyed on it and so re-runs share identity (reproducibility).
+A randomly minted UUID would break both. Therefore:</p>
+<ul>
+<li><strong><code>--sample-uid</code> is required</strong> (no silent synthesis — honors CC-4's "row-identity
+  stays explicit, any divergence is a deliberate caller decision", roadmap.md:82).</li>
+<li><strong><code>--series-name</code> defaults to the <code>.slp</code> filename stem</strong> (the human recording
+  label; "series" = the time-lapse of frames, the circumnutation analog of the
+  RSA multi-scan series).</li>
+</ul>
+<p><strong>Per-genotype aggregation is a gated step; genotype is required only when it
+runs.</strong> The per-genotype aggregation (<code>aggregate_by_genotype</code>) is fully separable —
+<code>compute_traits</code> → <code>save</code> (per-plant) and <code>save_plots</code> never touch genotype, so the
+pipeline can produce per-plant traits + plots without any genotype info. The
+per-genotype CSV is meaningless without genotype labels, though: an all-NaN
+identity would group all plants under one <code>(NaN, NaN, NaN)</code> key and emit a
+scientifically vacuous file. So aggregation is gated on <code>--no-aggregate</code> (symmetric
+with <code>--no-plots</code>):</p>
+<ul>
+<li><strong>Aggregation on (default), genotype resolvable</strong> (<code>--genotype</code> or
+  <code>--metadata-csv</code> with a <code>genotype</code> column) → full pipeline incl. <code>per_genotype/</code>.</li>
+<li><strong>Aggregation on (default), genotype NaN for any plant</strong> → <strong>hard error</strong> (exit 1)
+  <em>before any output is written</em>: <em>"genotype is required for per-genotype
+  aggregation; supply --genotype / --metadata-csv, or pass --no-aggregate."</em> (Per
+  Elizabeth's directive — never silently emit a vacuous per-genotype CSV, and never
+  auto-skip-and-warn.)</li>
+<li><strong><code>--no-aggregate</code></strong> → skip the per-genotype step and the <code>per_genotype/</code> dir
+  entirely; per-plant + plots still produced; genotype not required.</li>
+</ul>
+<p><code>--no-aggregate</code> and <code>--genotype</code> are orthogonal — a user may still supply genotype
+to populate the per-plant identity columns while skipping the per-genotype CSV.
+<code>plate_id</code> and <code>treatment</code> remain optional (NaN-keyed groups are valid for those —
+aspirational per CC-4); only <code>genotype</code> gates the aggregation step.</p>
+<p><strong><code>--output-dir</code> default — follows the repo convention.</strong> Other pipelines default
+output to cwd and disambiguate runs by embedding <code>series_name</code>
+(<code>compute_plant_traits</code> writes <code>output_dir="." / f"{series_name}{suffix}"</code>;
+<code>compute_multiple_dicots_traits_for_groups</code> defaults <code>output_dir="grouped_traits"</code>
+with <code>mkdir(parents=True, exist_ok=True)</code>; <code>viewer</code> defaults to <code>viewer.html</code>).
+Since <code>analyze</code> emits a <em>tree</em> rather than a single file, the faithful
+translation is to default <code>--output-dir</code> to <code>./&lt;series_name&gt;_circumnutation/</code> —
+cwd-relative, <code>series_name</code>-disambiguated (no clobber across <code>.slp</code>), and
+descriptively self-labeled.</p>
+<h2 id="d2-the-series-circumnutationinputs-adapter">D2 — the <code>Series</code> → <code>CircumnutationInputs</code> adapter<a class="headerlink" href="#d2-the-series-circumnutationinputs-adapter" title="Permanent link">&para;</a></h2>
+<p><strong>Location:</strong> <code>adapters.py</code>, <code>series_to_inputs(...)</code>.</p>
+<p><strong>Transform (generalizes <code>_load_plate001_inputs</code>).</strong> The adapter formalizes the
+blueprint's <em>mechanical</em> transform — track_id strip + 8 identity columns — but
+<strong>replaces the blueprint's hardcoded test values</strong> (<code>genotype="Nipponbare"</code>,
+<code>treatment="none"</code>, <code>timepoint="T0"</code>) with the CSV/flag/NaN sourcing below. Those
+literals were ad-hoc test fixtures, not the contract.</p>
+<ol>
+<li><code>df = series.get_tracked_tips()</code> → columns <code>["track_id", "frame", "tip_x",
+   "tip_y"]</code>, <code>track_id</code> as <code>"track_&lt;n&gt;"</code> strings.</li>
+<li>Derive integer <code>track_id</code>: strip a <strong>prefix-anchored</strong> <code>"track_"</code>
+   (<code>removeprefix</code> / <code>^track_</code>, <em>not</em> the blueprint's global <code>.replace</code>) then
+   coerce to int. On failure, raise a clear <code>ValueError</code> naming the offending
+   track name(s): <em>"Cannot derive an integer track_id from track name(s)
+   ['track_2a']; expected 'track_<int>'."</em></li>
+<li><code>plant_id = track_id</code> (today's convention).</li>
+<li>Resolve the identity fills (see metadata precedence) and set the 8
+   <code>ROW_IDENTITY_COLUMNS</code>.</li>
+<li><code>return CircumnutationInputs(trajectory_df=df, cadence_s=…, R_px=…, run_id=…)</code>.</li>
+</ol>
+<p><strong>Metadata precedence — CSV-as-source, flags-as-override (D2c = option A).</strong> For
+each of <code>genotype</code>/<code>treatment</code>/<code>timepoint</code>, the adapter resolves a single value
+with an explicit, implementable rule (B1 — <code>Series.get_metadata</code> returns <code>np.nan</code>
+<em>identically</em> for "no CSV", "missing column", and "empty cell", so the rule keys
+on <code>pd.notna</code>, not on distinguishing those cases):</p>
+<p><div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>csv_val = get_metadata(field) if --metadata-csv else np.nan   # raw cell, not Series.&lt;prop&gt;
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>resolved = flag if flag is not None else csv_val
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>if flag is not None and pd.notna(csv_val) and str(flag) != str(csv_val):
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    log.info(&quot;--%s overrides metadata-csv value %r -&gt; %r&quot;, field, csv_val, flag)
 </span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Analysis tools for SLEAP-based plant root phenotyping.</p>
-
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>sleap_roots/cli.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-9"> 9</a></span>
-<span class="normal"><a href="#__codelineno-0-10">10</a></span>
-<span class="normal"><a href="#__codelineno-0-11">11</a></span>
-<span class="normal"><a href="#__codelineno-0-12">12</a></span>
-<span class="normal"><a href="#__codelineno-0-13">13</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="nd">@click</span><span class="o">.</span><span class="n">group</span><span class="p">()</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10"></a><span class="nd">@click</span><span class="o">.</span><span class="n">version_option</span><span class="p">()</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Analysis tools for SLEAP-based plant root phenotyping.&quot;&quot;&quot;</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a>    <span class="k">pass</span>
-</span></code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-
-
-  </div>
-
-    </div>
-
-</div>
+So a flag always wins; the INFO override-notice (CC-9) fires only when the flag
+actually shadows a <em>real</em> (non-null, different) CSV value — never spuriously.
+With neither flag nor CSV value, the field is <code>NaN</code>.</p>
+<p><strong><code>timepoint</code> dtype contract (B2).</strong> <code>--timepoint</code> is a free-form <strong>object/string</strong>
+label. The adapter reads the CSV cell via the <strong>raw <code>get_metadata("timepoint")</code></strong>
+(NOT the <code>Series.timepoint</code> property, which coerces to <code>float</code> and <em>raises</em> on a
+non-numeric value, series.py:305-330) and <code>str()</code>-normalizes both the flag and the
+CSV value, so the column is uniformly string-typed (consistent with
+<code>_build_per_plant_template</code> casting <code>timepoint</code> to <code>object</code>).</p>
+<p><strong>Malformed <code>--metadata-csv</code> (I3).</strong> <code>get_metadata</code> does <code>pd.read_csv</code> internally;
+a non-parseable file raises a pandas error (e.g. <code>ParserError</code>), <em>not</em> <code>ValueError</code>.
+The adapter wraps the metadata read and converts any read failure into a clear
+<code>ValueError</code> (caught by the CLI → clean <code>ClickException</code>, D6) rather than leaking a
+traceback.</p>
+<p><strong>Edge handling (D2d):</strong>
+- <strong>No usable tracks / empty trajectory:</strong> do <strong>not</strong> duplicate validation —
+  <code>get_tracked_tips</code> already raises <code>ValueError</code> for untracked predictions, and
+  <code>CircumnutationInputs</code> already raises on an empty <code>trajectory_df</code>. The CLI layer
+  surfaces these as clean <code>ClickException</code>s (D6).
+- <strong>Non-integer <code>track_id</code>:</strong> the adapter validates and raises the friendly
+  <code>ValueError</code> above rather than letting <code>astype(int)</code> throw a cryptic pandas
+  error ("raise rather than silently corrupt", matching <code>_validate_integer_identity</code>).</p>
+<h2 id="d3-output-layout-the-238-clobber">D3 — output layout &amp; the #238 clobber<a class="headerlink" href="#d3-output-layout-the-238-clobber" title="Permanent link">&para;</a></h2>
+<p>Both <code>_io</code> writers emit a <strong>fixed-name <code>run_metadata.json</code></strong> in the CSV's parent
+dir, so two CSVs in one dir collide (#238). PR #17 <strong>sidesteps via distinct
+subdirs</strong> (does not fix the underlying <code>_io</code> API foot-gun):</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>&lt;output-dir&gt;/
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>├── per_plant/
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>│   ├── traits_per_plant.csv
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>│   ├── traits_per_plant.units.json
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>│   └── run_metadata.json
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>├── per_genotype/
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>│   ├── traits_per_genotype.csv
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>│   ├── traits_per_genotype.units.json
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>│   └── run_metadata.json
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>└── plots/
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    ├── *.png
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    └── plots_metadata.json
+</span></code></pre></div>
+<p><code>save_plots(inputs, out_dir=&lt;output-dir&gt;, …)</code> creates the <code>plots/</code> leaf. <strong>Zero
+changes to the foundation <code>_io</code> contract.</strong> The proposal references #238 and
+states explicitly that PR #17 sidesteps but does <strong>not</strong> close it.</p>
+<p><strong>Conditional subdirs.</strong> <code>per_genotype/</code> is written only when aggregation runs —
+<code>--no-aggregate</code> omits it entirely (like <code>--no-plots</code> omits <code>plots/</code>). So the tree
+above is the <em>full</em> (default, genotype-resolvable) shape; <code>--no-aggregate</code> yields
+<code>per_plant/</code> + <code>plots/</code> only.</p>
+<p><strong>The CLI creates <code>per_plant/</code> (and <code>per_genotype/</code> when aggregating) itself (I1).</strong>
+<code>pipeline.save()</code> and <code>write_per_genotype_csv</code> require their parent dir to <em>already
+exist</em> — <code>save()</code> raises <code>FileNotFoundError</code> otherwise (pipeline.py:228-233). So
+the CLI <code>mkdir(parents=True, exist_ok=True)</code> the <code>per_plant/</code> leaf always, and the
+<code>per_genotype/</code> leaf only on the aggregation path, <strong>before</strong> the writes. (If skipped, the happy path raises
+<code>FileNotFoundError</code>, which D6 would then mis-surface as a clean exit-1 "domain
+error" — masking a CLI bug. Creating the leaves up front prevents that.)</p>
+<p><strong>Re-run overwrite is deliberate (documented).</strong> Re-running <code>analyze</code> on the same
+<code>.slp</code> writes to the same default dir and <strong>overwrites</strong> prior CSVs/sidecars/
+<code>run_metadata.json</code> (<code>to_csv</code> truncates; <code>mkdir(exist_ok=True)</code>). This is the
+intended behavior — it matches the repo convention (<code>compute_plant_traits</code> /
+<code>*_for_groups</code> / <code>viewer</code> all overwrite) and keeps re-runs idempotent. Documented
+in <code>--help</code> so it is a stated decision, not a silent footgun.</p>
+<h2 id="d4-no-plots-matplotlibuseagg">D4 — <code>--no-plots</code> + <code>matplotlib.use("Agg")</code><a class="headerlink" href="#d4-no-plots-matplotlibuseagg" title="Permanent link">&para;</a></h2>
+<p><code>save_plots</code> deliberately does not select a backend (plotting.py:613); the CLI,
+which owns the process, makes it headless. <code>matplotlib.use("Agg")</code> must run before
+<code>pyplot</code> is first imported, and nothing in the <code>analyze</code> path touches matplotlib
+before plotting.</p>
+<p><strong>Gated approach:</strong>
+- <strong>Plots enabled (default):</strong> <code>import matplotlib; matplotlib.use("Agg", force=True)</code>
+  → lazy <code>from sleap_roots.circumnutation import plotting</code> → <code>save_plots(inputs,
+  out_dir=&lt;output-dir&gt;, constants=None, enabled=True)</code>.
+- <strong><code>--no-plots</code>:</strong> skip the backend call <em>and</em> the <code>plotting</code> import entirely;
+  <code>log.info("plotting disabled (--no-plots)")</code>. Truly avoids importing matplotlib.</p>
+<p><strong><code>force=True</code> is required for test-suite robustness (M).</strong> Under <code>CliRunner</code> the
+CLI runs <em>in-process</em> inside pytest, where an earlier plotting unit test has
+already imported <code>pyplot</code>. Plain <code>use("Agg")</code> after <code>pyplot</code> is imported may not
+switch the backend and emits a warning; <code>force=True</code> makes the switch
+deterministic. It is a no-op cost in the real (fresh-process) CLI. (My earlier
+"fresh process, force unneeded" rationale was wrong for the shared-interpreter test
+environment.)</p>
+<p>The <code>save_plots(enabled=…)</code> param is still exercised directly in unit tests
+(independent of the CLI gating).</p>
+<h2 id="d5-testing-the-click-cli">D5 — testing the click CLI<a class="headerlink" href="#d5-testing-the-click-cli" title="Permanent link">&para;</a></h2>
+<p><strong>Primary happy-path mechanism: synthetic tracked <code>.slp</code> round-trip.</strong> All
+<code>*.slp</code> are LFS-tracked, so a fresh CI checkout may have none → real-fixture
+tests are skipif-guarded. To carry the coverage gate on every machine, a helper
+<code>_make_synthetic_tracked_slp(tmp_path, *, n_tracks, n_frames, noise_sigma_px)</code>
+builds a tracked <code>.slp</code> and the CLI/adapter load it through the <em>real</em>
+<code>Series.load → get_tracked_tips</code> path — the "round-trip through a synthetic <code>.slp</code>"
+mechanism (not "construct <code>Labels</code> in memory and pass to the pipeline").</p>
+<p><strong>Helper construction — the load-bearing detail (B3).</strong> <code>generate_trajectory</code>
+returns a <em>DataFrame</em> (one row per <code>(track, frame)</code> with <code>tip_x</code>/<code>tip_y</code>), <strong>not</strong>
+<code>Labels</code>. The house idiom (test_tracked_tip_pipeline.py:351-371,
+test_series.py:709-798) builds the <code>.slp</code> like so:
+1. <code>Image.fromarray(np.zeros((H,W), uint8)).save(tif_path, dpi=(72,72))</code> (PIL) →
+   <code>video = sio.Video.from_filename(tif_path)</code>. <strong>A real TIFF is mandatory</strong> —
+   <code>sio.save_slp</code> needs a <code>Video</code> to attach to each <code>LabeledFrame</code>. (PIL is already
+   a test-path dependency via this idiom.)
+2. <code>skeleton = sio.Skeleton([sio.Node("tip")])</code>; one <code>sio.Track(name="track_&lt;i&gt;")</code>
+   per track.
+3. For each row, <code>sio.Instance.from_numpy(np.array([[tip_x, tip_y]]), skeleton,
+   track)</code>; group instances into <code>sio.LabeledFrame(video, frame_idx, instances)</code>.
+4. <code>sio.save_slp(sio.Labels(labeled_frames, skeletons=[skeleton], videos=[video],
+   tracks=[...]), slp_path)</code>.
+<strong>No image backend is exercised on read</strong> — <code>Series.load</code>/<code>get_tracked_tips</code> read
+only point coordinates, so the synthetic <code>.slp</code> round-trips identically on all 3
+OSs.</p>
+<p><strong>Minimum frames + noise (B4).</strong> Tier-1 CWT requires <code>len(x) ≥ MIN_FRAMES_REQUIRED</code>
+(= 9 at defaults; <code>temporal_cwt._validate_x</code> raises <code>ValueError</code> below it), and
+<code>compute_traits</code> runs Tier 1 + Tier 3c. So the synthetic happy-path fixture uses
+<strong><code>n_frames ≥ 64</code></strong> (matching the existing <code>_track_rows(n_frames=64)</code> pipeline-test
+convention) and <strong><code>noise_sigma_px &gt; 0</code></strong> (theory.md §8 mandates noise for Layer-1
+pipeline validation; a noise-free synthetic risks degenerate QC/ridge behavior).
+<code>n_tracks ≥ 2</code> so per-genotype aggregation has &gt;1 plant.</p>
+<p><strong><code>tests/test_circumnutation_cli.py</code> (CliRunner):</strong>
+- <code>--help</code> on group + <code>analyze</code> → exit 0.
+- Missing <code>--cadence-s</code> / <code>--sample-uid</code> → exit 2 ("Missing option").
+- Nonexistent <code>SLP_PATH</code> → exit 2 (<code>Path(exists=True)</code>).
+- Bad <code>--cadence-s</code> (<code>0</code>, negative, non-numeric) → non-zero exit, clean one-line
+  message (D6), no traceback.
+- <strong>Happy path on synthetic <code>.slp</code></strong> (<strong>with <code>--genotype</code></strong> supplied) → exit 0;
+  assert the D3 output tree; per-plant row count = <code>n_tracks</code>; identity columns
+  populated; per-genotype CSV has the expected genotype group(s).
+- <strong>Genotype-missing hard error</strong> → bare invocation (no <code>--genotype</code>, no
+  <code>--metadata-csv</code>, no <code>--no-aggregate</code>) → exit 1, clean <code>ClickException</code> naming
+  <code>--genotype</code> / <code>--metadata-csv</code> / <code>--no-aggregate</code>; no partial output tree left
+  behind.
+- <strong><code>--no-aggregate</code> without genotype</strong> → exit 0; <code>per_plant/</code> + <code>plots/</code> written,
+  <strong>no <code>per_genotype/</code></strong> dir; succeeds despite absent genotype.
+- <code>--metadata-csv</code> (synthetic CSV) → output CSV carries <code>genotype</code>/<code>treatment</code>;
+  <code>--genotype</code> flag overrides CSV value (assert override logged via <code>caplog</code>).
+- <code>--no-plots</code> → no <code>plots/</code> dir; exit 0.
+- <strong>Real plate-001 e2e (skipif-guarded)</strong> → with <code>--metadata-csv
+  fixture_metadata.csv</code> + <code>--sample-uid plate_001</code>, output carries
+  <code>genotype=Nipponbare</code>, <code>treatment=MOCK</code>; full tree; PNGs exist + non-empty.
+  <strong>No pixel baselines.</strong></p>
+<p><strong><code>tests/test_circumnutation_adapters.py</code>:</strong>
+- <code>series_to_inputs</code> on synthetic Series → 8 identity columns correct, <code>track_id</code>
+  int, trajectory intact.
+- <code>"track_&lt;n&gt;"</code> → int; non-integer track name (<code>"track_2a"</code>) → clear <code>ValueError</code>;
+  <strong>interior-<code>track_</code> name</strong> (<code>"track_track_1"</code>) coerces correctly under the
+  prefix-anchored strip (would corrupt under the blueprint's global <code>.replace</code>).
+- Metadata precedence: CSV value used; flag overrides CSV (+ <code>caplog</code> INFO);
+  flag fills a <em>blank</em> CSV cell → <strong>no</strong> spurious override log; neither → NaN.
+- Malformed <code>--metadata-csv</code> → clear <code>ValueError</code>, not a pandas traceback (I3).
+- <code>--timepoint</code> from a numeric CSV cell (<code>0</code>) → string-normalized <code>"0"</code> (B2).
+- Real plate-001 (skipif) → matches fixture metadata.</p>
+<p><strong>Coverage:</strong> local <code>--cov</code> hits the Windows numpy-reload bug → coverage is
+CI-enforced; locally we run via <code>CliRunner</code> without <code>--cov</code>. Synthetic-<code>.slp</code>
+tests provide the non-skipped coverage (≥84% project, aim ≥90% new code).</p>
+<h2 id="d6-error-handling-ux">D6 — error handling / UX<a class="headerlink" href="#d6-error-handling-ux" title="Permanent link">&para;</a></h2>
+<p>Mirrors <code>viewer/cli.py</code>: catch the known domain exception, convert, no catch-all.</p>
+<ul>
+<li><strong>Click built-ins</strong> → exit 2: missing required options, nonexistent <code>SLP_PATH</code>.</li>
+<li><strong>Pipeline body</strong> (<code>series_to_inputs</code> → <code>CircumnutationInputs</code> →
+  <code>compute_traits</code> → <code>save</code> → <code>aggregate</code> → <code>write</code> → <code>save_plots</code>) wrapped in one
+  <code>try/except (ValueError, FileNotFoundError)</code> → <code>raise click.ClickException(str(e))</code>
+  → <strong>exit 1</strong>, clean message, no traceback. The core already raises descriptive,
+  field-naming <code>ValueError</code>s, so <code>str(e)</code> is user-meaningful.</li>
+<li><strong>No broad <code>except Exception</code></strong> — unanticipated errors surface as tracebacks
+  (debuggable bugs).</li>
+<li><strong><code>cadence_s</code> (and <code>R_px</code>) validated only in <code>CircumnutationInputs</code></strong> — the
+  single source of truth (rejects ≤0, NaN, inf, non-numeric, bool) — <em>not</em> also
+  at the click layer, so every bad-cadence case yields the same exit code (1) and
+  messaging.</li>
+<li><strong>Genotype-missing hard error</strong> (your-call 1, gated): when aggregation is on
+  (no <code>--no-aggregate</code>), after identity resolution, if any plant's <code>genotype</code> is
+  NaN, the CLI raises <code>click.ClickException</code> (exit 1) naming <code>--genotype</code> /
+  <code>--metadata-csv</code> / <code>--no-aggregate</code> — <em>before</em> writing any output, so no partial
+  tree is left behind. With <code>--no-aggregate</code> the check is skipped (genotype not
+  required). A deliberate CLI-layer guard, distinct from the core's <code>ValueError</code>s.</li>
+<li><strong>Adapter normalizes its raisers to <code>ValueError</code> (I3).</strong> The two non-<code>ValueError</code>
+  leak surfaces — a malformed <code>--metadata-csv</code> (<code>pd.read_csv</code> → pandas error) and a
+  non-integer track name (<code>astype(int)</code> → could surface a pandas error) — are
+  caught <em>inside the adapter</em> and re-raised as clear <code>ValueError</code>s, so the single
+  <code>try/except (ValueError, FileNotFoundError)</code> at the CLI catches everything
+  user-facing. Genuinely-unexpected types still surface as tracebacks by design.</li>
+</ul>
+<h2 id="d7-provenance-threading-input_path-through-save">D7 — provenance: threading <code>input_path</code> through <code>save</code><a class="headerlink" href="#d7-provenance-threading-input_path-through-save" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The CLI computes <code>slp_path = Path(SLP_PATH).resolve()</code> once and passes
+  <code>str(slp_path)</code> as <code>input_path</code> into the per-plant writer <code>pipeline.save(
+  per_plant/…csv, …, input_path=slp_path)</code>, and — <strong>only on the aggregation path
+  (not under <code>--no-aggregate</code>)</strong> — into the per-genotype writer via
+  <code>gather_run_metadata(input_path=slp_path, run_id=inputs.run_id, constants=None,
+  cadence_s=inputs.cadence_s, R_px=inputs.R_px)</code> → <code>write_per_genotype_csv</code>.
+  <strong>Resolved-absolute</strong> (a relative path is meaningless in <code>run_metadata.json</code>).</li>
+<li>Both subdir <code>run_metadata.json</code> files record identical run provenance (same
+  <code>input_path</code>/<code>cadence_s</code>/<code>R_px</code>/<code>run_id</code>/constants snapshot; only the per-write
+  wall-clock <code>timestamp</code> differs, within ms). <strong>Deliberate (your-call 3): keep the
+  blessed <code>pipeline.save()</code> API</strong> for per-plant (it builds provenance internally and
+  has the parent-dir guard) plus a second <code>gather_run_metadata</code> for per-genotype —
+  accepting two <code>git rev-parse</code> subprocesses and the ms-apart timestamps as benign,
+  rather than bypassing <code>save()</code> to share one snapshot. The provenance content is
+  identical; only the stamp instant differs.</li>
+<li><strong>Known gap (follow-up, not fixed here):</strong> <code>save_plots</code> takes <code>inputs</code>, not
+  <code>input_path</code>, so <code>plots_metadata.json</code> cannot record the source <code>.slp</code> path.
+  Candidate follow-up: "thread <code>input_path</code> into <code>save_plots</code> provenance."</li>
+</ul>
+<h2 id="d8-cc-3-no-px-per-mm-cc-9-logging-v">D8 — CC-3 (no <code>--px-per-mm</code>) + CC-9 logging (<code>-v</code>)<a class="headerlink" href="#d8-cc-3-no-px-per-mm-cc-9-logging-v" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>CC-3:</strong> no <code>--px-per-mm</code>; the <code>analyze</code> <code>--help</code>/docstring states outputs are
+  pixel-native and points to <code>sleap_roots.circumnutation.units.convert_to_mm</code> for
+  mm conversion. Calibration stays downstream.</li>
+<li><strong>CC-9:</strong> <code>-v</code> is a <strong>count</strong> flag → <code>0 = WARNING</code> (quiet default), <code>-v = INFO</code>
+  (per-plate progress), <code>-vv = DEBUG</code> (per-plant detail), matching CC-9's
+  INFO/DEBUG split. A <code>_configure_logging(verbose)</code> helper maps count → level and
+  calls <code>logging.basicConfig(level=…, format="%(levelname)s %(name)s: %(message)s",
+  stream=sys.stderr)</code>. <strong>Logs → stderr</strong>, keeping stdout for the final
+  <code>click.echo</code> summary. The D2c override notice is an INFO log.</li>
+<li><strong>Tracebacks decoupled from <code>-v</code></strong> — known domain errors always become a clean
+  <code>ClickException</code>; only unanticipated exceptions surface tracebacks. <code>-v</code>
+  controls log verbosity only.</li>
+</ul>
+<h2 id="openspec-deltas-for-the-proposal-phase">OpenSpec deltas (for the proposal phase)<a class="headerlink" href="#openspec-deltas-for-the-proposal-phase" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>MODIFY</strong> the "Package layout" requirement: ADD the new modules (<code>cli.py</code> +
+  <code>adapters.py</code>) to the enumerated impl list; stub table unchanged at 1
+  (<code>parametric</code>, deferred). The exact before/after impl count must be read off the
+  actual Package-layout requirement during <code>/openspec:proposal</code> (we add two
+  modules, so confirm whether both are roadmap-referenced module names).</li>
+<li><strong>ADD</strong> a "Circumnutation analyze CLI" requirement (the <code>analyze</code> command +
+  <code>series_to_inputs</code> adapter contract, including the metadata precedence, output
+  tree, error contract, and pure-pixel <code>--help</code>).</li>
+</ul>
+<h2 id="verification-gates">Verification gates<a class="headerlink" href="#verification-gates" title="Permanent link">&para;</a></h2>
+<p><code>uv run pytest tests/ -q</code> green · ≥84% project coverage (CI) / aim ≥90% new ·
+<code>black --check</code> · <code>pydocstyle --convention=google sleap_roots/circumnutation/</code> ·
+<code>uv lock --check</code> (click already a dep → no-op) · <code>uv run mkdocs build</code> ·
+<code>npx openspec validate add-circumnutation-cli --strict</code> · tri-OS CI green.</p>
+<h2 id="relevant-issues">Relevant issues<a class="headerlink" href="#relevant-issues" title="Permanent link">&para;</a></h2>
+<p>Parent #197 · #238 (run_metadata clobber — sidestepped, referenced, not closed) ·</p>
+<h1 id="222-unit-suffixes-241-save_plots-mcp-serializable-follow-up-230-l_gz">222 (unit suffixes) · #241 (save_plots MCP-serializable follow-up) · #230 (L_gz,<a class="headerlink" href="#222-unit-suffixes-241-save_plots-mcp-serializable-follow-up-230-l_gz" title="Permanent link">&para;</a></h1>
+<p>informational). The <code>Series → CircumnutationInputs</code> adapter lands here; PR #18
+(user guide) consumes the CLI.</p>
+<h2 id="critical-review-reconciliation-2026-06-24">Critical review reconciliation (2026-06-24)<a class="headerlink" href="#critical-review-reconciliation-2026-06-24" title="Permanent link">&para;</a></h2>
+<p>Three adversarial reviewers (API-fidelity, design-soundness, test/reproducibility)
+reviewed the first draft. API-fidelity came back clean (every cited API exists and
+behaves as described). Design + test findings and their resolutions:</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Finding</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B1</td>
+<td><code>get_metadata</code> returns <code>np.nan</code> identically for no-CSV / missing-col / empty-cell → override-log unimplementable</td>
+<td>Concrete <code>pd.notna</code>-keyed precedence + log rule (D2c); flag wins always, log only on real shadow</td>
+</tr>
+<tr>
+<td>B2</td>
+<td><code>--timepoint</code> (str) vs CSV <code>timepoint</code> (numeric) clash; <code>Series.timepoint</code> raises on non-numeric</td>
+<td><code>timepoint</code> is object/string; adapter reads raw <code>get_metadata("timepoint")</code> + <code>str()</code>-normalizes (D2)</td>
+</tr>
+<tr>
+<td>B3</td>
+<td>Synthetic-<code>.slp</code> helper omits the mandatory PIL TIFF/Video build step; <code>generate_trajectory</code> returns a DataFrame not <code>Labels</code></td>
+<td>D5 helper spec rewritten with the full TIFF→Video→<code>Instance.from_numpy</code>→<code>save_slp</code> idiom</td>
+</tr>
+<tr>
+<td>B4</td>
+<td>No min <code>n_frames</code>; Tier-1 CWT raises below 9 frames</td>
+<td>D5 fixture pinned to <code>n_frames ≥ 64</code>, <code>noise_sigma_px &gt; 0</code>, <code>n_tracks ≥ 2</code></td>
+</tr>
+<tr>
+<td>I1</td>
+<td>CLI must <code>mkdir</code> <code>per_plant/</code> + <code>per_genotype/</code> leaves; <code>save()</code> raises <code>FileNotFoundError</code> otherwise</td>
+<td>D3 specifies creating both leaves before writing</td>
+</tr>
+<tr>
+<td>I2</td>
+<td>"Formalizes <code>_load_plate001_inputs</code>" conflicts with NaN-defaults (blueprint hardcodes <code>"none"</code>/<code>"T0"</code>)</td>
+<td>D2 clarifies: generalizes the <em>mechanical</em> transform, replaces the hardcoded test literals with CSV/flag/NaN sourcing</td>
+</tr>
+<tr>
+<td>I3</td>
+<td>Malformed <code>--metadata-csv</code> → pandas error leaks past <code>except (ValueError, FileNotFoundError)</code></td>
+<td>Adapter wraps the metadata read → clear <code>ValueError</code> (D2, D6)</td>
+</tr>
+<tr>
+<td>M</td>
+<td><code>matplotlib.use("Agg")</code> without <code>force=True</code> is a <code>CliRunner</code>-in-process hazard</td>
+<td>D4 → <code>use("Agg", force=True)</code>; stale contradicting paragraph removed</td>
+</tr>
+<tr>
+<td>your-call 1</td>
+<td>All-NaN <code>genotype</code> default produces a vacuous per-genotype CSV</td>
+<td>Per-genotype aggregation is a <strong>gated step</strong> (<code>--no-aggregate</code>, parallels <code>--no-plots</code>); default-on + genotype NaN → <strong>hard error</strong> (exit 1, before output); <code>--no-aggregate</code> → per-plant + plots only, genotype not required. No auto-skip-and-warn. (D1, D2, D3, D5, D6)</td>
+</tr>
+<tr>
+<td>your-call 2</td>
+<td>Re-run same-<code>.slp</code> silent overwrite</td>
+<td>Overwrite + documented in <code>--help</code> (deliberate; matches repo convention) (D3)</td>
+</tr>
+<tr>
+<td>your-call 3</td>
+<td>Double <code>gather_run_metadata</code> (2 git subprocs, ms-apart stamps)</td>
+<td>Keep blessed <code>save()</code> API; accept as benign (D7)</td>
+</tr>
+<tr>
+<td>M3</td>
+<td>Prefix-anchored strip needs an interior-<code>track_</code> test</td>
+<td>Added <code>"track_track_1"</code> adapter test (D5)</td>
+</tr>
+</tbody>
+</table>
 
 
 
