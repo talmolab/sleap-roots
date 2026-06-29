@@ -312,6 +312,10 @@ def test_happy_path_full_tree_and_provenance(synth, tmp_path):
     assert (per_plant["genotype"] == "Nipponbare").all()
     assert (per_plant["treatment"] == "MOCK").all()
 
+    # The CLI quiets matplotlib's cosmetic findfont fallback WARNINGs (the
+    # scaleogram LogNorm colorbar's mathtext) — stderr stays clean.
+    assert "findfont" not in r.stderr
+
     # Plots run_metadata_ref resolves to the top-level run_metadata.json.
     plots_meta = json.loads((out / "plots" / "plots_metadata.json").read_text())
     ref = (out / "plots" / plots_meta["run_metadata_ref"]).resolve()
@@ -494,7 +498,9 @@ def test_logging_state_restored_after_run(synth, tmp_path):
     import logging
 
     pkg = logging.getLogger("sleap_roots")
+    fontlog = logging.getLogger("matplotlib.font_manager")
     level_before = pkg.level
+    font_level_before = fontlog.level
     tagged_before = [h for h in pkg.handlers if getattr(h, "_tag", None)]
     slp, _ = synth
     r = _analyze(
@@ -515,6 +521,7 @@ def test_logging_state_restored_after_run(synth, tmp_path):
     )
     assert r.exit_code == 0, r.output
     assert pkg.level == level_before  # level restored (not left at DEBUG)
+    assert fontlog.level == font_level_before  # font_manager level restored too
     tagged_after = [h for h in pkg.handlers if getattr(h, "_tag", None)]
     assert len(tagged_after) == len(tagged_before)  # our handler removed
 

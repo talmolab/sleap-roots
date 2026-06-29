@@ -29,13 +29,23 @@ logger = logging.getLogger(__name__)
 _LOG_HANDLER_TAG = "_circumnutation_cli_handler"
 
 
-def _configure_logging(verbose: int) -> None:
+def _configure_logging(verbose: int):
     """Set the ``sleap_roots`` log level + a stderr handler from the ``-v`` count.
 
     ``0 → WARNING`` (quiet default), ``1 → INFO`` (per-plate progress), ``≥2 →
     DEBUG`` (per-plant detail). Logs go to stderr so stdout stays clean for the
     result summary. Idempotent across repeated invocations (the prior tagged
-    handler is removed before a fresh one binds the current stderr).
+    handler is removed before a fresh one binds the current stderr). Also quiets
+    matplotlib's ``font_manager`` ``findfont`` fallback WARNINGs — the scaleogram's
+    ``LogNorm`` colorbar renders mathtext, whose Computer-Modern font-family lookup
+    falls back to DejaVu Sans (cosmetic, not actionable); ``ERROR`` keeps genuine
+    font errors visible.
+
+    Returns:
+        A zero-arg restore callable that undoes every change (level on both loggers,
+        and the tagged handler) — call it in a ``finally`` so the CLI's global
+        logging config does not leak into a long-lived host process / the test
+        session.
     """
     level = (
         logging.WARNING
@@ -43,6 +53,10 @@ def _configure_logging(verbose: int) -> None:
         else logging.INFO if verbose == 1 else logging.DEBUG
     )
     pkg = logging.getLogger("sleap_roots")
+    fontlog = logging.getLogger("matplotlib.font_manager")
+    prior_pkg_level = pkg.level
+    prior_font_level = fontlog.level
+
     pkg.setLevel(level)
     pkg.handlers = [
         h for h in pkg.handlers if getattr(h, "_tag", None) != _LOG_HANDLER_TAG
@@ -51,6 +65,16 @@ def _configure_logging(verbose: int) -> None:
     handler.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
     handler._tag = _LOG_HANDLER_TAG  # type: ignore[attr-defined]
     pkg.addHandler(handler)
+    fontlog.setLevel(logging.ERROR)
+
+    def _restore() -> None:
+        pkg.setLevel(prior_pkg_level)
+        pkg.handlers = [
+            h for h in pkg.handlers if getattr(h, "_tag", None) != _LOG_HANDLER_TAG
+        ]
+        fontlog.setLevel(prior_font_level)
+
+    return _restore
 
 
 @click.group()
@@ -171,9 +195,7 @@ def analyze(
     Re-running on the same .slp overwrites prior outputs; use a distinct
     --output-dir for runs with different --cadence-s / --r-px.
     """
-    pkg_logger = logging.getLogger("sleap_roots")
-    prior_level = pkg_logger.level
-    _configure_logging(verbose)
+    _restore_logging = _configure_logging(verbose)
 
     # Lazy imports (keep module import — and `import sleap_roots.cli` — cheap).
     from sleap_roots.circumnutation._io import (
@@ -277,12 +299,6 @@ def analyze(
     except (ValueError, FileNotFoundError) as exc:
         raise click.ClickException(str(exc))
     finally:
-        # Restore the package logger so the CLI's global logging config does not
-        # leak into a long-lived host process or the in-process test session
-        # (an unrestored level would gate later bare `caplog.at_level(...)` tests).
-        pkg_logger.setLevel(prior_level)
-        pkg_logger.handlers = [
-            h
-            for h in pkg_logger.handlers
-            if getattr(h, "_tag", None) != _LOG_HANDLER_TAG
-        ]
+        # Restore global logging state (both logger levels + the tagged handler) so
+        # the CLI's config does not leak into a host process / the test session.
+        _restore_logging()

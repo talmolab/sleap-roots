@@ -170,6 +170,17 @@ Deferred as follow-ups (noted in the PR review): the 6×-per-run metadata-CSV re
 (read-once optimization; negligible for per-plate CSVs), `save_plots`' pre-existing
 double-CWT recompute, and a possible `metadata_csv_matched` provenance field.
 
+### Real-CLI smoke test + findfont quieting (2026-06-29)
+Running the actual installed `sleap-roots circumnutation analyze` console script
+(not just `CliRunner`) on plate-001 confirmed the entry point, fresh-process Agg,
+real exit codes (0 / 1 / 2), and the on-disk tree (3 byte-identical sidecars; plots
+`run_metadata_ref` resolves). It also surfaced cosmetic `matplotlib.font_manager`
+`findfont` WARNING logs — the scaleogram's `LogNorm` colorbar renders mathtext whose
+Computer-Modern font-family lookup falls back to DejaVu Sans (pre-existing matplotlib
+behavior, reproducible with any `LogNorm` colorbar, not a missing font). The CLI now
+quiets `matplotlib.font_manager` to `ERROR` in `_configure_logging` (restored in the
+`finally`), keeping the console clean without hiding genuine font errors.
+
 ### Minor implementation notes (not spec deviations)
 - The CLI loads the `.slp` via the `Series.load(primary_path=...)` slot (matching
   the `_load_plate001_inputs` blueprint); `get_tracked_tips` auto-detects the single
