@@ -537,10 +537,10 @@ jobs:
 
 ## Related Commands
 
-- `/changelog` - Update CHANGELOG.md specifically
+- `/update-changelog` - Update CHANGELOG.md specifically
 - `/doc-traits` - Auto-generate trait documentation (future)
 - `/pr-description` - Document changes in PR
-- `/release` - Update docs for release
+- `/prepare-release` - Update docs for release
 
 ## Tips
 
@@ -587,7 +587,7 @@ pydocstyle --convention=google sleap_roots/module.py
 git log v0.1.4..HEAD --oneline
 
 # Add to CHANGELOG.md [Unreleased] section
-# Use /changelog command for help
+# Use /update-changelog command for help
 ```
 
 ### "Trait count doesn't match docs"

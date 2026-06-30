@@ -32,7 +32,7 @@ query {
 
 ```bash
 # View Copilot comments for specific PR (REST API)
-gh api repos/talmolab/sleap-roots/pulls/PR_NUMBER/comments --jq '.[] | "File: \(.path):\(.line // .original_line)\n\(.body)\n" + ("="*80)'
+gh api repos/{owner}/{repo}/pulls/PR_NUMBER/comments --jq '.[] | "File: \(.path):\(.line // .original_line)\n\(.body)\n" + ("="*80)'
 
 # For current PR dynamically
 gh api repos/$(gh repo view --json nameWithOwner -q .nameWithOwner)/pulls/$(gh pr view --json number -q .number)/comments --jq '.[] | "File: \(.path):\(.line // .original_line)\n\(.body)\n" + ("="*80)'
@@ -77,7 +77,7 @@ query {
 ' --jq '.data.repository.pullRequest.reviews.nodes[] | select(.author.login | contains("opilot")) | {state, submitted: .submittedAt, body}'
 
 # REST API
-gh api repos/talmolab/sleap-roots/pulls/PR_NUMBER/reviews --jq '.[] | select(.user.login | contains("copilot")) | {state: .state, submitted_at: .submitted_at, body: .body}'
+gh api repos/{owner}/{repo}/pulls/PR_NUMBER/reviews --jq '.[] | select(.user.login | contains("copilot")) | {state: .state, submitted_at: .submitted_at, body: .body}'
 ```
 
 ## Typical Copilot Comments Include

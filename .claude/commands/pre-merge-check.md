@@ -61,7 +61,7 @@ Perform a complete pre-merge check following this workflow:
 ### Phase 7: Changelog
 
 7. **Update Changelog**
-   - Run `/changelog` command
+   - Run `/update-changelog` command
 
 ### Phase 8: Final Verification
 
@@ -198,4 +198,4 @@ This command orchestrates these other commands:
 - `/debug-test` - Debug failing tests
 - `/review-pr` - Comprehensive PR review (used in Phase 3.5 pre-PR and Phase 6 post-PR)
 - `/copilot-review` - Fetch GitHub Copilot inline comments on an open PR
-- `/changelog` - Update changelog
+- `/update-changelog` - Update changelog
