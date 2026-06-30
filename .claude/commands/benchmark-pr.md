@@ -332,7 +332,7 @@ uv run pytest tests/benchmarks/ -k "dicot" --benchmark-only --benchmark-json=ben
 
 - `/test` - Run all tests including benchmarks
 - `/run-ci-locally` - Run full CI suite locally
-- `/pre-merge` - Complete pre-merge checklist
+- `/pre-merge-check` - Complete pre-merge checklist
 - `/review-pr` - Comprehensive PR review workflow
 
 ## Future Enhancements
@@ -357,4 +357,4 @@ When Phase 2-3 of the OpenSpec is complete:
 **See also:**
 - [Benchmarking Guide](../docs/dev/benchmarking.md)
 - [OpenSpec Proposal](../openspec/changes/benchmark-regression-detection/proposal.md)
-- [Pre-merge Checklist](.claude/commands/pre-merge.md)
+- [Pre-merge Checklist](.claude/commands/pre-merge-check.md)

@@ -199,5 +199,5 @@ openspec show <change-id>
 - `/openspec:archive` - Archive skill (delegated to from step 4)
 - `/pr-description` - Template used before merge
 - `/review-pr` - Checklist used during review
-- `/changelog` - Update changelog after merge
+- `/update-changelog` - Update changelog after merge
 - `openspec/AGENTS.md` - Source of truth for OpenSpec conventions
