@@ -1,0 +1,47 @@
+# species / mode / age-window -> sleap_roots Pipeline subclass.
+#
+# Ported from the legacy salk-tm/sleap-roots-traits pipeline_chooser_table.csv, with the
+# enumerated age lists (e.g. "2, 3, 4, 5") converted to contiguous inclusive
+# [age_min, age_max] windows (mirroring predict's ModelCard age windows). Selection only
+# resolves the class; whether a pipeline supports one-row scan-grain emission is guarded
+# separately (see pipeline_chooser.assert_pipeline_supported).
+- species: soybean
+  mode: cylinder
+  age_min: 2
+  age_max: 8
+  pipeline_class: DicotPipeline
+- species: canola
+  mode: cylinder
+  age_min: 2
+  age_max: 13
+  pipeline_class: DicotPipeline
+- species: pennycress
+  mode: cylinder
+  age_min: 2
+  age_max: 14
+  pipeline_class: DicotPipeline
+- species: arabidopsis
+  mode: multiplant cylinder
+  age_min: 2
+  age_max: 14
+  pipeline_class: MultipleDicotPipeline
+- species: arabidopsis
+  mode: cylinder
+  age_min: 2
+  age_max: 14
+  pipeline_class: DicotPipeline
+- species: arabidopsis
+  mode: plate
+  age_min: 7
+  age_max: 14
+  pipeline_class: MultipleDicotPlatePipeline
+- species: rice
+  mode: cylinder
+  age_min: 2
+  age_max: 5
+  pipeline_class: YoungerMonocotPipeline
+- species: rice
+  mode: cylinder
+  age_min: 6
+  age_max: 10
+  pipeline_class: OlderMonocotPipeline
