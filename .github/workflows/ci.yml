@@ -6,6 +6,7 @@ on:
     types: [opened, reopened, synchronize]
     paths:
       - "sleap_roots/**"
+      - "trait_extractor/**"
       - "tests/**"
       - ".github/workflows/ci.yml"
       - "pyproject.toml"
@@ -17,6 +18,7 @@ on:
       - infra/*
     paths:
       - "sleap_roots/**"
+      - "trait_extractor/**"
       - "tests/**"
       - ".github/workflows/**"
       - "pyproject.toml"
@@ -50,10 +52,10 @@ jobs:
         run: uv sync --frozen
 
       - name: Run Black
-        run: uv run black --check sleap_roots tests
+        run: uv run black --check sleap_roots tests trait_extractor
 
       - name: Run pydocstyle
-        run: uv run pydocstyle --convention=google sleap_roots/
+        run: uv run pydocstyle --convention=google sleap_roots trait_extractor
 
   test:
     name: Test (${{ matrix.os }})
@@ -94,7 +96,7 @@ jobs:
 
       - name: Test with pytest (with coverage)
         if: ${{ startsWith(matrix.os, 'ubuntu') }}
-        run: uv run pytest --cov=sleap_roots --cov-report=xml --cov-report=term-missing tests/
+        run: uv run pytest --cov=sleap_roots --cov=trait_extractor --cov-report=xml --cov-report=term-missing tests/
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
