@@ -195,3 +195,14 @@ appendix and §1–§9 differ, the appendix and the openspec spec win.
   #252 (support multi-plant / plate per-plant grain emission); #253 (pre-existing wheel bug —
   `include = ["sleap_roots"]` omits the `viewer` / `circumnutation` subpackages, not fixed here).
 - **Boundary guard** is an AST import-scan of `sleap_roots/` (not a brittle grep).
+- **Final module layout (implementation).** The §4 architecture table folded several
+  concerns together; the implementation split them into smaller, independently-tested units
+  (no behavior change): `trait_extractor/manifest.py` (consumer manifest + `ScanMetadata` +
+  canonical params), `loading.py` (`load_series`), `pipeline_chooser.py` (`PipelineCard` +
+  `choose_pipeline` + `PIPELINE_CLASSES`), `compatibility.py` (`PIPELINE_REQUIRED_ROOTS` +
+  grain/subset guards), `traits.py` (trait→`TraitValue` mapping), `envelope.py`
+  (`build_provenance` + envelope build + atomic write), `extractor.py` (`extract_scan` +
+  `extract_batch`), `__main__.py` (CLI), and `pipeline_selection.yaml`.
+- **Result:** implemented commit-by-commit with real-`.slp` TDD; full suite 1531 passed, 1
+  skipped (the predict cross-check skips when predict is not installed); wheel + sdist both
+  verified to exclude `trait_extractor`.
