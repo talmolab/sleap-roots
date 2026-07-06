@@ -46,6 +46,10 @@ dev = [
     "toml",
     "twine",
     "build",
+    # Contract types for the trait_extractor service (dev/test/container only, NOT a
+    # published runtime dependency). Requires Python >=3.11, so the marker keeps
+    # `uv lock` resolving cleanly against the library's >=3.10 floor.
+    "sleap-roots-contracts==0.1.0a3 ; python_version >= '3.11'",
     "mkdocs>=1.5",
     "mkdocs-material>=9.0",
     "mkdocstrings[python]>=0.20",
@@ -62,8 +66,15 @@ readme = {file = ["README.md"], content-type="text/markdown"}
 
 [tool.setuptools.packages.find]
 include = ["sleap_roots"]  # Include only the sleap_roots package
-exclude = ["notebooks"]  # Exclude the notebooks directory
+# Exclude non-library dirs. `trait_extractor*` is belt-and-suspenders: the include
+# allowlist already keeps the top-level trait_extractor service out of the wheel/sdist.
+exclude = ["notebooks", "trait_extractor*"]
 namespaces = false
+
+[tool.pytest.ini_options]
+# Put the repo root on sys.path so tests can `import trait_extractor` (the service
+# package lives at the repo root and is intentionally excluded from the wheel).
+pythonpath = ["."]
 
 # ---- PyPI extras for end users who opt in ----
 [project.optional-dependencies]
@@ -77,6 +88,7 @@ dev = [
     "toml",
     "twine",
     "build",
+    "sleap-roots-contracts==0.1.0a3 ; python_version >= '3.11'",
     "mkdocs>=1.5",
     "mkdocs-material>=9.0",
     "mkdocstrings[python]>=0.20",
