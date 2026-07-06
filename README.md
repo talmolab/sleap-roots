@@ -113,7 +113,7 @@ Turn `sleap-roots-predict` per-scan output into a `sleap-roots-contracts` `Resul
 python -m trait_extractor <input_dir> <output_dir>
 ```
 
-The `trait_extractor/` service package lives at the repo root and is intentionally **not** shipped in the `sleap-roots` wheel. See the [Trait-Extractor Service guide](https://roots.sleap.ai/dev/trait-extractor-service/) for the `ScanMetadata` sidecar schema and details.
+The `trait_extractor/` service package lives at the repo root and is intentionally **not** shipped in the `sleap-roots` wheel. It is also published as a container image, `ghcr.io/talmolab/sleap-roots-trait-extractor`. See the [Trait-Extractor Service guide](https://roots.sleap.ai/dev/trait-extractor-service/#container-image) for `docker run` usage, the tag scheme, and the `ScanMetadata` sidecar schema.
 
 ---
 

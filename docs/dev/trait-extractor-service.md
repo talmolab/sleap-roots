@@ -85,6 +85,33 @@ one envelope per scan to `output_dir`. Per-scan failures (bad manifest, missing 
 incompatible/unsupported pipeline) are isolated and reported; the process exits non-zero if any
 scan failed, without discarding the successful envelopes.
 
+## Container image
+
+Published to GHCR as `ghcr.io/talmolab/sleap-roots-trait-extractor` — an identity distinct
+from the library image `ghcr.io/talmolab/sleap-roots`. Built from the root
+`trait-extractor.Dockerfile` (base `ghcr.io/astral-sh/uv:python3.12-bookworm-slim`); it installs
+the library + `sleap-roots-contracts` via the slim `extractor` extra
+(`uv sync --frozen --no-dev --extra extractor`), copies `trait_extractor/` in (it is not
+pip-installable), and runs headless (`MPLBACKEND=Agg`). The `ENTRYPOINT` is
+`python -m trait_extractor`, so run it with two positional args:
+
+```bash
+docker run --rm \
+  -v /abs/path/to/predict_output:/in \
+  -v /abs/path/to/results:/out \
+  ghcr.io/talmolab/sleap-roots-trait-extractor:latest /in /out
+```
+
+Tags: `latest` tracks `main`; every pushed build also publishes an immutable `sha-<commit>`
+tag, and the workflow surfaces the `@sha256:…` digest in its run summary — pin the digest (or
+the `sha-` tag) for reproducible downstream runs. The image bakes its build commit into
+`SRT_TRAITS_CODE_SHA` so emitted envelopes carry a non-empty `provenance.traits_code_sha`; a
+runtime `SRT_TRAITS_CODE_SHA` env value overrides the baked default.
+
+Built and pushed by [`.github/workflows/docker-trait-extractor.yml`](https://github.com/talmolab/sleap-roots/blob/main/.github/workflows/docker-trait-extractor.yml),
+path-filtered to the image's inputs and independent of the PyPI release (`build.yml`):
+build-only on PRs, build + push on `main`.
+
 ## Notes & follow-ups
 
 - **Consumer/predict coupling** — the consumer `PredictionManifest` duplicates predict's shape
@@ -94,6 +121,9 @@ scan failed, without discarding the successful envelopes.
   missing public pipeline API, [#251](https://github.com/talmolab/sleap-roots/issues/251))
   checks `required ⊆ loaded`; multi-plant / plate pipelines are rejected for scan-grain
   emission ([#252](https://github.com/talmolab/sleap-roots/issues/252)).
-- **Downstream** — the GHCR image + Argo template are a fast-follow slice; Bloom's RPC must
-  accept `contract_version == "0.1.0a3"`
+- **Downstream** — the trait-extractor ships as the GHCR image
+  `ghcr.io/talmolab/sleap-roots-trait-extractor` (see [Container image](#container-image)).
+  Still fast-follow: A4's Argo template that pulls it (must rewrite the step's `args:` to the
+  two positional dirs and pin the image), and Bloom's RPC accepting
+  `contract_version == "0.1.0a3"`
   ([bloom#393](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/393)).
