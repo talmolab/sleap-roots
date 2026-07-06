@@ -1,0 +1,45 @@
+{
+  "schema_version": "1",
+  "scan_key": "scanYR39SJX",
+  "plant_qr_code": "scanYR39SJX",
+  "artifacts": [
+    {
+      "root_type": "primary",
+      "model_id": "123",
+      "model": {
+        "registry_id": "rice-primary",
+        "version": "123",
+        "sleap_nn_version": "0.3.0",
+        "root_type": "primary",
+        "weights_checksum": null
+      },
+      "slp_path": "scanYR39SJX.model123.rootprimary.slp",
+      "checksum": "4a035b8679865f82547e4c68ada36c6139f5b219f4fac645717ea5b3e311a55d",
+      "file_size": 34288
+    },
+    {
+      "root_type": "crown",
+      "model_id": "123",
+      "model": {
+        "registry_id": "rice-crown",
+        "version": "123",
+        "sleap_nn_version": "0.3.0",
+        "root_type": "crown",
+        "weights_checksum": null
+      },
+      "slp_path": "scanYR39SJX.model123.rootcrown.slp",
+      "checksum": "66d6f780ad225d52c6b69bbfad1a77d23ae5e122f8ad26870f43a898961a6fb5",
+      "file_size": 49837
+    }
+  ],
+  "predict_inference_config": {
+    "device": "cpu",
+    "peak_threshold": 0.2,
+    "batch_size": 4
+  },
+  "predict_output_params": {
+    "peak_threshold": 0.2
+  },
+  "predict_code_sha": "predictcodesha00000000000000000000000000",
+  "predict_container_digest": "sha256:predictdigest000000000000000000000000000000000000000000000000000"
+}

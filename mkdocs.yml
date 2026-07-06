@@ -159,6 +159,7 @@ nav:
     - Architecture: dev/architecture.md
     - Creating Pipelines: dev/creating-pipelines.md
     - Adding Traits: dev/adding-traits.md
+    - Trait-Extractor Service: dev/trait-extractor-service.md
     - Testing: dev/testing.md
     - Code Style: dev/code-style.md
     - Release Process: dev/release-process.md

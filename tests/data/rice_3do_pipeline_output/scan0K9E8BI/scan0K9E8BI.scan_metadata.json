@@ -1,0 +1,10 @@
+{
+  "scan_key": "scan0K9E8BI",
+  "image_ids": ["cyl_img_0001", "cyl_img_0002"],
+  "images_checksum": "sha256:imageschecksum0k9e8bi00000000000000000000000000000000000000000000",
+  "params": {
+    "species": "rice",
+    "mode": "cylinder",
+    "age": 3
+  }
+}

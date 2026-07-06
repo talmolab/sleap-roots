@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cookbook with code recipes (filtering, custom traits, batch optimization, exporting)
 - Troubleshooting guide with common issues and solutions
 - uv package manager support with PEP 735 dependency groups
+- **A3-traits trait-extractor service** (`trait_extractor/`, a top-level package excluded from the published wheel; OpenSpec change `add-trait-extractor-service`). Consumes `sleap-roots-predict`'s per-scan `{scan_key}.predictions.json` manifest + named per-root `.slp` and a new `{scan_key}.scan_metadata.json` **`ScanMetadata` sidecar**, selects a pipeline via `choose_pipeline` (ported chooser, contiguous `[age_min, age_max]` windows), computes scan-grain traits, and emits a per-scan `sleap-roots-contracts` `ResultEnvelope` as JSON for Bloom write-back. Runnable as `python -m trait_extractor <input_dir> <output_dir>` with per-scan failure isolation. `ResolvedParams.values` is canonicalized to the closed set `{species, mode, age:int}` so the idempotency key is reproducible; `contract_version` is the pinned bare `0.1.0a3`. The consumer-side `PredictionManifest` duplicates predict's schema (coupled via `schema_version: "1"`, guarded by a skip-if-unimportable cross-check test). Docs: `docs/dev/trait-extractor-service.md`.
 
 ### Internal
 - Started per-pipeline-module pattern: `TrackedTipPipeline` lives in `sleap_roots/tracked_tip_pipeline.py` instead of being appended to the existing 3763-line `trait_pipelines.py` megafile. Splitting the existing 8 pipelines is tracked in #189.
@@ -47,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated installation documentation with uv best practices
 - Enhanced developer setup guide with modern workflows
 - Migrated to uv for development dependency management
+- Added `sleap-roots-contracts==0.1.0a3` as a **dev/test** dependency (marked `python_version >= '3.11'`), used only by the `trait_extractor` service — NOT a published runtime dependency of `sleap-roots` (a CI-enforced AST guard test asserts the `sleap_roots` library never imports it). Set `[tool.pytest.ini_options] pythonpath = ["."]` so tests can import the top-level service package, and added `trait_extractor*` to `[tool.setuptools.packages.find] exclude`. Extended `ci.yml` to lint/test `trait_extractor/` and added `trait_extractor/**` to the CI trigger paths.
 
 ## [0.1.4] - 2024-11-10
 

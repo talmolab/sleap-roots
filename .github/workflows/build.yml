@@ -28,6 +28,22 @@ jobs:
           uv build
           ls -la dist
 
+      - name: Assert the trait_extractor service is excluded from the artifacts
+        run: |
+          # The trait_extractor service package must never ship in the published
+          # sleap-roots wheel/sdist (it is a dev/test/container-only service).
+          python - <<'PY'
+          import glob, tarfile, zipfile, sys
+          whl = sorted(glob.glob("dist/*.whl"))[-1]
+          sdist = sorted(glob.glob("dist/*.tar.gz"))[-1]
+          in_whl = [n for n in zipfile.ZipFile(whl).namelist() if "trait_extractor" in n]
+          in_sdist = [n for n in tarfile.open(sdist).getnames() if "trait_extractor" in n]
+          if in_whl or in_sdist:
+              print("trait_extractor leaked into artifacts:", in_whl, in_sdist)
+              sys.exit(1)
+          print("OK: trait_extractor absent from wheel and sdist")
+          PY
+
       - name: Twine check metadata
         run: uvx twine check dist/*
 

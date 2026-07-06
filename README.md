@@ -105,6 +105,16 @@ sleap-roots viewer predictions/ --output viewer.html
 
 Features keyboard navigation, confidence scores, and multiple output modes. See the [Prediction Viewer Guide](https://roots.sleap.ai/guides/prediction-viewer/) for details.
 
+### 🧬 Trait-Extractor Service
+
+Turn `sleap-roots-predict` per-scan output into a `sleap-roots-contracts` `ResultEnvelope` for Bloom write-back:
+
+```bash
+python -m trait_extractor <input_dir> <output_dir>
+```
+
+The `trait_extractor/` service package lives at the repo root and is intentionally **not** shipped in the `sleap-roots` wheel. See the [Trait-Extractor Service guide](https://roots.sleap.ai/dev/trait-extractor-service/) for the `ScanMetadata` sidecar schema and details.
+
 ---
 
 ## 📓 Notebooks & Tutorials
