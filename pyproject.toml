@@ -98,6 +98,14 @@ dev = [
     "mkdocs-jupyter",
     "mike"
 ]
+# Slim install profile for the trait_extractor container image: the contract types only
+# (transitively pulling pyyaml), WITHOUT the dev/docs tooling above. The image installs this
+# via `uv sync --frozen --no-dev --extra extractor`. Marked `python_version >= '3.11'` to match
+# the dev groups (contracts needs Python >=3.11; the library keeps its >=3.10 floor). This is a
+# dev/test/container dependency, never a published runtime dependency of `sleap-roots`.
+extractor = [
+    "sleap-roots-contracts==0.1.0a3 ; python_version >= '3.11'"
+]
 
 [project.scripts]
 sleap-roots = "sleap_roots.cli:main"

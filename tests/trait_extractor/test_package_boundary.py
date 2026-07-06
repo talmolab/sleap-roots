@@ -70,3 +70,26 @@ def test_packaging_config_excludes_the_extractor():
     # discovered; the explicit exclude is belt-and-suspenders.
     assert find["include"] == ["sleap_roots"]
     assert "trait_extractor*" in find["exclude"]
+
+
+def test_packaging_config_declares_the_extractor_extra():
+    """The slim ``extractor`` extra pins contracts so the container image can install it.
+
+    The image runs ``uv sync --frozen --no-dev --extra extractor``; if this extra is removed
+    or its pin drifts, that install path breaks with no other CI signal (``ci.yml`` triggers
+    on ``pyproject.toml``, so this guard catches it here).
+    """
+    import tomllib
+
+    pyproject = tomllib.loads(
+        (_REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    extractor = pyproject["project"]["optional-dependencies"]["extractor"]
+    assert any(
+        dep.startswith("sleap-roots-contracts==0.1.0a3")
+        and "python_version >= '3.11'" in dep
+        for dep in extractor
+    ), (
+        "extractor extra must pin sleap-roots-contracts==0.1.0a3 with the "
+        f"python_version >= '3.11' marker; got {extractor}"
+    )
