@@ -15,9 +15,7 @@ _ROOT_TYPE_TO_KWARG = {
 }
 
 
-def load_series(
-    manifest: PredictionManifest, manifest_dir: Union[str, Path]
-) -> Series:
+def load_series(manifest: PredictionManifest, manifest_dir: Union[str, Path]) -> Series:
     """Load a ``Series`` from a manifest's per-root artifacts.
 
     ``Series.load`` tolerates missing paths silently (it prints and leaves labels

@@ -36,9 +36,7 @@ def test_provenance_fields_and_contract_version():
     assert prov.predict_output_params == {"peak_threshold": 0.2}
     assert prov.params.values == {"species": "rice", "mode": "cylinder", "age": 3}
     assert prov.traits_sleap_roots_version == sleap_roots.__version__
-    assert prov.contract_version == importlib.metadata.version(
-        "sleap-roots-contracts"
-    )
+    assert prov.contract_version == importlib.metadata.version("sleap-roots-contracts")
     assert prov.contract_version == "0.1.0a3"
     assert not prov.contract_version.startswith("v")
     assert prov.produced_at is None
@@ -91,9 +89,7 @@ def test_extract_scan_emits_valid_byte_stable_envelope(tmp_path):
 
     # RPC acceptance rules checkable locally.
     assert envelope.provenance.idempotency_key
-    scan_keys = {tv.scan_key for tv in envelope.traits} | {
-        envelope.provenance.scan_key
-    }
+    scan_keys = {tv.scan_key for tv in envelope.traits} | {envelope.provenance.scan_key}
     assert scan_keys == {"scan0K9E8BI"}
 
     # Byte-stable re-emission.

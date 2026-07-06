@@ -69,9 +69,7 @@ def build_envelope(provenance: Provenance, traits: List[TraitValue]) -> ResultEn
     return ResultEnvelope(provenance=provenance, traits=traits, blobs=[])
 
 
-def write_envelope(
-    envelope: ResultEnvelope, output_dir: Union[str, Path]
-) -> Path:
+def write_envelope(envelope: ResultEnvelope, output_dir: Union[str, Path]) -> Path:
     """Write ``{scan_key}.result.json`` atomically under ``output_dir``.
 
     Creates ``output_dir`` if missing and writes via a temp file + ``replace`` so a

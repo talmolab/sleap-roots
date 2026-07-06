@@ -24,8 +24,12 @@ def _params(species, mode, age):
 def test_yaml_cards_select_expected():
     """The packaged cards resolve the expected pipeline classes."""
     cards = load_pipeline_cards()
-    assert choose_pipeline(_params("rice", "cylinder", 3), cards) is YoungerMonocotPipeline
-    assert choose_pipeline(_params("rice", "cylinder", 8), cards) is OlderMonocotPipeline
+    assert (
+        choose_pipeline(_params("rice", "cylinder", 3), cards) is YoungerMonocotPipeline
+    )
+    assert (
+        choose_pipeline(_params("rice", "cylinder", 8), cards) is OlderMonocotPipeline
+    )
     assert choose_pipeline(_params("canola", "cylinder", 7), cards) is DicotPipeline
     assert (
         choose_pipeline(_params("arabidopsis", "plate", 10), cards)
