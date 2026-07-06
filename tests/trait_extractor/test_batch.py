@@ -1,6 +1,7 @@
 """Tests for the batch driver, failure isolation, and the module CLI."""
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -94,10 +95,13 @@ def test_stem_scan_key_mismatch_reported(tmp_path):
 
 def test_module_cli_writes_envelopes(tmp_path):
     """`python -m trait_extractor <in> <out>` writes the envelopes and exits 0."""
+    repo_root = Path(__file__).resolve().parents[2]
     out_dir = tmp_path / "out"
+    fixture_tree = repo_root / _FIXTURE_TREE
     proc = subprocess.run(
-        [sys.executable, "-m", "trait_extractor", str(_FIXTURE_TREE), str(out_dir)],
-        cwd=Path.cwd(),
+        [sys.executable, "-m", "trait_extractor", str(fixture_tree), str(out_dir)],
+        cwd=repo_root,
+        env={**os.environ, "PYTHONPATH": str(repo_root)},
         capture_output=True,
         text=True,
     )

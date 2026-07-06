@@ -1,18 +1,24 @@
 """Assemble Provenance + ResultEnvelope and write it atomically to disk."""
 
+import functools
 import importlib.metadata
 import os
 from pathlib import Path
 from typing import List, Union
 
 import sleap_roots
-from sleap_roots_contracts import Provenance, ResultEnvelope, TraitValue
+from sleap_roots_contracts import Provenance, ResolvedParams, ResultEnvelope, TraitValue
 
 from trait_extractor.manifest import PredictionManifest, ScanMetadata
 
 
+@functools.lru_cache(maxsize=1)
 def contract_version() -> str:
-    """Return the pinned bare ``sleap-roots-contracts`` package version."""
+    """Return the pinned bare ``sleap-roots-contracts`` package version.
+
+    Cached: the installed version cannot change mid-process, so avoid re-scanning
+    dist-info once per scan in a batch.
+    """
     return importlib.metadata.version("sleap-roots-contracts")
 
 
@@ -26,20 +32,23 @@ def _resolve_identity(explicit: str, env_var: str) -> str:
 def build_provenance(
     manifest: PredictionManifest,
     sidecar: ScanMetadata,
+    params: ResolvedParams,
     *,
     traits_code_sha: str = "",
     traits_container_digest: str = "",
 ) -> Provenance:
     """Build the ``Provenance`` (with a deterministic idempotency key).
 
-    predict-stage fields come from the manifest; ``inputs``/``params`` from the
-    sidecar; ``predict_models`` is derived from the artifacts. ``produced_at`` and the
+    predict-stage fields come from the manifest; ``inputs`` from the sidecar; ``params``
+    is the single canonical ``ResolvedParams`` the caller also feeds to pipeline
+    selection; ``predict_models`` is derived from the artifacts. ``produced_at`` and the
     orchestration fields are left ``None`` for byte-stable re-emission. ``traits_*``
     build identity resolves fail-soft (arg -> env -> "").
 
     Args:
         manifest: The consumed prediction manifest.
         sidecar: The scan-metadata sidecar.
+        params: The canonical ``ResolvedParams`` (shared with pipeline selection).
         traits_code_sha: Optional traits build code sha.
         traits_container_digest: Optional traits container digest.
 
@@ -60,7 +69,7 @@ def build_provenance(
             traits_container_digest, "SRT_TRAITS_CONTAINER_DIGEST"
         ),
         traits_code_sha=_resolve_identity(traits_code_sha, "SRT_TRAITS_CODE_SHA"),
-        params=sidecar.to_resolved_params(),
+        params=params,
     )
 
 

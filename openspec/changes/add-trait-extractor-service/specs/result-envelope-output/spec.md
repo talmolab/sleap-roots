@@ -158,9 +158,10 @@ emission SHALL raise a clear "not supported for scan-grain emission" error; then
 compatibility** — the pipeline's required root types MUST be a **subset** of the loaded root types
 (`required ⊆ loaded`, so a crown-only pipeline accepts a primary+crown scan), else raise naming the
 pipeline (`cls.__name__`) and the missing root type. Required root types come from a single
-class-keyed map `PIPELINE_REQUIRED_ROOTS: dict[type, frozenset[str]]` next to `choose_pipeline`; a
-pipeline absent from BOTH the map and the reject-list SHALL raise a clear "not registered for
-scan-grain emission" error (never a bare `KeyError`). A guard test SHALL pin each map entry to the
+class-keyed map `PIPELINE_REQUIRED_ROOTS: dict[type, frozenset[str]]` (in the `compatibility`
+module, alongside the guards that consume it); a pipeline absent from BOTH the map and the
+reject-list SHALL raise a clear "not registered for scan-grain emission" error (never a bare
+`KeyError`). A guard test SHALL pin each map entry to the
 root-type getters that pipeline's `get_initial_frame_traits` actually calls (derived independently
 via `inspect.getsource` + `ast`) and assert the map and reject-list together partition every class
 `choose_pipeline` can return.

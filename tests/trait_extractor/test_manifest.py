@@ -84,6 +84,27 @@ def test_missing_slp_file_rejected(tmp_path):
         resolve_artifact_paths(manifest, tmp_path)
 
 
+def test_duplicate_root_type_rejected(tmp_path):
+    """Two artifacts with the same root_type are rejected (silent-data-loss guard)."""
+    data = json.loads(_MANIFEST.read_text())
+    data["artifacts"][1]["root_type"] = "primary"  # both now primary
+    bad = tmp_path / "bad.predictions.json"
+    bad.write_text(json.dumps(data))
+    with pytest.raises(Exception, match="duplicate root_type"):
+        load_manifest(bad)
+
+
+@pytest.mark.parametrize("bad_key", ["../evil", "", "a/b", "with.dot", "trail "])
+def test_unsafe_scan_key_rejected(tmp_path, bad_key):
+    """An unsafe scan_key (traversal / separators / dots / whitespace) is rejected."""
+    data = json.loads(_MANIFEST.read_text())
+    data["scan_key"] = bad_key
+    bad = tmp_path / "bad.predictions.json"
+    bad.write_text(json.dumps(data))
+    with pytest.raises(Exception):
+        load_manifest(bad)
+
+
 def test_sidecar_yields_inputs_and_canonical_params():
     """The sidecar yields an InputRef and a closed {species, mode, age:int} params."""
     meta = load_scan_metadata(_SIDECAR, expected_scan_key="scan0K9E8BI")
@@ -130,9 +151,11 @@ def test_extra_params_key_does_not_change_param_hash():
     assert with_extra.to_resolved_params().param_hash == _resolved_key(3)
 
 
-@pytest.mark.parametrize("bad_age", [True, 3.5, "3.5", "abc"])
+@pytest.mark.parametrize(
+    "bad_age", [True, 3.5, "3.5", "abc", "٣", "1_000", "0x3", None]
+)
 def test_non_integer_age_rejected(bad_age):
-    """bool and non-whole ages are rejected during canonicalization."""
+    """bool, non-whole, Unicode-digit, grouped, and null ages are rejected."""
     meta = ScanMetadata(
         scan_key="s",
         image_ids=["i"],
@@ -140,4 +163,17 @@ def test_non_integer_age_rejected(bad_age):
         params={"species": "rice", "mode": "cylinder", "age": bad_age},
     )
     with pytest.raises(ValueError):
+        meta.to_resolved_params()
+
+
+@pytest.mark.parametrize("field", ["species", "mode"])
+@pytest.mark.parametrize("bad_value", ["", "   ", None])
+def test_empty_species_or_mode_rejected(field, bad_value):
+    """An empty/whitespace/None species or mode is rejected (no degenerate group)."""
+    params = {"species": "rice", "mode": "cylinder", "age": 3}
+    params[field] = bad_value
+    meta = ScanMetadata(
+        scan_key="s", image_ids=["i"], images_checksum="c", params=params
+    )
+    with pytest.raises(ValueError, match=field):
         meta.to_resolved_params()

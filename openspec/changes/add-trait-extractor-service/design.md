@@ -64,8 +64,9 @@ note. Ports/redesigns `salk-tm/sleap-roots-traits`.
   linkage but is not the per-scan grain (the envelope is 1:1 with a scan).
 - **Pipeline compatibility mechanism.** No pipeline exposes its required root types (they are
   implicit in each `get_initial_frame_traits`), so a class-keyed constant
-  `PIPELINE_REQUIRED_ROOTS: dict[type[Pipeline], frozenset[str]]` lives next to `choose_pipeline`
-  as the single source of truth, pinned to reality by a guard test. The orchestrator checks
+  `PIPELINE_REQUIRED_ROOTS: dict[type[Pipeline], frozenset[str]]` lives in the `compatibility`
+  module (with the guards that consume it) as the single source of truth, pinned to reality by a
+  guard test. The orchestrator checks
   **subset** semantics (`required ⊆ loaded`) — so a crown-only `OlderMonocotPipeline` accepts a
   primary+crown manifest — rather than equality, which would false-reject that valid case. The
   required-roots map is keyed on the pipeline **class** (a property of the class), NOT a field on

@@ -39,7 +39,7 @@ def canola_batch_traits_csv():
 
 @pytest.fixture
 def rice_pipeline_output_folder():
-    """Path to the folder with the output of the rice pipeline."""
+    """Path to the rice pipeline-output tree (nested per-scan `{scan_key}/` subdirs)."""
     return "tests/data/rice_3do_pipeline_output"
 
 

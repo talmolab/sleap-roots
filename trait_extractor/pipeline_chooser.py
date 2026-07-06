@@ -8,7 +8,7 @@ scan grain is a separate concern (see ``compatibility.py``).
 """
 
 from pathlib import Path
-from typing import List, Optional, Type, Union
+from typing import Dict, List, Optional, Type
 
 import yaml
 from pydantic import BaseModel, model_validator
@@ -27,7 +27,7 @@ from sleap_roots_contracts import ResolvedParams
 
 # Name -> Pipeline subclass. The single registry of pipeline-class names the chooser and
 # the compatibility guard both resolve against.
-PIPELINE_CLASSES: dict = {
+PIPELINE_CLASSES: Dict[str, Type[Pipeline]] = {
     "DicotPipeline": DicotPipeline,
     "YoungerMonocotPipeline": YoungerMonocotPipeline,
     "OlderMonocotPipeline": OlderMonocotPipeline,

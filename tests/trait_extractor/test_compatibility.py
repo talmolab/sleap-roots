@@ -43,9 +43,14 @@ def _canola_series():
 
 
 def test_grain_guard_rejects_multiplant_first():
-    """A multi-plant/plate pipeline raises the grain error, before any root check."""
+    """A multi-plant/plate pipeline raises the grain error, before any root check.
+
+    `MultipleDicotPlatePipeline` is NOT in PIPELINE_REQUIRED_ROOTS, so if the grain
+    guard did not short-circuit first it would hit the "not registered" branch. The
+    match string ("not supported") is unique to the grain branch, so this pins ordering.
+    """
     series = _rice_series()  # primary+crown; roots irrelevant to the grain guard
-    with pytest.raises(ValueError, match="scan-grain emission"):
+    with pytest.raises(ValueError, match="not supported for scan-grain emission"):
         check_pipeline_compatible(series, MultipleDicotPlatePipeline)
 
 

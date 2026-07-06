@@ -17,7 +17,8 @@ from trait_extractor.pipeline_chooser import (
 )
 from trait_extractor.traits import compute_scan_traits, scan_trait_values
 
-_MANIFEST_GLOB = "*.predictions.json"
+_MANIFEST_SUFFIX = ".predictions.json"
+_MANIFEST_GLOB = "*" + _MANIFEST_SUFFIX
 _SIDECAR_SUFFIX = ".scan_metadata.json"
 
 
@@ -62,6 +63,7 @@ def extract_scan(
     provenance = build_provenance(
         manifest,
         sidecar,
+        params,
         traits_code_sha=traits_code_sha,
         traits_container_digest=traits_container_digest,
     )
@@ -113,7 +115,7 @@ def extract_batch(
     cards = cards or load_pipeline_cards()
     result = BatchResult()
     for manifest_path in sorted(Path(input_dir).rglob(_MANIFEST_GLOB)):
-        stem = manifest_path.name.split(".")[0]
+        stem = manifest_path.name.removesuffix(_MANIFEST_SUFFIX)
         try:
             sidecar_path = manifest_path.parent / f"{stem}{_SIDECAR_SUFFIX}"
             if not sidecar_path.exists():

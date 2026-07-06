@@ -4,7 +4,7 @@
 # enumerated age lists (e.g. "2, 3, 4, 5") converted to contiguous inclusive
 # [age_min, age_max] windows (mirroring predict's ModelCard age windows). Selection only
 # resolves the class; whether a pipeline supports one-row scan-grain emission is guarded
-# separately (see pipeline_chooser.assert_pipeline_supported).
+# separately (see compatibility.check_pipeline_compatible).
 - species: soybean
   mode: cylinder
   age_min: 2

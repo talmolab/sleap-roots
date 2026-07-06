@@ -29,7 +29,7 @@ def _manifest_and_sidecar():
 def test_provenance_fields_and_contract_version():
     """Provenance carries predict_models, canonical params, and the pinned version."""
     manifest, sidecar = _manifest_and_sidecar()
-    prov = build_provenance(manifest, sidecar)
+    prov = build_provenance(manifest, sidecar, sidecar.to_resolved_params())
 
     assert prov.predict_models == [a.model for a in manifest.artifacts]
     assert prov.predict_code_sha == manifest.predict_code_sha
@@ -50,7 +50,7 @@ def test_build_identity_fail_soft(monkeypatch):
     monkeypatch.delenv("SRT_TRAITS_CODE_SHA", raising=False)
     monkeypatch.delenv("SRT_TRAITS_CONTAINER_DIGEST", raising=False)
     manifest, sidecar = _manifest_and_sidecar()
-    prov = build_provenance(manifest, sidecar)
+    prov = build_provenance(manifest, sidecar, sidecar.to_resolved_params())
     assert prov.traits_code_sha == ""
     assert prov.traits_container_digest == ""
 
@@ -58,7 +58,7 @@ def test_build_identity_fail_soft(monkeypatch):
 def test_idempotency_key_matches_helper_and_is_stable():
     """idempotency_key is non-empty, matches the helper, and is stable."""
     manifest, sidecar = _manifest_and_sidecar()
-    prov = build_provenance(manifest, sidecar)
+    prov = build_provenance(manifest, sidecar, sidecar.to_resolved_params())
     expected = compute_idempotency_key(
         scan_key=prov.scan_key,
         images_checksum=prov.inputs.images_checksum,
@@ -72,8 +72,28 @@ def test_idempotency_key_matches_helper_and_is_stable():
     )
     assert prov.idempotency_key
     assert prov.idempotency_key == expected
-    prov2 = build_provenance(manifest, sidecar)
+    prov2 = build_provenance(manifest, sidecar, sidecar.to_resolved_params())
     assert prov2.idempotency_key == prov.idempotency_key
+
+
+def test_age_encoding_does_not_change_idempotency_key():
+    """age 3 vs "3" yield the same full Provenance.idempotency_key (not just param_hash)."""
+    from trait_extractor.manifest import ScanMetadata
+
+    manifest = load_manifest(_MANIFEST)
+
+    def _key(age):
+        sidecar = ScanMetadata(
+            scan_key=manifest.scan_key,
+            image_ids=["i"],
+            images_checksum="c",
+            params={"species": "rice", "mode": "cylinder", "age": age},
+        )
+        prov = build_provenance(manifest, sidecar, sidecar.to_resolved_params())
+        return prov.idempotency_key
+
+    assert _key(3) == _key("3") == _key(3.0)
+    assert _key(3)
 
 
 def test_extract_scan_emits_valid_byte_stable_envelope(tmp_path):

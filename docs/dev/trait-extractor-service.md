@@ -58,6 +58,15 @@ Only `{species, mode, age}` feed the idempotency key: `ResolvedParams.values` is
 **closed set** with `age` coerced to `int`, so a differently-encoded age or an extra `params`
 key never changes the key (which would otherwise break Bloom's first-writer-wins dedup).
 
+> **Operational requirement — build identity in the idempotency key.** The key hashes
+> `predict_code_sha` and `traits_code_sha`, both of which resolve **fail-soft to `""`** when
+> unset. So in a production/container run, set `SRT_TRAITS_CODE_SHA` (traits build) and ensure
+> predict stamps `predict_code_sha` — otherwise a `sleap-roots` version bump that changes trait
+> numbers would produce a byte-different envelope under the **same** idempotency key, and Bloom
+> would dedup two scientifically-distinct results as one run. (`traits_sleap_roots_version` is
+> recorded in `Provenance` for audit but is not itself a key input — see
+> [sleap-roots-contracts#14](https://github.com/talmolab/sleap-roots-contracts/issues/14).)
+
 ## Output
 
 One `{scan_key}.result.json` per scan — a `ResultEnvelope` = `Provenance` + `list[TraitValue]`

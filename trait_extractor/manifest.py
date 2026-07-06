@@ -18,8 +18,38 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Union
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 from sleap_roots_contracts import InputRef, ModelRef, ResolvedParams, RootType
+
+# Characters that make a scan_key unsafe as a single path segment (mirrors predict's
+# _validate_scan_key). scan_key is identity and becomes a filename component, so it must
+# not be mangled or enable path traversal.
+_SCAN_KEY_FORBIDDEN = set('./\\:*?"<>|')
+
+
+def _validate_scan_key(scan_key: str) -> None:
+    r"""Raise ``ValueError`` if ``scan_key`` is unsafe as a single path segment.
+
+    Args:
+        scan_key: The producer-side scan identifier.
+
+    Raises:
+        ValueError: If ``scan_key`` is empty, has surrounding whitespace, or contains a
+            reserved character (``. / \ : * ? " < > |`` or a control char).
+    """
+    if not scan_key:
+        raise ValueError("scan_key must be a non-empty string")
+    if scan_key != scan_key.strip():
+        raise ValueError(
+            f"scan_key {scan_key!r} has leading/trailing whitespace; it must be a "
+            "clean single path segment"
+        )
+    bad = {c for c in scan_key if c in _SCAN_KEY_FORBIDDEN or ord(c) < 32}
+    if bad:
+        raise ValueError(
+            f"scan_key {scan_key!r} contains reserved character(s) {sorted(bad)!r}; "
+            "it must be safe as a single path segment"
+        )
 
 
 class PredictionArtifact(BaseModel):
@@ -38,6 +68,7 @@ class PredictionArtifact(BaseModel):
 class PredictionManifest(BaseModel):
     """Consumer view of predict's per-scan ``{scan_key}.predictions.json``."""
 
+    # protected_namespaces disabled for the nested PredictionArtifact.model_id/model.
     model_config = ConfigDict(protected_namespaces=())
 
     schema_version: Literal["1"]
@@ -49,13 +80,27 @@ class PredictionManifest(BaseModel):
     predict_code_sha: str = ""
     predict_container_digest: str = ""
 
+    @model_validator(mode="after")
+    def _validate_identity(self) -> "PredictionManifest":
+        """Reject an unsafe ``scan_key`` or duplicate artifact ``root_type``s."""
+        _validate_scan_key(self.scan_key)
+        root_types = [artifact.root_type for artifact in self.artifacts]
+        if len(root_types) != len(set(root_types)):
+            raise ValueError(
+                f"duplicate root_type in artifacts: {root_types} (each root type must "
+                "resolve to exactly one .slp)"
+            )
+        return self
+
 
 def _canonical_age(raw: Any) -> int:
     """Coerce a sidecar ``age`` to a whole-number ``int``.
 
     Rejects ``bool`` and any non-whole value so that ``age`` encoded as ``3``,
     ``3.0``, or ``"3"`` all canonicalize to the same ``int`` (keeping the idempotency
-    key stable), while ``3.5`` / ``"abc"`` raise.
+    key stable), while ``3.5`` / ``"abc"`` raise. String ages are restricted to ASCII
+    digits (optional leading sign), so Unicode digits, ``"1_000"``, and ``"3.0"`` are
+    rejected rather than silently accepted.
 
     Args:
         raw: The raw ``age`` value from the sidecar ``params``.
@@ -64,7 +109,7 @@ def _canonical_age(raw: Any) -> int:
         The canonical integer age.
 
     Raises:
-        ValueError: If ``raw`` is a bool or is not a whole number.
+        ValueError: If ``raw`` is a bool or is not a whole ASCII-decimal number.
     """
     if isinstance(raw, bool):
         raise ValueError(f"age must be an integer, got bool {raw!r}")
@@ -75,16 +120,17 @@ def _canonical_age(raw: Any) -> int:
             return int(raw)
         raise ValueError(f"age must be a whole number, got {raw!r}")
     if isinstance(raw, str):
-        try:
-            value = int(raw)
-        except ValueError as exc:
-            raise ValueError(f"age must be a whole number, got {raw!r}") from exc
-        return value
+        body = raw[1:] if raw[:1] in "+-" else raw
+        if not (body.isascii() and body.isdigit()):
+            raise ValueError(f"age must be a whole number, got {raw!r}")
+        return int(raw)
     raise ValueError(f"age must be a whole number, got {raw!r}")
 
 
 class ScanMetadata(BaseModel):
     """Per-scan sidecar supplying the idempotency inputs predict defers."""
+
+    model_config = ConfigDict(frozen=True)
 
     scan_key: str
     image_ids: List[str]
@@ -107,7 +153,8 @@ class ScanMetadata(BaseModel):
             A ``ResolvedParams`` whose ``values`` is exactly ``{species, mode, age}``.
 
         Raises:
-            ValueError: If a required key is missing or ``age`` is not a whole number.
+            ValueError: If a required key is missing, ``species``/``mode`` is empty, or
+                ``age`` is not a whole number.
         """
         try:
             species = self.params["species"]
@@ -115,6 +162,12 @@ class ScanMetadata(BaseModel):
             age = self.params["age"]
         except KeyError as exc:
             raise ValueError(f"sidecar params missing required key: {exc}") from exc
+        if species is None or str(species).strip() == "":
+            raise ValueError(
+                f"sidecar params.species must be non-empty, got {species!r}"
+            )
+        if mode is None or str(mode).strip() == "":
+            raise ValueError(f"sidecar params.mode must be non-empty, got {mode!r}")
         values = {
             "species": str(species),
             "mode": str(mode),
@@ -158,7 +211,9 @@ def resolve_artifact_paths(
     base = Path(manifest_dir)
     resolved: Dict[str, Path] = {}
     for artifact in manifest.artifacts:
-        path = base / artifact.slp_path
+        # slp_path is a basename by contract; take only the name so a stray directory
+        # component or foreign path separator can't escape the manifest directory.
+        path = base / Path(artifact.slp_path).name
         if not path.exists():
             raise FileNotFoundError(
                 f"artifact .slp not found for root_type {artifact.root_type!r}: "
