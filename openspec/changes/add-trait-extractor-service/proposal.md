@@ -12,19 +12,24 @@ talmolab/sleap-roots#250.
 - Add a **top-level `trait_extractor/` package** (repo root), deliberately **excluded from the
   PyPI wheel** so `pip install sleap-roots` stays pure; `sleap-roots-contracts` becomes a
   **dev/test/container** dependency only.
-- Consume predict's `PredictionManifest` via a **consumer-side pydantic model** (no
-  `sleap-roots-predict` runtime dependency); resolve each artifact's `.slp` relative to the
-  manifest and load a `Series` via `Series.load`.
+- Consume predict's `PredictionManifest` via a **consumer-side pydantic model** (importing
+  `ModelRef`+`RootType` from contracts; no `sleap-roots-predict` runtime dependency; pins
+  `schema_version` `Literal["1"]`); resolve each artifact's `.slp` relative to the manifest and
+  load a `Series` via `Series.load`.
 - Define + consume a per-scan **`ScanMetadata` sidecar** (`scan_key`, `image_ids`,
   `images_checksum`, `params={species,mode,age}`) supplying the idempotency inputs predict defers.
+  For reproducibility, `ResolvedParams.values` is the **closed set `{species, mode, age}` with
+  `age` canonicalized to `int`**, built once and fed to both selection and provenance (so
+  `age:3`/`3.0`/`"3"` and extra sidecar keys never change the idempotency key).
 - Port pipeline selection as **`choose_pipeline`** modeled on predict's `choose_models`/`ModelCard`
   (authored in-tree — `choose_models` is not importable): a packaged `pipeline_selection.yaml` of
   `PipelineCard`s `{species, mode, age_min, age_max, pipeline_class}`. Resolves the legacy
   `MultipleDicotPlatePipeline` gap (it is now selectable).
-- Enforce **pipeline compatibility** in the orchestrator: a class-keyed `PIPELINE_REQUIRED_ROOTS`
-  map (pinned to reality by a guard test) checks the loaded root types are a **subset** of the
-  pipeline's required roots, and rejects multi-plant/plate pipelines as unsupported for
-  one-row scan-grain emission this slice.
+- Enforce **pipeline compatibility** in the orchestrator, in order: (1) a **grain guard** rejects
+  multi-plant/plate pipelines (they yield empty/count-only scan-grain output via base
+  `compute_batch_traits`), then (2) a **subset** check via a class-keyed `PIPELINE_REQUIRED_ROOTS`
+  map (pinned to reality by an `ast`-based guard test) that the pipeline's required roots are a
+  subset of the loaded root types (`required ⊆ loaded`).
 - Compute **scan-grain** traits (`compute_batch_traits(...).iloc[0]`) and map a flat
   `{trait}_{stat}` dict to `list[TraitValue]` (grain=`scan`, NaN/inf→None).
 - Assemble `Provenance` (deterministic `idempotency_key` via `compute_idempotency_key`;

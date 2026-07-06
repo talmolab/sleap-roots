@@ -190,7 +190,8 @@ appendix and §1–§9 differ, the appendix and the openspec spec win.
 - **Packaging / lint.** Wheel+sdist exclusion is guaranteed by `include = ["sleap_roots"]`
   (`trait_extractor*` added to `exclude` as belt-and-suspenders). `trait_extractor` is kept **flat**
   so the pre-existing `pydocstyle match-dir` override lints every module (no `match-dir` change).
-- **Out-of-scope finding (separate issue).** `include = ["sleap_roots"]` also omits
-  `sleap_roots.viewer` / `sleap_roots.circumnutation` from the wheel — a pre-existing packaging
-  bug tracked separately, not fixed here.
+- **Follow-up issues filed.** talmolab/sleap-roots#251 (pipelines should expose required root
+  types + output grain as public API, replacing the hardcoded `PIPELINE_REQUIRED_ROOTS` map);
+  #252 (support multi-plant / plate per-plant grain emission); #253 (pre-existing wheel bug —
+  `include = ["sleap_roots"]` omits the `viewer` / `circumnutation` subpackages, not fixed here).
 - **Boundary guard** is an AST import-scan of `sleap_roots/` (not a brittle grep).

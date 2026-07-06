@@ -49,9 +49,19 @@ note. Ports/redesigns `salk-tm/sleap-roots-traits`.
   envelopes; the failed scan is reported (non-zero exit / logged error). This is the behavior that
   lets the A4 DAG degrade safely.
 - **Input validation at the boundary.** Empty `artifacts` (guarded before `Series.load`, which
-  never raises), malformed/schema-invalid manifests, missing referenced `.slp`, and sidecar
-  `scan_key` mismatch each raise a clear, identifying error rather than emitting a malformed or
-  empty envelope.
+  never raises), malformed/schema-invalid manifests, an unrecognized `schema_version` (pinned
+  `Literal["1"]` so a future predict `"2"` fails loudly instead of being mis-consumed under the old
+  shape), an unknown `root_type` (the consumer imports `RootType` from contracts, so the `Literal`
+  rejects it), missing referenced `.slp`, and sidecar `scan_key` mismatch each raise a clear,
+  identifying error rather than emitting a malformed or empty envelope.
+- **Batch discovery + `scan_key` identity.** `extract_batch` discovers
+  `{scan_key}.predictions.json` **recursively**, matching predict's per-scan `out_dir/{scan_key}/`
+  batch layout (each scan's manifest, sidecar, and `.slp` co-located in one directory); output goes
+  to a separate `output_dir` tree so `*.result.json` never collides with discovery. The manifest
+  filename stem MUST equal `manifest.scan_key` (raise on disagreement); `manifest.scan_key` is the
+  single identity used for `series_name`, `TraitValue.scan_key`, `Provenance.scan_key`, and the
+  output filename. `plant_qr_code` is carried through the consumer model for future cross-scan
+  linkage but is not the per-scan grain (the envelope is 1:1 with a scan).
 - **Pipeline compatibility mechanism.** No pipeline exposes its required root types (they are
   implicit in each `get_initial_frame_traits`), so a class-keyed constant
   `PIPELINE_REQUIRED_ROOTS: dict[type[Pipeline], frozenset[str]]` lives next to `choose_pipeline`
@@ -59,12 +69,33 @@ note. Ports/redesigns `salk-tm/sleap-roots-traits`.
   **subset** semantics (`required ⊆ loaded`) — so a crown-only `OlderMonocotPipeline` accepts a
   primary+crown manifest — rather than equality, which would false-reject that valid case. The
   required-roots map is keyed on the pipeline **class** (a property of the class), NOT a field on
-  the `(species, mode, age)` `PipelineCard` (two cards → one class could drift).
-- **Scan-grain support guard.** Multi-plant / plate pipelines (`MultipleDicotPipeline`,
-  `MultipleDicotPlatePipeline`, `MultiplePrimaryRootPipeline`) emit **per-plant** rows;
-  `df.iloc[0]` would silently keep only the first plant. They remain resolvable by
-  `choose_pipeline` (faithful legacy port) but the orchestrator rejects them for one-row
-  scan-grain emission this slice — per-plant grain is a documented follow-up.
+  the `(species, mode, age)` `PipelineCard` (two cards → one class could drift). The hardcoded map
+  is a workaround for a missing public pipeline API — tracked for replacement in
+  talmolab/sleap-roots#251.
+- **Scan-grain support guard (runs FIRST, before the subset check).** Multi-plant / plate
+  pipelines (`MultipleDicotPipeline`, `MultipleDicotPlatePipeline`, `MultiplePrimaryRootPipeline`)
+  routed through the base `compute_batch_traits` produce **empty or count-only** scan-grain output
+  — NOT a dropped-row `df.iloc[0]` problem (base `compute_batch_traits` always yields one row per
+  `Series`; these pipelines' per-plant traits are `include_in_csv=False`, so the row is empty or
+  carries only a plant-count scalar; real per-plant expansion lives in
+  `compute_multiple_dicots_traits` / `compute_multiple_primary_roots_traits`, which the scan-grain
+  path never calls). They remain resolvable by `choose_pipeline` (faithful legacy port) but the
+  orchestrator rejects them for scan-grain emission this slice — per-plant grain is a documented
+  follow-up (talmolab/sleap-roots#252, which must call the multi-plant methods, not just take all
+  rows). The grain guard short-circuits before any `PIPELINE_REQUIRED_ROOTS` lookup so a
+  multi-plant pipeline deterministically yields the grain error; the map is scoped to the
+  scan-grain-valid classes (a class in neither map nor reject-list raises a clear "not registered"
+  error, never `KeyError`).
+- **Params canonicalization for reproducibility.** The contracts canonicalizer collapses
+  `3.0→3` but NOT `"3"→3`, and `compute_param_hash` hashes the whole `values` dict — so `age`
+  encoded as `"3"` vs `3`, or an extra sidecar `params` key, would silently change the
+  `idempotency_key` for the same scan and break Bloom's first-writer-wins dedup. `ResolvedParams.values`
+  is therefore built once at sidecar load as the **closed set `{species: str, mode: str, age: int}`**
+  (age coerced to `int`), fed to both `choose_pipeline` (non-mutating) and provenance. The current
+  self-consistent idempotency scenarios cannot catch this — cross-encoding stability tests do.
+- **Byte-stable re-emission.** `produced_at` and the orchestration fields (`pipeline_run_id`,
+  `worker_request_id`, `argo_*`) are left `None` so re-running `extract_scan` over identical inputs
+  writes a byte-identical `result.json` (envelopes are also written atomically, temp + `replace`).
 - **`contract_version` test pins the literal.** The assembly reads
   `importlib.metadata.version("sleap-roots-contracts")`; the test asserts BOTH that equality AND
   the literal `"0.1.0a3"` / no-`v`-prefix, so a silent contracts pin bump fails the test and
