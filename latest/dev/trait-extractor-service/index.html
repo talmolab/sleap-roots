@@ -12,31 +12,31 @@
         <meta name="author" content="Talmo Lab">
       
       
-        <link rel="canonical" href="https://roots.sleap.ai/latest/guides/pipelines/multiple-primary/">
+        <link rel="canonical" href="https://roots.sleap.ai/latest/dev/trait-extractor-service/">
       
       
-        <link rel="prev" href="../older-monocot/">
+        <link rel="prev" href="../adding-traits/">
       
       
-        <link rel="next" href="../multiple-dicot/">
+        <link rel="next" href="../testing/">
       
       
         
       
       
-      <link rel="icon" href="../../../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.6">
     
     
       
-        <title>MultiplePrimaryRootPipeline - sleap-roots</title>
+        <title>Trait-Extractor Service - sleap-roots</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -55,11 +55,11 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#multiple-primary-root-pipeline" class="md-skip">
+        <a href="#trait-extractor-service" class="md-skip">
           Skip to content
         </a>
       
@@ -104,7 +104,7 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="sleap-roots" class="md-header__button md-logo" aria-label="sleap-roots" data-md-component="logo">
+    <a href="../.." title="sleap-roots" class="md-header__button md-logo" aria-label="sleap-roots" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -124,7 +124,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              MultiplePrimaryRootPipeline
+              Trait-Extractor Service
             
           </span>
         </div>
@@ -236,7 +236,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../.." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -257,7 +257,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../getting-started/installation/" class="md-tabs__link">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
           
   
   
@@ -279,7 +279,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../tutorials/" class="md-tabs__link">
+        <a href="../../tutorials/" class="md-tabs__link">
           
   
   
@@ -297,13 +297,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../../" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../guides/" class="md-tabs__link">
           
   
   
@@ -321,11 +319,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../../dev/contributing/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../contributing/" class="md-tabs__link">
           
   
   
@@ -347,7 +347,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../api/" class="md-tabs__link">
+        <a href="../../api/" class="md-tabs__link">
           
   
   
@@ -369,7 +369,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../cookbook/" class="md-tabs__link">
+        <a href="../../cookbook/" class="md-tabs__link">
           
   
   
@@ -389,7 +389,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../../changelog/" class="md-tabs__link">
+      <a href="../../changelog/" class="md-tabs__link">
         
   
   
@@ -432,7 +432,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="sleap-roots" class="md-nav__button md-logo" aria-label="sleap-roots" data-md-component="logo">
+    <a href="../.." title="sleap-roots" class="md-nav__button md-logo" aria-label="sleap-roots" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -462,7 +462,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../.." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -551,7 +551,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../getting-started/installation/" class="md-nav__link">
+      <a href="../../getting-started/installation/" class="md-nav__link">
         
   
   
@@ -579,7 +579,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../getting-started/quickstart/" class="md-nav__link">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
         
   
   
@@ -607,7 +607,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../getting-started/what-is-sleap/" class="md-nav__link">
+      <a href="../../getting-started/what-is-sleap/" class="md-nav__link">
         
   
   
@@ -681,7 +681,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../tutorials/" class="md-nav__link ">
+            <a href="../../tutorials/" class="md-nav__link ">
               
   
   
@@ -725,7 +725,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/dicot-pipeline/" class="md-nav__link">
+      <a href="../../tutorials/dicot-pipeline/" class="md-nav__link">
         
   
   
@@ -753,7 +753,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/younger-monocot-pipeline/" class="md-nav__link">
+      <a href="../../tutorials/younger-monocot-pipeline/" class="md-nav__link">
         
   
   
@@ -781,7 +781,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/older-monocot-pipeline/" class="md-nav__link">
+      <a href="../../tutorials/older-monocot-pipeline/" class="md-nav__link">
         
   
   
@@ -809,7 +809,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/multiple-dicot-pipeline/" class="md-nav__link">
+      <a href="../../tutorials/multiple-dicot-pipeline/" class="md-nav__link">
         
   
   
@@ -837,7 +837,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/multiple-primary-root-pipeline/" class="md-nav__link">
+      <a href="../../tutorials/multiple-primary-root-pipeline/" class="md-nav__link">
         
   
   
@@ -865,7 +865,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/primary-root-pipeline/" class="md-nav__link">
+      <a href="../../tutorials/primary-root-pipeline/" class="md-nav__link">
         
   
   
@@ -893,7 +893,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../tutorials/lateral-root-pipeline/" class="md-nav__link">
+      <a href="../../tutorials/lateral-root-pipeline/" class="md-nav__link">
         
   
   
@@ -925,8 +925,6 @@
       
   
   
-    
-  
   
   
     
@@ -952,23 +950,22 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../" class="md-nav__link ">
+            <a href="../../guides/" class="md-nav__link ">
               
   
   
@@ -986,13 +983,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="">
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1009,10 +1006,8 @@
                 
   
   
-    
   
   
-  
     
     
       
@@ -1035,21 +1030,20 @@
     
       
       
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
         
           
-          
         
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" checked>
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_2" >
         
           
-          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
             
   
   
@@ -1067,7 +1061,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1085,7 +1079,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../dicot/" class="md-nav__link">
+      <a href="../../guides/pipelines/dicot/" class="md-nav__link">
         
   
   
@@ -1113,7 +1107,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../younger-monocot/" class="md-nav__link">
+      <a href="../../guides/pipelines/younger-monocot/" class="md-nav__link">
         
   
   
@@ -1141,7 +1135,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../older-monocot/" class="md-nav__link">
+      <a href="../../guides/pipelines/older-monocot/" class="md-nav__link">
         
   
   
@@ -1166,19 +1160,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../guides/pipelines/multiple-primary/" class="md-nav__link">
         
   
   
@@ -1194,7 +1179,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1207,7 +1191,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../multiple-dicot/" class="md-nav__link">
+      <a href="../../guides/pipelines/multiple-dicot/" class="md-nav__link">
         
   
   
@@ -1235,7 +1219,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../primary-root/" class="md-nav__link">
+      <a href="../../guides/pipelines/primary-root/" class="md-nav__link">
         
   
   
@@ -1263,7 +1247,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../lateral-root/" class="md-nav__link">
+      <a href="../../guides/pipelines/lateral-root/" class="md-nav__link">
         
   
   
@@ -1313,13 +1297,10 @@
       
       
         
-          
-          
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
@@ -1328,7 +1309,7 @@
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_3" >
         
           
-          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
             
   
   
@@ -1364,7 +1345,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../data-formats/sleap-files/" class="md-nav__link">
+      <a href="../../guides/data-formats/sleap-files/" class="md-nav__link">
         
   
   
@@ -1392,7 +1373,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../data-formats/hdf5/" class="md-nav__link">
+      <a href="../../guides/data-formats/hdf5/" class="md-nav__link">
         
   
   
@@ -1420,7 +1401,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../data-formats/csv-traits/" class="md-nav__link">
+      <a href="../../guides/data-formats/csv-traits/" class="md-nav__link">
         
   
   
@@ -1456,7 +1437,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../trait-reference/" class="md-nav__link">
+      <a href="../../guides/trait-reference/" class="md-nav__link">
         
   
   
@@ -1484,7 +1465,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../batch-processing/" class="md-nav__link">
+      <a href="../../guides/batch-processing/" class="md-nav__link">
         
   
   
@@ -1512,7 +1493,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../custom-pipelines/" class="md-nav__link">
+      <a href="../../guides/custom-pipelines/" class="md-nav__link">
         
   
   
@@ -1540,7 +1521,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../troubleshooting/" class="md-nav__link">
+      <a href="../../guides/troubleshooting/" class="md-nav__link">
         
   
   
@@ -1572,8 +1553,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -1599,21 +1582,22 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   
@@ -1631,7 +1615,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1649,7 +1633,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../dev/contributing/" class="md-nav__link">
+      <a href="../contributing/" class="md-nav__link">
         
   
   
@@ -1677,7 +1661,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../dev/setup/" class="md-nav__link">
+      <a href="../setup/" class="md-nav__link">
         
   
   
@@ -1705,7 +1689,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../dev/architecture/" class="md-nav__link">
+      <a href="../architecture/" class="md-nav__link">
         
   
   
@@ -1733,7 +1717,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../dev/creating-pipelines/" class="md-nav__link">
+      <a href="../creating-pipelines/" class="md-nav__link">
         
   
   
@@ -1761,7 +1745,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../dev/adding-traits/" class="md-nav__link">
+      <a href="../adding-traits/" class="md-nav__link">
         
   
   
@@ -1786,10 +1770,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../../dev/trait-extractor-service/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trait-Extractor Service
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1805,6 +1816,98 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#service-boundary-why-it-is-not-in-the-wheel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service boundary (why it is not in the wheel)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inputs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Inputs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scanmetadata-sidecar-schema-for-the-bloomdownloader-populator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ScanMetadata sidecar schema (for the Bloom/downloader populator)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes-follow-ups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes &amp; follow-ups
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1817,7 +1920,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../dev/testing/" class="md-nav__link">
+      <a href="../testing/" class="md-nav__link">
         
   
   
@@ -1845,7 +1948,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../dev/code-style/" class="md-nav__link">
+      <a href="../code-style/" class="md-nav__link">
         
   
   
@@ -1873,7 +1976,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../dev/release-process/" class="md-nav__link">
+      <a href="../release-process/" class="md-nav__link">
         
   
   
@@ -1941,7 +2044,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../api/" class="md-nav__link ">
+            <a href="../../api/" class="md-nav__link ">
               
   
   
@@ -2045,7 +2148,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/core/series/" class="md-nav__link">
+      <a href="../../api/core/series/" class="md-nav__link">
         
   
   
@@ -2073,7 +2176,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/core/pipelines/" class="md-nav__link">
+      <a href="../../api/core/pipelines/" class="md-nav__link">
         
   
   
@@ -2183,7 +2286,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/traits/lengths/" class="md-nav__link">
+      <a href="../../api/traits/lengths/" class="md-nav__link">
         
   
   
@@ -2211,7 +2314,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/traits/angles/" class="md-nav__link">
+      <a href="../../api/traits/angles/" class="md-nav__link">
         
   
   
@@ -2239,7 +2342,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/traits/tips/" class="md-nav__link">
+      <a href="../../api/traits/tips/" class="md-nav__link">
         
   
   
@@ -2267,7 +2370,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/traits/bases/" class="md-nav__link">
+      <a href="../../api/traits/bases/" class="md-nav__link">
         
   
   
@@ -2295,7 +2398,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/traits/convhull/" class="md-nav__link">
+      <a href="../../api/traits/convhull/" class="md-nav__link">
         
   
   
@@ -2323,7 +2426,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/traits/ellipse/" class="md-nav__link">
+      <a href="../../api/traits/ellipse/" class="md-nav__link">
         
   
   
@@ -2351,7 +2454,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/traits/networklength/" class="md-nav__link">
+      <a href="../../api/traits/networklength/" class="md-nav__link">
         
   
   
@@ -2379,7 +2482,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/traits/scanline/" class="md-nav__link">
+      <a href="../../api/traits/scanline/" class="md-nav__link">
         
   
   
@@ -2407,7 +2510,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/traits/points/" class="md-nav__link">
+      <a href="../../api/traits/points/" class="md-nav__link">
         
   
   
@@ -2501,7 +2604,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/utilities/summary/" class="md-nav__link">
+      <a href="../../api/utilities/summary/" class="md-nav__link">
         
   
   
@@ -2595,7 +2698,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../api/examples/common-workflows/" class="md-nav__link">
+      <a href="../../api/examples/common-workflows/" class="md-nav__link">
         
   
   
@@ -2671,7 +2774,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../cookbook/" class="md-nav__link ">
+            <a href="../../cookbook/" class="md-nav__link ">
               
   
   
@@ -2715,7 +2818,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../cookbook/filtering-data/" class="md-nav__link">
+      <a href="../../cookbook/filtering-data/" class="md-nav__link">
         
   
   
@@ -2743,7 +2846,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../cookbook/custom-traits/" class="md-nav__link">
+      <a href="../../cookbook/custom-traits/" class="md-nav__link">
         
   
   
@@ -2771,7 +2874,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../cookbook/batch-optimization/" class="md-nav__link">
+      <a href="../../cookbook/batch-optimization/" class="md-nav__link">
         
   
   
@@ -2799,7 +2902,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../cookbook/exporting-results/" class="md-nav__link">
+      <a href="../../cookbook/exporting-results/" class="md-nav__link">
         
   
   
@@ -2834,7 +2937,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../changelog/" class="md-nav__link">
+      <a href="../../changelog/" class="md-nav__link">
         
   
   
@@ -2879,7 +2982,7 @@
   
   
     <li class="md-path__item">
-      <a href="../../.." class="md-path__link">
+      <a href="../.." class="md-path__link">
         
   <span class="md-ellipsis">
     Home
@@ -2897,28 +3000,10 @@
     
     
       <li class="md-path__item">
-        <a href="../../" class="md-path__link">
+        <a href="../contributing/" class="md-path__link">
           
   <span class="md-ellipsis">
-    User Guide
-  </span>
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-    
-    
-      <li class="md-path__item">
-        <a href="../dicot/" class="md-path__link">
-          
-  <span class="md-ellipsis">
-    Pipelines
+    Developer Guide
   </span>
 
         </a>
@@ -2940,8 +3025,125 @@
   
 
 
-<h1 id="multiple-primary-root-pipeline">Multiple Primary Root Pipeline<a class="headerlink" href="#multiple-primary-root-pipeline" title="Permanent link">&para;</a></h1>
-<p>Documentation coming soon.</p>
+<h1 id="trait-extractor-service">Trait-extractor service<a class="headerlink" href="#trait-extractor-service" title="Permanent link">&para;</a></h1>
+<p><code>trait_extractor/</code> is the <strong>A3-traits trait-extractor</strong>: a service that consumes
+<a href="https://github.com/talmolab/sleap-roots-predict"><code>sleap-roots-predict</code></a>'s per-scan output,
+computes root traits with the <code>sleap_roots</code> pipelines, and emits a per-scan
+<a href="https://github.com/talmolab/sleap-roots-contracts"><code>sleap-roots-contracts</code></a> <code>ResultEnvelope</code>
+as JSON for Bloom write-back.</p>
+<h2 id="service-boundary-why-it-is-not-in-the-wheel">Service boundary (why it is not in the wheel)<a class="headerlink" href="#service-boundary-why-it-is-not-in-the-wheel" title="Permanent link">&para;</a></h2>
+<p>The extractor is an <em>application</em> that uses the <code>sleap_roots</code> library — not part of the
+library's public API. It lives at the <strong>repository root</strong> (<code>trait_extractor/</code>, a flat package)
+and is deliberately <strong>excluded from the published <code>sleap-roots</code> wheel</strong>
+(<code>[tool.setuptools.packages.find] include = ["sleap_roots"]</code> never discovers a top-level
+sibling). Consequently:</p>
+<ul>
+<li><code>pip install sleap-roots</code> stays pure — <code>sleap-roots-contracts</code> is a <strong>dev/test/container</strong>
+  dependency only, never a runtime dependency of the library. A CI-enforced AST guard test
+  asserts the <code>sleap_roots</code> library source never imports <code>sleap_roots_contracts</code>.</li>
+<li>Tests import it via the repo root on <code>sys.path</code> (<code>[tool.pytest.ini_options] pythonpath = ["."]</code>).</li>
+<li>It is intentionally absent from the generated API reference (<code>docs/gen_ref_pages.py</code> walks
+  only <code>sleap_roots/</code>).</li>
+</ul>
+<h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
+<p>Per scan, discovered recursively under an input directory (mirroring predict's per-scan
+<code>out_dir/{scan_key}/</code> batch layout — manifest, sidecar, and <code>.slp</code> co-located):</p>
+<ol>
+<li><strong><code>{scan_key}.predictions.json</code></strong> — predict's <code>PredictionManifest</code> (<code>schema_version: "1"</code>):
+   <code>scan_key</code>, <code>plant_qr_code</code>, a list of <code>artifacts</code> (each <code>{root_type, model_id, model:
+   ModelRef, slp_path, checksum, file_size}</code>), <code>predict_inference_config</code>,
+   <code>predict_output_params</code>, <code>predict_code_sha</code>, <code>predict_container_digest</code>. Consumed via a
+   lightweight consumer-side model (no <code>sleap-roots-predict</code> runtime dependency).</li>
+<li><strong><code>{scan_key}.scan_metadata.json</code></strong> — the <code>ScanMetadata</code> sidecar (defined by this service),
+   supplying the idempotency inputs predict defers.</li>
+</ol>
+<h3 id="scanmetadata-sidecar-schema-for-the-bloomdownloader-populator"><code>ScanMetadata</code> sidecar schema (for the Bloom/downloader populator)<a class="headerlink" href="#scanmetadata-sidecar-schema-for-the-bloomdownloader-populator" title="Permanent link">&para;</a></h3>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;scan_key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;scan0K9E8BI&quot;</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">&quot;image_ids&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;cyl_img_0001&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;cyl_img_0002&quot;</span><span class="p">],</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">&quot;images_checksum&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sha256:...&quot;</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">&quot;params&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;species&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rice&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cylinder&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;age&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">}</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scan_key</code></td>
+<td><code>str</code></td>
+<td>Must equal the manifest's <code>scan_key</code> (and its filename stem).</td>
+</tr>
+<tr>
+<td><code>image_ids</code></td>
+<td><code>list[str]</code></td>
+<td>Bloom <code>cyl_images</code> IDs. Carried in <code>Provenance.inputs</code>; validated against <code>cyl_images</code> by Bloom's write-back RPC (not by the idempotency key).</td>
+</tr>
+<tr>
+<td><code>images_checksum</code></td>
+<td><code>str</code></td>
+<td>Feeds the idempotency key; its stability is the downloader's responsibility.</td>
+</tr>
+<tr>
+<td><code>params.species</code></td>
+<td><code>str</code></td>
+<td>Selection + <code>param_hash</code>.</td>
+</tr>
+<tr>
+<td><code>params.mode</code></td>
+<td><code>str</code></td>
+<td>Selection + <code>param_hash</code>.</td>
+</tr>
+<tr>
+<td><code>params.age</code></td>
+<td>int-coercible</td>
+<td><strong>Canonicalized to an integer</strong> for the hash — <code>3</code>, <code>3.0</code>, and <code>"3"</code> are equivalent; <code>3.5</code>/<code>"abc"</code>/<code>true</code> are rejected.</td>
+</tr>
+</tbody>
+</table>
+<p>Only <code>{species, mode, age}</code> feed the idempotency key: <code>ResolvedParams.values</code> is built as that
+<strong>closed set</strong> with <code>age</code> coerced to <code>int</code>, so a differently-encoded age or an extra <code>params</code>
+key never changes the key (which would otherwise break Bloom's first-writer-wins dedup).</p>
+<blockquote>
+<p><strong>Operational requirement — build identity in the idempotency key.</strong> The key hashes
+<code>predict_code_sha</code> and <code>traits_code_sha</code>, both of which resolve <strong>fail-soft to <code>""</code></strong> when
+unset. So in a production/container run, set <code>SRT_TRAITS_CODE_SHA</code> (traits build) and ensure
+predict stamps <code>predict_code_sha</code> — otherwise a <code>sleap-roots</code> version bump that changes trait
+numbers would produce a byte-different envelope under the <strong>same</strong> idempotency key, and Bloom
+would dedup two scientifically-distinct results as one run. (<code>traits_sleap_roots_version</code> is
+recorded in <code>Provenance</code> for audit but is not itself a key input — see
+<a href="https://github.com/talmolab/sleap-roots-contracts/issues/14">sleap-roots-contracts#14</a>.)</p>
+</blockquote>
+<h2 id="output">Output<a class="headerlink" href="#output" title="Permanent link">&para;</a></h2>
+<p>One <code>{scan_key}.result.json</code> per scan — a <code>ResultEnvelope</code> = <code>Provenance</code> + <code>list[TraitValue]</code>
+(<code>grain="scan"</code>; <code>NaN</code>/<code>inf</code> → <code>None</code>) + <code>blobs=[]</code> (blob locations are filled downstream at
+upload). <code>Provenance.contract_version</code> is the pinned bare <code>sleap-roots-contracts</code> version
+(<code>0.1.0a3</code>); <code>produced_at</code> is left <code>None</code> so re-emitting over identical inputs is byte-stable.</p>
+<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>trait_extractor<span class="w"> </span>&lt;input_dir&gt;<span class="w"> </span>&lt;output_dir&gt;
+</span></code></pre></div>
+<p>Discovers each <code>{scan_key}.predictions.json</code> under <code>input_dir</code>, pairs its sidecar, and writes
+one envelope per scan to <code>output_dir</code>. Per-scan failures (bad manifest, missing sidecar,
+incompatible/unsupported pipeline) are isolated and reported; the process exits non-zero if any
+scan failed, without discarding the successful envelopes.</p>
+<h2 id="notes-follow-ups">Notes &amp; follow-ups<a class="headerlink" href="#notes-follow-ups" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Consumer/predict coupling</strong> — the consumer <code>PredictionManifest</code> duplicates predict's shape
+  (pinned to <code>schema_version: "1"</code>); a skip-if-unimportable cross-check test validates it
+  against predict's real output when predict is installed.</li>
+<li><strong>Pipeline compatibility</strong> — a class-keyed <code>PIPELINE_REQUIRED_ROOTS</code> map (a workaround for a
+  missing public pipeline API, <a href="https://github.com/talmolab/sleap-roots/issues/251">#251</a>)
+  checks <code>required ⊆ loaded</code>; multi-plant / plate pipelines are rejected for scan-grain
+  emission (<a href="https://github.com/talmolab/sleap-roots/issues/252">#252</a>).</li>
+<li><strong>Downstream</strong> — the GHCR image + Argo template are a fast-follow slice; Bloom's RPC must
+  accept <code>contract_version == "0.1.0a3"</code>
+  (<a href="https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/393">bloom#393</a>).</li>
+</ul>
 
 
 
@@ -3024,12 +3226,12 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.follow", "toc.integrate", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.follow", "toc.integrate", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
-        <script src="../../../javascripts/mathjax.js"></script>
+        <script src="../../javascripts/mathjax.js"></script>
       
         <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
       

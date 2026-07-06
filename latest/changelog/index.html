@@ -1572,6 +1572,8 @@
       
         
       
+        
+      
     
     
     
@@ -1746,6 +1748,34 @@
     
   
     Adding Traits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev/trait-extractor-service/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trait-Extractor Service
   
 
     
@@ -3466,6 +3496,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Cookbook with code recipes (filtering, custom traits, batch optimization, exporting)</li>
 <li>Troubleshooting guide with common issues and solutions</li>
 <li>uv package manager support with PEP 735 dependency groups</li>
+<li><strong>A3-traits trait-extractor service</strong> (<code>trait_extractor/</code>, a top-level package excluded from the published wheel; OpenSpec change <code>add-trait-extractor-service</code>). Consumes <code>sleap-roots-predict</code>'s per-scan <code>{scan_key}.predictions.json</code> manifest + named per-root <code>.slp</code> and a new <code>{scan_key}.scan_metadata.json</code> <strong><code>ScanMetadata</code> sidecar</strong>, selects a pipeline via <code>choose_pipeline</code> (ported chooser, contiguous <code>[age_min, age_max]</code> windows), computes scan-grain traits, and emits a per-scan <code>sleap-roots-contracts</code> <code>ResultEnvelope</code> as JSON for Bloom write-back. Runnable as <code>python -m trait_extractor &lt;input_dir&gt; &lt;output_dir&gt;</code> with per-scan failure isolation. <code>ResolvedParams.values</code> is canonicalized to the closed set <code>{species, mode, age:int}</code> so the idempotency key is reproducible; <code>contract_version</code> is the pinned bare <code>0.1.0a3</code>. The consumer-side <code>PredictionManifest</code> duplicates predict's schema (coupled via <code>schema_version: "1"</code>, guarded by a skip-if-unimportable cross-check test). Docs: <code>docs/dev/trait-extractor-service.md</code>.</li>
 </ul>
 <h3 id="internal">Internal<a class="headerlink" href="#internal" title="Permanent link">&para;</a></h3>
 <ul>
@@ -3478,6 +3509,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Updated installation documentation with uv best practices</li>
 <li>Enhanced developer setup guide with modern workflows</li>
 <li>Migrated to uv for development dependency management</li>
+<li>Added <code>sleap-roots-contracts==0.1.0a3</code> as a <strong>dev/test</strong> dependency (marked <code>python_version &gt;= '3.11'</code>), used only by the <code>trait_extractor</code> service — NOT a published runtime dependency of <code>sleap-roots</code> (a CI-enforced AST guard test asserts the <code>sleap_roots</code> library never imports it). Set <code>[tool.pytest.ini_options] pythonpath = ["."]</code> so tests can import the top-level service package, and added <code>trait_extractor*</code> to <code>[tool.setuptools.packages.find] exclude</code>. Extended <code>ci.yml</code> to lint/test <code>trait_extractor/</code> and added <code>trait_extractor/**</code> to the CI trigger paths.</li>
 </ul>
 <h2 id="014-2024-11-10"><a href="https://github.com/talmolab/sleap-roots/releases/tag/v0.1.4">0.1.4</a> - 2024-11-10<a class="headerlink" href="#014-2024-11-10" title="Permanent link">&para;</a></h2>
 <h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
