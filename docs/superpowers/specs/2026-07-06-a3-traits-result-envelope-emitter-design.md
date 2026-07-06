@@ -155,4 +155,42 @@ Test-first, each behavior before its implementation:
   trait_extractor` CLI, `ci.yml` test wiring + contracts dev-dep.
 - **OUT (fast-follow)** — GHCR image / Dockerfile / `docker-trait-extractor.yml` / Argo
   template; MinIO/Box upload; the write-back RPC call; BlobRef locations; image-grain
-  TraitValues.
+  TraitValues; multi-plant / plate per-plant grain (pipelines are selectable but rejected for
+  scan-grain emission this slice).
+
+## 10. Reconciliation appendix (post-review)
+
+Two adversarial review rounds (10 subagent reviews) revised the openspec change
+`add-trait-extractor-service`; this appendix keeps the durable design in sync. Where this
+appendix and §1–§9 differ, the appendix and the openspec spec win.
+
+- **Golden reuse — CONFIRMED (supersedes §6 item 5).** The `rice_3do_pipeline_output/*.slp` are
+  **byte-identical** (matching sha256) to `rice_3do/0K9E8BI.*.predictions.slp`, so
+  `rice_3do/rice_3do.batch_traits.csv` is a valid golden — no fixture-specific golden. The golden
+  test drops `plant_name` (extractor `series_name="scan0K9E8BI"` vs golden `"0K9E8BI"`; select via
+  `removeprefix("scan")`) and compares a shared trait-column list with
+  `assert_frame_equal(check_exact=False, atol=1e-8)`.
+- **Python-floor marker.** `sleap-roots-contracts` needs Python `>=3.11`; `sleap-roots` keeps
+  `>=3.10`. The dev/test dep carries `; python_version >= '3.11'` in BOTH `[dependency-groups] dev`
+  and `[project.optional-dependencies] dev` (verified: `uv lock` resolves exit-0 with the marker,
+  fails without). No `requires-python` bump.
+- **Batch failure isolation.** `extract_scan` raises per scan; `extract_batch` is the ONLY layer
+  that catches (broad `except` lives only there), isolates per-scan failures, reports them, and
+  exits non-zero — successful envelopes survive. Envelopes are written atomically (temp +
+  `replace`).
+- **Pipeline compatibility + scan-grain guard.** A class-keyed `PIPELINE_REQUIRED_ROOTS` constant
+  (pinned by a guard test) drives a **subset** check (`required ⊆ loaded`) in the orchestrator;
+  multi-plant / plate pipelines are rejected for one-row scan-grain emission (they stay
+  selectable). Empty `artifacts` is guarded before `Series.load` (which never raises).
+- **Negative-path validation.** Malformed / schema-invalid manifests, unknown `root_type`, and
+  missing referenced `.slp` each raise identifying errors (guards owned by the extractor, no broad
+  `except` in `manifest.py`).
+- **`contract_version` test** asserts `importlib.metadata.version(...)` AND the literal
+  `"0.1.0a3"` / no-`v`-prefix.
+- **Packaging / lint.** Wheel+sdist exclusion is guaranteed by `include = ["sleap_roots"]`
+  (`trait_extractor*` added to `exclude` as belt-and-suspenders). `trait_extractor` is kept **flat**
+  so the pre-existing `pydocstyle match-dir` override lints every module (no `match-dir` change).
+- **Out-of-scope finding (separate issue).** `include = ["sleap_roots"]` also omits
+  `sleap_roots.viewer` / `sleap_roots.circumnutation` from the wheel — a pre-existing packaging
+  bug tracked separately, not fixed here.
+- **Boundary guard** is an AST import-scan of `sleap_roots/` (not a brittle grep).
