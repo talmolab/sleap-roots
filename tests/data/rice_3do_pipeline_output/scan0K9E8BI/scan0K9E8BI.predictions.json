@@ -1,0 +1,45 @@
+{
+  "schema_version": "1",
+  "scan_key": "scan0K9E8BI",
+  "plant_qr_code": "scan0K9E8BI",
+  "artifacts": [
+    {
+      "root_type": "primary",
+      "model_id": "123",
+      "model": {
+        "registry_id": "rice-primary",
+        "version": "123",
+        "sleap_nn_version": "0.3.0",
+        "root_type": "primary",
+        "weights_checksum": null
+      },
+      "slp_path": "scan0K9E8BI.model123.rootprimary.slp",
+      "checksum": "3b219e51441264716706079eb414b06c397dbc790b8f3afd1defe7dc18f14ddf",
+      "file_size": 34288
+    },
+    {
+      "root_type": "crown",
+      "model_id": "123",
+      "model": {
+        "registry_id": "rice-crown",
+        "version": "123",
+        "sleap_nn_version": "0.3.0",
+        "root_type": "crown",
+        "weights_checksum": null
+      },
+      "slp_path": "scan0K9E8BI.model123.rootcrown.slp",
+      "checksum": "e74285577d7190d8c4cda7d139715930789c65af7a1ee4bc22ede27395e00321",
+      "file_size": 36711
+    }
+  ],
+  "predict_inference_config": {
+    "device": "cpu",
+    "peak_threshold": 0.2,
+    "batch_size": 4
+  },
+  "predict_output_params": {
+    "peak_threshold": 0.2
+  },
+  "predict_code_sha": "predictcodesha00000000000000000000000000",
+  "predict_container_digest": "sha256:predictdigest000000000000000000000000000000000000000000000000000"
+}
