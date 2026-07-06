@@ -45,7 +45,7 @@ def test_unrecognized_schema_version_rejected(tmp_path):
     data["schema_version"] = "2"
     bad = tmp_path / "bad.predictions.json"
     bad.write_text(json.dumps(data))
-    with pytest.raises(Exception):
+    with pytest.raises(Exception, match="schema_version"):
         load_manifest(bad)
 
 
@@ -55,15 +55,15 @@ def test_unknown_root_type_rejected(tmp_path):
     data["artifacts"][0]["root_type"] = "tuber"
     bad = tmp_path / "bad.predictions.json"
     bad.write_text(json.dumps(data))
-    with pytest.raises(Exception):
+    with pytest.raises(Exception, match="root_type"):
         load_manifest(bad)
 
 
 def test_malformed_json_rejected(tmp_path):
-    """Non-JSON content raises."""
+    """Non-JSON content raises a JSON decode error."""
     bad = tmp_path / "bad.predictions.json"
     bad.write_text("{not json")
-    with pytest.raises(Exception):
+    with pytest.raises(json.JSONDecodeError):
         load_manifest(bad)
 
 
@@ -73,7 +73,7 @@ def test_missing_required_field_rejected(tmp_path):
     del data["scan_key"]
     bad = tmp_path / "bad.predictions.json"
     bad.write_text(json.dumps(data))
-    with pytest.raises(Exception):
+    with pytest.raises(Exception, match="scan_key"):
         load_manifest(bad)
 
 
@@ -81,6 +81,17 @@ def test_missing_slp_file_rejected(tmp_path):
     """A manifest naming a .slp absent from its directory raises FileNotFoundError."""
     manifest = load_manifest(_MANIFEST)
     with pytest.raises(FileNotFoundError):
+        resolve_artifact_paths(manifest, tmp_path)
+
+
+def test_dotdot_slp_path_rejected(tmp_path):
+    """An slp_path that resolves to a directory name ('..') is rejected."""
+    data = json.loads(_MANIFEST.read_text())
+    data["artifacts"][0]["slp_path"] = ".."
+    bad = tmp_path / "bad.predictions.json"
+    bad.write_text(json.dumps(data))
+    manifest = load_manifest(bad)
+    with pytest.raises(ValueError, match="not a filename"):
         resolve_artifact_paths(manifest, tmp_path)
 
 
@@ -101,7 +112,7 @@ def test_unsafe_scan_key_rejected(tmp_path, bad_key):
     data["scan_key"] = bad_key
     bad = tmp_path / "bad.predictions.json"
     bad.write_text(json.dumps(data))
-    with pytest.raises(Exception):
+    with pytest.raises(Exception, match="scan_key"):
         load_manifest(bad)
 
 

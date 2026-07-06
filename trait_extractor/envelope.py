@@ -97,6 +97,8 @@ def write_envelope(envelope: ResultEnvelope, output_dir: Union[str, Path]) -> Pa
     path = out / f"{envelope.provenance.scan_key}.result.json"
     data = envelope.model_dump_json(indent=2)
     tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(data, encoding="utf-8")
+    # newline="\n" so the file is byte-identical across OSes (default translation would
+    # write CRLF on Windows, breaking the byte-stable re-emission guarantee cross-platform).
+    tmp.write_text(data, encoding="utf-8", newline="\n")
     tmp.replace(path)
     return path

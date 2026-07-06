@@ -112,8 +112,9 @@ def test_extract_scan_emits_valid_byte_stable_envelope(tmp_path):
     scan_keys = {tv.scan_key for tv in envelope.traits} | {envelope.provenance.scan_key}
     assert scan_keys == {"scan0K9E8BI"}
 
-    # Byte-stable re-emission.
+    # Byte-stable re-emission, and LF-only so it is byte-identical across OSes.
     first = out.read_bytes()
+    assert b"\r\n" not in first
     extract_scan(_MANIFEST, _SIDECAR, tmp_path)
     assert out.read_bytes() == first
 
@@ -130,6 +131,8 @@ def test_golden_regression(tmp_path):
     assert len(golden_row) == 1
 
     trait_cols = [c for c in computed.columns if c != "plant_name"]
+    # atol=1e-7 with pandas' default rtol=1e-5 (effective tol 1e-7 + 1e-5*|value|),
+    # mirroring the existing test_younger_monocot_pipeline convention.
     pd.testing.assert_frame_equal(
         computed[trait_cols].reset_index(drop=True),
         golden_row[trait_cols].reset_index(drop=True),

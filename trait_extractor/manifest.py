@@ -24,7 +24,7 @@ from sleap_roots_contracts import InputRef, ModelRef, ResolvedParams, RootType
 # Characters that make a scan_key unsafe as a single path segment (mirrors predict's
 # _validate_scan_key). scan_key is identity and becomes a filename component, so it must
 # not be mangled or enable path traversal.
-_SCAN_KEY_FORBIDDEN = set('./\\:*?"<>|')
+_SCAN_KEY_FORBIDDEN = frozenset('./\\:*?"<>|')
 
 
 def _validate_scan_key(scan_key: str) -> None:
@@ -67,9 +67,6 @@ class PredictionArtifact(BaseModel):
 
 class PredictionManifest(BaseModel):
     """Consumer view of predict's per-scan ``{scan_key}.predictions.json``."""
-
-    # protected_namespaces disabled for the nested PredictionArtifact.model_id/model.
-    model_config = ConfigDict(protected_namespaces=())
 
     schema_version: Literal["1"]
     scan_key: str
@@ -213,8 +210,14 @@ def resolve_artifact_paths(
     for artifact in manifest.artifacts:
         # slp_path is a basename by contract; take only the name so a stray directory
         # component or foreign path separator can't escape the manifest directory.
-        path = base / Path(artifact.slp_path).name
-        if not path.exists():
+        name = Path(artifact.slp_path).name
+        if name in {"", ".", ".."}:
+            raise ValueError(
+                f"invalid slp_path {artifact.slp_path!r} for root_type "
+                f"{artifact.root_type!r}: not a filename"
+            )
+        path = base / name
+        if not path.is_file():
             raise FileNotFoundError(
                 f"artifact .slp not found for root_type {artifact.root_type!r}: "
                 f"{path.as_posix()}"

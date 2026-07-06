@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from sleap_roots_contracts import ResultEnvelope
 
@@ -48,6 +48,8 @@ def extract_scan(
         ValueError: On empty artifacts, scan_key mismatch, no/ambiguous pipeline
             match, or an incompatible/unsupported pipeline.
         FileNotFoundError: If a referenced ``.slp`` is missing.
+        json.JSONDecodeError: If the manifest or sidecar is not valid JSON.
+        pydantic.ValidationError: If the manifest or sidecar fails schema validation.
     """
     manifest_path = Path(manifest_path)
     manifest = load_manifest(manifest_path)
@@ -114,9 +116,19 @@ def extract_batch(
     """
     cards = cards or load_pipeline_cards()
     result = BatchResult()
+    seen: Dict[str, Path] = {}
     for manifest_path in sorted(Path(input_dir).rglob(_MANIFEST_GLOB)):
         stem = manifest_path.name.removesuffix(_MANIFEST_SUFFIX)
         try:
+            # Two manifests declaring the same scan_key would write the same
+            # {scan_key}.result.json; refuse the collision rather than silently clobber
+            # one envelope while reporting success (predict's producer guards this too).
+            if stem in seen:
+                raise ValueError(
+                    f"duplicate scan_key {stem!r}: {manifest_path.as_posix()} collides "
+                    f"with {seen[stem].as_posix()}"
+                )
+            seen[stem] = manifest_path
             sidecar_path = manifest_path.parent / f"{stem}{_SIDECAR_SUFFIX}"
             if not sidecar_path.exists():
                 raise FileNotFoundError(

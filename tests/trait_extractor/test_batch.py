@@ -55,6 +55,24 @@ def test_one_scan_failure_does_not_abort_batch(tmp_path):
     assert not (out_dir / "scanBAD.result.json").exists()
 
 
+def test_duplicate_scan_key_across_manifests_reported(tmp_path):
+    """Two manifests declaring the same scan_key are refused, not silently clobbered."""
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    in_dir.mkdir()
+    # Two copies of the same valid scan in sibling directories -> same scan_key.
+    shutil.copytree(_FIXTURE_TREE / "scanYR39SJX", in_dir / "a" / "scanYR39SJX")
+    shutil.copytree(_FIXTURE_TREE / "scanYR39SJX", in_dir / "b" / "scanYR39SJX")
+
+    result = extract_batch(in_dir, out_dir)
+    assert not result.ok
+    # First occurrence succeeds; the collision is reported, not written over silently.
+    assert result.succeeded == ["scanYR39SJX"]
+    assert [k for k, _ in result.failed] == ["scanYR39SJX"]
+    assert "duplicate scan_key" in result.failed[0][1]
+    assert (out_dir / "scanYR39SJX.result.json").exists()
+
+
 def test_missing_sidecar_reported(tmp_path):
     """A manifest with no co-located sidecar is reported and skipped."""
     in_dir = tmp_path / "in"
