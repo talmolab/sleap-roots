@@ -88,7 +88,8 @@ Two sibling reference implementations frame the design:
   staleness bug. The image knows its own build SHA, so the Dockerfile takes
   `ARG SRT_TRAITS_CODE_SHA` → `ENV SRT_TRAITS_CODE_SHA`, and the workflow passes
   `build-args: SRT_TRAITS_CODE_SHA=${{ github.sha }}` (on the push/dispatch events that publish;
-  it matches the emitted `type=sha` tag). The `ARG`/`ENV` go **after** the `uv sync`/COPY layers
+  the full 40-char commit SHA — the same commit the short `type=sha` image tag denotes). The
+  `ARG`/`ENV` go **after** the `uv sync`/COPY layers
   so a per-commit SHA doesn't bust the dependency cache. A runtime `env:` in the Argo template
   still overrides the baked default, so A4 keeps control. `SRT_TRAITS_CONTAINER_DIGEST` is
   **not** baked — the digest isn't known until after the push (self-referential) and is

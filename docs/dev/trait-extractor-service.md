@@ -102,6 +102,10 @@ docker run --rm \
   ghcr.io/talmolab/sleap-roots-trait-extractor:latest /in /out
 ```
 
+On Windows in Git Bash, prefix the command with `MSYS_NO_PATHCONV=1` (or use PowerShell with
+`C:\…` absolute host paths) so the `/in` and `/out` container paths aren't rewritten to host
+paths by MSYS.
+
 Tags: `latest` tracks `main`; every pushed build also publishes an immutable `sha-<commit>`
 tag, and the workflow surfaces the `@sha256:…` digest in its run summary — pin the digest (or
 the `sha-` tag) for reproducible downstream runs. The image bakes its build commit into
