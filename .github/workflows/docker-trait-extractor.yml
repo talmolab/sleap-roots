@@ -30,6 +30,11 @@ on:
       - ".github/workflows/docker-trait-extractor.yml"
   workflow_dispatch:
 
+# Don't let two builds of the same ref race on the shared `latest`/`sha` tags.
+concurrency:
+  group: docker-trait-extractor-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   docker:
     name: Build and push GHCR image

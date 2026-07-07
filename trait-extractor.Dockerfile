@@ -8,10 +8,11 @@
 # ghcr.io/talmolab/sleap-roots). Entry: `python -m trait_extractor <input_dir> <output_dir>`.
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
-# System libs. `build-essential` (gcc + libstdc++ + libgomp1) covers the scientific stack's
-# runtime needs on the slim base; matplotlib runs headless via the Agg backend (no Tk/GL), and
-# sleap_roots imports no OpenCV. Kept minimal — extend only if an in-image `import sleap_roots`
-# fails to resolve a shared object.
+# System libs. `build-essential` is a conservative floor (installing gcc also pulls libstdc++6 +
+# libgomp1, the OpenMP runtime scipy/scikit-image load) and matches the sibling predict image.
+# The deps all ship cp312 manylinux wheels, so nothing compiles during `uv sync`. Extend only if
+# an in-image `import sleap_roots` fails to resolve a shared object. matplotlib runs headless via
+# the Agg backend (no Tk/GL) and sleap_roots imports no OpenCV.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -22,20 +23,22 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=never
 
-# Copy dependency metadata + lockfile first so the (heavy) install layer caches across source
-# edits. README.md is copied because the project declares a `dynamic` readme.
+# Copy only the `uv sync` inputs (dep metadata + lockfile + the library source), then run the
+# heavy dependency install. Because `trait_extractor/` is copied AFTER this layer, a service-code
+# edit does not rebuild the dependency install. README.md is copied for the project's `dynamic`
+# readme; `sleap_roots/` MUST be present because `uv sync` builds the `sleap-roots` project
+# (setuptools resolves its dynamic version from `sleap_roots.__version__`) — so a library-source
+# or dependency change does rebuild this layer, which is correct: the image bakes the library.
 COPY pyproject.toml uv.lock README.md ./
-# The `sleap-roots` project is built/installed by `uv sync` (setuptools resolves its dynamic
-# version from `sleap_roots.__version__`), so its source MUST be present in the context.
 COPY sleap_roots ./sleap_roots
-# The service package is not pip-installable (excluded from the wheel); it is reached via
-# PYTHONPATH below.
-COPY trait_extractor ./trait_extractor
-
 # Install the library + contracts (slim `extractor` extra) from the frozen lockfile, WITHOUT
 # the dev/docs group. `--python 3.12` pins the interpreter: uv against a <3.11 interpreter would
 # exit 0 while silently dropping `sleap-roots-contracts` (its `python_version >= '3.11'` marker).
 RUN uv sync --frozen --no-dev --extra extractor --python 3.12
+
+# The service package is not pip-installable (excluded from the wheel); copy it AFTER the install
+# layer (so edits here don't bust the dependency cache) and reach it via PYTHONPATH below.
+COPY trait_extractor ./trait_extractor
 
 # Run from the baked venv (no runtime resolution), with the repo root on the path so the copied
 # `trait_extractor` package imports (the editable install exposes only `sleap_roots`).
