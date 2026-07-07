@@ -2941,7 +2941,7 @@ in the A4 roadmap.</p>
 </tr>
 <tr>
 <td>Container/CI</td>
-<td>Dockerfile + GHCR workflow = <strong>fast-follow slice</strong>. This PR: <code>python -m trait_extractor</code> CLI + <code>ci.yml</code> test wiring + contracts dev-dep.</td>
+<td>Emitter PR: <code>python -m trait_extractor</code> CLI + <code>ci.yml</code> test wiring + contracts dev-dep. Dockerfile + GHCR workflow shipped as the fast-follow <code>add-trait-extractor-image</code>.</td>
 <td>Keeps the emitter slice focused with real TDD; matches the brief's scoping and predict's split.</td>
 </tr>
 </tbody>
@@ -3069,20 +3069,23 @@ model coerces NaN/inf → None.</p>
 6. <strong>Manifest cross-check</strong> (dev-only, skip-if-unimportable) — import
    <code>sleap_roots_predict.output_contract</code> if installed; assert the consumer <code>PredictionManifest</code>
    accepts predict's real <code>model_dump_json</code> output.</p>
-<h2 id="7-container-ci-organization-plan-dockerfile-is-fast-follow">7. Container / CI organization (plan; Dockerfile is fast-follow)<a class="headerlink" href="#7-container-ci-organization-plan-dockerfile-is-fast-follow" title="Permanent link">&para;</a></h2>
+<h2 id="7-container-ci-organization">7. Container / CI organization<a class="headerlink" href="#7-container-ci-organization" title="Permanent link">&para;</a></h2>
+<p><em>(Shipped in the fast-follow OpenSpec change <code>add-trait-extractor-image</code>; tracking #256.)</em></p>
 <ul>
 <li><strong>Image identity</strong> — distinct <code>ghcr.io/talmolab/sleap-roots-trait-extractor</code> (explicit
   <code>images:</code>; not <code>${{ github.repository }}</code>, which is the library's identity).</li>
-<li><strong>Dockerfile</strong> (fast-follow) — root <code>trait-extractor.Dockerfile</code>, base
-  <code>ghcr.io/astral-sh/uv:python3.12-bookworm-slim</code>; <code>uv sync</code> sleap-roots + contracts, <code>COPY
-  trait_extractor/</code>, <code>ENTRYPOINT ["python","-m","trait_extractor"]</code>.</li>
+<li><strong>Dockerfile</strong> — root <code>trait-extractor.Dockerfile</code>, base
+  <code>ghcr.io/astral-sh/uv:python3.12-bookworm-slim</code>; <code>uv sync --frozen --no-dev --extra extractor</code>
+  (slim <code>extractor</code> extra pulls contracts), <code>COPY sleap_roots/</code> + <code>COPY trait_extractor/</code>,
+  <code>ENTRYPOINT ["python","-m","trait_extractor"]</code>, and bakes <code>SRT_TRAITS_CODE_SHA</code> for provenance.</li>
 <li><strong>CI, two independent concerns:</strong></li>
 <li><em>Tests</em> (<strong>this PR</strong>) — extend <code>ci.yml</code>: add <code>trait_extractor/**</code> to path filters + lint
     (<code>black</code>/<code>pydocstyle</code> over <code>trait_extractor</code>); add <code>sleap-roots-contracts</code> to
     <code>[dependency-groups] dev</code>; set <code>[tool.pytest.ini_options] pythonpath = ["."]</code>.</li>
-<li><em>Image build</em> (<strong>fast-follow <code>docker-trait-extractor.yml</code></strong>) — near-copy of predict's
+<li><em>Image build</em> (<strong><code>docker-trait-extractor.yml</code></strong>) — near-copy of predict's
     <code>docker-build.yml</code>, path-filtered to <code>trait_extractor/**</code> + Dockerfile. <code>build.yml</code> (PyPI)
-    untouched — library release and service image never trigger each other.</li>
+    untouched, and this workflow has no <code>release:</code> trigger — library release and service image
+    never trigger each other.</li>
 <li><strong>Extraction path</strong> — the self-contained boundary lets the whole <code>trait_extractor/</code> + its
   Dockerfile/workflow move to <code>talmolab/sleap-roots-trait-extractor</code> later with minimal rework.</li>
 </ul>
@@ -3102,10 +3105,11 @@ model coerces NaN/inf → None.</p>
 <li><strong>IN</strong> — the emitter (manifest+sidecar → select pipeline → compute traits → TraitValues +
   Provenance → per-scan <code>ResultEnvelope</code> JSON), the pipeline-chooser port, the <code>python -m
   trait_extractor</code> CLI, <code>ci.yml</code> test wiring + contracts dev-dep.</li>
-<li><strong>OUT (fast-follow)</strong> — GHCR image / Dockerfile / <code>docker-trait-extractor.yml</code> / Argo
-  template; MinIO/Box upload; the write-back RPC call; BlobRef locations; image-grain
-  TraitValues; multi-plant / plate per-plant grain (pipelines are selectable but rejected for
-  scan-grain emission this slice).</li>
+<li><strong>OUT (fast-follow)</strong> — the A4 Argo template that pulls the image; MinIO/Box upload; the
+  write-back RPC call; BlobRef locations; image-grain TraitValues; multi-plant / plate per-plant
+  grain (pipelines are selectable but rejected for scan-grain emission this slice). (The GHCR
+  image / Dockerfile / <code>docker-trait-extractor.yml</code> shipped separately in
+  <code>add-trait-extractor-image</code>.)</li>
 </ul>
 <h2 id="10-reconciliation-appendix-post-review">10. Reconciliation appendix (post-review)<a class="headerlink" href="#10-reconciliation-appendix-post-review" title="Permanent link">&para;</a></h2>
 <p>Two adversarial review rounds (10 subagent reviews) revised the openspec change
@@ -3143,6 +3147,16 @@ appendix and §1–§9 differ, the appendix and the openspec spec win.</p>
   #252 (support multi-plant / plate per-plant grain emission); #253 (pre-existing wheel bug —
   <code>include = ["sleap_roots"]</code> omits the <code>viewer</code> / <code>circumnutation</code> subpackages, not fixed here).</li>
 <li><strong>Boundary guard</strong> is an AST import-scan of <code>sleap_roots/</code> (not a brittle grep).</li>
+<li><strong>Container fast-follow shipped (<code>add-trait-extractor-image</code>, #256).</strong> The §7 plan landed as
+  a separate OpenSpec change: <code>trait-extractor.Dockerfile</code>, <code>.dockerignore</code>, the path-filtered
+  <code>docker-trait-extractor.yml</code> (build-only on PRs, build+push on <code>main</code>, no <code>release:</code> trigger),
+  and a slim <code>[project.optional-dependencies] extractor</code> extra installed via
+  <code>uv sync --frozen --no-dev --extra extractor</code>. The image COPYs <code>sleap_roots/</code> (needed to build
+  the project) + <code>trait_extractor/</code>, pins <code>--python 3.12</code> (a <code>&lt;3.11</code> interpreter silently drops
+  contracts), and bakes <code>SRT_TRAITS_CODE_SHA</code> so envelopes carry a non-empty <code>traits_code_sha</code>
+  (an idempotency-key input). §7/§9 above are reconciled accordingly. The remaining fast-follow
+  is A4's Argo wiring (rewrite the template <code>args:</code> to the two positional dirs + pin the image
+  digest) and the write-back RPC (bloom#393).</li>
 <li><strong>Final module layout (implementation).</strong> The §4 architecture table folded several
   concerns together; the implementation split them into smaller, independently-tested units
   (no behavior change): <code>trait_extractor/manifest.py</code> (consumer manifest + <code>ScanMetadata</code> +
