@@ -1,0 +1,48 @@
+# Build context for trait-extractor.Dockerfile. Keep it small: the Dockerfile COPYs only
+# pyproject.toml, uv.lock, README.md, sleap_roots/, and trait_extractor/ — everything else is
+# excluded. In particular tests/ (Git-LFS, ~900 MB) must stay out of the context; the
+# verification fixture is mounted at `docker run` time, not baked in.
+
+# VCS + CI
+.git
+.github
+.gitattributes
+
+# Virtual env (the image builds its own .venv)
+.venv
+
+# Build artifacts
+*.egg-info
+dist
+build
+
+# Python caches
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+.coverage
+htmlcov
+
+# Heavy / dev-only assets not needed in the image (none are COPY'd; excluded to keep the build
+# context small — `site/` alone is ~20 MB of built docs).
+tests
+docs
+site
+notebooks
+openspec
+scripts
+_scratch
+*.ipynb
+*.csv
+mkdocs.yml
+environment.yml
+
+# Interpreter pin: NOT copied on purpose so uv resolves against the base image's Python 3.12
+# (a copied 3.11 pin + UV_PYTHON_DOWNLOADS=never would fail to find an interpreter).
+.python-version
+
+# Editor / tooling
+.claude
+.vscode
+.serena

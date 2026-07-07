@@ -48,7 +48,7 @@ in the A4 roadmap.
 | `contract_version` | Stamp **bare `"0.1.0a3"`**, sourced from the pinned package version (`importlib.metadata.version("sleap-roots-contracts")`). | Forward-consistent with the package predict pins. **Requires** the Bloom RPC to accept `0.1.0a3` (bloom#393) — recorded as an A4 blocker. |
 | Trait grain | **Scan-grain only** this slice. Map from a flat `{trait_name: value}` dict (1-row `compute_batch_traits`; native `summary_stats` for MultipleDicot as a future adapter). | Matches legacy `traits_summary.csv` + the RPC's needs. Image-grain (`compute_plant_traits`) is a noted follow-up. |
 | Blobs | Emit `blobs=[]`. | predict writes only local paths + checksums; s3/box locations are filled downstream at upload (A4 flow step G, out of scope), and `BlobRef`'s validator rejects a location-less object. |
-| Container/CI | Dockerfile + GHCR workflow = **fast-follow slice**. This PR: `python -m trait_extractor` CLI + `ci.yml` test wiring + contracts dev-dep. | Keeps the emitter slice focused with real TDD; matches the brief's scoping and predict's split. |
+| Container/CI | Emitter PR: `python -m trait_extractor` CLI + `ci.yml` test wiring + contracts dev-dep. Dockerfile + GHCR workflow shipped as the fast-follow `add-trait-extractor-image`. | Keeps the emitter slice focused with real TDD; matches the brief's scoping and predict's split. |
 
 ## 4. Architecture — `trait_extractor/` (repo root, not in wheel)
 
@@ -120,20 +120,24 @@ Test-first, each behavior before its implementation:
    `sleap_roots_predict.output_contract` if installed; assert the consumer `PredictionManifest`
    accepts predict's real `model_dump_json` output.
 
-## 7. Container / CI organization (plan; Dockerfile is fast-follow)
+## 7. Container / CI organization
+
+*(Shipped in the fast-follow OpenSpec change `add-trait-extractor-image`; tracking #256.)*
 
 - **Image identity** — distinct `ghcr.io/talmolab/sleap-roots-trait-extractor` (explicit
   `images:`; not `${{ github.repository }}`, which is the library's identity).
-- **Dockerfile** (fast-follow) — root `trait-extractor.Dockerfile`, base
-  `ghcr.io/astral-sh/uv:python3.12-bookworm-slim`; `uv sync` sleap-roots + contracts, `COPY
-  trait_extractor/`, `ENTRYPOINT ["python","-m","trait_extractor"]`.
+- **Dockerfile** — root `trait-extractor.Dockerfile`, base
+  `ghcr.io/astral-sh/uv:python3.12-bookworm-slim`; `uv sync --frozen --no-dev --extra extractor`
+  (slim `extractor` extra pulls contracts), `COPY sleap_roots/` + `COPY trait_extractor/`,
+  `ENTRYPOINT ["python","-m","trait_extractor"]`, and bakes `SRT_TRAITS_CODE_SHA` for provenance.
 - **CI, two independent concerns:**
   - *Tests* (**this PR**) — extend `ci.yml`: add `trait_extractor/**` to path filters + lint
     (`black`/`pydocstyle` over `trait_extractor`); add `sleap-roots-contracts` to
     `[dependency-groups] dev`; set `[tool.pytest.ini_options] pythonpath = ["."]`.
-  - *Image build* (**fast-follow `docker-trait-extractor.yml`**) — near-copy of predict's
+  - *Image build* (**`docker-trait-extractor.yml`**) — near-copy of predict's
     `docker-build.yml`, path-filtered to `trait_extractor/**` + Dockerfile. `build.yml` (PyPI)
-    untouched — library release and service image never trigger each other.
+    untouched, and this workflow has no `release:` trigger — library release and service image
+    never trigger each other.
 - **Extraction path** — the self-contained boundary lets the whole `trait_extractor/` + its
   Dockerfile/workflow move to `talmolab/sleap-roots-trait-extractor` later with minimal rework.
 
@@ -153,10 +157,11 @@ Test-first, each behavior before its implementation:
 - **IN** — the emitter (manifest+sidecar → select pipeline → compute traits → TraitValues +
   Provenance → per-scan `ResultEnvelope` JSON), the pipeline-chooser port, the `python -m
   trait_extractor` CLI, `ci.yml` test wiring + contracts dev-dep.
-- **OUT (fast-follow)** — GHCR image / Dockerfile / `docker-trait-extractor.yml` / Argo
-  template; MinIO/Box upload; the write-back RPC call; BlobRef locations; image-grain
-  TraitValues; multi-plant / plate per-plant grain (pipelines are selectable but rejected for
-  scan-grain emission this slice).
+- **OUT (fast-follow)** — the A4 Argo template that pulls the image; MinIO/Box upload; the
+  write-back RPC call; BlobRef locations; image-grain TraitValues; multi-plant / plate per-plant
+  grain (pipelines are selectable but rejected for scan-grain emission this slice). (The GHCR
+  image / Dockerfile / `docker-trait-extractor.yml` shipped separately in
+  `add-trait-extractor-image`.)
 
 ## 10. Reconciliation appendix (post-review)
 
@@ -195,6 +200,16 @@ appendix and §1–§9 differ, the appendix and the openspec spec win.
   #252 (support multi-plant / plate per-plant grain emission); #253 (pre-existing wheel bug —
   `include = ["sleap_roots"]` omits the `viewer` / `circumnutation` subpackages, not fixed here).
 - **Boundary guard** is an AST import-scan of `sleap_roots/` (not a brittle grep).
+- **Container fast-follow shipped (`add-trait-extractor-image`, #256).** The §7 plan landed as
+  a separate OpenSpec change: `trait-extractor.Dockerfile`, `.dockerignore`, the path-filtered
+  `docker-trait-extractor.yml` (build-only on PRs, build+push on `main`, no `release:` trigger),
+  and a slim `[project.optional-dependencies] extractor` extra installed via
+  `uv sync --frozen --no-dev --extra extractor`. The image COPYs `sleap_roots/` (needed to build
+  the project) + `trait_extractor/`, pins `--python 3.12` (a `<3.11` interpreter silently drops
+  contracts), and bakes `SRT_TRAITS_CODE_SHA` so envelopes carry a non-empty `traits_code_sha`
+  (an idempotency-key input). §7/§9 above are reconciled accordingly. The remaining fast-follow
+  is A4's Argo wiring (rewrite the template `args:` to the two positional dirs + pin the image
+  digest) and the write-back RPC (bloom#393).
 - **Final module layout (implementation).** The §4 architecture table folded several
   concerns together; the implementation split them into smaller, independently-tested units
   (no behavior change): `trait_extractor/manifest.py` (consumer manifest + `ScanMetadata` +
