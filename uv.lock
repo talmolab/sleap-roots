@@ -3659,6 +3659,7 @@ dev = [
     { name = "twine" },
 ]
 extractor = [
+    { name = "pyyaml" },
     { name = "sleap-roots-contracts", marker = "python_full_version >= '3.11'" },
 ]
 
@@ -3707,6 +3708,7 @@ requires-dist = [
     { name = "pytest-benchmark", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
     { name = "pywavelets", specifier = ">=1.5" },
+    { name = "pyyaml", marker = "extra == 'extractor'" },
     { name = "scikit-image" },
     { name = "scipy" },
     { name = "seaborn" },

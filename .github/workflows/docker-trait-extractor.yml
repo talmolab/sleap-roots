@@ -8,6 +8,9 @@ on:
   push:
     branches: [main]
     paths:
+      # The image bakes the `sleap_roots` library from source (COPY + editable install), so a
+      # library-source change is an image-content change and must rebuild/republish the image.
+      - "sleap_roots/**"
       - "trait_extractor/**"
       - "trait-extractor.Dockerfile"
       - "pyproject.toml"
@@ -16,6 +19,9 @@ on:
       - ".github/workflows/docker-trait-extractor.yml"
   pull_request:
     paths:
+      # The image bakes the `sleap_roots` library from source (COPY + editable install), so a
+      # library-source change is an image-content change and must rebuild/republish the image.
+      - "sleap_roots/**"
       - "trait_extractor/**"
       - "trait-extractor.Dockerfile"
       - "pyproject.toml"

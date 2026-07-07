@@ -86,7 +86,9 @@ def test_packaging_config_declares_the_extractor_extra():
     )
     extractor = pyproject["project"]["optional-dependencies"]["extractor"]
     assert any(
-        dep.startswith("sleap-roots-contracts==0.1.0a3")
+        # Split off the marker and match the requirement exactly (not startswith, so a
+        # superstring version like ==0.1.0a30 cannot slip through).
+        dep.split(";")[0].strip() == "sleap-roots-contracts==0.1.0a3"
         and "python_version >= '3.11'" in dep
         for dep in extractor
     ), (

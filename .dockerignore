@@ -24,12 +24,19 @@ build
 .coverage
 htmlcov
 
-# Heavy / dev-only assets not needed in the image
+# Heavy / dev-only assets not needed in the image (none are COPY'd; excluded to keep the build
+# context small — `site/` alone is ~20 MB of built docs).
 tests
 docs
+site
 notebooks
 openspec
+scripts
+_scratch
 *.ipynb
+*.csv
+mkdocs.yml
+environment.yml
 
 # Interpreter pin: NOT copied on purpose so uv resolves against the base image's Python 3.12
 # (a copied 3.11 pin + UV_PYTHON_DOWNLOADS=never would fail to find an interpreter).
