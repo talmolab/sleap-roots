@@ -28,9 +28,9 @@ talmolab/sleap-roots#256 (umbrella #250 is closed — emitter done).
   flag to inject it — a `""` default would let a traits-code change silently collide with a
   prior "done" result under A4's dedup. (`SRT_TRAITS_CONTAINER_DIGEST` is not baked — unknown at
   build time, not a key input; stays A4's runtime concern.)
-- Add a slim **`[project.optional-dependencies] extractor`** = `["sleap-roots-contracts==0.1.0a3 ; python_version >= '3.11'"]`
-  so the image installs contracts (and transitively `pyyaml`, which the pipeline chooser's
-  `import yaml` needs) **without** the heavy dev/docs group (mkdocs/pytest/black/twine/…).
+- Add a slim **`[project.optional-dependencies] extractor`** = `["sleap-roots-contracts==0.1.0a3 ; python_version >= '3.11'", "pyyaml"]`
+  so the image installs contracts + `pyyaml` (declared explicitly since the pipeline chooser's
+  `import yaml` uses it directly) **without** the heavy dev/docs group (mkdocs/pytest/black/twine/…).
   Re-lock and commit `uv.lock` (CI is `uv sync --frozen`).
 - Add a slim `tests/trait_extractor/` **packaging guard test** that asserts the `extractor`
   extra exists and pins contracts (CI-enforced, since `ci.yml` triggers on `pyproject.toml`).
@@ -41,9 +41,10 @@ talmolab/sleap-roots#256 (umbrella #250 is closed — emitter done).
   `docker-build.yml` with: a **distinct image identity** `ghcr.io/talmolab/sleap-roots-trait-extractor`
   (explicit `images:`, **not** `${{ github.repository }}` which is the library's identity);
   a `permissions: { contents: read, packages: write }` block; the **same `paths:` filter on
-  both the `push:[main]` and `pull_request` triggers** (`trait_extractor/**` +
-  `trait-extractor.Dockerfile` + `pyproject.toml` + `uv.lock` + `.dockerignore` + the workflow
-  file); **no `release:` trigger and no `type=semver` tags**. Build-only on PRs (no GHCR
+  both the `push:[main]` and `pull_request` triggers** (`sleap_roots/**` — the library is baked
+  into the image from source — + `trait_extractor/**` + `trait-extractor.Dockerfile` +
+  `pyproject.toml` + `uv.lock` + `.dockerignore` + the workflow file); **no `release:` trigger
+  and no `type=semver` tags**. Build-only on PRs (no GHCR
   login/push); build **and** push on `main`/dispatch (`latest` on `main` + immutable
   `sha-<sha>`); `file: trait-extractor.Dockerfile`, `context: .`.
 - Update **docs** (single source of truth = the dev doc): add a `## Container image` section to

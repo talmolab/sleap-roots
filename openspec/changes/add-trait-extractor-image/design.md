@@ -55,7 +55,8 @@ Two sibling reference implementations frame the design:
   `[project.optional-dependencies] extractor = ["sleap-roots-contracts==0.1.0a3 ; python_version >= '3.11'"]`;
   the image runs `uv sync --frozen --no-dev --extra extractor`. This installs the
   `sleap-roots` project (the `sleap_roots` package) + its runtime deps + contracts (+
-  transitive `pyyaml`), but **not** the `[dependency-groups] dev` set (mkdocs/pytest/black/…).
+  `pyyaml` — declared explicitly in the extra since `trait_extractor` imports it directly), but
+  **not** the `[dependency-groups] dev` set (mkdocs/pytest/black/…).
   `uv.lock` is re-locked once (contracts is already resolved in the lock via the dev group, so
   the package set does not change — only the extra-mapping is added; `uv lock` stays exit-0).
   - *Alternatives considered:* (a) `uv sync --frozen` with the full dev group — heavier image,
@@ -106,21 +107,25 @@ Two sibling reference implementations frame the design:
   final set is settled by the real build in implementation, not guessed here.
 - **Separate, path-filtered workflow.** `.github/workflows/docker-trait-extractor.yml`,
   triggered on `push:[main]`, `pull_request`, and `workflow_dispatch` — with the **same
-  `paths:` filter on both the `push` and `pull_request` triggers** (`trait_extractor/**`,
-  `trait-extractor.Dockerfile`, `pyproject.toml`, `uv.lock`, `.dockerignore`, the workflow
-  file). Build-only on PR (`push: ${{ github.event_name != 'pull_request' }}`, GHCR login
-  gated the same way, `permissions: { contents: read, packages: write }` for the push);
-  build+push otherwise. `build-push-action` gets `file: trait-extractor.Dockerfile`
-  (non-default name) with `context: .`. Tags: `type=ref,event=branch|pr`, `type=sha`, and
-  `type=raw,value=latest,enable={{is_default_branch}}`.
+  `paths:` filter on both the `push` and `pull_request` triggers** (`sleap_roots/**`,
+  `trait_extractor/**`, `trait-extractor.Dockerfile`, `pyproject.toml`, `uv.lock`,
+  `.dockerignore`, the workflow file). Build-only on PR (`push: ${{ github.event_name !=
+  'pull_request' }}`, GHCR login gated the same way, `permissions: { contents: read, packages:
+  write }` for the push); build+push otherwise. `build-push-action` gets
+  `file: trait-extractor.Dockerfile` (non-default name) with `context: .`. Tags:
+  `type=ref,event=branch|pr`, `type=sha`, and `type=raw,value=latest,enable={{is_default_branch}}`.
+  - **`sleap_roots/**` is in the filter because the image bakes the library from source.** The
+    Dockerfile `COPY sleap_roots ./sleap_roots` + editable install means a library-source
+    change is an image-content change; omitting it would publish a stale image after a library
+    fix (the pre-PR self-review caught this). Genuinely unrelated changes (`docs/**`,
+    `tests/**`) still don't rebuild.
   - **No `release:` trigger, no `type=semver` tags.** Predict's workflow (which this mirrors)
-    triggers on `release: published` and unfilters its `push`, but that would (a) rebuild the
-    image on *every* merge to `main` including library-only changes and (b) fire the image
-    build on the same `release: published` event that drives the PyPI `build.yml` — both
-    violating the invariant that a library release and the service image never trigger each
-    other. Dropping `release:` and path-filtering the `push` honors the invariant; the image's
-    lifecycle is driven only by changes to `trait_extractor/`, the Dockerfile, or the locked
-    deps. The PyPI `build.yml` and test `ci.yml` are untouched.
+    triggers on `release: published` and unfilters its `push`. The invariant we hold is narrower
+    than "library never triggers the image": a library *source* change SHOULD rebuild the image
+    (it ships that source), but a library *PyPI release* (the `release: published` event that
+    drives `build.yml`) must not — and vice versa. Dropping `release:` here achieves exactly
+    that decoupling; path-filtering keeps unrelated (docs/tests) merges from rebuilding. The
+    PyPI `build.yml` and test `ci.yml` are untouched.
 
 ## Risks / Trade-offs
 
@@ -194,6 +199,14 @@ the A4 wiring PR (out of scope here) can resolve them; **neither changes this im
   produces the `{scan}.scan_metadata.json` sidecar. So the image cannot run end-to-end in the
   *existing* DAG until A4 upgrades the predictor to the manifest-emitting GHCR predict image and
   wires the sidecar producer. This is expected A4 sequencing, not a defect in this image.
+- **PID-1 / SIGTERM (deferred).** The exec-form `ENTRYPOINT` makes `python` PID 1, and the
+  driver installs no SIGTERM handler — so on Argo preemption/cancel the pod ignores SIGTERM and
+  waits out `terminationGracePeriodSeconds` before SIGKILL. This is a preemption-latency nit, not
+  a correctness bug: per-scan writes are atomic (temp→rename) and the batch is idempotent on
+  retry, so a SIGKILL loses no completed envelope. Adding `tini`/`--init` would change the
+  entrypoint literal that both the spec and A4's `args:` rewrite depend on, and neither sibling
+  image (predict) does it. Left to the A4 traits-wiring step to handle at the pod level
+  (grace period, or a driver SIGTERM handler in a follow-up to the emitter capability).
 
 ## Open Questions
 

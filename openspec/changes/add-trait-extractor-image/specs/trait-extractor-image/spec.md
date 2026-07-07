@@ -86,7 +86,8 @@ The trait-extractor image SHALL be published under the explicit identity
 install it with `uv sync --frozen --no-dev --extra extractor`. This SHALL install the
 `sleap-roots` library (whose `sleap_roots/` source is copied into the build context so
 setuptools can build it and resolve its dynamic version), its runtime dependencies, and
-`sleap-roots-contracts` (with its transitive `pyyaml`) **without** installing the
+`sleap-roots-contracts` and `pyyaml` (declared explicitly since `trait_extractor` imports it
+directly) **without** installing the
 `[dependency-groups] dev` tooling (mkdocs/pytest/black/twine/…). `uv.lock` SHALL be re-locked
 in the same commit as the `pyproject.toml` change so the frozen sync resolves (`uv lock` exits
 `0`; the published `sleap-roots` runtime dependency set is unchanged).
@@ -142,12 +143,13 @@ The repository SHALL provide `.github/workflows/docker-trait-extractor.yml` that
 image on pull requests (validation only, no registry login and no push) and builds **and**
 pushes it on `main` and on manual dispatch. The workflow SHALL declare
 `permissions: { contents: read, packages: write }` so the push to GHCR is authorized. Both the
-`push` and `pull_request` triggers SHALL be path-filtered to `trait_extractor/**`,
-`trait-extractor.Dockerfile`, `pyproject.toml`, `uv.lock`, `.dockerignore`, and the workflow
-file itself. The workflow SHALL NOT trigger on `release` events, so that a library PyPI release
-(handled by `build.yml`) never builds the service image and vice versa. It SHALL build using
-`file: trait-extractor.Dockerfile` with `context: .`. The PyPI `build.yml` and the test
-`ci.yml` SHALL remain unmodified.
+`push` and `pull_request` triggers SHALL be path-filtered to the image's build inputs:
+`sleap_roots/**` (the library is baked into the image from source, so a library-source change is
+an image-content change), `trait_extractor/**`, `trait-extractor.Dockerfile`, `pyproject.toml`,
+`uv.lock`, `.dockerignore`, and the workflow file itself. The workflow SHALL NOT trigger on
+`release` events, so that a library PyPI *release* (handled by `build.yml`) never builds the
+service image and vice versa. It SHALL build using `file: trait-extractor.Dockerfile` with
+`context: .`. The PyPI `build.yml` and the test `ci.yml` SHALL remain unmodified.
 
 #### Scenario: Pull request builds but does not push
 
@@ -162,12 +164,18 @@ file itself. The workflow SHALL NOT trigger on `release` events, so that a libra
   `ghcr.io/talmolab/sleap-roots-trait-extractor` image (`latest` on the default branch plus an
   immutable `sha-<sha>` tag)
 
-#### Scenario: Unrelated library changes do not trigger the image build
+#### Scenario: A library PyPI release does not trigger the image build
 
-- **WHEN** a push to `main` or a pull request touches only `sleap_roots/**` (and none of the
-  filtered paths)
+- **WHEN** a `release: published` event fires (the PyPI library release handled by `build.yml`)
+- **THEN** `docker-trait-extractor.yml` does not run (it has no `release:` trigger)
+- **AND** conversely, an image rebuild never runs `build.yml`
+
+#### Scenario: Changes outside the build inputs do not trigger the image build
+
+- **WHEN** a push to `main` or a pull request touches only non-input paths (e.g. `docs/**` or
+  `tests/**`, none of the filtered build-input paths)
 - **THEN** `docker-trait-extractor.yml` does not run
-- **AND** a library release (a `release: published` event) does not run it either
+- **AND** a change under `sleap_roots/**` *does* trigger it (the library is baked into the image)
 
 ### Requirement: Build-context hygiene via .dockerignore
 
