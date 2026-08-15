@@ -6,12 +6,25 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Iterable
 
-from sleap_roots_contracts import ResultEnvelope
+import pydantic
+import pytest
+from sleap_roots_contracts import RUN_MANIFEST_FILENAME, ResultEnvelope
 
 from trait_extractor.extractor import extract_batch
 
 _FIXTURE_TREE = Path("tests/data/rice_3do_pipeline_output")
+
+
+def _write_run_manifest(
+    directory: Path, scan_keys: Iterable[str], pipeline_run_id: str = "local-abc123"
+) -> None:
+    """Write a run_manifest.json into ``directory`` scoping to ``scan_keys``."""
+    payload = {"pipeline_run_id": pipeline_run_id, "scan_keys": list(scan_keys)}
+    (directory / RUN_MANIFEST_FILENAME).write_text(
+        json.dumps(payload), encoding="utf-8"
+    )
 
 
 def test_batch_emits_one_envelope_per_scan(tmp_path):
@@ -111,6 +124,135 @@ def test_stem_scan_key_mismatch_reported(tmp_path):
     assert "scan_key" in result.failed[0][1]
 
 
+def test_no_manifest_falls_back_to_unscoped_rglob(tmp_path):
+    """No run_manifest.json anywhere -> both fixture scans process, as before this change."""
+    result = extract_batch(_FIXTURE_TREE, tmp_path)
+    assert result.ok
+    assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
+    assert not (tmp_path / RUN_MANIFEST_FILENAME).exists()
+
+
+def test_manifest_scoping_both_scans_in_scope_matches_current_output(tmp_path):
+    """A manifest scoping to exactly the two fixture scans matches the no-manifest output."""
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    shutil.copytree(_FIXTURE_TREE, in_dir)
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"])
+
+    baseline_dir = tmp_path / "baseline"
+    baseline = extract_batch(_FIXTURE_TREE, baseline_dir)
+    result = extract_batch(in_dir, out_dir)
+
+    assert result.ok
+    assert set(result.succeeded) == set(baseline.succeeded)
+    for scan_key in result.succeeded:
+        assert (out_dir / f"{scan_key}.result.json").read_bytes() == (
+            baseline_dir / f"{scan_key}.result.json"
+        ).read_bytes()
+
+
+def test_manifest_scoping_excludes_out_of_scope_scan(tmp_path):
+    """A manifest naming only one scan leaves the other completely untouched."""
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    shutil.copytree(_FIXTURE_TREE, in_dir)
+    _write_run_manifest(in_dir, ["scan0K9E8BI"])
+
+    result = extract_batch(in_dir, out_dir)
+
+    assert result.ok
+    assert result.succeeded == ["scan0K9E8BI"]
+    assert result.skipped == []
+    assert [k for k, _ in result.failed] == []
+    assert (out_dir / "scan0K9E8BI.result.json").exists()
+    assert not (out_dir / "scanYR39SJX.result.json").exists()
+
+
+def test_manifest_declares_scan_key_with_no_predictions_json(tmp_path):
+    """A manifest-declared scan_key with no matching predictions.json is a failure."""
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    shutil.copytree(_FIXTURE_TREE, in_dir)
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanMISSING"])
+
+    result = extract_batch(in_dir, out_dir)
+
+    assert not result.ok
+    assert "scan0K9E8BI" in result.succeeded
+    assert [k for k, _ in result.failed] == ["scanMISSING"]
+    assert "scanMISSING" in result.failed[0][1]
+
+
+def test_manifest_scoping_duplicate_in_scope_scan_key_is_a_failure(tmp_path):
+    """Two candidates for the same in-scope scan_key are a failure, not a silent pick."""
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    in_dir.mkdir()
+    shutil.copytree(_FIXTURE_TREE / "scanYR39SJX", in_dir / "a" / "scanYR39SJX")
+    shutil.copytree(_FIXTURE_TREE / "scanYR39SJX", in_dir / "b" / "scanYR39SJX")
+    _write_run_manifest(in_dir, ["scanYR39SJX"])
+
+    result = extract_batch(in_dir, out_dir)
+
+    assert not result.ok
+    assert result.succeeded == ["scanYR39SJX"]
+    assert [k for k, _ in result.failed] == ["scanYR39SJX"]
+    assert "duplicate scan_key" in result.failed[0][1]
+
+
+def test_invalid_manifest_aborts_batch(tmp_path):
+    """A present-but-invalid run_manifest.json raises before any scan is processed."""
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    shutil.copytree(_FIXTURE_TREE, in_dir)
+    _write_run_manifest(in_dir, [])  # empty scan_keys is invalid
+
+    with pytest.raises(pydantic.ValidationError):
+        extract_batch(in_dir, out_dir)
+    assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
+
+
+def test_manifest_present_input_dir_equals_output_dir_does_not_crash(tmp_path):
+    """input_dir == output_dir does not crash the batch (copy-forward same-file case)."""
+    shutil.copytree(_FIXTURE_TREE, tmp_path, dirs_exist_ok=True)
+    _write_run_manifest(tmp_path, ["scan0K9E8BI", "scanYR39SJX"])
+
+    result = extract_batch(tmp_path, tmp_path)
+
+    assert result.ok
+    assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
+
+
+def test_manifest_copied_forward_into_output_dir(tmp_path):
+    """The manifest is copied forward into output_dir after a successful batch."""
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    shutil.copytree(_FIXTURE_TREE, in_dir)
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"])
+
+    extract_batch(in_dir, out_dir)
+
+    dest = out_dir / RUN_MANIFEST_FILENAME
+    assert dest.exists()
+    assert dest.read_bytes() == (in_dir / RUN_MANIFEST_FILENAME).read_bytes()
+
+
+def test_manifest_scoped_scan_is_also_skipped_on_second_run(tmp_path):
+    """Scoping and skip-if-done compose: a scoped scan is skipped on a second run."""
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    shutil.copytree(_FIXTURE_TREE, in_dir)
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"])
+
+    first = extract_batch(in_dir, out_dir)
+    assert first.ok
+    assert set(first.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
+
+    second = extract_batch(in_dir, out_dir)
+    assert second.ok
+    assert set(second.skipped) == {"scan0K9E8BI", "scanYR39SJX"}
+
+
 def test_module_cli_writes_envelopes(tmp_path):
     """`python -m trait_extractor <in> <out>` writes the envelopes and exits 0."""
     repo_root = Path(__file__).resolve().parents[2]
@@ -126,3 +268,31 @@ def test_module_cli_writes_envelopes(tmp_path):
     assert proc.returncode == 0, proc.stderr
     assert (out_dir / "scan0K9E8BI.result.json").exists()
     assert (out_dir / "scanYR39SJX.result.json").exists()
+
+
+def test_module_cli_reports_skipped_scans_on_second_run(tmp_path):
+    """A second CLI invocation over unchanged inputs reports skips, not just ok/FAIL."""
+    repo_root = Path(__file__).resolve().parents[2]
+    out_dir = tmp_path / "out"
+    fixture_tree = repo_root / _FIXTURE_TREE
+
+    def _run():
+        return subprocess.run(
+            [sys.executable, "-m", "trait_extractor", str(fixture_tree), str(out_dir)],
+            cwd=repo_root,
+            env={**os.environ, "PYTHONPATH": str(repo_root)},
+            capture_output=True,
+            text=True,
+        )
+
+    first = _run()
+    assert first.returncode == 0, first.stderr
+    assert "0 skipped" in first.stderr
+    assert "skip  scan0K9E8BI" not in first.stdout
+    assert "skip  scanYR39SJX" not in first.stdout
+
+    second = _run()
+    assert second.returncode == 0, second.stderr
+    assert "skip  scan0K9E8BI" in second.stdout
+    assert "skip  scanYR39SJX" in second.stdout
+    assert "2 skipped" in second.stderr

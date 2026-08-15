@@ -1,6 +1,7 @@
 """Tests for provenance assembly, envelope emission, and golden regression."""
 
 import importlib.metadata
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -9,7 +10,7 @@ from sleap_roots.trait_pipelines import YoungerMonocotPipeline
 from sleap_roots_contracts import ResultEnvelope
 from sleap_roots_contracts.identity import compute_idempotency_key
 
-from trait_extractor.envelope import build_provenance
+from trait_extractor.envelope import build_provenance, read_existing_identity
 from trait_extractor.extractor import extract_scan
 from trait_extractor.loading import load_series
 from trait_extractor.manifest import load_manifest, load_scan_metadata
@@ -37,7 +38,7 @@ def test_provenance_fields_and_contract_version():
     assert prov.params.values == {"species": "rice", "mode": "cylinder", "age": 3}
     assert prov.traits_sleap_roots_version == sleap_roots.__version__
     assert prov.contract_version == importlib.metadata.version("sleap-roots-contracts")
-    assert prov.contract_version == "0.1.0a3"
+    assert prov.contract_version == "0.1.0a7"
     assert not prov.contract_version.startswith("v")
     assert prov.produced_at is None
     assert prov.pipeline_run_id is None
@@ -96,8 +97,8 @@ def test_age_encoding_does_not_change_idempotency_key():
     assert _key(3)
 
 
-def test_extract_scan_emits_valid_byte_stable_envelope(tmp_path):
-    """extract_scan writes a valid envelope that round-trips and is byte-stable."""
+def test_extract_scan_emits_valid_envelope(tmp_path):
+    """extract_scan writes a valid envelope that round-trips."""
     envelope = extract_scan(_MANIFEST, _SIDECAR, tmp_path)
     assert isinstance(envelope, ResultEnvelope)
     assert envelope.blobs == []
@@ -112,11 +113,70 @@ def test_extract_scan_emits_valid_byte_stable_envelope(tmp_path):
     scan_keys = {tv.scan_key for tv in envelope.traits} | {envelope.provenance.scan_key}
     assert scan_keys == {"scan0K9E8BI"}
 
-    # Byte-stable re-emission, and LF-only so it is byte-identical across OSes.
-    first = out.read_bytes()
+
+def test_extract_scan_recompute_is_byte_stable(tmp_path):
+    """Two independent (non-skipped) recomputes over identical inputs are byte-stable.
+
+    Each call targets its own fresh output_dir, so neither has a pre-existing envelope
+    to skip against -- both are genuine recomputes (skip-if-done, added later, would
+    otherwise turn a same-output_dir second call into a skip rather than a recompute,
+    which would prove nothing about recompute-determinism).
+    """
+    first_dir = tmp_path / "first"
+    second_dir = tmp_path / "second"
+    extract_scan(_MANIFEST, _SIDECAR, first_dir)
+    extract_scan(_MANIFEST, _SIDECAR, second_dir)
+
+    first = (first_dir / "scan0K9E8BI.result.json").read_bytes()
+    second = (second_dir / "scan0K9E8BI.result.json").read_bytes()
+    # LF-only so it is byte-identical across OSes.
     assert b"\r\n" not in first
-    extract_scan(_MANIFEST, _SIDECAR, tmp_path)
-    assert out.read_bytes() == first
+    assert second == first
+
+
+def test_read_existing_identity_returns_none_when_missing(tmp_path):
+    """No {scan_key}.result.json in output_dir -> None."""
+    assert read_existing_identity(tmp_path, "scan0K9E8BI") is None
+
+
+def test_read_existing_identity_returns_key_and_version_when_present(tmp_path):
+    """A valid pre-written envelope -> its exact (idempotency_key, contract_version)."""
+    envelope = extract_scan(_MANIFEST, _SIDECAR, tmp_path)
+    identity = read_existing_identity(tmp_path, "scan0K9E8BI")
+    assert identity == (
+        envelope.provenance.idempotency_key,
+        envelope.provenance.contract_version,
+    )
+
+
+def test_read_existing_identity_returns_none_on_invalid_json(tmp_path, caplog):
+    """A {scan_key}.result.json with invalid JSON -> None, not an exception."""
+    out = tmp_path / "scanBAD.result.json"
+    out.write_text("{not valid json", encoding="utf-8")
+    assert read_existing_identity(tmp_path, "scanBAD") is None
+
+
+def test_read_existing_identity_returns_none_on_schema_invalid_json(tmp_path):
+    """Valid JSON that fails ResultEnvelope validation -> None, not an exception."""
+    out = tmp_path / "scanBAD.result.json"
+    out.write_text(json.dumps({"not": "an envelope"}), encoding="utf-8")
+    assert read_existing_identity(tmp_path, "scanBAD") is None
+
+
+def test_read_existing_identity_logs_warning_on_corrupt_file(tmp_path, caplog):
+    """A corrupt pre-existing file logs a warning naming the scan_key."""
+    out = tmp_path / "scanBAD.result.json"
+    out.write_text("{not valid json", encoding="utf-8")
+    with caplog.at_level("WARNING"):
+        read_existing_identity(tmp_path, "scanBAD")
+    assert "scanBAD" in caplog.text
+
+
+def test_read_existing_identity_does_not_warn_when_missing(tmp_path, caplog):
+    """A plain missing file (ordinary first run) does not log a warning."""
+    with caplog.at_level("WARNING"):
+        read_existing_identity(tmp_path, "scanNEW")
+    assert caplog.text == ""
 
 
 def test_golden_regression(tmp_path):
