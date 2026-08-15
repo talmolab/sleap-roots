@@ -223,6 +223,36 @@ def test_manifest_present_input_dir_equals_output_dir_does_not_crash(tmp_path):
     assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
 
 
+def test_copy_forward_failure_does_not_discard_already_computed_result(
+    tmp_path, monkeypatch, caplog
+):
+    """A copy-forward OSError logs a warning but doesn't discard the batch result.
+
+    Copy-forward is best-effort infrastructure for write-back, not part of this
+    batch's own computed result -- a disk/permission error there must not crash the
+    batch or discard the already-computed (and already durably written) results.
+    """
+    import trait_extractor.extractor
+
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    shutil.copytree(_FIXTURE_TREE, in_dir)
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"])
+
+    def _boom(*args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(trait_extractor.extractor, "copy_run_manifest_forward", _boom)
+
+    with caplog.at_level("WARNING"):
+        result = extract_batch(in_dir, out_dir)
+
+    assert result.ok
+    assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
+    assert (out_dir / "scan0K9E8BI.result.json").exists()
+    assert "failed to copy run_manifest.json forward" in caplog.text
+
+
 def test_manifest_copied_forward_into_output_dir(tmp_path):
     """The manifest is copied forward into output_dir after a successful batch."""
     in_dir = tmp_path / "in"
