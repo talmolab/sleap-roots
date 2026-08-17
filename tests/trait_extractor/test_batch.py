@@ -212,15 +212,24 @@ def test_invalid_manifest_aborts_batch(tmp_path):
     assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
 
 
-def test_manifest_present_input_dir_equals_output_dir_does_not_crash(tmp_path):
-    """input_dir == output_dir does not crash the batch (copy-forward same-file case)."""
+def test_manifest_present_input_dir_equals_output_dir_does_not_crash(tmp_path, caplog):
+    """input_dir == output_dir does not crash the batch (copy-forward same-file case).
+
+    Also asserts NO warning was logged: the same-file no-op guard in
+    copy_run_manifest_forward should fire cleanly here, not extract_batch's separate
+    `except OSError` safety net (which would also prevent a crash, but via a
+    shutil.SameFileError caught after the fact, logging a warning) -- this distinguishes
+    which of the two defense layers actually handled this specific case.
+    """
     shutil.copytree(_FIXTURE_TREE, tmp_path, dirs_exist_ok=True)
     _write_run_manifest(tmp_path, ["scan0K9E8BI", "scanYR39SJX"])
 
-    result = extract_batch(tmp_path, tmp_path)
+    with caplog.at_level("WARNING"):
+        result = extract_batch(tmp_path, tmp_path)
 
     assert result.ok
     assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
+    assert caplog.text == ""
 
 
 def test_copy_forward_failure_does_not_discard_already_computed_result(
@@ -250,7 +259,9 @@ def test_copy_forward_failure_does_not_discard_already_computed_result(
     assert result.ok
     assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
     assert (out_dir / "scan0K9E8BI.result.json").exists()
-    assert "failed to copy run_manifest.json forward" in caplog.text
+    assert "failed to copy run_manifest.json" in caplog.text
+    assert str(in_dir.as_posix()) in caplog.text
+    assert str(out_dir.as_posix()) in caplog.text
 
 
 def test_manifest_copied_forward_into_output_dir(tmp_path):

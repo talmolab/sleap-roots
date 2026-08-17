@@ -133,10 +133,15 @@ def read_existing_identity(
         return None
     try:
         envelope = ResultEnvelope.model_validate_json(path.read_text(encoding="utf-8"))
-    except (pydantic.ValidationError, UnicodeDecodeError):
+    except (pydantic.ValidationError, UnicodeDecodeError, OSError):
         # model_validate_json parses + validates in one step, so pydantic.ValidationError
         # (re-exported from pydantic_core) covers both malformed JSON and schema-invalid
-        # JSON -- there is no separate json.JSONDecodeError case to catch here.
+        # JSON -- there is no separate json.JSONDecodeError case to catch here. OSError
+        # covers a read-time anomaly on a file the is_file() check just confirmed exists
+        # (e.g. a permissions issue, or a TOCTOU race where it's deleted in between) --
+        # without this, such an error would misclassify the scan as FAILED instead of
+        # "not done", contradicting the documented "missing, unreadable, or invalid ->
+        # not done" contract.
         logger.warning(
             "existing %s is unreadable or fails ResultEnvelope validation; "
             "treating as not done and recomputing",

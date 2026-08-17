@@ -223,7 +223,14 @@ def extract_batch(
             # Copy-forward is best-effort infrastructure for the next pipeline stage,
             # not part of this batch's own computed result -- a disk/permission error
             # here must not discard the already-computed (and already durably written)
-            # succeeded/skipped/failed results above.
-            logger.warning("failed to copy run_manifest.json forward: %s", exc)
+            # succeeded/skipped/failed results above. Name both directories explicitly
+            # rather than relying on the exception's own str() (not every OSError, e.g.
+            # a disk-full error from a raw write, carries a filename attribute).
+            logger.warning(
+                "failed to copy run_manifest.json from %s to %s: %s",
+                Path(input_dir).as_posix(),
+                Path(output_dir).as_posix(),
+                exc,
+            )
 
     return result

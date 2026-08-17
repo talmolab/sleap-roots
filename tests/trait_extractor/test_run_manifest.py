@@ -92,3 +92,22 @@ def test_copy_manifest_forward_is_a_noop_when_input_and_output_are_the_same(tmp_
     copy_run_manifest_forward(tmp_path, tmp_path)  # must not raise
 
     assert (tmp_path / RUN_MANIFEST_FILENAME).is_file()
+
+
+def test_copy_manifest_forward_is_a_noop_for_differently_spelled_same_path(tmp_path):
+    """Two textually-different paths that resolve to the same directory also no-op.
+
+    Guards against a regression that swaps the resolve()-based equality check for a
+    plain `==` on the raw Path/string arguments -- that would pass the (already
+    covered) identical-argument case but miss this one, since `tmp_path` and
+    `tmp_path/"sub"/".."` are unequal as raw paths but resolve to the same directory.
+    """
+    (tmp_path / "sub").mkdir()
+    _write_manifest(tmp_path)
+    other_spelling = tmp_path / "sub" / ".."
+    assert other_spelling != tmp_path  # different Path objects/strings
+    assert other_spelling.resolve() == tmp_path.resolve()  # same resolved directory
+
+    copy_run_manifest_forward(tmp_path, other_spelling)  # must not raise
+
+    assert (tmp_path / RUN_MANIFEST_FILENAME).is_file()

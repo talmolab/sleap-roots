@@ -62,8 +62,15 @@ def copy_run_manifest_forward(
     if not source.is_file():
         return
     destination_dir = Path(output_dir)
-    destination_dir.mkdir(parents=True, exist_ok=True)
     destination = destination_dir / RUN_MANIFEST_FILENAME
+    # Path-identity fast path: covers the common case (a caller invoking with
+    # input_dir == output_dir, or an equivalent-but-differently-spelled path) without
+    # touching the filesystem beyond the two resolve() calls. This is a path-string
+    # comparison, not a device/inode identity check, so it can't catch every possible
+    # same-file aliasing (e.g. two hardlinks) -- shutil.copyfile's own os.path.samefile
+    # check is the backstop for that, surfacing as shutil.SameFileError, which the
+    # caller (extract_batch) already catches as an OSError subclass.
     if source.resolve() == destination.resolve():
         return
+    destination_dir.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source, destination)

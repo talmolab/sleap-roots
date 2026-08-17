@@ -179,6 +179,38 @@ def test_read_existing_identity_does_not_warn_when_missing(tmp_path, caplog):
     assert caplog.text == ""
 
 
+def test_read_existing_identity_returns_none_on_invalid_utf8(tmp_path, caplog):
+    """A {scan_key}.result.json with invalid UTF-8 bytes -> None, logs a warning."""
+    out = tmp_path / "scanBAD.result.json"
+    out.write_bytes(b"\xff\xfe not valid utf-8")
+    with caplog.at_level("WARNING"):
+        assert read_existing_identity(tmp_path, "scanBAD") is None
+    assert "scanBAD" in caplog.text
+
+
+def test_read_existing_identity_returns_none_on_read_error(
+    tmp_path, monkeypatch, caplog
+):
+    """An OSError while reading a present file -> None, not a crash, logs a warning.
+
+    Covers a read-time anomaly (e.g. a permissions issue, or a TOCTOU race where the
+    file is removed between the is_file() check and the read) on a file that briefly
+    existed -- without this, such an error would misclassify the scan as FAILED instead
+    of "not done", per trait_extractor.envelope.read_existing_identity's documented
+    contract.
+    """
+    out = tmp_path / "scanBAD.result.json"
+    out.write_text("{}", encoding="utf-8")
+
+    def _boom(self, *args, **kwargs):
+        raise PermissionError("simulated read failure")
+
+    monkeypatch.setattr(Path, "read_text", _boom)
+    with caplog.at_level("WARNING"):
+        assert read_existing_identity(tmp_path, "scanBAD") is None
+    assert "scanBAD" in caplog.text
+
+
 def test_golden_regression(tmp_path):
     """Computed traits match the committed rice_3do golden (trait columns only)."""
     manifest = load_manifest(_MANIFEST)

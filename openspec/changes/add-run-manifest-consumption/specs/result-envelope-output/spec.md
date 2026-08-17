@@ -138,7 +138,11 @@ of `input_dir`.
   `BatchResult.failed` naming the missing file, without aborting the rest of the batch. After
   processing, `run_manifest.json` SHALL be copied forward into `output_dir` (creating `output_dir`
   if missing) as a raw file copy (not a re-serialization through the `RunManifest` model), byte-identical
-  to the source, so `write-back` can see it downstream.
+  to the source, so `write-back` can see it downstream. This copy-forward is **best-effort
+  infrastructure for the next pipeline stage, not part of this batch's own computed result**: an
+  `OSError` during the copy (e.g. a disk/permission error, or an equivalent same-file condition)
+  SHALL be logged as a warning naming both directories and MUST NOT raise, crash the batch, or
+  discard the already-computed `succeeded`/`skipped`/`failed` results.
 - **If absent:** discovery SHALL fall back to the unscoped recursive glob described in "Batch
   driver and module CLI" — i.e. today's exact pre-manifest behavior, unchanged.
 
@@ -183,6 +187,21 @@ of `input_dir`.
 
 - **WHEN** `run_manifest.json` is present under `input_dir` and `extract_batch` completes
 - **THEN** `output_dir/run_manifest.json` exists with content identical to the source file
+
+#### Scenario: input_dir and output_dir resolving to the same file does not crash the batch
+
+- **WHEN** `run_manifest.json` is present and `input_dir` and `output_dir` are the same directory
+  (or otherwise resolve to the same file)
+- **THEN** the copy-forward is a no-op (the file is already in place) and `extract_batch` completes
+  normally, without raising
+
+#### Scenario: A copy-forward failure does not discard the batch's computed result
+
+- **WHEN** copying `run_manifest.json` forward raises an `OSError` (e.g. a disk or permission
+  error)
+- **THEN** a warning naming `input_dir`, `output_dir`, and the error is logged, and
+  `extract_batch` still returns the `BatchResult` already computed by the per-scan loop above,
+  rather than raising
 
 ### Requirement: Skip-if-done via idempotency-key comparison
 
