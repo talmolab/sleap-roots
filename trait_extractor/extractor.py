@@ -99,7 +99,16 @@ def extract_scan(
 
 @dataclass
 class BatchResult:
-    """Outcome of a batch run: succeeded/skipped scan keys and per-scan failures."""
+    """Outcome of a batch run: succeeded/skipped scan keys and per-scan failures.
+
+    The three lists are NOT guaranteed mutually exclusive: a duplicate-scan_key
+    collision (two candidate files resolving to the same scan_key) records the
+    *first*-discovered candidate's own outcome -- ``succeeded`` or ``skipped`` -- in
+    the corresponding list, then ALSO records the collision itself as a ``failed``
+    entry for that same scan_key. Always check ``ok`` (or scan ``failed`` directly) to
+    detect this, rather than assuming a scan_key present in ``succeeded``/``skipped``
+    is free of any associated failure.
+    """
 
     succeeded: List[str] = field(default_factory=list)
     skipped: List[str] = field(default_factory=list)
@@ -152,12 +161,16 @@ def extract_batch(
         pydantic.ValidationError: If ``run_manifest.json`` is present but fails
             ``RunManifest``'s own validation (e.g. empty ``scan_keys``) -- a
             once-per-batch, top-level file, not a per-scan best-effort read.
+        OSError: If ``run_manifest.json`` is present but can't be read (see
+            ``run_manifest.load_run_manifest``), for the same reason.
+        UnicodeDecodeError: If ``run_manifest.json``'s bytes aren't valid UTF-8.
     """
     cards = cards or load_pipeline_cards()
     run_manifest = load_run_manifest(input_dir)
     scope = set(run_manifest.scan_keys) if run_manifest is not None else None
     result = BatchResult()
     seen: Dict[str, Path] = {}
+    seen_casefold: Dict[str, str] = {}  # casefolded stem -> the original stem
     for manifest_path in sorted(Path(input_dir).rglob(_MANIFEST_GLOB)):
         stem = manifest_path.name.removesuffix(_MANIFEST_SUFFIX)
         if scope is not None and stem not in scope:
@@ -181,7 +194,23 @@ def extract_batch(
                     f"duplicate scan_key {stem!r}: {manifest_path.as_posix()} collides "
                     f"with {seen[stem].as_posix()}"
                 )
+            # Two DIFFERENT scan_keys that only differ by case would still write to the
+            # same output filename on a case-insensitive filesystem (default on Windows
+            # and macOS -- the repo's own dev platform), silently overwriting one
+            # envelope's output.json with the other's despite `seen`'s exact-string keys
+            # never detecting a collision. RunManifest's own scan_keys validation is
+            # exact-match only (documented as not even whitespace-normalized), so this
+            # is not caught upstream either. Refuse it the same way an exact duplicate
+            # is refused, rather than let it silently corrupt output_dir.
+            folded = stem.casefold()
+            if folded in seen_casefold and seen_casefold[folded] != stem:
+                raise ValueError(
+                    f"scan_key {stem!r} collides case-insensitively with "
+                    f"{seen_casefold[folded]!r} ({seen[seen_casefold[folded]].as_posix()}) "
+                    "-- their output files would collide on a case-insensitive filesystem"
+                )
             seen[stem] = manifest_path
+            seen_casefold[folded] = stem
             sidecar_path = manifest_path.parent / f"{stem}{_SIDECAR_SUFFIX}"
             if not sidecar_path.exists():
                 raise FileNotFoundError(
@@ -216,6 +245,25 @@ def extract_batch(
                     f"no {missing_scan_key}{_MANIFEST_SUFFIX} found under "
                     f"{Path(input_dir).as_posix()} for manifest-declared scan_key",
                 )
+            )
+        # A scan_key that was in scope in a PRIOR run over this same output_dir but has
+        # since dropped out of scope (a shrinking manifest) leaves that prior run's
+        # {scan_key}.result.json sitting untouched -- not reprocessed, not reported in
+        # any BatchResult bucket, not cleaned up. Never treated as this run's problem to
+        # fix (this run only owns what's in ITS scope), but silent orphaning of files a
+        # downstream consumer might still glob over (see bloom#678) is worth a trace.
+        orphaned = sorted(
+            path.name.removesuffix(".result.json")
+            for path in Path(output_dir).glob("*.result.json")
+            if path.name.removesuffix(".result.json") not in scope
+        )
+        if orphaned:
+            logger.warning(
+                "%d pre-existing result file(s) in %s are outside this run's scope "
+                "(from a prior run's wider manifest): %s",
+                len(orphaned),
+                Path(output_dir).as_posix(),
+                ", ".join(orphaned),
             )
         try:
             copy_run_manifest_forward(input_dir, output_dir)

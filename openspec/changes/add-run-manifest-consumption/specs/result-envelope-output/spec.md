@@ -130,12 +130,21 @@ of `input_dir`.
   exactly as the existing unscoped-duplicate guard already does (reported as a per-scan failure,
   not silently resolved by picking either candidate) — this prevents the scoped path from
   reintroducing the "right scan_key, stale/wrong file" contamination case even as it fixes the
-  "wrong scan_key entirely" case. A `*.predictions.json` present under `input_dir` for a `scan_key`
+  "wrong scan_key entirely" case. Two candidates whose scan_key stems differ ONLY by case SHALL
+  also be treated as a collision and reported as a per-scan failure, since they would write to the
+  same output filename on a case-insensitive filesystem (the default on Windows and macOS) despite
+  being distinct strings that an exact-match duplicate check alone would never catch. A
+  `*.predictions.json` present under `input_dir` for a `scan_key`
   NOT in `scan_keys` SHALL be silently excluded from `BatchResult` entirely (not processed, not
   reported in `succeeded`, `skipped`, or `failed`) — that exclusion is precisely the
   contamination-prevention this requirement exists for. A manifest-declared `scan_key` with no
   matching `{scan_key}.predictions.json` SHALL be recorded as a per-scan failure in
-  `BatchResult.failed` naming the missing file, without aborting the rest of the batch. After
+  `BatchResult.failed` naming the missing file, without aborting the rest of the batch. A
+  pre-existing `{scan_key}.result.json` in `output_dir` whose `scan_key` is NOT in the current
+  run's `scan_keys` (e.g. left over from a prior run whose manifest was wider) SHALL be left
+  completely untouched — not reprocessed, not reported in any `BatchResult` bucket, not deleted —
+  but SHALL be logged as a warning naming it, so its presence is at least traceable rather than
+  silently indistinguishable from a current result. After
   processing, `run_manifest.json` SHALL be copied forward into `output_dir` (creating `output_dir`
   if missing) as a raw file copy (not a re-serialization through the `RunManifest` model), byte-identical
   to the source, so `write-back` can see it downstream. This copy-forward is **best-effort
@@ -182,6 +191,20 @@ of `input_dir`.
   validation (e.g. `scan_keys` is empty)
 - **THEN** `extract_batch` raises before processing any scan, rather than silently falling back to
   unscoped discovery or partially succeeding
+
+#### Scenario: A case-only scan_key difference is a per-scan failure, not a silent overwrite
+
+- **WHEN** `run_manifest.json` names a `scan_key` that resolves to two candidates whose stems
+  differ only by case (e.g. `ScanYR39SJX` and `scanyr39sjx`)
+- **THEN** the second-discovered candidate is reported as a case-insensitive collision failure in
+  `BatchResult.failed`, never silently overwriting the first candidate's output
+
+#### Scenario: A scan_key dropped from scope leaves its prior output untouched, but logged
+
+- **WHEN** a prior run's wider manifest produced `{scan_key}.result.json` in `output_dir`, and the
+  current run's `run_manifest.json` no longer includes that `scan_key`
+- **THEN** that file is not reprocessed, not reported in `succeeded`, `skipped`, or `failed`, and
+  is not deleted, but a warning naming it is logged
 
 #### Scenario: The manifest is copied forward into output_dir
 

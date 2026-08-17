@@ -200,6 +200,110 @@ def test_manifest_scoping_duplicate_in_scope_scan_key_is_a_failure(tmp_path):
     assert "duplicate scan_key" in result.failed[0][1]
 
 
+def test_shrinking_scope_orphans_prior_result_and_logs_a_warning(tmp_path, caplog):
+    """A scan_key dropped from a later, narrower manifest is not touched, but logged.
+
+    Round-3 review found this case completely unaddressed: run 1 scopes to both
+    fixture scans; run 2's manifest narrows to just one. The dropped scan's prior
+    {scan_key}.result.json is left exactly as run 1 wrote it -- not reprocessed, not
+    reported in any BatchResult bucket -- but now logged as an orphan so it's at least
+    traceable, rather than silently indistinguishable from a current result.
+    """
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    shutil.copytree(_FIXTURE_TREE, in_dir)
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"])
+
+    first = extract_batch(in_dir, out_dir)
+    assert first.ok
+    assert set(first.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
+    orphan_bytes_before = (out_dir / "scanYR39SJX.result.json").read_bytes()
+
+    # Run 2's manifest narrows scope to just one of the two previously-in-scope scans.
+    _write_run_manifest(in_dir, ["scan0K9E8BI"])
+
+    with caplog.at_level("WARNING"):
+        second = extract_batch(in_dir, out_dir)
+
+    assert second.ok
+    assert second.skipped == ["scan0K9E8BI"]
+    # The dropped scan's prior output is untouched: not reprocessed, not reported.
+    assert (out_dir / "scanYR39SJX.result.json").read_bytes() == orphan_bytes_before
+    assert "scanYR39SJX" not in second.succeeded
+    assert "scanYR39SJX" not in second.skipped
+    assert not any(k == "scanYR39SJX" for k, _ in second.failed)
+    # But it IS now traceable via a warning.
+    assert "scanYR39SJX" in caplog.text
+    assert "outside this run's scope" in caplog.text
+
+
+def test_case_insensitive_scan_key_collision_reported(tmp_path):
+    """Two scan_keys differing only by case are refused, not silently clobbered.
+
+    On a case-insensitive filesystem (default on Windows/macOS, this repo's dev
+    platform), "ScanYR39SJX" and "scanyr39sjx" would both write to the same
+    {scan_key}.result.json filename despite being different strings -- `seen`'s
+    exact-string keys alone would never detect this. Refused the same way an exact
+    duplicate is refused.
+    """
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    in_dir.mkdir()
+    good = _FIXTURE_TREE / "scanYR39SJX"
+    shutil.copytree(good, in_dir / "a" / "scanYR39SJX")
+
+    # A second candidate whose scan_key differs from the first ONLY by case.
+    dest = in_dir / "b" / "scanyr39sjx"
+    dest.mkdir(parents=True)
+    manifest = json.loads((good / "scanYR39SJX.predictions.json").read_text())
+    manifest["scan_key"] = "scanyr39sjx"
+    (dest / "scanyr39sjx.predictions.json").write_text(json.dumps(manifest))
+    sidecar = json.loads((good / "scanYR39SJX.scan_metadata.json").read_text())
+    sidecar["scan_key"] = "scanyr39sjx"
+    (dest / "scanyr39sjx.scan_metadata.json").write_text(json.dumps(sidecar))
+
+    result = extract_batch(in_dir, out_dir)
+
+    assert not result.ok
+    assert result.succeeded == ["scanYR39SJX"]
+    assert [k for k, _ in result.failed] == ["scanyr39sjx"]
+    assert "collides case-insensitively" in result.failed[0][1]
+
+
+def test_manifest_scoping_duplicate_of_an_already_skipped_scan_key_is_a_failure(
+    tmp_path,
+):
+    """A duplicate scan_key can appear in BOTH `skipped` and `failed` simultaneously.
+
+    The same accepted trade-off `test_manifest_scoping_duplicate_in_scope_scan_key_is_a_failure`
+    exercises for `succeeded` -- the first-discovered candidate's own outcome is recorded,
+    then the collision itself is ALSO recorded as a failure -- applies identically when
+    that first candidate is a skip (not a fresh success). Both buckets are populated for
+    the same scan_key; `BatchResult.ok` is still correctly False either way.
+    """
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    shutil.copytree(_FIXTURE_TREE / "scanYR39SJX", in_dir / "a" / "scanYR39SJX")
+    _write_run_manifest(in_dir, ["scanYR39SJX"])
+
+    first = extract_batch(in_dir, out_dir)
+    assert first.ok
+    assert first.succeeded == ["scanYR39SJX"]
+
+    # A second, duplicate candidate appears (e.g. a stale leftover directory) alongside
+    # the first, unchanged one -- "a" sorts before "b", so "a" is still discovered first
+    # and, since nothing about it changed, skips; "b" is then a duplicate collision.
+    shutil.copytree(_FIXTURE_TREE / "scanYR39SJX", in_dir / "b" / "scanYR39SJX")
+
+    result = extract_batch(in_dir, out_dir)
+
+    assert not result.ok
+    assert result.skipped == ["scanYR39SJX"]
+    assert result.succeeded == []
+    assert [k for k, _ in result.failed] == ["scanYR39SJX"]
+    assert "duplicate scan_key" in result.failed[0][1]
+
+
 def test_invalid_manifest_aborts_batch(tmp_path):
     """A present-but-invalid run_manifest.json raises before any scan is processed."""
     in_dir = tmp_path / "in"
@@ -340,6 +444,35 @@ def test_module_cli_writes_envelopes(tmp_path):
     )
     assert proc.returncode == 0, proc.stderr
     assert (out_dir / "scan0K9E8BI.result.json").exists()
+    assert (out_dir / "scanYR39SJX.result.json").exists()
+
+
+def test_module_cli_exits_nonzero_on_failure(tmp_path):
+    """`python -m trait_extractor <in> <out>` exits 1 when a scan fails.
+
+    Round-3 review found the exit-code logic (`return 0 if result.ok else 1` in
+    `__main__.main()`) had NO test enforcing it -- hardcoding `main()` to always
+    `return 0` left the entire suite green, since every other subprocess-level CLI
+    test only exercises the all-succeeding/all-skipped happy path. This is exactly
+    the kind of bug that would make a broken Argo pod look successful.
+    """
+    repo_root = Path(__file__).resolve().parents[2]
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    in_dir.mkdir()
+    fixture_tree = repo_root / _FIXTURE_TREE
+    shutil.copytree(fixture_tree / "scanYR39SJX", in_dir / "scanYR39SJX")
+    _make_bad_scan_missing_slp(in_dir / "scanBAD")
+
+    proc = subprocess.run(
+        [sys.executable, "-m", "trait_extractor", str(in_dir), str(out_dir)],
+        cwd=repo_root,
+        env={**os.environ, "PYTHONPATH": str(repo_root)},
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 1
+    assert "FAIL" in proc.stderr
     assert (out_dir / "scanYR39SJX.result.json").exists()
 
 

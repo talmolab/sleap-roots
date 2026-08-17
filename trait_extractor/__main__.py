@@ -21,7 +21,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         argv: Optional argument list (defaults to ``sys.argv[1:]``).
 
     Returns:
-        Process exit code: 0 if every scan succeeded, 1 otherwise.
+        Process exit code: 0 if every scan succeeded or was skipped, 1 if any scan
+        failed (matches ``BatchResult.ok``).
     """
     parser = argparse.ArgumentParser(prog="trait_extractor")
     parser.add_argument("input_dir", help="Directory of predict per-scan outputs.")

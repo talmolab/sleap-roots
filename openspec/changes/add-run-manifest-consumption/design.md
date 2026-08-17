@@ -311,3 +311,70 @@ test-after fix shipped with a coverage claim broader than what the test actually
 fixture confound above was the first) — both were only caught by an adversarial reviewer re-deriving the
 bug from scratch rather than trusting the commit message, which is exactly why this change went through
 three rounds of `/review-pr` instead of stopping after the first "no blocking issues" verdict.
+
+### Round 3: deliberately fresh angles (mutation testing, multi-run correctness, files not yet scrutinized)
+
+By this point `read_existing_identity` and the same-file guard had been reviewed to exhaustion, so round
+3's five subagents were explicitly briefed to look elsewhere: `__main__.py` (untouched since the original
+implementation commit), multi-scan/multi-run interaction bugs, and mutation testing (deliberately break a
+piece of production logic, re-run the suite, see if anything catches it) rather than more code reading.
+This found the round's one genuinely severe result:
+
+- **BLOCKING (mutation-testing found it, not code review): `__main__.main()`'s exit-code logic had NO
+  test enforcing it.** Hardcoding `return 0` unconditionally (instead of `return 0 if result.ok else 1`)
+  left the entire 104-test suite green — every subprocess-level CLI test only drove the all-succeeding
+  path and asserted `returncode == 0`; nothing drove a failing scan through the real CLI and checked
+  `returncode == 1`. This is exactly the class of bug that would make a broken Argo pod look successful,
+  in the one place (`main()`'s exit code) this design doc itself calls the load-bearing audit trail. Fixed
+  by adding `test_module_cli_exits_nonzero_on_failure`, verified the same empirical way: hardcode the
+  regression, confirm the new test fails, restore, confirm it passes.
+- **Case-insensitive scan_key collision (behavioral correctness + scientific rigor, independently
+  converged on related ground): two DIFFERENT scan_keys differing only by case (e.g. `ScanABC` vs
+  `scanabc`) would both pass `RunManifest`'s own exact-match-only duplicate validation and the existing
+  `seen: Dict[str, Path]` exact-string guard, then silently collide on the same
+  `{scan_key}.result.json` filename on a case-insensitive filesystem (the default on Windows and macOS —
+  this repo's own dev platforms) — one envelope silently overwriting the other, `BatchResult` reporting
+  both as `succeeded` with zero trace of the collision.** Precisely traced against the installed
+  `sleap-roots-contracts` source (`RunManifest._check_scan_keys`'s own docstring confirms duplicate
+  detection is "not whitespace-normalized," a fortiori not case-normalized) — not a guess. Fixed by
+  extending the existing duplicate-scan_key guard with a parallel casefolded lookup, refusing a
+  case-only collision the same way an exact duplicate is refused.
+- **Shrinking-scope orphans a prior run's output, completely undocumented and untested (scientific
+  rigor).** Run 1 scopes to `[A, B]`; run 2's manifest narrows to `[A]` only. `B`'s
+  `{B}.result.json` from run 1 is never touched by run 2 — not reprocessed, not reported in any
+  `BatchResult` bucket, not cleaned up — and nothing in `spec.md`/`design.md` addressed this
+  output-side case, only the input-side "out-of-scope predictions.json" exclusion. Not a bug (no
+  data loss, no incorrect result), but a real observability gap, compounded by write-back's own
+  still-open unscoped-glob bug (`bloom#678`) potentially ingesting an orphan it shouldn't. Fixed with
+  a warning log (naming the orphaned scan_keys, not deleting them — this run doesn't own scan_keys
+  outside its own scope) plus a new spec.md scenario and test.
+- **Three documentation-only gaps in the two files least revisited** (`__main__.py`, `run_manifest.py`):
+  `main()`'s own docstring still said "0 if every scan succeeded," unchanged since before `skipped` was
+  added, contradicting `BatchResult.ok`'s own (correctly updated) wording — fixed. `load_run_manifest`'s
+  and `extract_batch`'s `Raises:` sections named only `pydantic.ValidationError`, omitting the `OSError`/
+  `UnicodeDecodeError` that can genuinely propagate from an unguarded read (correct, intended behavior —
+  this file's presence/validity is a hard precondition, not a per-scan best-effort check — just
+  undocumented) — fixed. `copy_run_manifest_forward` had no `Raises:` section despite being wrapped in
+  `except OSError` by its own caller — fixed, alongside making the copy itself atomic (tmp-file +
+  `replace`, matching `write_envelope`'s established convention) since round 2's mutation-testing-style
+  scrutiny had already normalized checking whether an operation matches this module's own atomicity
+  discipline.
+- **`BatchResult`'s three lists are not mutually exclusive, and nothing said so.** A duplicate-scan_key
+  collision records the first candidate's own outcome (`succeeded` OR `skipped`) AND the collision itself
+  as a `failed` entry for the *same* scan_key — already true and already tested for `succeeded` (a prior
+  round's accepted trade-off), but never tested for the `skipped` case, and the class's docstring read as
+  if the three lists partition the batch. Fixed: docstring now says so explicitly; added a test
+  constructing the `skipped`+`failed` combination.
+- **Two real-but-non-blocking efficiency/portability observations, documented rather than changed:**
+  (1) scoped discovery still walks the entire `input_dir` tree via `rglob` before filtering — the
+  scoping feature's contamination-prevention goal is met, but its own motivating scenario (stale leftover
+  directories accumulating in a long-lived shared staging volume) would make that walk progressively more
+  expensive over the pipeline's lifetime without the scoping actually reducing that cost. Not changed
+  here: a targeted per-`scan_key` existence check would need to re-solve the "reuse the single
+  duplicate-detection guard" problem an earlier round deliberately chose the shared-loop structure to
+  preserve — a genuine redesign, not a small fix, and out of proportion to a non-correctness concern at
+  this pipeline's current scale. (2) `rglob`'s case-*insensitive* matching on Windows/macOS vs.
+  case-*sensitive* matching on the Linux production container means a mis-cased file could be discovered
+  differently across dev and prod platforms — pre-existing (predates this PR), low practical severity
+  (production is Linux-only), and now partially mitigated by the case-fold collision guard above, which
+  at least prevents silent corruption if such a file is ever discovered.

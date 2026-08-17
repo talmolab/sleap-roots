@@ -32,6 +32,12 @@ def load_run_manifest(input_dir: Union[str, Path]) -> Optional[RunManifest]:
             this same exception type. This is a top-level, once-per-batch file, so an
             invalid manifest raises rather than being treated as a per-scan best-effort
             read.
+        OSError: If the file exists but can't be read (e.g. a permissions issue) --
+            not caught here for the same reason: this file's presence/validity is a
+            once-per-batch precondition, not a per-scan best-effort check (contrast with
+            ``envelope.read_existing_identity``, which deliberately treats the analogous
+            per-scan case as "not done" rather than raising).
+        UnicodeDecodeError: If the file's bytes aren't valid UTF-8.
     """
     path = Path(input_dir) / RUN_MANIFEST_FILENAME
     if not path.is_file():
@@ -57,6 +63,11 @@ def copy_run_manifest_forward(
         None. No-op if no manifest is present under ``input_dir``, or if ``input_dir``
         and ``output_dir`` already resolve to the same file (e.g. a caller invoking with
         ``input_dir == output_dir``) -- copying forward is trivially already satisfied.
+
+    Raises:
+        OSError: If the copy fails (e.g. a disk or permission error). The caller
+            (``extract_batch``) treats this as best-effort infrastructure and catches
+            it rather than letting it abort the batch.
     """
     source = Path(input_dir) / RUN_MANIFEST_FILENAME
     if not source.is_file():
@@ -73,4 +84,10 @@ def copy_run_manifest_forward(
     if source.resolve() == destination.resolve():
         return
     destination_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(source, destination)
+    # tmp file + replace, matching envelope.write_envelope's atomicity convention, so a
+    # crash/kill mid-copy never leaves a truncated run_manifest.json visible to a
+    # downstream reader (write-back) -- the previous plain shutil.copyfile(..., dest)
+    # wrote directly to the final path.
+    tmp = destination.with_name(destination.name + ".tmp")
+    shutil.copyfile(source, tmp)
+    tmp.replace(destination)
