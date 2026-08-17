@@ -164,12 +164,16 @@ def test_read_existing_identity_returns_none_on_schema_invalid_json(tmp_path):
 
 
 def test_read_existing_identity_logs_warning_on_corrupt_file(tmp_path, caplog):
-    """A corrupt pre-existing file logs a warning naming the scan_key."""
+    """A corrupt pre-existing file logs a warning naming the scan_key and the error."""
     out = tmp_path / "scanBAD.result.json"
     out.write_text("{not valid json", encoding="utf-8")
     with caplog.at_level("WARNING"):
         read_existing_identity(tmp_path, "scanBAD")
     assert "scanBAD" in caplog.text
+    # The underlying exception is included, not just a generic message -- this is what
+    # lets an operator distinguish "this file's content is corrupt" from a genuine I/O
+    # failure (see test_read_existing_identity_returns_none_on_read_error).
+    assert "Invalid JSON" in caplog.text
 
 
 def test_read_existing_identity_does_not_warn_when_missing(tmp_path, caplog):
@@ -198,17 +202,25 @@ def test_read_existing_identity_returns_none_on_read_error(
     existed -- without this, such an error would misclassify the scan as FAILED instead
     of "not done", per trait_extractor.envelope.read_existing_identity's documented
     contract.
+
+    The pre-seeded file is a genuinely valid envelope (via a real extract_scan call),
+    not schema-invalid content -- so a `None` result can only be explained by the
+    injected PermissionError, not by an independent, unrelated validation failure (a
+    schema-invalid fixture like `"{}"` would make this test pass even if the
+    monkeypatch silently failed to apply).
     """
-    out = tmp_path / "scanBAD.result.json"
-    out.write_text("{}", encoding="utf-8")
+    extract_scan(_MANIFEST, _SIDECAR, tmp_path)
+    out = tmp_path / "scan0K9E8BI.result.json"
+    assert out.is_file()
 
     def _boom(self, *args, **kwargs):
         raise PermissionError("simulated read failure")
 
     monkeypatch.setattr(Path, "read_text", _boom)
     with caplog.at_level("WARNING"):
-        assert read_existing_identity(tmp_path, "scanBAD") is None
-    assert "scanBAD" in caplog.text
+        assert read_existing_identity(tmp_path, "scan0K9E8BI") is None
+    assert "scan0K9E8BI" in caplog.text
+    assert "simulated read failure" in caplog.text
 
 
 def test_golden_regression(tmp_path):

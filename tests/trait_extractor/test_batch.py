@@ -264,6 +264,38 @@ def test_copy_forward_failure_does_not_discard_already_computed_result(
     assert str(out_dir.as_posix()) in caplog.text
 
 
+def test_copy_forward_failure_does_not_discard_missing_scan_key_failures(
+    tmp_path, monkeypatch, caplog
+):
+    """A copy-forward OSError doesn't discard missing-scan_key failures either.
+
+    The missing-scan_key bookkeeping loop and the copy-forward call are both inside
+    the same `if scope is not None:` block, with the failures appended strictly before
+    the copy-forward call -- this test makes that ordering guarantee independently
+    verifiable (both failure sources present in the same run) rather than only
+    inferable from reading the source.
+    """
+    import trait_extractor.extractor
+
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    shutil.copytree(_FIXTURE_TREE, in_dir)
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanMISSING"])
+
+    def _boom(*args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(trait_extractor.extractor, "copy_run_manifest_forward", _boom)
+
+    with caplog.at_level("WARNING"):
+        result = extract_batch(in_dir, out_dir)
+
+    assert not result.ok
+    assert result.succeeded == ["scan0K9E8BI"]
+    assert [k for k, _ in result.failed] == ["scanMISSING"]
+    assert "failed to copy run_manifest.json" in caplog.text
+
+
 def test_manifest_copied_forward_into_output_dir(tmp_path):
     """The manifest is copied forward into output_dir after a successful batch."""
     in_dir = tmp_path / "in"

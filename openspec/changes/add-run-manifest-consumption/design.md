@@ -213,6 +213,18 @@ new version).
   new surface (`RunManifest`, `RUN_MANIFEST_FILENAME`, `PredictionManifest`, `LabelCard`, etc.) is
   additive only. This is verified by direct wheel diff, not merely asserted; the full regression
   suite (task 1.3/6.1) is the ongoing safety net for anything this diff missed.
+- **Added during a formal `/review-pr` pass on the open PR:** a systemic I/O problem (e.g. a failing
+  disk, a permissions misconfiguration on `output_dir`) coinciding with skip-if-done's identity check
+  (`read_existing_identity`) causes every affected scan to silently fall back to full recompute rather
+  than distinguishing "genuinely changed" from "couldn't check its prior identity." This does not lose
+  or corrupt data (recompute is deterministic and `write_envelope`'s atomic temp-file+`replace` pattern
+  means a failed recompute can't leave a partial file; if the *write* side is also affected, that scan
+  surfaces as a normal `BatchResult.failed` entry, not a silent loss) — the cost is purely wasted
+  recomputation, not incorrect output. `read_existing_identity`'s warning log now includes the caught
+  exception (not just a generic message), so an operator can at least distinguish "this file is corrupt"
+  from "we hit a filesystem error trying to check it" after the fact. Accepted as a residual risk, not
+  solved further here — the existing "best-effort, not a hard dependency" framing already covers the
+  single-file case; this note extends it to the systemic/batch-wide case.
 
 ## Migration Plan
 
@@ -259,3 +271,30 @@ for all of the above (`test_run_manifest.py`'s same-file and overwrite-a-differe
 asserted bare `Exception` were tightened to `pydantic.ValidationError` specifically, per the same
 review pass's finding that a bare `Exception` assertion could mask an unrelated bug as if the intended
 validation contract were being exercised.
+
+### Why two more rounds of fixes landed after the PR was already open
+
+A formal `/review-pr` pass on the open PR (5 subagents, independent from the pre-PR self-review above)
+found: `read_existing_identity` didn't catch `OSError` on the read itself (same category of gap as the
+`SameFileError` bug, one module over) — fixed, with a test forcing a `PermissionError`. The
+copy-forward-failure warning didn't name `input_dir`/`output_dir` explicitly — fixed. The `.resolve()`
+same-file guard had no test proving it does real path normalization (only literal-identical-`Path`-object
+cases were tested) — added one using a differently-spelled-but-same-directory path. The batch-level
+same-dir test only proved the *outer* safety net prevents a crash, not that the dedicated no-op guard
+fired — tightened to assert no warning was logged. The `UnicodeDecodeError` branch was untested — added.
+`spec.md`'s copy-forward requirement read as unconditional despite now being best-effort — updated
+wording plus two new scenarios.
+
+A **second** `/review-pr` round on that same fix commit (verifying it, not re-litigating settled
+ground) found two more, narrower gaps in the same function: (1) `path.is_file()` itself sat *outside*
+the try/except that had just been widened to catch `OSError` — `is_file()` swallows `ENOENT`/`ENOTDIR`
+internally but a `PermissionError` from its underlying `stat()` call is not one of those and would have
+propagated uncaught, missing the exact contract the first fix was supposed to complete. Fixed by moving
+the existence check inside the same try block. (2) The except clause didn't bind the caught exception
+(`except (...) :`, no `as exc`), so the warning log couldn't distinguish "this file is corrupt" from "we
+hit a filesystem error trying to read it" — the copy-forward warning a few lines away in `extractor.py`
+already included its exception; `read_existing_identity`'s now does too. A third finding — the new
+`OSError`-branch test's fixture (`"{}"`) was independently schema-invalid on its own, so the test would
+have passed for the wrong reason if the `Path.read_text` monkeypatch had silently failed to apply — was
+fixed by seeding a genuinely valid envelope first, so only the injected error can explain a `None`
+result.

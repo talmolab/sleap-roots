@@ -129,23 +129,29 @@ def read_existing_identity(
         ``None`` if no valid pre-existing envelope exists.
     """
     path = Path(output_dir) / f"{scan_key}.result.json"
-    if not path.is_file():
-        return None
     try:
+        # is_file() lives inside this try too: it already swallows ENOENT/ENOTDIR-style
+        # "doesn't exist" errors internally and returns False for those (the ordinary,
+        # unlogged missing-file case below), but a PermissionError from the underlying
+        # stat() call is NOT one of the errors it swallows -- it propagates. Catching it
+        # here, alongside the read/parse errors, keeps the whole "does a usable
+        # pre-existing envelope exist" check inside one best-effort boundary.
+        if not path.is_file():
+            return None
         envelope = ResultEnvelope.model_validate_json(path.read_text(encoding="utf-8"))
-    except (pydantic.ValidationError, UnicodeDecodeError, OSError):
+    except (pydantic.ValidationError, UnicodeDecodeError, OSError) as exc:
         # model_validate_json parses + validates in one step, so pydantic.ValidationError
         # (re-exported from pydantic_core) covers both malformed JSON and schema-invalid
         # JSON -- there is no separate json.JSONDecodeError case to catch here. OSError
-        # covers a read-time anomaly on a file the is_file() check just confirmed exists
-        # (e.g. a permissions issue, or a TOCTOU race where it's deleted in between) --
-        # without this, such an error would misclassify the scan as FAILED instead of
-        # "not done", contradicting the documented "missing, unreadable, or invalid ->
-        # not done" contract.
+        # covers a read-time anomaly on a file that exists (e.g. a permissions issue, or
+        # a TOCTOU race where it's deleted in between) -- without this, such an error
+        # would misclassify the scan as FAILED instead of "not done", contradicting the
+        # documented "missing, unreadable, or invalid -> not done" contract.
         logger.warning(
             "existing %s is unreadable or fails ResultEnvelope validation; "
-            "treating as not done and recomputing",
+            "treating as not done and recomputing: %s",
             path.as_posix(),
+            exc,
         )
         return None
     return envelope.provenance.idempotency_key, envelope.provenance.contract_version
