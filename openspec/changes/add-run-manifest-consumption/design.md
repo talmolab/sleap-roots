@@ -298,3 +298,16 @@ already included its exception; `read_existing_identity`'s now does too. A third
 have passed for the wrong reason if the `Path.read_text` monkeypatch had silently failed to apply — was
 fixed by seeding a genuinely valid envelope first, so only the injected error can explain a `None`
 result.
+
+**A third `/review-pr` round on that same fix (verifying fixes 1-3 above) found the `is_file()` fix had
+shipped with *zero test proving it*** — empirically confirmed by the reviewer reverting `is_file()` back
+outside the `try` and re-running the full suite: all tests still passed. The only `OSError`-branch test
+patches `Path.read_text`, never `Path.is_file`, so it can't exercise the code path the commit message
+claimed to fix. Added `test_read_existing_identity_returns_none_on_is_file_error`, which patches
+`Path.is_file` directly — and verified it the same way the reviewer found the gap: reverted the
+`is_file()`-inside-`try` fix locally, confirmed the new test fails (an uncaught `PermissionError`), then
+restored the fix and confirmed it passes. This is the second time in two consecutive commits that a
+test-after fix shipped with a coverage claim broader than what the test actually proved (the `"{}"`
+fixture confound above was the first) — both were only caught by an adversarial reviewer re-deriving the
+bug from scratch rather than trusting the commit message, which is exactly why this change went through
+three rounds of `/review-pr` instead of stopping after the first "no blocking issues" verdict.

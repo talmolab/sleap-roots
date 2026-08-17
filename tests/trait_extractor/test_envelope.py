@@ -223,6 +223,30 @@ def test_read_existing_identity_returns_none_on_read_error(
     assert "simulated read failure" in caplog.text
 
 
+def test_read_existing_identity_returns_none_on_is_file_error(
+    tmp_path, monkeypatch, caplog
+):
+    """A PermissionError from is_file() itself -> None, not a crash, logs a warning.
+
+    Distinct from test_read_existing_identity_returns_none_on_read_error, which
+    patches read_text() -- that test alone does NOT prove is_file() is covered by the
+    same error handling: is_file() swallows ENOENT/ENOTDIR internally but a
+    PermissionError from its own stat() call is not one of those and would propagate
+    uncaught if is_file() sat outside the try/except (verified: this exact code shape
+    regressed once, silently, before this test existed).
+    """
+    extract_scan(_MANIFEST, _SIDECAR, tmp_path)
+
+    def _boom(self, *args, **kwargs):
+        raise PermissionError("simulated stat failure")
+
+    monkeypatch.setattr(Path, "is_file", _boom)
+    with caplog.at_level("WARNING"):
+        assert read_existing_identity(tmp_path, "scan0K9E8BI") is None
+    assert "scan0K9E8BI" in caplog.text
+    assert "simulated stat failure" in caplog.text
+
+
 def test_golden_regression(tmp_path):
     """Computed traits match the committed rice_3do golden (trait columns only)."""
     manifest = load_manifest(_MANIFEST)
