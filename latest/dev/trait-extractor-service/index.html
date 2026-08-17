@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.7">
     
     
       
@@ -33,7 +33,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -3070,10 +3070,10 @@ sibling). Consequently:</p>
 </ol>
 <h3 id="scanmetadata-sidecar-schema-for-the-bloomdownloader-populator"><code>ScanMetadata</code> sidecar schema (for the Bloom/downloader populator)<a class="headerlink" href="#scanmetadata-sidecar-schema-for-the-bloomdownloader-populator" title="Permanent link">&para;</a></h3>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;scan_key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;scan0K9E8BI&quot;</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">&quot;image_ids&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;cyl_img_0001&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;cyl_img_0002&quot;</span><span class="p">],</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">&quot;images_checksum&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sha256:...&quot;</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">&quot;params&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;species&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rice&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cylinder&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;age&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"scan_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"scan0K9E8BI"</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"image_ids"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"cyl_img_0001"</span><span class="p">,</span><span class="w"> </span><span class="s2">"cyl_img_0002"</span><span class="p">],</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">"images_checksum"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sha256:..."</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">"params"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"species"</span><span class="p">:</span><span class="w"> </span><span class="s2">"rice"</span><span class="p">,</span><span class="w"> </span><span class="nt">"mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cylinder"</span><span class="p">,</span><span class="w"> </span><span class="nt">"age"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="p">}</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">}</span>
 </span></code></pre></div>
 <table>
@@ -3134,14 +3134,23 @@ recorded in <code>Provenance</code> for audit but is not itself a key input — 
 <p>One <code>{scan_key}.result.json</code> per scan — a <code>ResultEnvelope</code> = <code>Provenance</code> + <code>list[TraitValue]</code>
 (<code>grain="scan"</code>; <code>NaN</code>/<code>inf</code> → <code>None</code>) + <code>blobs=[]</code> (blob locations are filled downstream at
 upload). <code>Provenance.contract_version</code> is the pinned bare <code>sleap-roots-contracts</code> version
-(<code>0.1.0a3</code>); <code>produced_at</code> is left <code>None</code> so re-emitting over identical inputs is byte-stable.</p>
+(<code>0.1.0a7</code>); <code>produced_at</code> is left <code>None</code> so re-emitting over identical inputs is byte-stable.</p>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>trait_extractor<span class="w"> </span>&lt;input_dir&gt;<span class="w"> </span>&lt;output_dir&gt;
 </span></code></pre></div>
-<p>Discovers each <code>{scan_key}.predictions.json</code> under <code>input_dir</code>, pairs its sidecar, and writes
-one envelope per scan to <code>output_dir</code>. Per-scan failures (bad manifest, missing sidecar,
-incompatible/unsupported pipeline) are isolated and reported; the process exits non-zero if any
-scan failed, without discarding the successful envelopes.</p>
+<p>If <code>input_dir</code> contains a <code>run_manifest.json</code> (<code>sleap_roots_contracts.RunManifest</code>, written by
+<code>bloomctl</code> and copied forward by each pipeline stage — see
+<a href="https://github.com/talmolab/sleap-roots-pipeline/issues/37">talmolab/sleap-roots-pipeline#37</a>),
+discovery is scoped to exactly its <code>scan_keys</code> (a <code>.predictions.json</code> present but out of scope is
+silently ignored — this is the contamination-prevention this manifest exists for), and a scan
+whose output already matches (both <code>idempotency_key</code> and <code>contract_version</code>) is skipped rather
+than recomputed. If no <code>run_manifest.json</code> is present, discovery falls back to recursively
+finding every <code>{scan_key}.predictions.json</code> under <code>input_dir</code> (the original, pre-manifest
+behavior — used by local/non-pipeline runs). In both cases, each manifest's sidecar is paired and
+one envelope is written per scan to <code>output_dir</code>. Per-scan failures (bad manifest, missing
+sidecar, a manifest-declared scan_key with no matching predictions.json, incompatible/unsupported
+pipeline) are isolated and reported; the process exits non-zero if any scan failed, without
+discarding the successful or skipped envelopes.</p>
 <h2 id="container-image">Container image<a class="headerlink" href="#container-image" title="Permanent link">&para;</a></h2>
 <p>Published to GHCR as <code>ghcr.io/talmolab/sleap-roots-trait-extractor</code> — an identity distinct
 from the library image <code>ghcr.io/talmolab/sleap-roots</code>. Built from the root
@@ -3177,10 +3186,14 @@ build-only on PRs, build + push on <code>main</code>.</p>
   emission (<a href="https://github.com/talmolab/sleap-roots/issues/252">#252</a>).</li>
 <li><strong>Downstream</strong> — the trait-extractor ships as the GHCR image
   <code>ghcr.io/talmolab/sleap-roots-trait-extractor</code> (see <a href="#container-image">Container image</a>).
-  Still fast-follow: A4's Argo template that pulls it (must rewrite the step's <code>args:</code> to the
-  two positional dirs and pin the image), and Bloom's RPC accepting
-  <code>contract_version == "0.1.0a3"</code>
-  (<a href="https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/393">bloom#393</a>).</li>
+  Bloom's write-back RPC (<code>insert_cyl_result_envelope</code>) originally required
+  <code>contract_version == "0.1.0a3"</code> (<a href="https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/393">bloom#393</a>,
+  closed by <a href="https://github.com/Salk-Harnessing-Plants-Initiative/bloom/pull/399">bloom PR #399</a>).
+  Bumping this repo's pin to <code>0.1.0a7</code> reopens the identical class of blocker — that RPC still
+  hard-pins its accepted literal to exactly <code>0.1.0a3</code> and will reject every envelope emitted with
+  <code>contract_version = "0.1.0a7"</code> until it's re-pinned. Tracked as
+  <a href="https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/685">bloom#685</a>; <strong>this
+  repo's image must not be redeployed to the pipeline until that Bloom-side change lands.</strong></li>
 </ul>
 
 
@@ -3267,7 +3280,7 @@ build-only on PRs, build + push on <code>main</code>.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.follow", "toc.integrate", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../javascripts/mathjax.js"></script>
       

@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.7">
     
     
       
@@ -29,7 +29,7 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2962,10 +2962,10 @@
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="nb">unset</span><span class="w"> </span>GITHUB_TOKEN<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>gh<span class="w"> </span>pr<span class="w"> </span>checks<span class="w"> </span><span class="nv">$PR_NUMBER</span>
 </span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
 </span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># Get any existing Copilot review comments</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="nb">unset</span><span class="w"> </span>GITHUB_TOKEN<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>gh<span class="w"> </span>api<span class="w"> </span>graphql<span class="w"> </span>-f<span class="w"> </span><span class="nv">query</span><span class="o">=</span><span class="s1">&#39;</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="nb">unset</span><span class="w"> </span>GITHUB_TOKEN<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>gh<span class="w"> </span>api<span class="w"> </span>graphql<span class="w"> </span>-f<span class="w"> </span><span class="nv">query</span><span class="o">=</span><span class="s1">'</span>
 </span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="s1">query {</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="s1">  repository(owner: &quot;talmolab&quot;, name: &quot;sleap-roots&quot;) {</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="s1">    pullRequest(number: &#39;</span><span class="nv">$PR_NUMBER</span><span class="s1">&#39;) {</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="s1">  repository(owner: "talmolab", name: "sleap-roots") {</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="s1">    pullRequest(number: '</span><span class="nv">$PR_NUMBER</span><span class="s1">') {</span>
 </span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="s1">      reviews(first: 10) {</span>
 </span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="s1">        nodes {</span>
 </span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="s1">          author { login }</span>
@@ -2977,7 +2977,7 @@
 </span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="s1">    }</span>
 </span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="s1">  }</span>
 </span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="s1">}</span>
-</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="s1">&#39;</span><span class="w"> </span>--jq<span class="w"> </span><span class="s1">&#39;.data.repository.pullRequest.reviews.nodes[] | select(.author.login | contains(&quot;opilot&quot;)) | .comments.nodes[] | &quot;File: \(.path):\(.line)\n\(.body)&quot;&#39;</span>
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="s1">'</span><span class="w"> </span>--jq<span class="w"> </span><span class="s1">'.data.repository.pullRequest.reviews.nodes[] | select(.author.login | contains("opilot")) | .comments.nodes[] | "File: \(.path):\(.line)\n\(.body)"'</span>
 </span></code></pre></div>
 <p>Also read any OpenSpec proposal linked in the PR body (look for <code>openspec/changes/</code> paths).</p>
 <p><strong>Step 2: Launch 5 subagents</strong> — Write FULL prompt templates for each (not just bullet points). Each subagent prompt must include:
@@ -3038,14 +3038,14 @@
 <li>[ ] <strong>Step 4: Commit</strong></li>
 </ul>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>git<span class="w"> </span>add<span class="w"> </span>.claude/commands/review-pr.md
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;feat: upgrade review-pr to 5-subagent parallel review team</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"feat: upgrade review-pr to 5-subagent parallel review team</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="s2">Adapted from bloom-desktop&#39;s subagent PR review pattern for</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="s2">Adapted from bloom-desktop's subagent PR review pattern for</span>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="s2">sleap-roots Python scientific library context. Includes lenses</span>
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="s2">for code quality, testing, scientific rigor, performance/memory,</span>
 </span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="s2">and behavioral correctness.</span>
 </span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="s2">Co-Authored-By: Claude Opus 4.6 (1M context) &lt;noreply@anthropic.com&gt;&quot;</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="s2">Co-Authored-By: Claude Opus 4.6 (1M context) &lt;noreply@anthropic.com&gt;"</span>
 </span></code></pre></div>
 <hr />
 <h3 id="task-2-rewrite-cleanup-mergedmd-openspec-archive-best-practices">Task 2: Rewrite cleanup-merged.md — OpenSpec Archive Best Practices<a class="headerlink" href="#task-2-rewrite-cleanup-mergedmd-openspec-archive-best-practices" title="Permanent link">&para;</a></h3>
@@ -3101,7 +3101,7 @@
 </span><span id="__span-4-37"><a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>git remote prune origin
 </span><span id="__span-4-38"><a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="sb">` `</span> `
 </span><span id="__span-4-39"><a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a>
-</span><span id="__span-4-40"><a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a><span class="gs">**Important**</span>: Use <span class="sb">`-d`</span> (not <span class="sb">`-D`</span>) to ensure the branch has been merged. If this fails, the branch hasn&#39;t been fully merged yet — see Troubleshooting.
+</span><span id="__span-4-40"><a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a><span class="gs">**Important**</span>: Use <span class="sb">`-d`</span> (not <span class="sb">`-D`</span>) to ensure the branch has been merged. If this fails, the branch hasn't been fully merged yet — see Troubleshooting.
 </span><span id="__span-4-41"><a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a>
 </span><span id="__span-4-42"><a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a><span class="gu">### 4. Archive OpenSpec Change (if applicable)</span>
 </span><span id="__span-4-43"><a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a>
@@ -3123,11 +3123,11 @@
 </span><span id="__span-4-59"><a id="__codelineno-4-59" name="__codelineno-4-59" href="#__codelineno-4-59"></a>
 </span><span id="__span-4-60"><a id="__codelineno-4-60" name="__codelineno-4-60" href="#__codelineno-4-60"></a><span class="sb">` `</span> `bash
 </span><span id="__span-4-61"><a id="__codelineno-4-61" name="__codelineno-4-61" href="#__codelineno-4-61"></a>git add openspec/
-</span><span id="__span-4-62"><a id="__codelineno-4-62" name="__codelineno-4-62" href="#__codelineno-4-62"></a>git commit -m &quot;openspec: Archive &lt;change-name&gt; change
+</span><span id="__span-4-62"><a id="__codelineno-4-62" name="__codelineno-4-62" href="#__codelineno-4-62"></a>git commit -m "openspec: Archive &lt;change-name&gt; change
 </span><span id="__span-4-63"><a id="__codelineno-4-63" name="__codelineno-4-63" href="#__codelineno-4-63"></a>
 </span><span id="__span-4-64"><a id="__codelineno-4-64" name="__codelineno-4-64" href="#__codelineno-4-64"></a>Archived completed OpenSpec change after PR #&lt;number&gt; merge.
 </span><span id="__span-4-65"><a id="__codelineno-4-65" name="__codelineno-4-65" href="#__codelineno-4-65"></a>
-</span><span id="__span-4-66"><a id="__codelineno-4-66" name="__codelineno-4-66" href="#__codelineno-4-66"></a>Co-Authored-By: Claude Opus 4.6 (1M context) &lt;noreply@anthropic.com&gt;&quot;
+</span><span id="__span-4-66"><a id="__codelineno-4-66" name="__codelineno-4-66" href="#__codelineno-4-66"></a>Co-Authored-By: Claude Opus 4.6 (1M context) &lt;noreply@anthropic.com&gt;"
 </span><span id="__span-4-67"><a id="__codelineno-4-67" name="__codelineno-4-67" href="#__codelineno-4-67"></a>
 </span><span id="__span-4-68"><a id="__codelineno-4-68" name="__codelineno-4-68" href="#__codelineno-4-68"></a>git push origin main
 </span><span id="__span-4-69"><a id="__codelineno-4-69" name="__codelineno-4-69" href="#__codelineno-4-69"></a><span class="sb">` `</span> `
@@ -3136,7 +3136,7 @@
 </span><span id="__span-4-72"><a id="__codelineno-4-72" name="__codelineno-4-72" href="#__codelineno-4-72"></a>
 </span><span id="__span-4-73"><a id="__codelineno-4-73" name="__codelineno-4-73" href="#__codelineno-4-73"></a><span class="sb">` `</span> `bash
 </span><span id="__span-4-74"><a id="__codelineno-4-74" name="__codelineno-4-74" href="#__codelineno-4-74"></a><span class="gh"># Branch should not appear</span>
-</span><span id="__span-4-75"><a id="__codelineno-4-75" name="__codelineno-4-75" href="#__codelineno-4-75"></a>git branch -a | grep &lt;branch-name&gt; || echo &quot;Branch deleted&quot;
+</span><span id="__span-4-75"><a id="__codelineno-4-75" name="__codelineno-4-75" href="#__codelineno-4-75"></a>git branch -a | grep &lt;branch-name&gt; || echo "Branch deleted"
 </span><span id="__span-4-76"><a id="__codelineno-4-76" name="__codelineno-4-76" href="#__codelineno-4-76"></a>
 </span><span id="__span-4-77"><a id="__codelineno-4-77" name="__codelineno-4-77" href="#__codelineno-4-77"></a><span class="gh"># OpenSpec should be in archive (if applicable)</span>
 </span><span id="__span-4-78"><a id="__codelineno-4-78" name="__codelineno-4-78" href="#__codelineno-4-78"></a>ls openspec/changes/archive/
@@ -3171,28 +3171,28 @@
 </span><span id="__span-4-107"><a id="__codelineno-4-107" name="__codelineno-4-107" href="#__codelineno-4-107"></a>
 </span><span id="__span-4-108"><a id="__codelineno-4-108" name="__codelineno-4-108" href="#__codelineno-4-108"></a><span class="gu">## Troubleshooting</span>
 </span><span id="__span-4-109"><a id="__codelineno-4-109" name="__codelineno-4-109" href="#__codelineno-4-109"></a>
-</span><span id="__span-4-110"><a id="__codelineno-4-110" name="__codelineno-4-110" href="#__codelineno-4-110"></a><span class="gu">### &quot;Branch not fully merged&quot;</span>
+</span><span id="__span-4-110"><a id="__codelineno-4-110" name="__codelineno-4-110" href="#__codelineno-4-110"></a><span class="gu">### "Branch not fully merged"</span>
 </span><span id="__span-4-111"><a id="__codelineno-4-111" name="__codelineno-4-111" href="#__codelineno-4-111"></a>
-</span><span id="__span-4-112"><a id="__codelineno-4-112" name="__codelineno-4-112" href="#__codelineno-4-112"></a><span class="gs">**Error**</span>: <span class="sb">`error: The branch &#39;&lt;branch&gt;&#39; is not fully merged.`</span>
+</span><span id="__span-4-112"><a id="__codelineno-4-112" name="__codelineno-4-112" href="#__codelineno-4-112"></a><span class="gs">**Error**</span>: <span class="sb">`error: The branch '&lt;branch&gt;' is not fully merged.`</span>
 </span><span id="__span-4-113"><a id="__codelineno-4-113" name="__codelineno-4-113" href="#__codelineno-4-113"></a>
-</span><span id="__span-4-114"><a id="__codelineno-4-114" name="__codelineno-4-114" href="#__codelineno-4-114"></a><span class="gs">**Cause**</span>: Git doesn&#39;t recognize the branch as merged (different commit SHAs due to squash merge on GitHub)
+</span><span id="__span-4-114"><a id="__codelineno-4-114" name="__codelineno-4-114" href="#__codelineno-4-114"></a><span class="gs">**Cause**</span>: Git doesn't recognize the branch as merged (different commit SHAs due to squash merge on GitHub)
 </span><span id="__span-4-115"><a id="__codelineno-4-115" name="__codelineno-4-115" href="#__codelineno-4-115"></a>
 </span><span id="__span-4-116"><a id="__codelineno-4-116" name="__codelineno-4-116" href="#__codelineno-4-116"></a><span class="gs">**Solution**</span>:
 </span><span id="__span-4-117"><a id="__codelineno-4-117" name="__codelineno-4-117" href="#__codelineno-4-117"></a><span class="sb">` `</span> `bash
 </span><span id="__span-4-118"><a id="__codelineno-4-118" name="__codelineno-4-118" href="#__codelineno-4-118"></a><span class="gh"># Verify PR is actually merged on GitHub</span>
 </span><span id="__span-4-119"><a id="__codelineno-4-119" name="__codelineno-4-119" href="#__codelineno-4-119"></a>unset GITHUB_TOKEN &amp;&amp; gh pr view &lt;number&gt;
 </span><span id="__span-4-120"><a id="__codelineno-4-120" name="__codelineno-4-120" href="#__codelineno-4-120"></a>
-</span><span id="__span-4-121"><a id="__codelineno-4-121" name="__codelineno-4-121" href="#__codelineno-4-121"></a><span class="gh"># If PR is merged but git doesn&#39;t know, fetch and try again</span>
+</span><span id="__span-4-121"><a id="__codelineno-4-121" name="__codelineno-4-121" href="#__codelineno-4-121"></a><span class="gh"># If PR is merged but git doesn't know, fetch and try again</span>
 </span><span id="__span-4-122"><a id="__codelineno-4-122" name="__codelineno-4-122" href="#__codelineno-4-122"></a>git fetch origin
 </span><span id="__span-4-123"><a id="__codelineno-4-123" name="__codelineno-4-123" href="#__codelineno-4-123"></a>git checkout main
 </span><span id="__span-4-124"><a id="__codelineno-4-124" name="__codelineno-4-124" href="#__codelineno-4-124"></a>git pull
 </span><span id="__span-4-125"><a id="__codelineno-4-125" name="__codelineno-4-125" href="#__codelineno-4-125"></a>git branch -d &lt;branch-name&gt;
 </span><span id="__span-4-126"><a id="__codelineno-4-126" name="__codelineno-4-126" href="#__codelineno-4-126"></a>
-</span><span id="__span-4-127"><a id="__codelineno-4-127" name="__codelineno-4-127" href="#__codelineno-4-127"></a><span class="gh"># If still failing, the PR wasn&#39;t actually merged</span>
+</span><span id="__span-4-127"><a id="__codelineno-4-127" name="__codelineno-4-127" href="#__codelineno-4-127"></a><span class="gh"># If still failing, the PR wasn't actually merged</span>
 </span><span id="__span-4-128"><a id="__codelineno-4-128" name="__codelineno-4-128" href="#__codelineno-4-128"></a><span class="gh"># Ask user to merge PR first — do NOT use -D (force delete)</span>
 </span><span id="__span-4-129"><a id="__codelineno-4-129" name="__codelineno-4-129" href="#__codelineno-4-129"></a><span class="sb">` `</span> `
 </span><span id="__span-4-130"><a id="__codelineno-4-130" name="__codelineno-4-130" href="#__codelineno-4-130"></a>
-</span><span id="__span-4-131"><a id="__codelineno-4-131" name="__codelineno-4-131" href="#__codelineno-4-131"></a><span class="gu">### &quot;Remote ref does not exist&quot;</span>
+</span><span id="__span-4-131"><a id="__codelineno-4-131" name="__codelineno-4-131" href="#__codelineno-4-131"></a><span class="gu">### "Remote ref does not exist"</span>
 </span><span id="__span-4-132"><a id="__codelineno-4-132" name="__codelineno-4-132" href="#__codelineno-4-132"></a>
 </span><span id="__span-4-133"><a id="__codelineno-4-133" name="__codelineno-4-133" href="#__codelineno-4-133"></a><span class="gs">**Cause**</span>: Branch already deleted on remote (GitHub auto-deletes on merge)
 </span><span id="__span-4-134"><a id="__codelineno-4-134" name="__codelineno-4-134" href="#__codelineno-4-134"></a>
@@ -3223,13 +3223,13 @@
 <li>[ ] <strong>Step 4: Commit</strong></li>
 </ul>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>git<span class="w"> </span>add<span class="w"> </span>.claude/commands/cleanup-merged.md
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;feat: upgrade cleanup-merged to use openspec archive best practices</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"feat: upgrade cleanup-merged to use openspec archive best practices</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="s2">Replaced git mv with openspec archive CLI delegation.</span>
 </span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="s2">Default is full spec application. References openspec/AGENTS.md</span>
 </span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="s2">as source of truth for archive conventions.</span>
 </span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="s2">Co-Authored-By: Claude Opus 4.6 (1M context) &lt;noreply@anthropic.com&gt;&quot;</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="s2">Co-Authored-By: Claude Opus 4.6 (1M context) &lt;noreply@anthropic.com&gt;"</span>
 </span></code></pre></div>
 <hr />
 <h3 id="task-3-rewrite-pre-mergemd-clean-phased-structure">Task 3: Rewrite pre-merge.md — Clean Phased Structure<a class="headerlink" href="#task-3-rewrite-pre-mergemd-clean-phased-structure" title="Permanent link">&para;</a></h3>
@@ -3272,7 +3272,7 @@ If benchmark-relevant changes: <code>uv run pytest tests/benchmarks/ --benchmark
 - Check OpenSpec tasks completed (if applicable): <code>openspec list</code>
 - README up-to-date if public API changed</p>
 <p><strong>Phase 4: PR Creation</strong>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nb">unset</span><span class="w"> </span>GITHUB_TOKEN<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>gh<span class="w"> </span>pr<span class="w"> </span>create<span class="w"> </span>--title<span class="w"> </span><span class="s2">&quot;&lt;title&gt;&quot;</span><span class="w"> </span>--body<span class="w"> </span><span class="s2">&quot;&lt;body&gt;&quot;</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nb">unset</span><span class="w"> </span>GITHUB_TOKEN<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>gh<span class="w"> </span>pr<span class="w"> </span>create<span class="w"> </span>--title<span class="w"> </span><span class="s2">"&lt;title&gt;"</span><span class="w"> </span>--body<span class="w"> </span><span class="s2">"&lt;body&gt;"</span>
 </span></code></pre></div>
 Include: summary of changes, test results, breaking changes, OpenSpec proposal link (if applicable).</p>
 <p><strong>Phase 5: CI Monitoring</strong>
@@ -3280,8 +3280,8 @@ Include: summary of changes, test results, breaking changes, OpenSpec proposal l
 </span></code></pre></div>
 Watch for cross-platform failures (Ubuntu, Windows, macOS). If any fail: investigate logs, use <code>/debug-test</code> for test failures.</p>
 <p><strong>Phase 6: Review Feedback</strong>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nb">unset</span><span class="w"> </span>GITHUB_TOKEN<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>gh<span class="w"> </span>pr<span class="w"> </span>view<span class="w"> </span>&lt;PR_NUMBER&gt;<span class="w"> </span>--json<span class="w"> </span>comments<span class="w"> </span>--jq<span class="w"> </span><span class="s1">&#39;.comments[] | &quot;\(.author.login): \(.body)&quot;&#39;</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nb">unset</span><span class="w"> </span>GITHUB_TOKEN<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>gh<span class="w"> </span>pr<span class="w"> </span>view<span class="w"> </span>&lt;PR_NUMBER&gt;<span class="w"> </span>--json<span class="w"> </span>reviews<span class="w"> </span>--jq<span class="w"> </span><span class="s1">&#39;.reviews[] | &quot;\(.author.login) (\(.state)): \(.body)&quot;&#39;</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nb">unset</span><span class="w"> </span>GITHUB_TOKEN<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>gh<span class="w"> </span>pr<span class="w"> </span>view<span class="w"> </span>&lt;PR_NUMBER&gt;<span class="w"> </span>--json<span class="w"> </span>comments<span class="w"> </span>--jq<span class="w"> </span><span class="s1">'.comments[] | "\(.author.login): \(.body)"'</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nb">unset</span><span class="w"> </span>GITHUB_TOKEN<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>gh<span class="w"> </span>pr<span class="w"> </span>view<span class="w"> </span>&lt;PR_NUMBER&gt;<span class="w"> </span>--json<span class="w"> </span>reviews<span class="w"> </span>--jq<span class="w"> </span><span class="s1">'.reviews[] | "\(.author.login) (\(.state)): \(.body)"'</span>
 </span></code></pre></div>
 Check: Copilot suggestions, Codecov coverage, reviewer feedback. Address all concerns.</p>
 <p><strong>Phase 7: Changelog</strong> — Run <code>/changelog</code> command.</p>
@@ -3347,13 +3347,13 @@ Check: Copilot suggestions, Codecov coverage, reviewer feedback. Address all con
 <li>[ ] <strong>Step 4: Commit</strong></li>
 </ul>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>git<span class="w"> </span>add<span class="w"> </span>.claude/commands/pre-merge.md
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;feat: upgrade pre-merge to clean phased structure with output template</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"feat: upgrade pre-merge to clean phased structure with output template</span>
 </span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
 </span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="s2">Streamlined from verbose format to 8 clear phases with</span>
 </span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="s2">markdown checklist output. Added openspec validation and</span>
 </span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="s2">benchmark awareness.</span>
 </span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>
-</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="s2">Co-Authored-By: Claude Opus 4.6 (1M context) &lt;noreply@anthropic.com&gt;&quot;</span>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="s2">Co-Authored-By: Claude Opus 4.6 (1M context) &lt;noreply@anthropic.com&gt;"</span>
 </span></code></pre></div>
 <hr />
 <h3 id="task-4-create-new-featuremd-feature-workflow-command">Task 4: Create new-feature.md — Feature Workflow Command<a class="headerlink" href="#task-4-create-new-featuremd-feature-workflow-command" title="Permanent link">&para;</a></h3>
@@ -3375,7 +3375,7 @@ Check: Copilot suggestions, Codecov coverage, reviewer feedback. Address all con
 </span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="gu">tags: [feature, openspec, tdd, workflow]</span>
 </span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="gu">---</span>
 </span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>
-</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>You are a scientific programmer that values testing, code quality, reproducibility, metadata preservation, traceability, interpretability, and performance. You are starting a new feature workflow. The user&#39;s feature request is: $ARGUMENTS
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>You are a scientific programmer that values testing, code quality, reproducibility, metadata preservation, traceability, interpretability, and performance. You are starting a new feature workflow. The user's feature request is: $ARGUMENTS
 </span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>
 </span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="gs">**Guardrails**</span>
 </span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>
@@ -3406,7 +3406,7 @@ Check: Copilot suggestions, Codecov coverage, reviewer feedback. Address all con
 </span><span id="__span-15-36"><a id="__codelineno-15-36" name="__codelineno-15-36" href="#__codelineno-15-36"></a><span class="w">   </span><span class="k">-</span><span class="w"> </span>Which test data in <span class="sb">`tests/data/`</span> is relevant
 </span><span id="__span-15-37"><a id="__codelineno-15-37" name="__codelineno-15-37" href="#__codelineno-15-37"></a>   Do not proceed until you have clear answers.
 </span><span id="__span-15-38"><a id="__codelineno-15-38" name="__codelineno-15-38" href="#__codelineno-15-38"></a>
-</span><span id="__span-15-39"><a id="__codelineno-15-39" name="__codelineno-15-39" href="#__codelineno-15-39"></a><span class="k">4.</span> <span class="gs">**Create OpenSpec proposal**</span>: Run <span class="sb">`/openspec:proposal`</span> to scaffold the change proposal, following all OpenSpec best practices. Ground the proposal in what you learned from steps 2-3. The proposal&#39;s <span class="sb">`tasks.md`</span> must explicitly outline a TDD approach: for each task, specify what tests will be written first and what behavior they verify before implementation begins.
+</span><span id="__span-15-39"><a id="__codelineno-15-39" name="__codelineno-15-39" href="#__codelineno-15-39"></a><span class="k">4.</span> <span class="gs">**Create OpenSpec proposal**</span>: Run <span class="sb">`/openspec:proposal`</span> to scaffold the change proposal, following all OpenSpec best practices. Ground the proposal in what you learned from steps 2-3. The proposal's <span class="sb">`tasks.md`</span> must explicitly outline a TDD approach: for each task, specify what tests will be written first and what behavior they verify before implementation begins.
 </span><span id="__span-15-40"><a id="__codelineno-15-40" name="__codelineno-15-40" href="#__codelineno-15-40"></a>
 </span><span id="__span-15-41"><a id="__codelineno-15-41" name="__codelineno-15-41" href="#__codelineno-15-41"></a><span class="k">5.</span> <span class="gs">**Review the proposal**</span>: Run the openspec-review skill to have the proposal critically reviewed by 5 specialized subagents. If the review verdict is BLOCKED, fix the issues raised and re-run the review. Repeat until the verdict is APPROVED or NEEDS REVISION.
 </span><span id="__span-15-42"><a id="__codelineno-15-42" name="__codelineno-15-42" href="#__codelineno-15-42"></a>
@@ -3431,13 +3431,13 @@ Check: Copilot suggestions, Codecov coverage, reviewer feedback. Address all con
 <li>[ ] <strong>Step 4: Commit</strong></li>
 </ul>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>git<span class="w"> </span>add<span class="w"> </span>.claude/commands/new-feature.md
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;feat: add new-feature command for end-to-end feature workflow</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"feat: add new-feature command for end-to-end feature workflow</span>
 </span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
 </span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="s2">Adapted from bloom-desktop for sleap-roots scientific context.</span>
 </span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="s2">Workflow: branch -&gt; explore -&gt; clarify -&gt; OpenSpec proposal -&gt;</span>
 </span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="s2">review -&gt; approve -&gt; TDD implementation.</span>
 </span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>
-</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="s2">Co-Authored-By: Claude Opus 4.6 (1M context) &lt;noreply@anthropic.com&gt;&quot;</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="s2">Co-Authored-By: Claude Opus 4.6 (1M context) &lt;noreply@anthropic.com&gt;"</span>
 </span></code></pre></div>
 <hr />
 <h3 id="task-5-create-openspec-review-skill-5-subagent-proposal-review">Task 5: Create openspec-review Skill — 5-Subagent Proposal Review<a class="headerlink" href="#task-5-create-openspec-review-skill-5-subagent-proposal-review" title="Permanent link">&para;</a></h3>
@@ -3530,13 +3530,13 @@ Check: Copilot suggestions, Codecov coverage, reviewer feedback. Address all con
 <li>[ ] <strong>Step 5: Commit</strong></li>
 </ul>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>git<span class="w"> </span>add<span class="w"> </span>.claude/skills/openspec-review/SKILL.md
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;feat: add openspec-review skill with 5-subagent parallel review</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"feat: add openspec-review skill with 5-subagent parallel review</span>
 </span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>
 </span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="s2">Adapted from bloom-desktop for sleap-roots scientific context.</span>
 </span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="s2">Subagents review: spec quality, code feasibility, issue alignment,</span>
 </span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="s2">TDD strategy, and scientific rigor/data integrity.</span>
 </span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>
-</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="s2">Co-Authored-By: Claude Opus 4.6 (1M context) &lt;noreply@anthropic.com&gt;&quot;</span>
+</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="s2">Co-Authored-By: Claude Opus 4.6 (1M context) &lt;noreply@anthropic.com&gt;"</span>
 </span></code></pre></div>
 <hr />
 <h3 id="task-6-final-verification">Task 6: Final Verification<a class="headerlink" href="#task-6-final-verification" title="Permanent link">&para;</a></h3>
@@ -3550,7 +3550,7 @@ Check: Copilot suggestions, Codecov coverage, reviewer feedback. Address all con
 <li>[ ] <strong>Step 2: Grep for stale references</strong></li>
 </ul>
 <p>Search all 5 files for terms that should NOT appear:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>grep<span class="w"> </span>-rni<span class="w"> </span><span class="s2">&quot;electron\|typescript\|react\|vitest\|playwright\|prisma\|preload\|renderer\|IPC handler\|npx\|npm run\|Basler\|DAQ\|scanner\|camera\|session reset\|idle timer&quot;</span><span class="w"> </span>.claude/commands/review-pr.md<span class="w"> </span>.claude/commands/cleanup-merged.md<span class="w"> </span>.claude/commands/pre-merge.md<span class="w"> </span>.claude/commands/new-feature.md<span class="w"> </span>.claude/skills/openspec-review/SKILL.md
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>grep<span class="w"> </span>-rni<span class="w"> </span><span class="s2">"electron\|typescript\|react\|vitest\|playwright\|prisma\|preload\|renderer\|IPC handler\|npx\|npm run\|Basler\|DAQ\|scanner\|camera\|session reset\|idle timer"</span><span class="w"> </span>.claude/commands/review-pr.md<span class="w"> </span>.claude/commands/cleanup-merged.md<span class="w"> </span>.claude/commands/pre-merge.md<span class="w"> </span>.claude/commands/new-feature.md<span class="w"> </span>.claude/skills/openspec-review/SKILL.md
 </span></code></pre></div>
 <p>Expected: zero matches. If any found, fix them.</p>
 <ul>
@@ -3558,16 +3558,16 @@ Check: Copilot suggestions, Codecov coverage, reviewer feedback. Address all con
 </ul>
 <p>Verify key patterns are present:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1"># All gh commands have unset GITHUB_TOKEN</span>
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>grep<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;unset GITHUB_TOKEN&quot;</span><span class="w"> </span>.claude/commands/review-pr.md<span class="w"> </span>.claude/commands/cleanup-merged.md<span class="w"> </span>.claude/commands/pre-merge.md<span class="w"> </span>.claude/skills/openspec-review/SKILL.md
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>grep<span class="w"> </span>-c<span class="w"> </span><span class="s2">"unset GITHUB_TOKEN"</span><span class="w"> </span>.claude/commands/review-pr.md<span class="w"> </span>.claude/commands/cleanup-merged.md<span class="w"> </span>.claude/commands/pre-merge.md<span class="w"> </span>.claude/skills/openspec-review/SKILL.md
 </span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>
 </span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="c1"># uv run prefix used</span>
-</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>grep<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;uv run&quot;</span><span class="w"> </span>.claude/commands/pre-merge.md
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>grep<span class="w"> </span>-c<span class="w"> </span><span class="s2">"uv run"</span><span class="w"> </span>.claude/commands/pre-merge.md
 </span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>
 </span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="c1"># openspec/AGENTS.md referenced</span>
-</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>grep<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;AGENTS.md&quot;</span><span class="w"> </span>.claude/commands/cleanup-merged.md<span class="w"> </span>.claude/commands/new-feature.md<span class="w"> </span>.claude/skills/openspec-review/SKILL.md
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>grep<span class="w"> </span>-c<span class="w"> </span><span class="s2">"AGENTS.md"</span><span class="w"> </span>.claude/commands/cleanup-merged.md<span class="w"> </span>.claude/commands/new-feature.md<span class="w"> </span>.claude/skills/openspec-review/SKILL.md
 </span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>
 </span><span id="__span-23-10"><a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a><span class="c1"># talmolab/sleap-roots</span>
-</span><span id="__span-23-11"><a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a>grep<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;talmolab&quot;</span><span class="w"> </span>.claude/commands/review-pr.md<span class="w"> </span>.claude/skills/openspec-review/SKILL.md
+</span><span id="__span-23-11"><a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a>grep<span class="w"> </span>-c<span class="w"> </span><span class="s2">"talmolab"</span><span class="w"> </span>.claude/commands/review-pr.md<span class="w"> </span>.claude/skills/openspec-review/SKILL.md
 </span></code></pre></div>
 <ul>
 <li>[ ] <strong>Step 4: Verify git status is clean</strong></li>
@@ -3661,7 +3661,7 @@ Check: Copilot suggestions, Codecov coverage, reviewer feedback. Address all con
       <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.indexes", "toc.follow", "toc.integrate", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../../javascripts/mathjax.js"></script>
       
