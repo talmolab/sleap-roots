@@ -90,12 +90,12 @@ def test_packaging_config_declares_the_extractor_extra():
     extractor = pyproject["project"]["optional-dependencies"]["extractor"]
     assert any(
         # Split off the marker and match the requirement exactly (not startswith, so a
-        # superstring version like ==0.1.0a30 cannot slip through).
-        dep.split(";")[0].strip() == "sleap-roots-contracts==0.1.0a3"
+        # superstring version like ==0.1.0a70 cannot slip through).
+        dep.split(";")[0].strip() == "sleap-roots-contracts==0.1.0a7"
         and "python_version >= '3.11'" in dep
         for dep in extractor
     ), (
-        "extractor extra must pin sleap-roots-contracts==0.1.0a3 with the "
+        "extractor extra must pin sleap-roots-contracts==0.1.0a7 with the "
         f"python_version >= '3.11' marker; got {extractor}"
     )
     # pyyaml is declared explicitly (trait_extractor's pipeline_chooser imports it directly);

@@ -2,14 +2,18 @@
 
 import functools
 import importlib.metadata
+import logging
 import os
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Tuple, Union
 
+import pydantic
 import sleap_roots
 from sleap_roots_contracts import Provenance, ResolvedParams, ResultEnvelope, TraitValue
 
 from trait_extractor.manifest import PredictionManifest, ScanMetadata
+
+logger = logging.getLogger(__name__)
 
 
 @functools.lru_cache(maxsize=1)
@@ -102,3 +106,52 @@ def write_envelope(envelope: ResultEnvelope, output_dir: Union[str, Path]) -> Pa
     tmp.write_text(data, encoding="utf-8", newline="\n")
     tmp.replace(path)
     return path
+
+
+def read_existing_identity(
+    output_dir: Union[str, Path], scan_key: str
+) -> Optional[Tuple[str, str]]:
+    """Read a pre-existing ``{scan_key}.result.json``'s identity, for skip-if-done.
+
+    A best-effort read, not a hard dependency: a missing, corrupt, or schema-invalid
+    file is treated as "not done" (the scan will be recomputed) rather than raising. A
+    plain missing file is the ordinary first-run case and is not logged; a *present but
+    unreadable/invalid* file is logged as a warning, since that's an anomaly a researcher
+    auditing results later would want a trace of (a prior crashed run, a corrupted file,
+    someone else's process writing into ``output_dir``).
+
+    Args:
+        output_dir: Directory to look for ``{scan_key}.result.json`` in.
+        scan_key: The scan's identifier (also the output filename stem).
+
+    Returns:
+        ``(idempotency_key, contract_version)`` from the pre-existing envelope, or
+        ``None`` if no valid pre-existing envelope exists.
+    """
+    path = Path(output_dir) / f"{scan_key}.result.json"
+    try:
+        # is_file() lives inside this try too: it already swallows ENOENT/ENOTDIR-style
+        # "doesn't exist" errors internally and returns False for those (the ordinary,
+        # unlogged missing-file case below), but a PermissionError from the underlying
+        # stat() call is NOT one of the errors it swallows -- it propagates. Catching it
+        # here, alongside the read/parse errors, keeps the whole "does a usable
+        # pre-existing envelope exist" check inside one best-effort boundary.
+        if not path.is_file():
+            return None
+        envelope = ResultEnvelope.model_validate_json(path.read_text(encoding="utf-8"))
+    except (pydantic.ValidationError, UnicodeDecodeError, OSError) as exc:
+        # model_validate_json parses + validates in one step, so pydantic.ValidationError
+        # (re-exported from pydantic_core) covers both malformed JSON and schema-invalid
+        # JSON -- there is no separate json.JSONDecodeError case to catch here. OSError
+        # covers a read-time anomaly on a file that exists (e.g. a permissions issue, or
+        # a TOCTOU race where it's deleted in between) -- without this, such an error
+        # would misclassify the scan as FAILED instead of "not done", contradicting the
+        # documented "missing, unreadable, or invalid -> not done" contract.
+        logger.warning(
+            "existing %s is unreadable or fails ResultEnvelope validation; "
+            "treating as not done and recomputing: %s",
+            path.as_posix(),
+            exc,
+        )
+        return None
+    return envelope.provenance.idempotency_key, envelope.provenance.contract_version

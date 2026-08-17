@@ -49,7 +49,7 @@ dev = [
     # Contract types for the trait_extractor service (dev/test/container only, NOT a
     # published runtime dependency). Requires Python >=3.11, so the marker keeps
     # `uv lock` resolving cleanly against the library's >=3.10 floor.
-    "sleap-roots-contracts==0.1.0a3 ; python_version >= '3.11'",
+    "sleap-roots-contracts==0.1.0a7 ; python_version >= '3.11'",
     "mkdocs>=1.5",
     "mkdocs-material>=9.0",
     "mkdocstrings[python]>=0.20",
@@ -88,7 +88,7 @@ dev = [
     "toml",
     "twine",
     "build",
-    "sleap-roots-contracts==0.1.0a3 ; python_version >= '3.11'",
+    "sleap-roots-contracts==0.1.0a7 ; python_version >= '3.11'",
     "mkdocs>=1.5",
     "mkdocs-material>=9.0",
     "mkdocstrings[python]>=0.20",
@@ -107,7 +107,7 @@ dev = [
 # transitively via sleap-io/contracts. This is a dev/test/container dependency set, never a
 # published runtime dependency of `sleap-roots`.
 extractor = [
-    "sleap-roots-contracts==0.1.0a3 ; python_version >= '3.11'",
+    "sleap-roots-contracts==0.1.0a7 ; python_version >= '3.11'",
     "pyyaml"
 ]
 

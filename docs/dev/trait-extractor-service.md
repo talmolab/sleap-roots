@@ -72,7 +72,7 @@ key never changes the key (which would otherwise break Bloom's first-writer-wins
 One `{scan_key}.result.json` per scan — a `ResultEnvelope` = `Provenance` + `list[TraitValue]`
 (`grain="scan"`; `NaN`/`inf` → `None`) + `blobs=[]` (blob locations are filled downstream at
 upload). `Provenance.contract_version` is the pinned bare `sleap-roots-contracts` version
-(`0.1.0a3`); `produced_at` is left `None` so re-emitting over identical inputs is byte-stable.
+(`0.1.0a7`); `produced_at` is left `None` so re-emitting over identical inputs is byte-stable.
 
 ## Usage
 
@@ -80,10 +80,19 @@ upload). `Provenance.contract_version` is the pinned bare `sleap-roots-contracts
 python -m trait_extractor <input_dir> <output_dir>
 ```
 
-Discovers each `{scan_key}.predictions.json` under `input_dir`, pairs its sidecar, and writes
-one envelope per scan to `output_dir`. Per-scan failures (bad manifest, missing sidecar,
-incompatible/unsupported pipeline) are isolated and reported; the process exits non-zero if any
-scan failed, without discarding the successful envelopes.
+If `input_dir` contains a `run_manifest.json` (`sleap_roots_contracts.RunManifest`, written by
+`bloomctl` and copied forward by each pipeline stage — see
+[talmolab/sleap-roots-pipeline#37](https://github.com/talmolab/sleap-roots-pipeline/issues/37)),
+discovery is scoped to exactly its `scan_keys` (a `.predictions.json` present but out of scope is
+silently ignored — this is the contamination-prevention this manifest exists for), and a scan
+whose output already matches (both `idempotency_key` and `contract_version`) is skipped rather
+than recomputed. If no `run_manifest.json` is present, discovery falls back to recursively
+finding every `{scan_key}.predictions.json` under `input_dir` (the original, pre-manifest
+behavior — used by local/non-pipeline runs). In both cases, each manifest's sidecar is paired and
+one envelope is written per scan to `output_dir`. Per-scan failures (bad manifest, missing
+sidecar, a manifest-declared scan_key with no matching predictions.json, incompatible/unsupported
+pipeline) are isolated and reported; the process exits non-zero if any scan failed, without
+discarding the successful or skipped envelopes.
 
 ## Container image
 
@@ -127,7 +136,11 @@ build-only on PRs, build + push on `main`.
   emission ([#252](https://github.com/talmolab/sleap-roots/issues/252)).
 - **Downstream** — the trait-extractor ships as the GHCR image
   `ghcr.io/talmolab/sleap-roots-trait-extractor` (see [Container image](#container-image)).
-  Still fast-follow: A4's Argo template that pulls it (must rewrite the step's `args:` to the
-  two positional dirs and pin the image), and Bloom's RPC accepting
-  `contract_version == "0.1.0a3"`
-  ([bloom#393](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/393)).
+  Bloom's write-back RPC (`insert_cyl_result_envelope`) originally required
+  `contract_version == "0.1.0a3"` ([bloom#393](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/393),
+  closed by [bloom PR #399](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/pull/399)).
+  Bumping this repo's pin to `0.1.0a7` reopens the identical class of blocker — that RPC still
+  hard-pins its accepted literal to exactly `0.1.0a3` and will reject every envelope emitted with
+  `contract_version = "0.1.0a7"` until it's re-pinned. Tracked as
+  [bloom#685](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/685); **this
+  repo's image must not be redeployed to the pipeline until that Bloom-side change lands.**
