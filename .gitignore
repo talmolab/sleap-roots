@@ -140,3 +140,7 @@ dmypy.json
 
 # Investigation scratch files (never version controlled)
 _scratch/
+
+# Claude Code personal/local settings (per-developer tool permission allowlist
+# drift) -- not shared team config, shouldn't be version controlled.
+.claude/settings.local.json
