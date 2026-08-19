@@ -591,12 +591,10 @@ def test_module_cli_usage_error_exits_two_unrelated_to_partial_code(tmp_path):
 
 def test_handle_sigterm_raises_systemexit_143():
     """The SIGTERM handler exits 143, called directly (no subprocess, no timing)."""
-    import signal as signal_module
-
     from trait_extractor.__main__ import _handle_sigterm
 
     with pytest.raises(SystemExit) as exc_info:
-        _handle_sigterm(signal_module.SIGTERM, None)
+        _handle_sigterm(signal.SIGTERM, None)
     assert exc_info.value.code == 143
 
 

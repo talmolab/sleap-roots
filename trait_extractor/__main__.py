@@ -6,13 +6,15 @@ Discovers each ``{scan_key}.predictions.json`` under ``input_dir`` (scoped to a
 ``{scan_key}.result.json`` per scan to ``output_dir``, and exits with one of three
 driver-owned codes: 0 (full success), 3 (partial -- isolated per-scan failures), or 1
 (crash -- an exception escaped ``extract_batch`` entirely). Exit code 2 is reserved by
-``argparse`` for CLI usage errors, not by this driver.
+``argparse`` for CLI usage errors, not by this driver. A ``SIGTERM`` (Argo
+preemption/cancellation) overrides all of the above with 143 (``128 + SIGTERM``).
 """
 
 import argparse
 import logging
 import signal
 import sys
+from types import FrameType
 from typing import List, Optional
 
 import pydantic
@@ -23,7 +25,7 @@ from trait_extractor.extractor import extract_batch
 logger = logging.getLogger(__name__)
 
 
-def _handle_sigterm(signum, frame) -> None:
+def _handle_sigterm(signum: int, frame: Optional[FrameType]) -> None:
     """Log and exit promptly on SIGTERM (Argo preemption/cancellation).
 
     Per-scan writes are already atomic (temp->rename) and the batch is idempotent
@@ -43,11 +45,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     Returns:
         Process exit code: 0 if every scan succeeded or was skipped, 3 if one or
         more scans isolated-failed but the batch ran to completion (matches
-        ``BatchResult.ok``), or Python's default 1 if an exception escaped
+        ``BatchResult.ok``), Python's default 1 if an exception escaped
         ``extract_batch`` entirely (e.g. an invalid ``run_manifest.json`` or an
-        empty input directory). Exit code 2 is reserved by ``argparse`` for CLI
-        usage errors and is never returned by this function.
+        empty input directory), or 143 if a ``SIGTERM`` was received. Exit code 2
+        is reserved by ``argparse`` for CLI usage errors and is never returned by
+        this function.
     """
+    # Registered before argument parsing (not just around extract_batch) so the
+    # whole process lifetime is covered -- in the real container target, an
+    # unhandled SIGTERM is otherwise silently ignored for PID 1's entire run
+    # (see design.md), and there is nothing yet written that an early SIGTERM
+    # could corrupt.
     signal.signal(signal.SIGTERM, _handle_sigterm)
 
     parser = argparse.ArgumentParser(prog="trait_extractor")

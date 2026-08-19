@@ -238,3 +238,14 @@ log-then-reraise wrapper.
       sleap-roots#259 done with the PR link, note the exit-code convention decided here (for
       A3-predict / A4-wiring to match), and add a status-log entry. This is a change in a
       different repository, not a commit in this PR.
+- [ ] 5.3 **Self-archive this change after merge (found in pre-PR review — do NOT skip this).**
+      `add-run-manifest-consumption` sat merged-but-unarchived long enough to create the exact
+      spec-delta-clobbering hazard task-group 0.1 had to fix; without a tracked follow-up, this
+      proposal would repeat that pattern for the NEXT change that touches
+      `result-envelope-output`'s "Batch driver and module CLI" or `trait-extractor-image`'s
+      "Container image runs the trait extractor..." requirements — `openspec/specs/*.md` will keep
+      showing the OLD two-way "exits non-zero" wording until this is done, contradicting the new
+      docs this PR ships. Once this PR is confirmed merged: `openspec archive
+      harden-trait-extractor-exit-semantics --yes`, verify with `openspec validate --all --strict`,
+      and commit as its own small PR — matching this repo's established archive-PR precedent (e.g.
+      the archive commits/PRs that followed #254 and #257).

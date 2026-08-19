@@ -164,6 +164,12 @@ def extract_batch(
         OSError: If ``run_manifest.json`` is present but can't be read (see
             ``run_manifest.load_run_manifest``), for the same reason.
         UnicodeDecodeError: If ``run_manifest.json``'s bytes aren't valid UTF-8.
+        RuntimeError: If no ``run_manifest.json`` is present (unscoped mode) and
+            zero ``*.predictions.json`` files are discovered anywhere under
+            ``input_dir`` -- an empty or misconfigured input mount, not a
+            successful no-op.
+        yaml.YAMLError: If the packaged ``pipeline_selection.yaml`` (loaded via
+            ``load_pipeline_cards``) is malformed.
     """
     cards = cards or load_pipeline_cards()
     run_manifest = load_run_manifest(input_dir)

@@ -6,11 +6,20 @@ design (`sleap-roots-pipeline` §8) specifies what it needs from the driver at r
 explicitly paired with `sleap-roots-predict#26` — predict's identical hardening — with the
 instruction to reconcile the exit-code and empty-input policy **uniformly across both producers**.
 
-At the time this proposal was written, `sleap-roots-predict#26` has no branch, PR, or commit
+At the time this proposal was first drafted, `sleap-roots-predict#26` had no branch, PR, or commit
 (checked via `gh pr list` / `gh api .../branches` against `talmolab/sleap-roots-predict`) — so there
-is no existing decision to defer to. This design makes the call for `trait_extractor` and states it
-plainly so the predict-side implementation adopts the same convention instead of independently
-inventing one that then has to be reconciled after the fact.
+was no existing decision to defer to. This design made the call for `trait_extractor` first and
+stated it plainly so the predict-side implementation would adopt the same convention instead of
+independently inventing one that then had to be reconciled after the fact.
+
+**Update (2026-08-19, during this proposal's own review):** `sleap-roots-predict`'s session picked
+up work in parallel and, as of the round-2/round-3/round-4 cross-repo checks referenced below,
+verified directly against its actual (by-then committed) source: a narrow `except
+(FileNotFoundError, ValueError): log; raise` wrapper and a `threading.Event`-based SIGTERM handler
+checked at the top of `run_batch`'s per-scan loop are real, shipped code in that repo, not
+anticipated/invented detail — confirmed by reading `sleap_roots_predict/__main__.py` and
+`sleap_roots_predict/batch.py` directly, and by `git log` showing the behavior committed. The two
+proposals converged on the identical `0`/`3`/`1`/`2`-reserved/`143` convention.
 
 ## Decisions
 
