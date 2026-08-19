@@ -1,0 +1,240 @@
+## Commit plan
+
+Per `review-openspec`'s git-workflow pass: one PR, five ordered commits (numbered here by commit
+order — NOT the same as the "## N. ..." task-group numbers below, which are referenced in
+parentheses). Task group 2 (exit-code convention) depends on task group 1 (empty-input guard) — a
+test added in group 2 (`test_module_cli_exits_crash_code_on_empty_input`) is false without group
+1's guard already in place — so those two must land in that relative order (same commit is also
+acceptable, but not reversed or independent). Task group 3 (SIGTERM) is independent of 1/2 and
+could be reordered, but is kept last to match this file's section order.
+
+Commit 1 (task-group 0.1's archive step) is unrelated housekeeping surfaced by round-2 review — an
+already-merged, never-archived sibling change whose stale spec text could otherwise clobber this
+proposal's own spec deltas later — and should land first, before any of this proposal's own code.
+
+1. `openspec: archive add-run-manifest-consumption` (task-group 0.1)
+2. `openspec: propose harden-trait-extractor-exit-semantics` (this proposal, ahead of any code)
+3. `traits: raise on empty unscoped input_dir in extract_batch` (task-group 1)
+4. `traits: three-way exit-code convention (0/3/1) for the batch CLI` (task-group 2, depends on
+   task-group 1 / commit 3)
+5. `traits: handle SIGTERM for graceful shutdown in the batch CLI` (task-group 3)
+
+(`docs: sync trait-extractor exit-code docs + changelog`, task-group 4's remaining items, folds
+into whichever of commits 3-5 is smallest to extend, or ships as its own trailing commit if none
+fit naturally — implementer's call at write time.)
+
+## 0. Housekeeping — already done, unrelated to this proposal's own behavior change
+
+- [x] 0.1 **Archive-ordering hazard (found in round-2 review) — resolved.**
+      `openspec/changes/add-run-manifest-consumption/` was fully implemented and already merged
+      (PR #263) but had never been archived. Its own delta specs hardcoded the OLD two-way "exits
+      non-zero" convention in the SAME two requirement sections this proposal modifies
+      (`specs/trait-extractor-image/spec.md`, `specs/result-envelope-output/spec.md`). OpenSpec
+      archiving replaces a requirement's text wholesale from the archived change's own deltas, not
+      a diff against the live spec — so archiving it *after* this proposal merged would have
+      silently clobbered the new three-way (`0`/`3`/`1`) wording. Resolved by running `openspec
+      archive add-run-manifest-consumption --yes` immediately (2026-08-19), as its own commit
+      ahead of this proposal's own code, before the hazard could materialize — `openspec validate
+      --all --strict` passed 15/15 afterward. The live specs at `openspec/specs/
+      result-envelope-output/spec.md` and `openspec/specs/trait-extractor-image/spec.md` now
+      correctly show the run-manifest-scoping/skip-if-done behavior from #263, still with the OLD
+      exit-code wording pending — exactly as expected until *this* change is itself later applied
+      and archived. A round-3 review pass separately confirmed this proposal's own spec deltas
+      (task groups' `specs/*/spec.md`) had gone stale relative to the newly-archived content and
+      fixed them to include it (the "CLI SHALL report skipped scans" sentence, the
+      run-manifest-scoping cross-reference, the `0.1.0a3`→`0.1.0a7` bump, and two entire missing
+      scenarios) — see this proposal's own `specs/result-envelope-output/spec.md` and
+      `specs/trait-extractor-image/spec.md` for the corrected, current versions. This task's own
+      commit (see the Commit plan above) still needs to be made — the working tree currently holds
+      the archive as an uncommitted change; committing it is part of landing this proposal, the
+      archive operation itself is done.
+
+## 1. Empty-input guard in `extract_batch`
+
+- [x] 1.1 **Test first** (`tests/trait_extractor/test_batch.py`):
+      - `test_empty_unscoped_input_dir_raises`: an empty `input_dir` (no `run_manifest.json`, no
+        `*.predictions.json` anywhere) -> `extract_batch` raises `RuntimeError` mentioning the
+        `input_dir` path; `output_dir` is not created (or contains no `*.result.json`).
+      - `test_scoped_input_with_no_matching_files_still_reports_per_scan_failure` (regression
+        guard, not new behavior): a `run_manifest.json` present with `scan_keys` but zero matching
+        `*.predictions.json` files anywhere -> `BatchResult.ok is False` with every scan_key in
+        `failed` (already true today via the existing missing-scan_key bookkeeping; this test
+        pins that the new guard does not fire here and does not change this path's behavior).
+- [x] 1.2 Implement: after the discovery loop in `extract_batch`, when `scope is None` (no
+      `run_manifest.json`) and `seen` is empty, raise `RuntimeError(f"no {_MANIFEST_SUFFIX} files
+      found under {Path(input_dir).as_posix()}")` before any `if scope is not None:` bookkeeping.
+- [x] 1.3 Run `uv run pytest tests/trait_extractor/test_batch.py -x` to confirm both new tests pass
+      and no existing test regresses (in particular the existing scoped-missing-scan_key tests).
+
+## 2. Exit-code convention in `__main__.main()`
+
+`0` = full success, `3` = partial (isolated per-scan failures, caught inside `extract_batch`'s own
+loop), `1` = crash (exception escaped `extract_batch` entirely). `2` is deliberately left untouched
+— `argparse` already owns it for CLI usage errors; see design.md Decision 1 ("Why `3` and not `2`
+for partial") for why `2` was rejected during review.
+
+**Added after round-2 cross-repo review:** the sibling `sleap-roots-predict` proposal wraps its
+known staging-error types in a narrow `except ...: log; raise` so an operator sees a clean one-line
+message instead of a raw traceback for the crash code, and does so for log-quality parity, not
+because the exit code changes. `trait_extractor` should match: today `__main__.py` has no
+try/except around `extract_batch(...)` at all (confirmed by reading the file), so both the new
+empty-input `RuntimeError` (task 1) and the pre-existing `run_manifest.json` failure modes
+(`pydantic.ValidationError`, `OSError`, `UnicodeDecodeError` — per `extract_batch`'s own docstring
+`Raises:` section) currently surface as a raw traceback. Task 2.2 below adds the same narrow
+log-then-reraise wrapper.
+
+- [x] 2.1 **Test first** (`tests/trait_extractor/test_batch.py`, extending the existing
+      `test_module_cli_*` subprocess tests):
+      - `test_module_cli_exits_zero_on_full_success` (rename/refine existing
+        `test_module_cli_writes_envelopes` if it doesn't already assert `returncode == 0`
+        explicitly — confirm current coverage first).
+      - `test_module_cli_exits_partial_code_on_isolated_scan_failure`: reuse the existing
+        one-good-one-bad-scan fixture setup (`_make_bad_scan_missing_slp`) and assert
+        `proc.returncode == 3` (replacing the current `== 1` assertion in
+        `test_module_cli_exits_nonzero_on_failure` — rename this test and update its
+        docstring/assertion together in this task; do not leave a stale `== 1` assertion for what
+        is now the partial case).
+      - `test_module_cli_exits_partial_code_on_scoped_missing_scan_key`: a `run_manifest.json`
+        declaring a `scan_key` with no matching `*.predictions.json` (mirrors
+        `test_manifest_declares_scan_key_with_no_predictions_json`'s setup, run through the CLI
+        subprocess) -> `returncode == 3`. This closes a scenario-to-test gap the spec delta already
+        describes ("A manifest-scoped scan_key with no matching file is already a reported
+        failure") but the original task list never exercised at the CLI/exit-code level.
+      - `test_module_cli_exits_crash_code_on_empty_input`: an empty input dir -> `returncode == 1`,
+        stderr contains a clean, single logged "Batch aborted: ..." line naming the input
+        directory (via the new wrapper in task 2.2) — the exception still propagates afterward
+        (a bare `raise`), so a traceback is ALSO present below that line; the fix adds a clean
+        message ahead of the traceback, it does not suppress the traceback. (Depends on task 1's
+        guard.)
+      - `test_module_cli_exits_crash_code_on_invalid_run_manifest`: an invalid (empty `scan_keys`)
+        `run_manifest.json` -> `returncode == 1` (this already crashes today via
+        `pydantic.ValidationError`; this test pins the exit code explicitly for the first time),
+        stderr contains a clean "Batch aborted: ..." line preceding the still-present traceback
+        (same wrapper as above).
+      - `test_module_cli_usage_error_exits_two_unrelated_to_partial_code` (regression/documentation
+        test): invoking `python -m trait_extractor` with a missing required argument -> asserts
+        `returncode == 2` and that this is `argparse`'s own pre-existing usage-error code, wholly
+        unrelated to (and not colliding in meaning with) the new `3` = partial convention. Exists
+        so a future change to the argument parser can't silently blur this boundary unnoticed.
+- [x] 2.2 Implement: change `main()`'s return statement from `return 0 if result.ok else 1` to
+      `return 0 if result.ok else 3` (the crash case, `1`, is simply Python's default
+      uncaught-exception exit code and needs no new code in `main()` for that part — confirm this
+      by observing an uncaught exception's default exit code rather than assuming it). Additionally
+      (log-quality parity with the sibling `sleap-roots-predict` proposal — see the note above):
+      wrap the `extract_batch(...)` call in `except (RuntimeError, pydantic.ValidationError,
+      OSError, UnicodeDecodeError, yaml.YAMLError) as exc: logger.error("Batch aborted: %s", exc);
+      raise`. **Round-3 review found two concrete implementation gaps in this step, both must be
+      addressed:**
+      - `__main__.py` currently has NO `import pydantic` (only `argparse`, `sys`,
+        `typing.List/Optional`, and `trait_extractor.extractor.extract_batch`) — the bare
+        `except (..., pydantic.ValidationError, ...)` clause needs `pydantic` bound in this
+        module's own namespace (it is NOT transitively available just because `extractor.py`
+        imports it). Add `import pydantic` explicitly, matching `envelope.py`'s existing bare
+        `import pydantic` convention. Verified: without this, the clause itself would raise
+        `NameError` the first time any of the four/five exception types actually fires — i.e. in
+        exactly the new tests below — masking the original exception entirely.
+      - `extract_batch` calls `load_pipeline_cards()` (in `pipeline_chooser.py`) before
+        `load_run_manifest`, which does `yaml.safe_load(...)` on the packaged
+        `pipeline_selection.yaml` — malformed YAML there raises `yaml.YAMLError`, not currently
+        listed in `extract_batch`'s own docstring `Raises:` section and not covered by the
+        wrapper's exception tuple above (now added). Add `import yaml` to `__main__.py` for the
+        same dotted-access reason as `pydantic` above (this is a narrow/defensive case, given
+        `pipeline_selection.yaml` is a static packaged file, but costs one line to close).
+      Also add `import logging` + a module-level `logger = logging.getLogger(__name__)` to
+      `__main__.py`, matching `extractor.py`'s existing pattern (`__main__.py` currently has
+      neither). The exception still propagates afterward via the bare `raise`, so the exit code is
+      unaffected (still the default `1`) — only the logged message changes, from a raw traceback
+      to one clean line.
+- [x] 2.3 Update the `main()` docstring's `Returns:` section to document all three driver-owned
+      codes (`0`/`3`/`1`) and note that `2` is reserved by `argparse`, not by this driver.
+- [x] 2.4 Run `uv run pytest tests/trait_extractor/test_batch.py -x` (full file, including the
+      subprocess CLI tests) to confirm the new mapping and no other test hardcodes the old
+      `== 1`-for-any-failure assumption.
+
+## 3. SIGTERM handler in `__main__.main()`
+
+- [x] 3.1 **Test first** (`tests/trait_extractor/test_batch.py`), split into two tests per
+      design.md's revised (flake-resistant) plan — do NOT use a `time.sleep`/env-var delay hook:
+      - `test_handle_sigterm_raises_systemexit_143`: call the new `_handle_sigterm(signal.SIGTERM,
+        None)` function directly (no subprocess) and assert `pytest.raises(SystemExit)` with
+        `exc_info.value.code == 143`. Not skipped on any platform — this exercises portable Python,
+        not real signal delivery.
+      - `test_module_cli_sigterm_exits_promptly_and_preserves_completed_output`
+        (`@pytest.mark.skipif(sys.platform == "win32", reason="SIGTERM delivery to a subprocess is
+        not POSIX-equivalent on Windows")`): build a `tmp_path` input containing **many** (e.g. 20)
+        duplicated copies of the fixture scans under distinct `scan_key`s, so the batch takes long
+        enough that sending `SIGTERM` right after the *first* `{scan_key}.result.json` appears in
+        `output_dir` reliably lands while scans remain unprocessed — this widens the race window
+        without adding any production-code delay hook. Launch the CLI as a subprocess, poll
+        `output_dir` for the first `*.result.json`, send `SIGTERM`, then wait for the process to
+        exit, and assert `returncode == 143` and that every `*.result.json` present at that point
+        parses as a valid `ResultEnvelope` (none are truncated/corrupt).
+
+        **Duplication recipe (corrected after round-4 review — do NOT reuse
+        `_make_bad_scan_missing_slp`'s pattern, it's for a different purpose and will silently
+        break this test):** `_make_bad_scan_missing_slp` deliberately omits the `.slp` file (it
+        exists to produce a *missing-.slp* failure) and is the wrong template for a *valid*
+        duplicate. For each new `scan_key` (e.g. `f"{orig}_{i:03d}"`), in a fresh per-scan
+        directory: (1) copy the original fixture scan's `.slp` file(s) verbatim, basenames
+        unchanged — `resolve_artifact_paths` resolves `slp_path` as a basename relative to the
+        manifest's own directory, so the `.slp` filenames do NOT need to match the new `scan_key`;
+        (2) `json.loads` the original `.predictions.json`, set `manifest["scan_key"] = new_key`
+        (leave `artifacts`/`slp_path` untouched), write to `{new_key}.predictions.json`; (3)
+        `json.loads` the original `.scan_metadata.json`, set `sidecar["scan_key"] = new_key`, write
+        to `{new_key}.scan_metadata.json`. Both JSON files' `scan_key` AND the manifest's filename
+        stem must all equal `new_key` — forgetting either one does NOT trip the duplicate-scan_key
+        guard (each stem is still unique); instead it trips the unrelated stem/scan_key-mismatch
+        guard (forgetting the manifest's field) or the sidecar/manifest identity guard (forgetting
+        the sidecar's field), and since every duplicate copies the same original manifest, ALL of
+        them would fail identically and instantly — no real per-scan compute happens, silently
+        defeating the entire point of a long-running batch for `SIGTERM` to land inside.
+
+        **Timing bounds (revised after round-2 review, re-confirmed in round-4):** measured
+        empirically on an unloaded dev machine, a cold `python -m trait_extractor` subprocess
+        takes ~3.2s of pure interpreter/import startup before any per-scan work even begins, and
+        ~4.4s total before the first `*.result.json` appears — an earlier draft's "~5s" poll bound
+        left under 1s of margin, likely to flake or fail outright on a loaded/cold CI runner from
+        startup overhead alone, unrelated to the actual SIGTERM race this test targets. Since the
+        test sends `SIGTERM` right after the *first* result file (not after all 20 finish), total
+        wall time is dominated by startup + one scan's compute (~4.5-5.5s), not by N — comparable
+        to this file's other `test_module_cli_*` subprocess tests. Use a poll bound of at least 20s
+        for the first result file and `proc.wait(timeout=30)` for the post-SIGTERM exit — generous
+        on purpose; the test only needs `SIGTERM` to land before all 20 duplicated scans finish,
+        not to hit a tight deadline.
+- [x] 3.2 Implement: in `trait_extractor/__main__.py`, add a module-level `_handle_sigterm(signum,
+      frame)` that logs (e.g. via the `logging` module, matching `extractor.py`'s existing
+      `logger` pattern) and calls `sys.exit(143)`; register it with `signal.signal(signal.SIGTERM,
+      _handle_sigterm)` at the top of `main()`, before calling `extract_batch`.
+- [x] 3.3 Run `uv run pytest tests/trait_extractor/test_batch.py -x` on Linux/macOS (or confirm via
+      CI) and separately confirm the full suite still collects cleanly on Windows (the subprocess
+      test skips, doesn't error; the direct-call unit test still runs and passes).
+
+## 4. Spec + docs + changelog sync
+
+- [x] 4.1 Confirm `openspec/changes/harden-trait-extractor-exit-semantics/specs/*/spec.md` deltas
+      (already drafted in this proposal, using `3` for partial) still match the implemented
+      behavior after tasks 1-3; adjust either the code or the deltas if implementation surfaced a
+      deviation, per this project's "no silent drift" convention.
+- [x] 4.2 Update `docs/dev/trait-extractor-service.md` (currently states "the process exits
+      non-zero if any scan failed") to describe the three driver-owned codes and the empty-input
+      and SIGTERM behavior.
+- [x] 4.3 Add a `docs/changelog.md` `[Unreleased]` entry for this change, matching the format and
+      placement the recent `add-run-manifest-consumption` change used.
+- [x] 4.4 `openspec validate harden-trait-extractor-exit-semantics --strict` passes.
+- [x] 4.5 Run the full local verification suite mirroring what `.github/workflows/ci.yml` actually
+      runs (confirm exact commands there first, including argument order — a round-2 review found
+      the draft above didn't match CI's exact invocation verbatim): `uv run pytest tests/` (full
+      suite, not just `tests/trait_extractor/`, to catch any unrelated regression), `uv run black
+      --check sleap_roots tests trait_extractor`, `uv run pydocstyle --convention=google
+      sleap_roots trait_extractor`.
+
+## 5. Cross-repo follow-up (tracked, not implemented here — no commits in this repo for these)
+
+- [ ] 5.1 In the PR description, explicitly state the three-exit-code convention (`0` success, `3`
+      partial, `1` crash, `2` left to `argparse`) and link `talmolab/sleap-roots-predict#26`, so
+      that issue's implementation mirrors this one rather than deciding independently.
+- [ ] 5.2 After this PR merges (verify its merge state live, don't assume), update
+      `sleap-roots-pipeline`'s `docs/bloom-integration/roadmap.md` A3-traits row: mark
+      sleap-roots#259 done with the PR link, note the exit-code convention decided here (for
+      A3-predict / A4-wiring to match), and add a status-log entry. This is a change in a
+      different repository, not a commit in this PR.
