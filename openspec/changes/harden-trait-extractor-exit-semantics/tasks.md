@@ -214,13 +214,14 @@ log-then-reraise wrapper.
       frame)` that logs (e.g. via the `logging` module, matching `extractor.py`'s existing
       `logger` pattern) and calls `sys.exit(143)`; register it with `signal.signal(signal.SIGTERM,
       _handle_sigterm)` at the top of `main()`, before calling `extract_batch`.
-- [ ] 3.3 Run `uv run pytest tests/trait_extractor/test_batch.py -x` on Linux/macOS (or confirm via
+- [x] 3.3 Run `uv run pytest tests/trait_extractor/test_batch.py -x` on Linux/macOS (or confirm via
       CI) and separately confirm the full suite still collects cleanly on Windows (the subprocess
       test skips, doesn't error; the direct-call unit test still runs and passes). **This was
       previously checked off based on a local Windows run alone, before the PR's real CI had
       actually run — that was wrong: CI's first real run showed `Test (macos-14)` failing on
-      exactly this test. Left unchecked until a genuine green run on ubuntu-22.04 AND macos-14 is
-      observed after the round-5 timing fix above.**
+      exactly this test. Now genuinely confirmed: after the round-5 timing fix, PR #266's CI ran
+      green on `Test (ubuntu-22.04)`, `Test (macos-14)`, AND `Test (windows-2022)` (the last one
+      via the subprocess test's own skip + the direct-call unit test still running there).**
 
 ## 4. Spec + docs + changelog sync
 
