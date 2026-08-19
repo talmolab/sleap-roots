@@ -88,11 +88,23 @@ silently ignored — this is the contamination-prevention this manifest exists f
 whose output already matches (both `idempotency_key` and `contract_version`) is skipped rather
 than recomputed. If no `run_manifest.json` is present, discovery falls back to recursively
 finding every `{scan_key}.predictions.json` under `input_dir` (the original, pre-manifest
-behavior — used by local/non-pipeline runs). In both cases, each manifest's sidecar is paired and
-one envelope is written per scan to `output_dir`. Per-scan failures (bad manifest, missing
-sidecar, a manifest-declared scan_key with no matching predictions.json, incompatible/unsupported
-pipeline) are isolated and reported; the process exits non-zero if any scan failed, without
-discarding the successful or skipped envelopes.
+behavior — used by local/non-pipeline runs); if that unscoped fallback discovers **zero**
+manifests, the driver raises rather than reporting an empty run as a silent success (an empty or
+misconfigured input mount is an operator error, not a no-op). In both cases, each manifest's
+sidecar is paired and one envelope is written per scan to `output_dir`. Per-scan failures (bad
+manifest, missing sidecar, a manifest-declared scan_key with no matching predictions.json,
+incompatible/unsupported pipeline) are isolated and reported without discarding the successful or
+skipped envelopes.
+
+**Exit codes** (Argo-ready, per [sleap-roots#259](https://github.com/talmolab/sleap-roots/issues/259)):
+
+| Code | Meaning |
+|---|---|
+| `0` | Full success — every discovered scan succeeded or was skipped. |
+| `3` | **Partial** — the batch ran to completion but one or more scans isolated-failed (per-scan failures caught inside the driver's own loop). An Argo caller should treat this as a completed run with partial failures, not retry the whole batch. |
+| `1` | **Crash** — an exception escaped the batch entirely before it could return a result at all (an invalid `run_manifest.json`, the empty-input guard above, or any other bug). A real pod-level failure; Argo's `retryStrategy` should retry it. |
+| `2` | *(not used by this driver)* — reserved: `argparse` already exits `2` on a CLI usage error, before the batch ever runs. |
+| `143` | `SIGTERM` received (Argo preemption/cancellation) — the process exits promptly (`128 + SIGTERM`) rather than waiting out `terminationGracePeriodSeconds`. Per-scan writes are already atomic (temp→rename) and the batch is idempotent on retry, so this loses no completed envelope. |
 
 ## Container image
 
