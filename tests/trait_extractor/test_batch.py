@@ -2,9 +2,12 @@
 
 import json
 import os
+import re
 import shutil
+import signal
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Iterable
 
@@ -130,6 +133,41 @@ def test_no_manifest_falls_back_to_unscoped_rglob(tmp_path):
     assert result.ok
     assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
     assert not (tmp_path / RUN_MANIFEST_FILENAME).exists()
+
+
+def test_empty_unscoped_input_dir_raises(tmp_path):
+    """An empty, unscoped input_dir raises rather than silently succeeding.
+
+    No run_manifest.json and zero *.predictions.json anywhere -> extract_batch must
+    not return a vacuous BatchResult(ok=True); a misconfigured/empty mount is an
+    operator error, not a successful no-op run.
+    """
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    in_dir.mkdir()
+
+    with pytest.raises(RuntimeError, match=re.escape(in_dir.as_posix())):
+        extract_batch(in_dir, out_dir)
+    assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
+
+
+def test_scoped_input_with_no_matching_files_still_reports_per_scan_failure(tmp_path):
+    """A scoped run_manifest.json with zero matching files is unaffected by the new guard.
+
+    Regression pin: when a run_manifest.json IS present, an in-scope scan_key with no
+    matching file was already recorded as a per-scan failure before this change (see
+    test_manifest_declares_scan_key_with_no_predictions_json) -- the new unscoped
+    empty-input guard must not change this scoped path's behavior.
+    """
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    in_dir.mkdir()
+    _write_run_manifest(in_dir, ["scanA", "scanB"])
+
+    result = extract_batch(in_dir, out_dir)
+
+    assert not result.ok
+    assert set(k for k, _ in result.failed) == {"scanA", "scanB"}
 
 
 def test_manifest_scoping_both_scans_in_scope_matches_current_output(tmp_path):
@@ -447,14 +485,26 @@ def test_module_cli_writes_envelopes(tmp_path):
     assert (out_dir / "scanYR39SJX.result.json").exists()
 
 
-def test_module_cli_exits_nonzero_on_failure(tmp_path):
-    """`python -m trait_extractor <in> <out>` exits 1 when a scan fails.
+def _run_module_cli(repo_root, in_dir, out_dir):
+    """Invoke `python -m trait_extractor <in> <out>` as a subprocess."""
+    return subprocess.run(
+        [sys.executable, "-m", "trait_extractor", str(in_dir), str(out_dir)],
+        cwd=repo_root,
+        env={**os.environ, "PYTHONPATH": str(repo_root)},
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_module_cli_exits_partial_code_on_isolated_scan_failure(tmp_path):
+    """`python -m trait_extractor <in> <out>` exits 3 when a scan isolated-fails.
 
     Round-3 review found the exit-code logic (`return 0 if result.ok else 1` in
     `__main__.main()`) had NO test enforcing it -- hardcoding `main()` to always
     `return 0` left the entire suite green, since every other subprocess-level CLI
     test only exercises the all-succeeding/all-skipped happy path. This is exactly
-    the kind of bug that would make a broken Argo pod look successful.
+    the kind of bug that would make a broken Argo pod look successful. Exit code 3
+    (not 1) distinguishes "isolated per-scan failure, batch completed" from "crash".
     """
     repo_root = Path(__file__).resolve().parents[2]
     in_dir = tmp_path / "in"
@@ -464,16 +514,158 @@ def test_module_cli_exits_nonzero_on_failure(tmp_path):
     shutil.copytree(fixture_tree / "scanYR39SJX", in_dir / "scanYR39SJX")
     _make_bad_scan_missing_slp(in_dir / "scanBAD")
 
+    proc = _run_module_cli(repo_root, in_dir, out_dir)
+
+    assert proc.returncode == 3
+    assert "FAIL" in proc.stderr
+    assert (out_dir / "scanYR39SJX.result.json").exists()
+
+
+def test_module_cli_exits_partial_code_on_scoped_missing_scan_key(tmp_path):
+    """A manifest-scoped scan_key with no matching file also exits 3, not just extract_batch."""
+    repo_root = Path(__file__).resolve().parents[2]
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    fixture_tree = repo_root / _FIXTURE_TREE
+    shutil.copytree(fixture_tree, in_dir)
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanMISSING"])
+
+    proc = _run_module_cli(repo_root, in_dir, out_dir)
+
+    assert proc.returncode == 3
+    assert "scanMISSING" in proc.stderr
+
+
+def test_module_cli_exits_crash_code_on_empty_input(tmp_path):
+    """An empty, unscoped input_dir exits 1 (crash), with a clean logged message.
+
+    The exception still propagates after logging (matching Python's default
+    uncaught-exception exit code), so a traceback is also present -- the
+    log-quality fix adds a clean one-line message ahead of it, it doesn't
+    suppress the traceback entirely.
+    """
+    repo_root = Path(__file__).resolve().parents[2]
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    in_dir.mkdir()
+
+    proc = _run_module_cli(repo_root, in_dir, out_dir)
+
+    assert proc.returncode == 1
+    assert "Batch aborted:" in proc.stderr
+    assert in_dir.as_posix() in proc.stderr
+
+
+def test_module_cli_exits_crash_code_on_invalid_run_manifest(tmp_path):
+    """An invalid run_manifest.json exits 1 (crash), with a clean logged message.
+
+    This already crashed today via pydantic.ValidationError; this test pins the
+    exit code explicitly for the first time and asserts a clean logged line now
+    precedes the (still-present) traceback.
+    """
+    repo_root = Path(__file__).resolve().parents[2]
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    fixture_tree = repo_root / _FIXTURE_TREE
+    shutil.copytree(fixture_tree, in_dir)
+    _write_run_manifest(in_dir, [])  # empty scan_keys is invalid
+
+    proc = _run_module_cli(repo_root, in_dir, out_dir)
+
+    assert proc.returncode == 1
+    assert "Batch aborted:" in proc.stderr
+
+
+def test_module_cli_usage_error_exits_two_unrelated_to_partial_code(tmp_path):
+    """A CLI usage error exits 2 via argparse, unrelated to the 0/1/3 convention."""
+    repo_root = Path(__file__).resolve().parents[2]
     proc = subprocess.run(
-        [sys.executable, "-m", "trait_extractor", str(in_dir), str(out_dir)],
+        [sys.executable, "-m", "trait_extractor"],
         cwd=repo_root,
         env={**os.environ, "PYTHONPATH": str(repo_root)},
         capture_output=True,
         text=True,
     )
-    assert proc.returncode == 1
-    assert "FAIL" in proc.stderr
-    assert (out_dir / "scanYR39SJX.result.json").exists()
+    assert proc.returncode == 2
+
+
+def test_handle_sigterm_raises_systemexit_143():
+    """The SIGTERM handler exits 143, called directly (no subprocess, no timing)."""
+    import signal as signal_module
+
+    from trait_extractor.__main__ import _handle_sigterm
+
+    with pytest.raises(SystemExit) as exc_info:
+        _handle_sigterm(signal_module.SIGTERM, None)
+    assert exc_info.value.code == 143
+
+
+def _duplicate_scan(source_dir: Path, dest_dir: Path, new_scan_key: str) -> None:
+    """Copy a valid fixture scan into ``dest_dir`` under a new, distinct scan_key.
+
+    The .slp file(s) are copied verbatim (basenames unchanged -- slp_path is
+    resolved as a basename relative to the manifest's own directory, so it need
+    not match the new scan_key). Both the manifest's and sidecar's scan_key
+    fields are rewritten consistently, matching the new filename stem.
+    """
+    dest_dir.mkdir(parents=True)
+    orig_stem = source_dir.name
+    manifest = json.loads((source_dir / f"{orig_stem}.predictions.json").read_text())
+    sidecar = json.loads((source_dir / f"{orig_stem}.scan_metadata.json").read_text())
+    for artifact in manifest["artifacts"]:
+        slp_name = artifact["slp_path"]
+        shutil.copy(source_dir / slp_name, dest_dir / slp_name)
+    manifest["scan_key"] = new_scan_key
+    sidecar["scan_key"] = new_scan_key
+    (dest_dir / f"{new_scan_key}.predictions.json").write_text(json.dumps(manifest))
+    (dest_dir / f"{new_scan_key}.scan_metadata.json").write_text(json.dumps(sidecar))
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="SIGTERM delivery to a subprocess is not POSIX-equivalent on Windows",
+)
+def test_module_cli_sigterm_exits_promptly_and_preserves_completed_output(tmp_path):
+    """SIGTERM during a multi-scan batch exits 143 and leaves completed output intact."""
+    repo_root = Path(__file__).resolve().parents[2]
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    fixture_tree = repo_root / _FIXTURE_TREE
+
+    for i in range(20):
+        for orig in ("scan0K9E8BI", "scanYR39SJX"):
+            new_key = f"{orig}_{i:03d}"
+            _duplicate_scan(fixture_tree / orig, in_dir / new_key, new_key)
+
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "trait_extractor", str(in_dir), str(out_dir)],
+        cwd=repo_root,
+        env={**os.environ, "PYTHONPATH": str(repo_root)},
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            if out_dir.exists() and list(out_dir.glob("*.result.json")):
+                break
+            time.sleep(0.1)
+        else:
+            pytest.fail("no *.result.json appeared within the poll bound")
+
+        proc.send_signal(signal.SIGTERM)
+        stdout, stderr = proc.communicate(timeout=30)
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.communicate()
+
+    assert proc.returncode == 143, stderr
+    result_files = list(out_dir.glob("*.result.json"))
+    assert result_files
+    for result_file in result_files:
+        ResultEnvelope.model_validate_json(result_file.read_text())
 
 
 def test_module_cli_reports_skipped_scans_on_second_run(tmp_path):

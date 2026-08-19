@@ -171,7 +171,12 @@ def extract_batch(
     result = BatchResult()
     seen: Dict[str, Path] = {}
     seen_casefold: Dict[str, str] = {}  # casefolded stem -> the original stem
-    for manifest_path in sorted(Path(input_dir).rglob(_MANIFEST_GLOB)):
+    manifest_paths = sorted(Path(input_dir).rglob(_MANIFEST_GLOB))
+    if scope is None and not manifest_paths:
+        raise RuntimeError(
+            f"no {_MANIFEST_SUFFIX} files found under {Path(input_dir).as_posix()}"
+        )
+    for manifest_path in manifest_paths:
         stem = manifest_path.name.removesuffix(_MANIFEST_SUFFIX)
         if scope is not None and stem not in scope:
             # Out of scope for this run: exactly the contamination this manifest
