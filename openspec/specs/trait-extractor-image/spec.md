@@ -27,7 +27,7 @@ driver's process exit code, which Argo reads for DAG-node success).
 - **THEN** a `scan0K9E8BI.result.json` and a `scanYR39SJX.result.json` are written to the
   output directory
 - **AND** each file parses as a `sleap-roots-contracts` `ResultEnvelope` whose
-  `provenance.scan_key` matches its manifest and whose `provenance.contract_version == "0.1.0a3"`
+  `provenance.scan_key` matches its manifest and whose `provenance.contract_version == "0.1.0a7"`
 - **AND** the process exits `0` (all scans succeeded)
 
 #### Scenario: Required packages are importable inside the image
@@ -85,7 +85,7 @@ The trait-extractor image SHALL be published under the explicit identity
 ### Requirement: Slim contracts install via an extractor extra
 
 `pyproject.toml` SHALL declare a `[project.optional-dependencies] extractor` group containing
-`sleap-roots-contracts==0.1.0a3` marked `; python_version >= '3.11'`, and the image SHALL
+`sleap-roots-contracts==0.1.0a7` marked `; python_version >= '3.11'`, and the image SHALL
 install it with `uv sync --frozen --no-dev --extra extractor`. This SHALL install the
 `sleap-roots` library (whose `sleap_roots/` source is copied into the build context so
 setuptools can build it and resolve its dynamic version), its runtime dependencies, and
@@ -111,7 +111,7 @@ in the same commit as the `pyproject.toml` change so the frozen sync resolves (`
 
 - **WHEN** the test suite runs (`ci.yml` triggers on `pyproject.toml`/`uv.lock` changes)
 - **THEN** a test asserts the `[project.optional-dependencies] extractor` group exists and
-  pins `sleap-roots-contracts==0.1.0a3` with the `; python_version >= '3.11'` marker
+  pins `sleap-roots-contracts==0.1.0a7` with the `; python_version >= '3.11'` marker
 - **AND** removing or renaming the extra fails that test (so the image's install path cannot
   be silently broken by a CI-green change)
 
