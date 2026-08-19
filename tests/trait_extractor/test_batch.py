@@ -151,6 +151,20 @@ def test_empty_unscoped_input_dir_raises(tmp_path):
     assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
 
 
+def test_nonexistent_unscoped_input_dir_raises(tmp_path):
+    """A totally missing (not just empty) input_dir hits the same guard.
+
+    Round-4/PR review found this variant -- Path.rglob() on a nonexistent
+    directory -- was only verified manually, never pinned by a test.
+    """
+    in_dir = tmp_path / "does_not_exist"
+    out_dir = tmp_path / "out"
+
+    with pytest.raises(RuntimeError, match=re.escape(in_dir.as_posix())):
+        extract_batch(in_dir, out_dir)
+    assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
+
+
 def test_scoped_input_with_no_matching_files_still_reports_per_scan_failure(tmp_path):
     """A scoped run_manifest.json with zero matching files is unaffected by the new guard.
 
@@ -576,6 +590,28 @@ def test_module_cli_exits_crash_code_on_invalid_run_manifest(tmp_path):
     assert "Batch aborted:" in proc.stderr
 
 
+def test_module_cli_exits_crash_code_on_non_utf8_run_manifest(tmp_path):
+    """A run_manifest.json with invalid UTF-8 bytes exits 1 with a clean logged message.
+
+    PR review found the log-quality wrapper's except tuple was only exercised
+    for 2 of its 5 exception types through main() -- this closes the
+    UnicodeDecodeError branch (raised by load_run_manifest's read_text call).
+    """
+    from sleap_roots_contracts import RUN_MANIFEST_FILENAME
+
+    repo_root = Path(__file__).resolve().parents[2]
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    fixture_tree = repo_root / _FIXTURE_TREE
+    shutil.copytree(fixture_tree, in_dir)
+    (in_dir / RUN_MANIFEST_FILENAME).write_bytes(b"\xff\xfe not valid utf-8")
+
+    proc = _run_module_cli(repo_root, in_dir, out_dir)
+
+    assert proc.returncode == 1
+    assert "Batch aborted:" in proc.stderr
+
+
 def test_module_cli_usage_error_exits_two_unrelated_to_partial_code(tmp_path):
     """A CLI usage error exits 2 via argparse, unrelated to the 0/1/3 convention."""
     repo_root = Path(__file__).resolve().parents[2]
@@ -624,13 +660,25 @@ def _duplicate_scan(source_dir: Path, dest_dir: Path, new_scan_key: str) -> None
     reason="SIGTERM delivery to a subprocess is not POSIX-equivalent on Windows",
 )
 def test_module_cli_sigterm_exits_promptly_and_preserves_completed_output(tmp_path):
-    """SIGTERM during a multi-scan batch exits 143 and leaves completed output intact."""
+    """SIGTERM during a multi-scan batch exits 143 and leaves completed output intact.
+
+    Revised after a real CI failure on a fast runner (macos-14): the original design
+    duplicated 40 real scans and raced "poll for the first result, then SIGTERM"
+    against real per-scan compute time. That race is fundamentally not fixable by
+    adding more scans -- the margin that matters is "time from first result to full
+    batch completion," which scales with per-scan cost (single-digit ms on a fast
+    runner), not scan count. On a fast enough runner, all remaining scans finished
+    before the signal could take effect, and the batch exited 3 (partial) instead of
+    143. Fixed by using `SRT_TRAIT_EXTRACTOR_TEST_SCAN_DELAY_S` (a deterministic,
+    env-var-gated, no-op-by-default per-scan delay hook in extract_batch) to make the
+    race margin explicit and runner-speed-independent, instead of real compute time.
+    """
     repo_root = Path(__file__).resolve().parents[2]
     in_dir = tmp_path / "in"
     out_dir = tmp_path / "out"
     fixture_tree = repo_root / _FIXTURE_TREE
 
-    for i in range(20):
+    for i in range(3):
         for orig in ("scan0K9E8BI", "scanYR39SJX"):
             new_key = f"{orig}_{i:03d}"
             _duplicate_scan(fixture_tree / orig, in_dir / new_key, new_key)
@@ -638,7 +686,11 @@ def test_module_cli_sigterm_exits_promptly_and_preserves_completed_output(tmp_pa
     proc = subprocess.Popen(
         [sys.executable, "-m", "trait_extractor", str(in_dir), str(out_dir)],
         cwd=repo_root,
-        env={**os.environ, "PYTHONPATH": str(repo_root)},
+        env={
+            **os.environ,
+            "PYTHONPATH": str(repo_root),
+            "SRT_TRAIT_EXTRACTOR_TEST_SCAN_DELAY_S": "1",
+        },
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
@@ -648,7 +700,7 @@ def test_module_cli_sigterm_exits_promptly_and_preserves_completed_output(tmp_pa
         while time.monotonic() < deadline:
             if out_dir.exists() and list(out_dir.glob("*.result.json")):
                 break
-            time.sleep(0.1)
+            time.sleep(0.05)
         else:
             pytest.fail("no *.result.json appeared within the poll bound")
 
@@ -662,6 +714,10 @@ def test_module_cli_sigterm_exits_promptly_and_preserves_completed_output(tmp_pa
     assert proc.returncode == 143, stderr
     result_files = list(out_dir.glob("*.result.json"))
     assert result_files
+    assert len(result_files) < 6, (
+        "all scans finished before SIGTERM landed -- the delay hook isn't slowing "
+        "the batch down as expected"
+    )
     for result_file in result_files:
         ResultEnvelope.model_validate_json(result_file.read_text())
 

@@ -153,61 +153,74 @@ log-then-reraise wrapper.
 
 ## 3. SIGTERM handler in `__main__.main()`
 
-- [x] 3.1 **Test first** (`tests/trait_extractor/test_batch.py`), split into two tests per
-      design.md's revised (flake-resistant) plan — do NOT use a `time.sleep`/env-var delay hook:
+- [x] 3.1 **Test first** (`tests/trait_extractor/test_batch.py`), split into two tests:
       - `test_handle_sigterm_raises_systemexit_143`: call the new `_handle_sigterm(signal.SIGTERM,
         None)` function directly (no subprocess) and assert `pytest.raises(SystemExit)` with
         `exc_info.value.code == 143`. Not skipped on any platform — this exercises portable Python,
         not real signal delivery.
       - `test_module_cli_sigterm_exits_promptly_and_preserves_completed_output`
         (`@pytest.mark.skipif(sys.platform == "win32", reason="SIGTERM delivery to a subprocess is
-        not POSIX-equivalent on Windows")`): build a `tmp_path` input containing **many** (e.g. 20)
-        duplicated copies of the fixture scans under distinct `scan_key`s, so the batch takes long
-        enough that sending `SIGTERM` right after the *first* `{scan_key}.result.json` appears in
-        `output_dir` reliably lands while scans remain unprocessed — this widens the race window
-        without adding any production-code delay hook. Launch the CLI as a subprocess, poll
-        `output_dir` for the first `*.result.json`, send `SIGTERM`, then wait for the process to
-        exit, and assert `returncode == 143` and that every `*.result.json` present at that point
-        parses as a valid `ResultEnvelope` (none are truncated/corrupt).
+        not POSIX-equivalent on Windows")`): launch the CLI as a subprocess over duplicated fixture
+        scans, poll `output_dir` for the first `*.result.json`, send `SIGTERM`, then wait for the
+        process to exit, and assert `returncode == 143` and that every `*.result.json` present at
+        that point parses as a valid `ResultEnvelope` (none are truncated/corrupt).
 
-        **Duplication recipe (corrected after round-4 review — do NOT reuse
-        `_make_bad_scan_missing_slp`'s pattern, it's for a different purpose and will silently
-        break this test):** `_make_bad_scan_missing_slp` deliberately omits the `.slp` file (it
-        exists to produce a *missing-.slp* failure) and is the wrong template for a *valid*
-        duplicate. For each new `scan_key` (e.g. `f"{orig}_{i:03d}"`), in a fresh per-scan
-        directory: (1) copy the original fixture scan's `.slp` file(s) verbatim, basenames
-        unchanged — `resolve_artifact_paths` resolves `slp_path` as a basename relative to the
-        manifest's own directory, so the `.slp` filenames do NOT need to match the new `scan_key`;
-        (2) `json.loads` the original `.predictions.json`, set `manifest["scan_key"] = new_key`
-        (leave `artifacts`/`slp_path` untouched), write to `{new_key}.predictions.json`; (3)
-        `json.loads` the original `.scan_metadata.json`, set `sidecar["scan_key"] = new_key`, write
-        to `{new_key}.scan_metadata.json`. Both JSON files' `scan_key` AND the manifest's filename
-        stem must all equal `new_key` — forgetting either one does NOT trip the duplicate-scan_key
-        guard (each stem is still unique); instead it trips the unrelated stem/scan_key-mismatch
-        guard (forgetting the manifest's field) or the sidecar/manifest identity guard (forgetting
-        the sidecar's field), and since every duplicate copies the same original manifest, ALL of
-        them would fail identically and instantly — no real per-scan compute happens, silently
-        defeating the entire point of a long-running batch for `SIGTERM` to land inside.
+      **Duplication recipe (corrected after round-4 review — do NOT reuse
+      `_make_bad_scan_missing_slp`'s pattern, it's for a different purpose and will silently break
+      this test):** `_make_bad_scan_missing_slp` deliberately omits the `.slp` file (it exists to
+      produce a *missing-.slp* failure) and is the wrong template for a *valid* duplicate. For each
+      new `scan_key` (e.g. `f"{orig}_{i:03d}"`), in a fresh per-scan directory: (1) copy the
+      original fixture scan's `.slp` file(s) verbatim, basenames unchanged — `resolve_artifact_paths`
+      resolves `slp_path` as a basename relative to the manifest's own directory, so the `.slp`
+      filenames do NOT need to match the new `scan_key`; (2) `json.loads` the original
+      `.predictions.json`, set `manifest["scan_key"] = new_key` (leave `artifacts`/`slp_path`
+      untouched), write to `{new_key}.predictions.json`; (3) `json.loads` the original
+      `.scan_metadata.json`, set `sidecar["scan_key"] = new_key`, write to
+      `{new_key}.scan_metadata.json`. Both JSON files' `scan_key` AND the manifest's filename stem
+      must all equal `new_key` — forgetting either one does NOT trip the duplicate-scan_key guard
+      (each stem is still unique); instead it trips the unrelated stem/scan_key-mismatch guard
+      (forgetting the manifest's field) or the sidecar/manifest identity guard (forgetting the
+      sidecar's field), and since every duplicate copies the same original manifest, ALL of them
+      would fail identically and instantly — no real per-scan compute happens, silently defeating
+      the entire point of a long-running batch for `SIGTERM` to land inside.
 
-        **Timing bounds (revised after round-2 review, re-confirmed in round-4):** measured
-        empirically on an unloaded dev machine, a cold `python -m trait_extractor` subprocess
-        takes ~3.2s of pure interpreter/import startup before any per-scan work even begins, and
-        ~4.4s total before the first `*.result.json` appears — an earlier draft's "~5s" poll bound
-        left under 1s of margin, likely to flake or fail outright on a loaded/cold CI runner from
-        startup overhead alone, unrelated to the actual SIGTERM race this test targets. Since the
-        test sends `SIGTERM` right after the *first* result file (not after all 20 finish), total
-        wall time is dominated by startup + one scan's compute (~4.5-5.5s), not by N — comparable
-        to this file's other `test_module_cli_*` subprocess tests. Use a poll bound of at least 20s
-        for the first result file and `proc.wait(timeout=30)` for the post-SIGTERM exit — generous
-        on purpose; the test only needs `SIGTERM` to land before all 20 duplicated scans finish,
-        not to hit a tight deadline.
+      **Timing design — REVISED AFTER A REAL CI FAILURE (round-5, this is not theoretical):** an
+      earlier draft duplicated the fixture scans ~40x and relied on real per-scan compute time to
+      widen the window between "first result written" and "batch fully done," reasoning that more
+      duplicates would give more margin. This shipped, opened as PR #266, and **`Test (macos-14)`
+      failed on the PR's own first CI run**: `assert 3 == 143` — the batch finished normally
+      (`3` = partial, since one duplicated scan happened to trip an unrelated numpy dtype-comparison
+      error, isolated as usual) *before* `SIGTERM` could take effect, because macos-14 processed all
+      40 real scans faster than the test could react. The reasoning was wrong: the margin that
+      matters is "time from first result to full batch completion," which scales with **per-scan
+      compute cost** (single-digit milliseconds on a fast runner), not with duplicate count — no
+      number of real duplicates reliably fixes a race against a variable that isn't being
+      controlled. **Fix:** `extract_batch` (`trait_extractor/extractor.py`) gained a small,
+      env-var-gated, no-op-by-default per-scan delay hook
+      (`SRT_TRAIT_EXTRACTOR_TEST_SCAN_DELAY_S`), called once per scan after that scan's own
+      try/except completes. The test now sets this to `1` (second) and uses only 6 duplicated scans
+      (3 iterations × 2 fixtures) — with a deterministic ≥1s gap between every scan, the race margin
+      is explicit and runner-speed-independent, not a bet on relative compute speed. This is the
+      exact "`time.sleep`/env-var delay hook" an earlier round explicitly rejected in favor of "widen
+      via more real duplicates" — that earlier call is reversed here because it's now empirically
+      falsified, not just theoretically risky. Manually verified (Windows dev box, so only as a
+      smoke test of the delay hook itself, not real signal delivery — `Popen.send_signal(SIGTERM)`
+      on Windows maps to `TerminateProcess(handle, 1)` and never invokes the Python handler at all,
+      confirmed by the returncode always being exactly `1` regardless of what the handler does) that
+      the delay hook doesn't break normal batch operation and that the first result appears at the
+      expected time before the delay kicks in. The actual POSIX signal-delivery path can only be
+      confirmed via real CI (ubuntu-22.04 / macos-14) — watch the next CI run on this PR.
 - [x] 3.2 Implement: in `trait_extractor/__main__.py`, add a module-level `_handle_sigterm(signum,
       frame)` that logs (e.g. via the `logging` module, matching `extractor.py`'s existing
       `logger` pattern) and calls `sys.exit(143)`; register it with `signal.signal(signal.SIGTERM,
       _handle_sigterm)` at the top of `main()`, before calling `extract_batch`.
-- [x] 3.3 Run `uv run pytest tests/trait_extractor/test_batch.py -x` on Linux/macOS (or confirm via
+- [ ] 3.3 Run `uv run pytest tests/trait_extractor/test_batch.py -x` on Linux/macOS (or confirm via
       CI) and separately confirm the full suite still collects cleanly on Windows (the subprocess
-      test skips, doesn't error; the direct-call unit test still runs and passes).
+      test skips, doesn't error; the direct-call unit test still runs and passes). **This was
+      previously checked off based on a local Windows run alone, before the PR's real CI had
+      actually run — that was wrong: CI's first real run showed `Test (macos-14)` failing on
+      exactly this test. Left unchecked until a genuine green run on ubuntu-22.04 AND macos-14 is
+      observed after the round-5 timing fix above.**
 
 ## 4. Spec + docs + changelog sync
 

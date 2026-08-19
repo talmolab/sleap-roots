@@ -187,6 +187,25 @@ proposal:
    generous on purpose, since the test only needs `SIGTERM` to land before all of the duplicated
    scans finish, not to hit a tight deadline.
 
+   **Round-5: the "widen via more real duplicates" plan was empirically falsified by a real CI
+   failure, not just theoretically risky.** After landing and opening as PR #266, `Test (macos-14)`
+   failed on the PR's own first CI run: `assert 3 == 143` — the ~40-duplicate batch finished
+   normally *before* `SIGTERM` could take effect. The reasoning behind "more duplicates = more
+   margin" was wrong: the margin that matters is time from "first result written" to "batch fully
+   done," which scales with **per-scan compute cost** (single-digit ms on a fast runner), not with
+   duplicate count — no amount of real duplication reliably controls a race against an uncontrolled
+   variable. Fixed by adding exactly the mechanism this section previously rejected in favor of
+   real-duplicate widening: a small, env-var-gated, no-op-by-default per-scan delay hook in
+   `extract_batch` (`SRT_TRAIT_EXTRACTOR_TEST_SCAN_DELAY_S`), set to `1` second by the test with
+   only 6 duplicated scans. This makes the race margin explicit and deterministic instead of a bet
+   on relative runner speed. The reversal is justified by empirical evidence (a real, reproduced CI
+   failure) superseding an earlier, purely theoretical preference against delay hooks. The fix
+   could only be smoke-tested locally (this dev environment is Windows, where
+   `Popen.send_signal(SIGTERM)` maps to `TerminateProcess(handle, 1)` and never invokes the Python
+   handler — confirmed by the return code always being exactly `1` regardless of handler behavior);
+   the real POSIX signal-delivery path is confirmed only by a genuine green CI run on
+   ubuntu-22.04/macos-14, watched after pushing this fix.
+
 ## Open Questions
 
 - The A4 Argo template's `retryStrategy`/`continueOn` reaction to exit code `3` is left to the

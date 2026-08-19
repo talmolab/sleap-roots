@@ -1,6 +1,8 @@
 """Orchestrate a per-scan extraction: manifest + sidecar -> ResultEnvelope JSON."""
 
 import logging
+import os
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
@@ -29,6 +31,23 @@ logger = logging.getLogger(__name__)
 _MANIFEST_SUFFIX = ".predictions.json"
 _MANIFEST_GLOB = "*" + _MANIFEST_SUFFIX
 _SIDECAR_SUFFIX = ".scan_metadata.json"
+
+_TEST_SCAN_DELAY_ENV = "SRT_TRAIT_EXTRACTOR_TEST_SCAN_DELAY_S"
+
+
+def _test_only_scan_delay() -> None:
+    """Sleep between scans if ``SRT_TRAIT_EXTRACTOR_TEST_SCAN_DELAY_S`` is set.
+
+    A no-op unless this env var is explicitly set (never set in production).
+    Exists solely so a subprocess-level test can make the race between "first
+    scan's output written" and "the whole batch finishes" deterministic,
+    regardless of a CI runner's real per-scan compute speed -- widening the
+    batch with more real scans does not reliably fix that race, since the
+    margin that matters scales with per-scan cost, not scan count.
+    """
+    delay = os.environ.get(_TEST_SCAN_DELAY_ENV)
+    if delay:
+        time.sleep(float(delay))
 
 
 def extract_scan(
@@ -247,6 +266,7 @@ def extract_batch(
                 result.succeeded.append(stem)
         except Exception as exc:  # noqa: BLE001 - isolation boundary (batch only)
             result.failed.append((stem, str(exc)))
+        _test_only_scan_delay()
 
     if scope is not None:
         for missing_scan_key in sorted(scope - seen.keys()):
