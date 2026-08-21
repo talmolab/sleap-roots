@@ -499,7 +499,9 @@ def test_module_cli_writes_envelopes(tmp_path):
     assert (out_dir / "scanYR39SJX.result.json").exists()
 
 
-def _run_module_cli(repo_root, in_dir, out_dir):
+def _run_module_cli(
+    repo_root: Path, in_dir: Path, out_dir: Path
+) -> subprocess.CompletedProcess:
     """Invoke `python -m trait_extractor <in> <out>` as a subprocess."""
     return subprocess.run(
         [sys.executable, "-m", "trait_extractor", str(in_dir), str(out_dir)],
@@ -612,6 +614,46 @@ def test_module_cli_exits_crash_code_on_non_utf8_run_manifest(tmp_path):
     assert "Batch aborted:" in proc.stderr
 
 
+def test_main_logs_clean_message_on_os_error_from_run_manifest(
+    tmp_path, monkeypatch, caplog
+):
+    """An OSError from load_run_manifest is logged cleanly before propagating.
+
+    Fresh PR review found this except-tuple branch (OSError) was only ever
+    exercised via extract_batch's own copy-forward path (caught INSIDE
+    extract_batch, never escaping to main()) -- unlike UnicodeDecodeError, this
+    gap wasn't previously flagged as an accepted one. A real permissions error
+    isn't reliably reproducible cross-platform (Windows ACLs differ from POSIX
+    chmod), so this tests main()'s wrapper directly, in-process, via monkeypatch.
+    """
+    import trait_extractor.extractor as extractor_module
+    from trait_extractor.__main__ import main
+
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    in_dir.mkdir()
+
+    def _boom(*args, **kwargs):
+        raise OSError("permission denied (simulated)")
+
+    monkeypatch.setattr(extractor_module, "load_run_manifest", _boom)
+
+    # main() registers a real process-wide SIGTERM handler; this is the only
+    # test in this file that calls main() in-process (every other main()
+    # exercise goes through subprocess, where the registration dies with the
+    # child) -- restore the prior handler so it doesn't leak into later tests
+    # in this pytest session.
+    previous_handler = signal.getsignal(signal.SIGTERM)
+    try:
+        with caplog.at_level("ERROR"):
+            with pytest.raises(OSError):
+                main([str(in_dir), str(out_dir)])
+    finally:
+        signal.signal(signal.SIGTERM, previous_handler)
+
+    assert "Batch aborted:" in caplog.text
+
+
 def test_module_cli_usage_error_exits_two_unrelated_to_partial_code(tmp_path):
     """A CLI usage error exits 2 via argparse, unrelated to the 0/1/3 convention."""
     repo_root = Path(__file__).resolve().parents[2]
@@ -623,6 +665,37 @@ def test_module_cli_usage_error_exits_two_unrelated_to_partial_code(tmp_path):
         text=True,
     )
     assert proc.returncode == 2
+
+
+def test_test_only_scan_delay_reads_env_var(monkeypatch):
+    """The test-only delay hook sleeps for exactly the env-var-specified duration.
+
+    Fresh PR review suggested this: previously the hook's own correctness (right
+    env var name, float() not int()) relied entirely on the SIGTERM test noticing
+    a wrong exit code/file count as a symptom, not a direct assertion.
+    """
+    import trait_extractor.extractor as extractor_module
+
+    calls = []
+    monkeypatch.setattr(extractor_module.time, "sleep", lambda s: calls.append(s))
+    monkeypatch.setenv(extractor_module._TEST_SCAN_DELAY_ENV, "0.5")
+
+    extractor_module._test_only_scan_delay()
+
+    assert calls == [0.5]
+
+
+def test_test_only_scan_delay_is_a_noop_by_default(monkeypatch):
+    """The test-only delay hook does nothing unless the env var is explicitly set."""
+    import trait_extractor.extractor as extractor_module
+
+    monkeypatch.delenv(extractor_module._TEST_SCAN_DELAY_ENV, raising=False)
+    calls = []
+    monkeypatch.setattr(extractor_module.time, "sleep", lambda s: calls.append(s))
+
+    extractor_module._test_only_scan_delay()
+
+    assert calls == []
 
 
 def test_handle_sigterm_raises_systemexit_143():

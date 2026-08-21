@@ -43,13 +43,28 @@ def main(argv: Optional[List[str]] = None) -> int:
         argv: Optional argument list (defaults to ``sys.argv[1:]``).
 
     Returns:
-        Process exit code: 0 if every scan succeeded or was skipped, 3 if one or
-        more scans isolated-failed but the batch ran to completion (matches
-        ``BatchResult.ok``), Python's default 1 if an exception escaped
-        ``extract_batch`` entirely (e.g. an invalid ``run_manifest.json`` or an
-        empty input directory), or 143 if a ``SIGTERM`` was received. Exit code 2
-        is reserved by ``argparse`` for CLI usage errors and is never returned by
-        this function.
+        0 if every scan succeeded or was skipped, or 3 if one or more scans
+        isolated-failed but the batch ran to completion (matches
+        ``BatchResult.ok``). This function does NOT return in the other two
+        driver-owned cases -- see Raises. Exit code 2 is reserved by ``argparse``
+        for CLI usage errors and is never produced by this function.
+
+    Raises:
+        RuntimeError: If ``extract_batch``'s empty-input guard fires (propagated
+            after logging a clean "Batch aborted: ..." line) -- the process's
+            *effective* exit code is then Python's default 1, since nothing
+            catches this above ``main()``.
+        pydantic.ValidationError: If ``run_manifest.json`` is present but invalid
+            (same logging/propagation as above) -- exit code 1.
+        OSError: If ``run_manifest.json`` is present but can't be read (same
+            logging/propagation) -- exit code 1.
+        UnicodeDecodeError: If ``run_manifest.json``'s bytes aren't valid UTF-8
+            (same logging/propagation) -- exit code 1.
+        yaml.YAMLError: If the packaged ``pipeline_selection.yaml`` is malformed
+            (same logging/propagation) -- exit code 1.
+        SystemExit: With code 143 if a ``SIGTERM`` is received (raised by
+            ``_handle_sigterm``, not caught by the exception tuple above since
+            ``SystemExit`` is a ``BaseException``, not an ``Exception``).
     """
     # Registered before argument parsing (not just around extract_batch) so the
     # whole process lifetime is covered -- in the real container target, an
