@@ -1,6 +1,8 @@
 """Orchestrate a per-scan extraction: manifest + sidecar -> ResultEnvelope JSON."""
 
 import logging
+import os
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
@@ -29,6 +31,23 @@ logger = logging.getLogger(__name__)
 _MANIFEST_SUFFIX = ".predictions.json"
 _MANIFEST_GLOB = "*" + _MANIFEST_SUFFIX
 _SIDECAR_SUFFIX = ".scan_metadata.json"
+
+_TEST_SCAN_DELAY_ENV = "SRT_TRAIT_EXTRACTOR_TEST_SCAN_DELAY_S"
+
+
+def _test_only_scan_delay() -> None:
+    """Sleep between scans if ``SRT_TRAIT_EXTRACTOR_TEST_SCAN_DELAY_S`` is set.
+
+    A no-op unless this env var is explicitly set (never set in production).
+    Exists solely so a subprocess-level test can make the race between "first
+    scan's output written" and "the whole batch finishes" deterministic,
+    regardless of a CI runner's real per-scan compute speed -- widening the
+    batch with more real scans does not reliably fix that race, since the
+    margin that matters scales with per-scan cost, not scan count.
+    """
+    delay = os.environ.get(_TEST_SCAN_DELAY_ENV)
+    if delay:
+        time.sleep(float(delay))
 
 
 def extract_scan(
@@ -164,6 +183,12 @@ def extract_batch(
         OSError: If ``run_manifest.json`` is present but can't be read (see
             ``run_manifest.load_run_manifest``), for the same reason.
         UnicodeDecodeError: If ``run_manifest.json``'s bytes aren't valid UTF-8.
+        RuntimeError: If no ``run_manifest.json`` is present (unscoped mode) and
+            zero ``*.predictions.json`` files are discovered anywhere under
+            ``input_dir`` -- an empty or misconfigured input mount, not a
+            successful no-op.
+        yaml.YAMLError: If the packaged ``pipeline_selection.yaml`` (loaded via
+            ``load_pipeline_cards``) is malformed.
     """
     cards = cards or load_pipeline_cards()
     run_manifest = load_run_manifest(input_dir)
@@ -171,7 +196,12 @@ def extract_batch(
     result = BatchResult()
     seen: Dict[str, Path] = {}
     seen_casefold: Dict[str, str] = {}  # casefolded stem -> the original stem
-    for manifest_path in sorted(Path(input_dir).rglob(_MANIFEST_GLOB)):
+    manifest_paths = sorted(Path(input_dir).rglob(_MANIFEST_GLOB))
+    if scope is None and not manifest_paths:
+        raise RuntimeError(
+            f"no {_MANIFEST_SUFFIX} files found under {Path(input_dir).as_posix()}"
+        )
+    for manifest_path in manifest_paths:
         stem = manifest_path.name.removesuffix(_MANIFEST_SUFFIX)
         if scope is not None and stem not in scope:
             # Out of scope for this run: exactly the contamination this manifest
@@ -236,6 +266,7 @@ def extract_batch(
                 result.succeeded.append(stem)
         except Exception as exc:  # noqa: BLE001 - isolation boundary (batch only)
             result.failed.append((stem, str(exc)))
+        _test_only_scan_delay()
 
     if scope is not None:
         for missing_scan_key in sorted(scope - seen.keys()):

@@ -2,9 +2,12 @@
 
 import json
 import os
+import re
 import shutil
+import signal
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Iterable
 
@@ -130,6 +133,55 @@ def test_no_manifest_falls_back_to_unscoped_rglob(tmp_path):
     assert result.ok
     assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
     assert not (tmp_path / RUN_MANIFEST_FILENAME).exists()
+
+
+def test_empty_unscoped_input_dir_raises(tmp_path):
+    """An empty, unscoped input_dir raises rather than silently succeeding.
+
+    No run_manifest.json and zero *.predictions.json anywhere -> extract_batch must
+    not return a vacuous BatchResult(ok=True); a misconfigured/empty mount is an
+    operator error, not a successful no-op run.
+    """
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    in_dir.mkdir()
+
+    with pytest.raises(RuntimeError, match=re.escape(in_dir.as_posix())):
+        extract_batch(in_dir, out_dir)
+    assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
+
+
+def test_nonexistent_unscoped_input_dir_raises(tmp_path):
+    """A totally missing (not just empty) input_dir hits the same guard.
+
+    Round-4/PR review found this variant -- Path.rglob() on a nonexistent
+    directory -- was only verified manually, never pinned by a test.
+    """
+    in_dir = tmp_path / "does_not_exist"
+    out_dir = tmp_path / "out"
+
+    with pytest.raises(RuntimeError, match=re.escape(in_dir.as_posix())):
+        extract_batch(in_dir, out_dir)
+    assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
+
+
+def test_scoped_input_with_no_matching_files_still_reports_per_scan_failure(tmp_path):
+    """A scoped run_manifest.json with zero matching files is unaffected by the new guard.
+
+    Regression pin: when a run_manifest.json IS present, an in-scope scan_key with no
+    matching file was already recorded as a per-scan failure before this change (see
+    test_manifest_declares_scan_key_with_no_predictions_json) -- the new unscoped
+    empty-input guard must not change this scoped path's behavior.
+    """
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    in_dir.mkdir()
+    _write_run_manifest(in_dir, ["scanA", "scanB"])
+
+    result = extract_batch(in_dir, out_dir)
+
+    assert not result.ok
+    assert set(k for k, _ in result.failed) == {"scanA", "scanB"}
 
 
 def test_manifest_scoping_both_scans_in_scope_matches_current_output(tmp_path):
@@ -447,14 +499,28 @@ def test_module_cli_writes_envelopes(tmp_path):
     assert (out_dir / "scanYR39SJX.result.json").exists()
 
 
-def test_module_cli_exits_nonzero_on_failure(tmp_path):
-    """`python -m trait_extractor <in> <out>` exits 1 when a scan fails.
+def _run_module_cli(
+    repo_root: Path, in_dir: Path, out_dir: Path
+) -> subprocess.CompletedProcess:
+    """Invoke `python -m trait_extractor <in> <out>` as a subprocess."""
+    return subprocess.run(
+        [sys.executable, "-m", "trait_extractor", str(in_dir), str(out_dir)],
+        cwd=repo_root,
+        env={**os.environ, "PYTHONPATH": str(repo_root)},
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_module_cli_exits_partial_code_on_isolated_scan_failure(tmp_path):
+    """`python -m trait_extractor <in> <out>` exits 3 when a scan isolated-fails.
 
     Round-3 review found the exit-code logic (`return 0 if result.ok else 1` in
     `__main__.main()`) had NO test enforcing it -- hardcoding `main()` to always
     `return 0` left the entire suite green, since every other subprocess-level CLI
     test only exercises the all-succeeding/all-skipped happy path. This is exactly
-    the kind of bug that would make a broken Argo pod look successful.
+    the kind of bug that would make a broken Argo pod look successful. Exit code 3
+    (not 1) distinguishes "isolated per-scan failure, batch completed" from "crash".
     """
     repo_root = Path(__file__).resolve().parents[2]
     in_dir = tmp_path / "in"
@@ -464,16 +530,269 @@ def test_module_cli_exits_nonzero_on_failure(tmp_path):
     shutil.copytree(fixture_tree / "scanYR39SJX", in_dir / "scanYR39SJX")
     _make_bad_scan_missing_slp(in_dir / "scanBAD")
 
+    proc = _run_module_cli(repo_root, in_dir, out_dir)
+
+    assert proc.returncode == 3
+    assert "FAIL" in proc.stderr
+    assert (out_dir / "scanYR39SJX.result.json").exists()
+
+
+def test_module_cli_exits_partial_code_on_scoped_missing_scan_key(tmp_path):
+    """A manifest-scoped scan_key with no matching file also exits 3, not just extract_batch."""
+    repo_root = Path(__file__).resolve().parents[2]
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    fixture_tree = repo_root / _FIXTURE_TREE
+    shutil.copytree(fixture_tree, in_dir)
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanMISSING"])
+
+    proc = _run_module_cli(repo_root, in_dir, out_dir)
+
+    assert proc.returncode == 3
+    assert "scanMISSING" in proc.stderr
+
+
+def test_module_cli_exits_crash_code_on_empty_input(tmp_path):
+    """An empty, unscoped input_dir exits 1 (crash), with a clean logged message.
+
+    The exception still propagates after logging (matching Python's default
+    uncaught-exception exit code), so a traceback is also present -- the
+    log-quality fix adds a clean one-line message ahead of it, it doesn't
+    suppress the traceback entirely.
+    """
+    repo_root = Path(__file__).resolve().parents[2]
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    in_dir.mkdir()
+
+    proc = _run_module_cli(repo_root, in_dir, out_dir)
+
+    assert proc.returncode == 1
+    assert "Batch aborted:" in proc.stderr
+    assert in_dir.as_posix() in proc.stderr
+
+
+def test_module_cli_exits_crash_code_on_invalid_run_manifest(tmp_path):
+    """An invalid run_manifest.json exits 1 (crash), with a clean logged message.
+
+    This already crashed today via pydantic.ValidationError; this test pins the
+    exit code explicitly for the first time and asserts a clean logged line now
+    precedes the (still-present) traceback.
+    """
+    repo_root = Path(__file__).resolve().parents[2]
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    fixture_tree = repo_root / _FIXTURE_TREE
+    shutil.copytree(fixture_tree, in_dir)
+    _write_run_manifest(in_dir, [])  # empty scan_keys is invalid
+
+    proc = _run_module_cli(repo_root, in_dir, out_dir)
+
+    assert proc.returncode == 1
+    assert "Batch aborted:" in proc.stderr
+
+
+def test_module_cli_exits_crash_code_on_non_utf8_run_manifest(tmp_path):
+    """A run_manifest.json with invalid UTF-8 bytes exits 1 with a clean logged message.
+
+    PR review found the log-quality wrapper's except tuple was only exercised
+    for 2 of its 5 exception types through main() -- this closes the
+    UnicodeDecodeError branch (raised by load_run_manifest's read_text call).
+    """
+    from sleap_roots_contracts import RUN_MANIFEST_FILENAME
+
+    repo_root = Path(__file__).resolve().parents[2]
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    fixture_tree = repo_root / _FIXTURE_TREE
+    shutil.copytree(fixture_tree, in_dir)
+    (in_dir / RUN_MANIFEST_FILENAME).write_bytes(b"\xff\xfe not valid utf-8")
+
+    proc = _run_module_cli(repo_root, in_dir, out_dir)
+
+    assert proc.returncode == 1
+    assert "Batch aborted:" in proc.stderr
+
+
+def test_main_logs_clean_message_on_os_error_from_run_manifest(
+    tmp_path, monkeypatch, caplog
+):
+    """An OSError from load_run_manifest is logged cleanly before propagating.
+
+    Fresh PR review found this except-tuple branch (OSError) was only ever
+    exercised via extract_batch's own copy-forward path (caught INSIDE
+    extract_batch, never escaping to main()) -- unlike UnicodeDecodeError, this
+    gap wasn't previously flagged as an accepted one. A real permissions error
+    isn't reliably reproducible cross-platform (Windows ACLs differ from POSIX
+    chmod), so this tests main()'s wrapper directly, in-process, via monkeypatch.
+    """
+    import trait_extractor.extractor as extractor_module
+    from trait_extractor.__main__ import main
+
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    in_dir.mkdir()
+
+    def _boom(*args, **kwargs):
+        raise OSError("permission denied (simulated)")
+
+    monkeypatch.setattr(extractor_module, "load_run_manifest", _boom)
+
+    # main() registers a real process-wide SIGTERM handler; this is the only
+    # test in this file that calls main() in-process (every other main()
+    # exercise goes through subprocess, where the registration dies with the
+    # child) -- restore the prior handler so it doesn't leak into later tests
+    # in this pytest session.
+    previous_handler = signal.getsignal(signal.SIGTERM)
+    try:
+        with caplog.at_level("ERROR"):
+            with pytest.raises(OSError):
+                main([str(in_dir), str(out_dir)])
+    finally:
+        signal.signal(signal.SIGTERM, previous_handler)
+
+    assert "Batch aborted:" in caplog.text
+
+
+def test_module_cli_usage_error_exits_two_unrelated_to_partial_code(tmp_path):
+    """A CLI usage error exits 2 via argparse, unrelated to the 0/1/3 convention."""
+    repo_root = Path(__file__).resolve().parents[2]
     proc = subprocess.run(
-        [sys.executable, "-m", "trait_extractor", str(in_dir), str(out_dir)],
+        [sys.executable, "-m", "trait_extractor"],
         cwd=repo_root,
         env={**os.environ, "PYTHONPATH": str(repo_root)},
         capture_output=True,
         text=True,
     )
-    assert proc.returncode == 1
-    assert "FAIL" in proc.stderr
-    assert (out_dir / "scanYR39SJX.result.json").exists()
+    assert proc.returncode == 2
+
+
+def test_test_only_scan_delay_reads_env_var(monkeypatch):
+    """The test-only delay hook sleeps for exactly the env-var-specified duration.
+
+    Fresh PR review suggested this: previously the hook's own correctness (right
+    env var name, float() not int()) relied entirely on the SIGTERM test noticing
+    a wrong exit code/file count as a symptom, not a direct assertion.
+    """
+    import trait_extractor.extractor as extractor_module
+
+    calls = []
+    monkeypatch.setattr(extractor_module.time, "sleep", lambda s: calls.append(s))
+    monkeypatch.setenv(extractor_module._TEST_SCAN_DELAY_ENV, "0.5")
+
+    extractor_module._test_only_scan_delay()
+
+    assert calls == [0.5]
+
+
+def test_test_only_scan_delay_is_a_noop_by_default(monkeypatch):
+    """The test-only delay hook does nothing unless the env var is explicitly set."""
+    import trait_extractor.extractor as extractor_module
+
+    monkeypatch.delenv(extractor_module._TEST_SCAN_DELAY_ENV, raising=False)
+    calls = []
+    monkeypatch.setattr(extractor_module.time, "sleep", lambda s: calls.append(s))
+
+    extractor_module._test_only_scan_delay()
+
+    assert calls == []
+
+
+def test_handle_sigterm_raises_systemexit_143():
+    """The SIGTERM handler exits 143, called directly (no subprocess, no timing)."""
+    from trait_extractor.__main__ import _handle_sigterm
+
+    with pytest.raises(SystemExit) as exc_info:
+        _handle_sigterm(signal.SIGTERM, None)
+    assert exc_info.value.code == 143
+
+
+def _duplicate_scan(source_dir: Path, dest_dir: Path, new_scan_key: str) -> None:
+    """Copy a valid fixture scan into ``dest_dir`` under a new, distinct scan_key.
+
+    The .slp file(s) are copied verbatim (basenames unchanged -- slp_path is
+    resolved as a basename relative to the manifest's own directory, so it need
+    not match the new scan_key). Both the manifest's and sidecar's scan_key
+    fields are rewritten consistently, matching the new filename stem.
+    """
+    dest_dir.mkdir(parents=True)
+    orig_stem = source_dir.name
+    manifest = json.loads((source_dir / f"{orig_stem}.predictions.json").read_text())
+    sidecar = json.loads((source_dir / f"{orig_stem}.scan_metadata.json").read_text())
+    for artifact in manifest["artifacts"]:
+        slp_name = artifact["slp_path"]
+        shutil.copy(source_dir / slp_name, dest_dir / slp_name)
+    manifest["scan_key"] = new_scan_key
+    sidecar["scan_key"] = new_scan_key
+    (dest_dir / f"{new_scan_key}.predictions.json").write_text(json.dumps(manifest))
+    (dest_dir / f"{new_scan_key}.scan_metadata.json").write_text(json.dumps(sidecar))
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="SIGTERM delivery to a subprocess is not POSIX-equivalent on Windows",
+)
+def test_module_cli_sigterm_exits_promptly_and_preserves_completed_output(tmp_path):
+    """SIGTERM during a multi-scan batch exits 143 and leaves completed output intact.
+
+    Revised after a real CI failure on a fast runner (macos-14): the original design
+    duplicated 40 real scans and raced "poll for the first result, then SIGTERM"
+    against real per-scan compute time. That race is fundamentally not fixable by
+    adding more scans -- the margin that matters is "time from first result to full
+    batch completion," which scales with per-scan cost (single-digit ms on a fast
+    runner), not scan count. On a fast enough runner, all remaining scans finished
+    before the signal could take effect, and the batch exited 3 (partial) instead of
+    143. Fixed by using `SRT_TRAIT_EXTRACTOR_TEST_SCAN_DELAY_S` (a deterministic,
+    env-var-gated, no-op-by-default per-scan delay hook in extract_batch) to make the
+    race margin explicit and runner-speed-independent, instead of real compute time.
+    """
+    repo_root = Path(__file__).resolve().parents[2]
+    in_dir = tmp_path / "in"
+    out_dir = tmp_path / "out"
+    fixture_tree = repo_root / _FIXTURE_TREE
+
+    for i in range(3):
+        for orig in ("scan0K9E8BI", "scanYR39SJX"):
+            new_key = f"{orig}_{i:03d}"
+            _duplicate_scan(fixture_tree / orig, in_dir / new_key, new_key)
+
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "trait_extractor", str(in_dir), str(out_dir)],
+        cwd=repo_root,
+        env={
+            **os.environ,
+            "PYTHONPATH": str(repo_root),
+            "SRT_TRAIT_EXTRACTOR_TEST_SCAN_DELAY_S": "1",
+        },
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            if out_dir.exists() and list(out_dir.glob("*.result.json")):
+                break
+            time.sleep(0.05)
+        else:
+            pytest.fail("no *.result.json appeared within the poll bound")
+
+        proc.send_signal(signal.SIGTERM)
+        stdout, stderr = proc.communicate(timeout=30)
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.communicate()
+
+    assert proc.returncode == 143, stderr
+    result_files = list(out_dir.glob("*.result.json"))
+    assert result_files
+    assert len(result_files) < 6, (
+        "all scans finished before SIGTERM landed -- the delay hook isn't slowing "
+        "the batch down as expected"
+    )
+    for result_file in result_files:
+        ResultEnvelope.model_validate_json(result_file.read_text())
 
 
 def test_module_cli_reports_skipped_scans_on_second_run(tmp_path):
