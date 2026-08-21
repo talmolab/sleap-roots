@@ -3146,11 +3146,44 @@ silently ignored — this is the contamination-prevention this manifest exists f
 whose output already matches (both <code>idempotency_key</code> and <code>contract_version</code>) is skipped rather
 than recomputed. If no <code>run_manifest.json</code> is present, discovery falls back to recursively
 finding every <code>{scan_key}.predictions.json</code> under <code>input_dir</code> (the original, pre-manifest
-behavior — used by local/non-pipeline runs). In both cases, each manifest's sidecar is paired and
-one envelope is written per scan to <code>output_dir</code>. Per-scan failures (bad manifest, missing
-sidecar, a manifest-declared scan_key with no matching predictions.json, incompatible/unsupported
-pipeline) are isolated and reported; the process exits non-zero if any scan failed, without
-discarding the successful or skipped envelopes.</p>
+behavior — used by local/non-pipeline runs); if that unscoped fallback discovers <strong>zero</strong>
+manifests, the driver raises rather than reporting an empty run as a silent success (an empty or
+misconfigured input mount is an operator error, not a no-op). In both cases, each manifest's
+sidecar is paired and one envelope is written per scan to <code>output_dir</code>. Per-scan failures (bad
+manifest, missing sidecar, a manifest-declared scan_key with no matching predictions.json,
+incompatible/unsupported pipeline) are isolated and reported without discarding the successful or
+skipped envelopes.</p>
+<p><strong>Exit codes</strong> (Argo-ready, per <a href="https://github.com/talmolab/sleap-roots/issues/259">sleap-roots#259</a>):</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td>Full success — every discovered scan succeeded or was skipped.</td>
+</tr>
+<tr>
+<td><code>3</code></td>
+<td><strong>Partial</strong> — the batch ran to completion but one or more scans isolated-failed (per-scan failures caught inside the driver's own loop). An Argo caller should treat this as a completed run with partial failures, not retry the whole batch.</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td><strong>Crash</strong> — an exception escaped the batch entirely before it could return a result at all (an invalid <code>run_manifest.json</code>, the empty-input guard above, or any other bug). A real pod-level failure; Argo's <code>retryStrategy</code> should retry it.</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td><em>(not used by this driver)</em> — reserved: <code>argparse</code> already exits <code>2</code> on a CLI usage error, before the batch ever runs.</td>
+</tr>
+<tr>
+<td><code>143</code></td>
+<td><code>SIGTERM</code> received (Argo preemption/cancellation) — the process exits promptly (<code>128 + SIGTERM</code>) rather than waiting out <code>terminationGracePeriodSeconds</code>. Per-scan writes are already atomic (temp→rename) and the batch is idempotent on retry, so this loses no completed envelope.</td>
+</tr>
+</tbody>
+</table>
 <h2 id="container-image">Container image<a class="headerlink" href="#container-image" title="Permanent link">&para;</a></h2>
 <p>Published to GHCR as <code>ghcr.io/talmolab/sleap-roots-trait-extractor</code> — an identity distinct
 from the library image <code>ghcr.io/talmolab/sleap-roots</code>. Built from the root
