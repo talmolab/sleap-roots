@@ -244,15 +244,19 @@ log-then-reraise wrapper.
 
 ## 5. Cross-repo follow-up (tracked, not implemented here — no commits in this repo for these)
 
-- [ ] 5.1 In the PR description, explicitly state the three-exit-code convention (`0` success, `3`
+- [x] 5.1 In the PR description, explicitly state the three-exit-code convention (`0` success, `3`
       partial, `1` crash, `2` left to `argparse`) and link `talmolab/sleap-roots-predict#26`, so
-      that issue's implementation mirrors this one rather than deciding independently.
-- [ ] 5.2 After this PR merges (verify its merge state live, don't assume), update
+      that issue's implementation mirrors this one rather than deciding independently. **Done** —
+      PR #266's description states the convention explicitly and links
+      `talmolab/sleap-roots-predict#26`; cross-repo alignment was independently confirmed by
+      review passes on both PR #266 and predict PR #36 after both drivers shipped.
+- [x] 5.2 After this PR merges (verify its merge state live, don't assume), update
       `sleap-roots-pipeline`'s `docs/bloom-integration/roadmap.md` A3-traits row: mark
       sleap-roots#259 done with the PR link, note the exit-code convention decided here (for
       A3-predict / A4-wiring to match), and add a status-log entry. This is a change in a
-      different repository, not a commit in this PR.
-- [ ] 5.3 **Self-archive this change after merge (found in pre-PR review — do NOT skip this).**
+      different repository, not a commit in this PR. **Done** — PR #266 merged 2026-08-21
+      (verified live via `gh pr view`, merge commit `689cffb`); roadmap updated in the same pass.
+- [x] 5.3 **Self-archive this change after merge (found in pre-PR review — do NOT skip this).**
       `add-run-manifest-consumption` sat merged-but-unarchived long enough to create the exact
       spec-delta-clobbering hazard task-group 0.1 had to fix; without a tracked follow-up, this
       proposal would repeat that pattern for the NEXT change that touches

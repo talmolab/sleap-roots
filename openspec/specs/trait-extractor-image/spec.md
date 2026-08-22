@@ -16,8 +16,13 @@ contain the importable `sleap_roots` library, the `sleap_roots_contracts` packag
 
 The emitter's parsing, pipeline-selection, and per-scan emission behavior is owned by the
 `result-envelope-output` capability; this requirement asserts only that the built image
-executes that behavior end-to-end at the container boundary (including propagating the batch
-driver's process exit code, which Argo reads for DAG-node success).
+executes that behavior end-to-end at the container boundary, including propagating the batch
+driver's three-way process exit code (`0` full success, `3` partial, `1` crash — see
+`result-envelope-output`'s "Batch driver and module CLI" requirement) unchanged, which Argo reads
+for DAG-node success/retry decisions. Coverage of this container-boundary propagation is currently
+via the driver-level subprocess tests as a proxy (the exec-form `ENTRYPOINT` has no intermediary
+process to diverge from the driver's own exit code); no automated test runs the built image itself
+end-to-end (a pre-existing gap, not introduced by this requirement).
 
 #### Scenario: Real entry emits a valid envelope over the committed fixture
 
@@ -36,15 +41,25 @@ driver's process exit code, which Argo reads for DAG-node success).
   is run inside the built image
 - **THEN** all four imports succeed with a `0` exit code
 
-#### Scenario: A failing scan yields a non-zero container exit without discarding good envelopes
+#### Scenario: A failing scan yields the partial container exit code without discarding good envelopes
 
 - **WHEN** the image is run over an input tree containing one valid scan and one scan whose
   manifest references a nonexistent `.slp`
 - **THEN** the valid scan's `{scan_key}.result.json` is still written to the output mount
-- **AND** the container exits **non-zero** — the exec-form `ENTRYPOINT` propagates the batch
-  driver's exit code (a shell-form entry would swallow it). (The batch-level exit *convention*
-  vs A4's `retryStrategy`/`continueOn` `partial`-run policy is reconciled in the traits-wiring
-  step; this image packages the merged driver behavior unchanged — see design.md.)
+- **AND** the container exits `3` — the exec-form `ENTRYPOINT` propagates the batch driver's exit
+  code unchanged (a shell-form entry would swallow it), and A4's Argo template can key off `3`
+  specifically to treat this as a completed run with partial failures rather than retrying the
+  whole batch (the `retryStrategy`/`continueOn` wiring itself is a separate, pipeline-repo change —
+  see design.md)
+
+#### Scenario: SIGTERM during preemption terminates the pod promptly
+
+- **WHEN** Argo sends `SIGTERM` to the running container (preemption or cancellation) while a
+  batch is in progress
+- **THEN** the process exits promptly with code `143` instead of waiting out
+  `terminationGracePeriodSeconds` before SIGKILL
+- **AND** any `{scan_key}.result.json` already written to the output mount before the signal is
+  unaffected — per-scan writes are atomic (temp→rename) and the batch is idempotent on retry
 
 ### Requirement: Image stamps its build commit into trait provenance
 
