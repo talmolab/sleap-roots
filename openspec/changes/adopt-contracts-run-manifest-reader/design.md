@@ -53,6 +53,11 @@ point, and a local wrapper would be a second definition to drift. `extractor.py`
 the same name, `load_run_manifest`, so the existing monkeypatch-based `main()` test keeps its
 seam.
 
+*As implemented:* the one call lives in a private helper, `extractor._resolve_run_manifest`,
+which also owns the D5 and D7 warnings. That keeps the traceability logic out of
+`extract_batch`'s discovery loop. It still calls the module-level `load_run_manifest` exactly
+once per batch, which is the seam the tests spy on.
+
 ### D3. Forward: `mkstemp` + `chmod(read.mode)` + `os.replace`, with cleanup on failure
 
 This mirrors predict's forwarder (`sleap_roots_predict/run_manifest.py` on `main`), for the
