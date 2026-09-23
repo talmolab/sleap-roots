@@ -1,13 +1,16 @@
-"""Tests for loading + copying forward the run-scoping ``RunManifest``."""
+"""Tests for copying the run-scoping ``RunManifest`` forward.
+
+Loading the manifest is contracts' ``load_run_manifest`` (sleap-roots-contracts 0.1.0a9);
+its resolution, parsing, and identity cross-check are exercised through
+``extract_batch`` in ``test_batch.py``.
+"""
 
 import json
 from pathlib import Path
 
-import pydantic
-import pytest
 from sleap_roots_contracts import RUN_MANIFEST_FILENAME, RunManifest
 
-from trait_extractor.run_manifest import copy_run_manifest_forward, load_run_manifest
+from trait_extractor.run_manifest import copy_run_manifest_forward
 
 
 def _write_manifest(directory: Path, **overrides) -> Path:
@@ -19,27 +22,6 @@ def _write_manifest(directory: Path, **overrides) -> Path:
     path = directory / RUN_MANIFEST_FILENAME
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path
-
-
-def test_load_run_manifest_returns_none_when_absent(tmp_path):
-    """No run_manifest.json under input_dir -> None, not an exception."""
-    assert load_run_manifest(tmp_path) is None
-
-
-def test_load_run_manifest_parses_valid_file(tmp_path):
-    """A valid run_manifest.json loads with its exact fields."""
-    _write_manifest(tmp_path)
-    manifest = load_run_manifest(tmp_path)
-    assert isinstance(manifest, RunManifest)
-    assert manifest.pipeline_run_id == "local-abc123"
-    assert manifest.scan_keys == ["scan0K9E8BI", "scanYR39SJX"]
-
-
-def test_load_run_manifest_raises_on_invalid_manifest(tmp_path):
-    """A present-but-invalid manifest (empty scan_keys) raises loudly at load time."""
-    _write_manifest(tmp_path, scan_keys=[])
-    with pytest.raises(pydantic.ValidationError):
-        load_run_manifest(tmp_path)
 
 
 def test_copy_manifest_forward_writes_into_output_dir(tmp_path):

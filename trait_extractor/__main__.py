@@ -1,8 +1,9 @@
 """CLI entry point: ``python -m trait_extractor <input_dir> <output_dir>``.
 
 The legacy ``main(input_dir, output_dir)`` analog and the container's entry command.
-Discovers each ``{scan_key}.predictions.json`` under ``input_dir`` (scoped to a
-``run_manifest.json``'s ``scan_keys`` when present), emits one
+Discovers each ``{scan_key}.predictions.json`` under ``input_dir`` (scoped to the run
+manifest's ``scan_keys`` -- ``run_manifest.<ARGO_WORKFLOW_NAME>.json`` or the legacy
+``run_manifest.json`` -- when one resolves), emits one
 ``{scan_key}.result.json`` per scan to ``output_dir``, and exits with one of three
 driver-owned codes: 0 (full success), 3 (partial -- isolated per-scan failures), or 1
 (crash -- an exception escaped ``extract_batch`` entirely). Exit code 2 is reserved by
@@ -19,6 +20,7 @@ from typing import List, Optional
 
 import pydantic
 import yaml
+from sleap_roots_contracts import RunManifestError
 
 from trait_extractor.extractor import extract_batch
 
@@ -54,12 +56,19 @@ def main(argv: Optional[List[str]] = None) -> int:
             after logging a clean "Batch aborted: ..." line) -- the process's
             *effective* exit code is then Python's default 1, since nothing
             catches this above ``main()``.
-        pydantic.ValidationError: If ``run_manifest.json`` is present but invalid
-            (same logging/propagation as above) -- exit code 1.
-        OSError: If ``run_manifest.json`` is present but can't be read (same
-            logging/propagation) -- exit code 1.
-        UnicodeDecodeError: If ``run_manifest.json``'s bytes aren't valid UTF-8
+        sleap_roots_contracts.RunManifestError: If ``ARGO_WORKFLOW_NAME`` gives the
+            run an identity but no run manifest resolves for it
+            (``RunManifestMissingError``), or a per-run manifest names a different run
+            (``RunManifestIdentityError``) -- same logging/propagation, exit code 1.
+        ValueError: If ``ARGO_WORKFLOW_NAME`` is not usable as a filename component
             (same logging/propagation) -- exit code 1.
+        pydantic.ValidationError: If the resolved run manifest is present but invalid,
+            including bytes that aren't valid UTF-8/JSON (same logging/propagation) --
+            exit code 1.
+        OSError: If the resolved run manifest can't be read, or ``input_dir`` does not
+            exist (``FileNotFoundError``) (same logging/propagation) -- exit code 1.
+        UnicodeDecodeError: If the packaged ``pipeline_selection.yaml`` isn't valid
+            UTF-8 (same logging/propagation) -- exit code 1.
         yaml.YAMLError: If the packaged ``pipeline_selection.yaml`` is malformed
             (same logging/propagation) -- exit code 1.
         SystemExit: With code 143 if a ``SIGTERM`` is received (raised by
@@ -82,6 +91,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         result = extract_batch(args.input_dir, args.output_dir)
     except (
         RuntimeError,
+        # Neither an OSError nor a ValueError: RunManifestMissingError /
+        # RunManifestIdentityError from the contracts run-manifest reader.
+        RunManifestError,
+        # A bare ValueError (an unusable ARGO_WORKFLOW_NAME); pydantic.ValidationError
+        # and UnicodeDecodeError are subclasses, kept listed below for readability.
+        ValueError,
         pydantic.ValidationError,
         OSError,
         UnicodeDecodeError,
