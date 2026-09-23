@@ -38,7 +38,7 @@ def test_provenance_fields_and_contract_version():
     assert prov.params.values == {"species": "rice", "mode": "cylinder", "age": 3}
     assert prov.traits_sleap_roots_version == sleap_roots.__version__
     assert prov.contract_version == importlib.metadata.version("sleap-roots-contracts")
-    assert prov.contract_version == "0.1.0a7"
+    assert prov.contract_version == "0.1.0a9"
     assert not prov.contract_version.startswith("v")
     assert prov.produced_at is None
     assert prov.pipeline_run_id is None

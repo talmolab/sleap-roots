@@ -91,11 +91,11 @@ def test_packaging_config_declares_the_extractor_extra():
     assert any(
         # Split off the marker and match the requirement exactly (not startswith, so a
         # superstring version like ==0.1.0a70 cannot slip through).
-        dep.split(";")[0].strip() == "sleap-roots-contracts==0.1.0a7"
+        dep.split(";")[0].strip() == "sleap-roots-contracts==0.1.0a9"
         and "python_version >= '3.11'" in dep
         for dep in extractor
     ), (
-        "extractor extra must pin sleap-roots-contracts==0.1.0a7 with the "
+        "extractor extra must pin sleap-roots-contracts==0.1.0a9 with the "
         f"python_version >= '3.11' marker; got {extractor}"
     )
     # pyyaml is declared explicitly (trait_extractor's pipeline_chooser imports it directly);
@@ -103,6 +103,42 @@ def test_packaging_config_declares_the_extractor_extra():
     assert any(
         dep.split(";")[0].strip() == "pyyaml" for dep in extractor
     ), f"extractor extra must declare pyyaml explicitly; got {extractor}"
+
+
+def test_all_contracts_pins_agree():
+    """Every ``sleap-roots-contracts`` pin in pyproject.toml names the same version.
+
+    Contracts is pinned in three places (the uv ``dev`` dependency group, the pip ``dev``
+    extra, and the ``extractor`` extra). A partial bump -- e.g. only the extra the image
+    installs -- would let CI and the container resolve different contract versions.
+    """
+    import tomllib
+
+    pyproject = tomllib.loads(
+        (_REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    groups = {
+        "[dependency-groups].dev": pyproject["dependency-groups"]["dev"],
+        "[project.optional-dependencies].dev": pyproject["project"][
+            "optional-dependencies"
+        ]["dev"],
+        "[project.optional-dependencies].extractor": pyproject["project"][
+            "optional-dependencies"
+        ]["extractor"],
+    }
+    pins = {
+        name: dep
+        for name, deps in groups.items()
+        # Skip non-string entries such as a dependency group's {include-group = ...}.
+        for dep in deps
+        if isinstance(dep, str) and dep.startswith("sleap-roots-contracts")
+    }
+    assert set(pins) == set(groups), f"expected one contracts pin per group; got {pins}"
+    for name, dep in pins.items():
+        assert (
+            dep.split(";")[0].strip() == "sleap-roots-contracts==0.1.0a9"
+            and "python_version >= '3.11'" in dep
+        ), f"{name} must pin sleap-roots-contracts==0.1.0a9 with the marker; got {dep!r}"
 
 
 def test_image_bakes_traits_code_sha_for_provenance():
