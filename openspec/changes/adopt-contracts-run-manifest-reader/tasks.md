@@ -27,7 +27,7 @@ Commit 2 must land first, because commits 3–4 import names that exist only in 
 ## 0. Coordination (not code)
 
 - [x] 0.1 Baseline. `uv pip show sleap-roots-contracts` in the project venv reports `0.1.0a7`. PyPI serves `0.1.0a9`.
-- [ ] 0.2 **Draft, confirm with the user, then file** a Bloom issue: "`insert_cyl_result_envelope` must accept `contract_version` `0.1.0a9`". It must cover:
+- [x] 0.2 (Filed 2026-09-23 as Salk-Harnessing-Plants-Initiative/bloom#895; the roadmap-frontier note is still pending the user's OK.) **Draft, confirm with the user, then file** a Bloom issue: "`insert_cyl_result_envelope` must accept `contract_version` `0.1.0a9`". It must cover:
   - **The live body.** The target is the 2-arg `insert_cyl_result_envelope(envelope jsonb, p_argo_workflow_name text)` in `supabase/migrations/20260917140000_fix_cyl_redelivery_status_fallback.sql:43-53`, **not** #766's 1-arg body. Re-verify it is still the latest definition when filing.
   - **Vendored contract.** `contracts/pin.json` and `contracts/schema/result_envelope.schema.json` (`$id`).
   - **Options, with evidence (the choice is Bloom's).**
@@ -43,8 +43,8 @@ Commit 2 must land first, because commits 3–4 import names that exist only in 
   - **Evidence of a pure restamp.** The schema diff is `$id`-only. No `ResultEnvelope`/`Provenance`/`TraitValue` hunks. `identity.py`/`hashing.py` are unchanged.
   - **Gate wording.** Applied to the database the cluster write-back targets, not merely merged to `staging`.
   - Then link the issue number from `proposal.md`'s Deploy gate and from the changelog entry.
-- [ ] 0.3 PR body cross-links. Use `Refs` (not closing keywords) for srp#71 and predict#40, which both stay open. Also link pipeline#82 and the Bloom issue as the deploy gate.
-- [ ] 0.4 **Draft, confirm with the user, then file** a `sleap-roots-pipeline` issue. Once fail-loud is reachable, traits' exit `1` is retried twice (`retryStrategy: {limit: 2, retryPolicy: Always}`), then `continueOn: failed` runs write-back over `traits/`'s stale manifest. Cross-link it from design Risks.
+- [x] 0.3 (PR #269.) PR body cross-links. Use `Refs` (not closing keywords) for srp#71 and predict#40, which both stay open. Also link pipeline#82 and the Bloom issue as the deploy gate.
+- [x] 0.4 (Filed 2026-09-23 as talmolab/sleap-roots-pipeline#86.) **Draft, confirm with the user, then file** a `sleap-roots-pipeline` issue. Once fail-loud is reachable, traits' exit `1` is retried twice (`retryStrategy: {limit: 2, retryPolicy: Always}`), then `continueOn: failed` runs write-back over `traits/`'s stale manifest. Cross-link it from design Risks.
 
 ## 1. Pin bump (commit 2)
 

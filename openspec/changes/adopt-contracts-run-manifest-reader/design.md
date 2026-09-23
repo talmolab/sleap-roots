@@ -101,7 +101,7 @@ file gets exactly `read.mode`, matching predict. If an upstream stage ever publi
 at `0600`/`0640`, the forwarded copy keeps that mode, and write-back (a different uid, maybe a
 different group) cannot read it. Before this change, `shutil.copyfile` created it at the umask
 default. bloomctl writes with a plain `open()`, so the source is `0644` in practice. The risk is
-recorded in the pipeline follow-up issue (task 0.4), not guarded here, so traits and predict
+recorded in [talmolab/sleap-roots-pipeline#86](https://github.com/talmolab/sleap-roots-pipeline/issues/86), not guarded here, so traits and predict
 keep one forwarding rule.
 
 The best-effort exit code for a failed forward also stays `0`, even with a known identity
@@ -207,7 +207,7 @@ change is the first to hold a run identity inside `extract_batch`.
 |---|---|
 | Bloom's single-literal pin rejects either a7 or a9 envelopes during the switch, whatever the order | Deploy gate in proposal.md. The Bloom issue (task 0.2) presents a cutover window (Bloom's pattern: loud, recoverable by re-delivery) and a transitional set, and flags that a #766-style guard will trip (bloom#787). The in-cluster template apply waits until Bloom's change is applied |
 | First post-deploy run recomputes every scan | Expected: `traits_code_sha` changes per image, and a `contract_version` change forces recompute. Contracts' key derivation is unchanged (`identity.py`/`hashing.py` identical a7→a9) |
-| Traits exits `1` on fail-loud, but `continueOn: failed` still runs write-back over `traits/`'s stale manifest | Reachable only once fail-loud can fire (after design §4 step 5); filed against the pipeline (task 0.4) |
+| Traits exits `1` on fail-loud, but `continueOn: failed` still runs write-back over `traits/`'s stale manifest | Reachable only once fail-loud can fire (after design §4 step 5); filed as [talmolab/sleap-roots-pipeline#86](https://github.com/talmolab/sleap-roots-pipeline/issues/86) |
 | A dev shell with `ARGO_WORKFLOW_NAME` exported makes local runs fail loud | Intended: that shell claims a run identity. Tests are isolated by an autouse `delenv` |
 | `allow_legacy=True` still admits a stale 12-key legacy file under Argo | D5 warning; pipeline#82 flips it after the stale files are deleted |
 | `os.chmod` is largely a no-op on Windows | The mode test is POSIX-only (`skipif(sys.platform == "win32")`); Windows correctness is covered by the replace/cleanup tests |

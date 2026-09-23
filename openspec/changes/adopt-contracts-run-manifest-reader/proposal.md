@@ -96,7 +96,7 @@ literal, verified live on 2026-09-23 against bloom `staging`:
 
 **A single literal means some envelopes get rejected whatever the order.** If Bloom re-pins first,
 the deployed a7 traits image is rejected until the pin bump. If traits' pin is bumped first, its a9
-envelopes are rejected. The Bloom-side choice belongs to Bloom. The issue (task 0.2) presents both
+envelopes are rejected. The Bloom-side choice belongs to Bloom. The issue ([bloom#895](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/895)) presents both
 options with evidence:
 
 - **Cutover window (Bloom's established pattern).** Bloom re-pins first, then the traits template
@@ -119,8 +119,7 @@ Its a7 predecessor tripped on 10 a3 rows (bloom#787). It failed "Apply database 
 cancelled every staging deploy for six days. It was only resolved by restamping rows that happened
 to be disposable test fixtures. Today's `0.1.0a7` rows come from real Bloom-dispatched runs. Under
 a cutover, a guard copied from #766 **will** trip, so it must be removed or redesigned rather than
-restamped around. Under a set, no guard is needed. No such Bloom issue exists yet; task 0.2 files
-it after user confirmation.
+restamped around. Under a set, no guard is needed. Filed 2026-09-23 as [bloom#895](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/895).
 
 **Idempotency.** Contracts' key derivation is unchanged: `identity.py` and `hashing.py` are
 identical between a7 and a9, and the `ResultEnvelope` schema differs only in `$id`. Keys still
@@ -181,5 +180,4 @@ first run after deploy therefore recomputes every in-scope scan and inserts new 
   - rewrite the template's "inert today" comment on `ARGO_WORKFLOW_NAME` (lines 54–58), which
     becomes false.
   - Rollout note: once fail-loud is reachable, a traits exit `1` is retried twice. `continueOn:
-    failed` then still runs write-back over whatever manifest sits in `traits/`. Task 0.4 files
-    this against the pipeline.
+    failed` then still runs write-back over whatever manifest sits in `traits/`. Filed as [talmolab/sleap-roots-pipeline#86](https://github.com/talmolab/sleap-roots-pipeline/issues/86).

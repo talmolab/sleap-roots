@@ -198,5 +198,4 @@ build-only on PRs, build + push on `main`.
   2026-09-10). It accepts a single literal, so this repo's bump to `0.1.0a9` reopens the same
   class of blocker: every a9 envelope is rejected until Bloom accepts `0.1.0a9`. **An image built
   from `0.1.0a9` must not be applied to the cluster's trait-extractor template until that Bloom
-  change is applied to the database the cluster write-back targets.** See the Deploy gate in
-  `openspec/changes/adopt-contracts-run-manifest-reader/proposal.md`.
+  change is applied to the database the cluster write-back targets.** Tracked as [bloom#895](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/895).
