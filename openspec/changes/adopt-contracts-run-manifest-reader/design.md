@@ -96,6 +96,18 @@ separator, 8 random characters, and `.tmp`. Any run id of 224 characters or more
 best-effort and logged. Argo's `generateName` ids are about 26 characters, so the edge is not
 reachable in practice. Recorded here, and not guarded.
 
+*Exact mode, not "readable by all" (decided 2026-09-23, after pre-PR review):* the forwarded
+file gets exactly `read.mode`, matching predict. If an upstream stage ever publishes the manifest
+at `0600`/`0640`, the forwarded copy keeps that mode, and write-back (a different uid, maybe a
+different group) cannot read it. Before this change, `shutil.copyfile` created it at the umask
+default. bloomctl writes with a plain `open()`, so the source is `0644` in practice. The risk is
+recorded in the pipeline follow-up issue (task 0.4), not guarded here, so traits and predict
+keep one forwarding rule.
+
+The best-effort exit code for a failed forward also stays `0`, even with a known identity
+(decided the same day). The downstream consequence, write-back falling back to a stale legacy
+manifest, is documented in the service doc and revisited alongside pipeline#82.
+
 *Windows edge:* if the source manifest is read-only, `chmod(tmp, read.mode)` makes the temp file
 read-only too. A failure after that point then makes the cleanup `unlink` fail with
 `PermissionError`, which is logged at warning, and the temp file remains. The next forward's
