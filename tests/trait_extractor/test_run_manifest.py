@@ -257,7 +257,30 @@ def test_copy_manifest_forward_overwrites_a_different_prior_manifest(tmp_path):
     )
 
 
-def test_copy_manifest_forward_is_a_noop_when_input_and_output_are_the_same(tmp_path):
+@pytest.fixture
+def mkstemp_calls(monkeypatch):
+    """Record every temp-file creation the forward starts.
+
+    A same-path no-op must not start a publish at all: publishing over the same file
+    would also leave identical bytes and no temp file, so only this proves the guard
+    fired.
+    """
+    calls = []
+    real_mkstemp = run_manifest_module.tempfile.mkstemp
+
+    def spy_mkstemp(*args, **kwargs):
+        # tempfile is global; count only the forward's dot-prefixed run-manifest temps.
+        if str(kwargs.get("prefix", "")).startswith(".run_manifest"):
+            calls.append((args, kwargs))
+        return real_mkstemp(*args, **kwargs)
+
+    monkeypatch.setattr(run_manifest_module.tempfile, "mkstemp", spy_mkstemp)
+    return calls
+
+
+def test_copy_manifest_forward_is_a_noop_when_input_and_output_are_the_same(
+    tmp_path, mkstemp_calls
+):
     """input_dir == output_dir is already satisfied: nothing is written, nothing raised."""
     source = _write_manifest(tmp_path)
     before = source.read_bytes()
@@ -267,9 +290,10 @@ def test_copy_manifest_forward_is_a_noop_when_input_and_output_are_the_same(tmp_
 
     assert source.read_bytes() == before
     assert _listing(tmp_path) == [RUN_MANIFEST_FILENAME]
+    assert mkstemp_calls == []
 
 
-def test_copy_manifest_forward_noop_for_same_dir_per_run_name(tmp_path):
+def test_copy_manifest_forward_noop_for_same_dir_per_run_name(tmp_path, mkstemp_calls):
     """The same-path no-op keys on read.filename, and leaves no temp file behind."""
     _write_manifest(tmp_path, run_manifest_filename("wf-a"), pipeline_run_id="wf-a")
     read = read_run_manifest(tmp_path, "wf-a", allow_legacy=True)
@@ -277,9 +301,12 @@ def test_copy_manifest_forward_noop_for_same_dir_per_run_name(tmp_path):
     copy_run_manifest_forward(read, tmp_path, tmp_path)
 
     assert _listing(tmp_path) == ["run_manifest.wf-a.json"]
+    assert mkstemp_calls == []
 
 
-def test_copy_manifest_forward_is_a_noop_for_differently_spelled_same_path(tmp_path):
+def test_copy_manifest_forward_is_a_noop_for_differently_spelled_same_path(
+    tmp_path, mkstemp_calls
+):
     """Two textually-different paths that resolve to the same directory also no-op.
 
     Guards against a regression that swaps the resolve()-based equality check for a
@@ -298,3 +325,4 @@ def test_copy_manifest_forward_is_a_noop_for_differently_spelled_same_path(tmp_p
 
     assert (tmp_path / RUN_MANIFEST_FILENAME).is_file()
     assert not [p for p in tmp_path.iterdir() if p.name.startswith(".run_manifest")]
+    assert mkstemp_calls == []

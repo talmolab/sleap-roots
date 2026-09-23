@@ -1,5 +1,6 @@
 """Orchestrate a per-scan extraction: manifest + sidecar -> ResultEnvelope JSON."""
 
+import enum
 import logging
 import os
 import time
@@ -37,6 +38,11 @@ logger = logging.getLogger(__name__)
 _MANIFEST_SUFFIX = ".predictions.json"
 _MANIFEST_GLOB = "*" + _MANIFEST_SUFFIX
 _SIDECAR_SUFFIX = ".scan_metadata.json"
+# Matches the per-run names sleap_roots_contracts.run_manifest_filename() builds
+# ("run_manifest.<pipeline_run_id>.json") but never the legacy "run_manifest.json" (the
+# pattern needs a second dot). Contracts keeps its prefix/suffix private, so the pattern is
+# spelled out here.
+_PER_RUN_MANIFEST_GLOB = "run_manifest.*.json"
 
 _TEST_SCAN_DELAY_ENV = "SRT_TRAIT_EXTRACTOR_TEST_SCAN_DELAY_S"
 
@@ -145,9 +151,15 @@ class BatchResult:
         return not self.failed
 
 
+class _Unset(enum.Enum):
+    """Sentinel type for an omitted ``pipeline_run_id`` (see ``_FROM_ENV``)."""
+
+    FROM_ENV = enum.auto()
+
+
 # "Caller did not pass pipeline_run_id -- resolve it from the environment." Distinct
 # from None, which is a caller explicitly asserting the run has no identity.
-_FROM_ENV = object()
+_FROM_ENV = _Unset.FROM_ENV
 
 
 def _resolve_run_manifest(
@@ -168,7 +180,14 @@ def _resolve_run_manifest(
         identity and no legacy manifest exists.
 
     Raises:
-        See ``extract_batch``: everything ``load_run_manifest`` raises propagates.
+        sleap_roots_contracts.RunManifestMissingError: If ``pipeline_run_id`` is known
+            but no manifest resolves for it.
+        sleap_roots_contracts.RunManifestIdentityError: If a per-run-named manifest
+            names a different run.
+        ValueError: If ``pipeline_run_id`` is not usable as a filename component.
+        pydantic.ValidationError: If the resolved manifest is not a valid
+            ``RunManifest``.
+        OSError: If a candidate exists but can't be read, or ``input_dir`` is missing.
     """
     # allow_legacy=True while any stage may still write the legacy name; flipping it
     # to False is fleet-wide (talmolab/sleap-roots-pipeline#82).
@@ -177,11 +196,12 @@ def _resolve_run_manifest(
         # No identity, so per-run manifests are never candidates (design §2.3) and
         # discovery widens to the whole tree -- as before, but not silently.
         per_run = sorted(
-            path.name for path in Path(input_dir).glob("run_manifest.*.json")
+            path.name for path in Path(input_dir).glob(_PER_RUN_MANIFEST_GLOB)
         )
         if per_run:
             logger.warning(
-                "no run identity (ARGO_WORKFLOW_NAME unset) and no %s in %s; "
+                "no run identity (ARGO_WORKFLOW_NAME unset or blank, or "
+                "pipeline_run_id=None) and no %s in %s; "
                 "ignoring per-run manifest(s) %s and discovering every scan",
                 RUN_MANIFEST_FILENAME,
                 Path(input_dir).as_posix(),
@@ -212,7 +232,7 @@ def extract_batch(
     traits_code_sha: str = "",
     traits_container_digest: str = "",
     cards: Optional[List[PipelineCard]] = None,
-    pipeline_run_id: Union[str, None, object] = _FROM_ENV,
+    pipeline_run_id: Union[str, None, _Unset] = _FROM_ENV,
 ) -> BatchResult:
     """Extract every scan discovered under ``input_dir`` with per-scan isolation.
 
@@ -271,11 +291,16 @@ def extract_batch(
             -- an empty or misconfigured input mount, not a successful no-op.
         yaml.YAMLError: If the packaged ``pipeline_selection.yaml`` (loaded via
             ``load_pipeline_cards``) is malformed.
+        UnicodeDecodeError: If the packaged ``pipeline_selection.yaml`` isn't valid
+            UTF-8.
     """
     cards = cards or load_pipeline_cards()
-    if pipeline_run_id is _FROM_ENV:
-        pipeline_run_id = pipeline_run_id_from_env()
-    loaded = _resolve_run_manifest(input_dir, pipeline_run_id)
+    run_id: Optional[str] = (
+        pipeline_run_id_from_env()
+        if isinstance(pipeline_run_id, _Unset)
+        else pipeline_run_id
+    )
+    loaded = _resolve_run_manifest(input_dir, run_id)
     scope = set(loaded.manifest.scan_keys) if loaded is not None else None
     result = BatchResult()
     seen: Dict[str, Path] = {}
@@ -352,7 +377,8 @@ def extract_batch(
             result.failed.append((stem, str(exc)))
         _test_only_scan_delay()
 
-    if scope is not None:
+    if loaded is not None:
+        assert scope is not None  # both are derived from `loaded` above
         for missing_scan_key in sorted(scope - seen.keys()):
             result.failed.append(
                 (
@@ -375,7 +401,7 @@ def extract_batch(
         if orphaned:
             logger.warning(
                 "%d pre-existing result file(s) in %s are outside this run's scope "
-                "(from a prior run's wider manifest): %s",
+                "(another run's, or a prior wider manifest's): %s",
                 len(orphaned),
                 Path(output_dir).as_posix(),
                 ", ".join(orphaned),

@@ -11,8 +11,7 @@ Loading is not done here: ``extract_batch`` loads the manifest once with contrac
 the bytes forwarded are the bytes scoped against. Two deliberate differences from
 ``sleap-roots-predict``'s forwarder: a copy failure is best-effort here (the caller logs it
 rather than failing the batch), and cleanup also covers ``BaseException`` so a SIGTERM's
-``SystemExit`` mid-forward leaves no temp file (see the ``adopt-contracts-run-manifest-reader``
-change's design D3).
+``SystemExit`` mid-forward leaves no temp file.
 """
 
 import logging
@@ -56,15 +55,22 @@ def copy_run_manifest_forward(
 
     Raises:
         OSError: If publishing fails (e.g. a disk or permission error, or a temp name
-            over ``NAME_MAX`` for a very long run id). The temporary file is removed
-            first. The caller (``extract_batch``) treats this as best-effort
-            infrastructure and logs it rather than aborting the batch.
+            over ``NAME_MAX`` for a very long run id). Removal of the temporary file is
+            attempted first; a removal failure is logged, not raised. The caller
+            (``extract_batch``) treats this as best-effort infrastructure and logs it
+            rather than aborting the batch. Any other exception raised mid-publish --
+            including the SIGTERM handler's ``SystemExit`` -- gets the same cleanup and
+            propagates unchanged.
     """
     destination_dir = Path(output_dir)
     destination = destination_dir / read.filename
     # Path identity after symlink resolution, not inode identity: two hardlinked paths
     # would get a replace of identical bytes, which breaks the link but loses no data.
-    if (Path(input_dir) / read.filename).resolve() == destination.resolve():
+    # os.path.realpath rather than Path.resolve(): on Python 3.12 (the image's) resolve()
+    # raises RuntimeError on a symlink loop, which would escape the caller's best-effort
+    # `except OSError` after every envelope is already written.
+    source_path = os.path.realpath(Path(input_dir) / read.filename)
+    if source_path == os.path.realpath(destination):
         return
     destination_dir.mkdir(parents=True, exist_ok=True)
     fd, tmp_name = tempfile.mkstemp(
@@ -74,7 +80,17 @@ def copy_run_manifest_forward(
     try:
         # Write through mkstemp's fd and close it before anything else: on Windows an
         # open handle makes both os.replace and the cleanup unlink fail (WinError 32).
-        with os.fdopen(fd, "wb") as handle:
+        try:
+            handle = os.fdopen(fd, "wb")
+        except BaseException:
+            # fdopen may not have taken ownership, so `with` can't close it. If it did
+            # (and already closed the fd on its own error path), this is EBADF: ignore.
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+            raise
+        with handle:
             handle.write(read.data)
         # Before the replace, never after: after would briefly publish at 0600.
         os.chmod(tmp, read.mode)

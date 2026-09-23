@@ -127,18 +127,28 @@ def test_all_contracts_pins_agree():
         ]["extractor"],
     }
     pins = {
-        name: dep
+        name: [
+            dep
+            for dep in deps
+            # Skip non-string entries such as a dependency group's {include-group = ...}.
+            if isinstance(dep, str) and dep.startswith("sleap-roots-contracts")
+        ]
         for name, deps in groups.items()
-        # Skip non-string entries such as a dependency group's {include-group = ...}.
-        for dep in deps
-        if isinstance(dep, str) and dep.startswith("sleap-roots-contracts")
     }
-    assert set(pins) == set(groups), f"expected one contracts pin per group; got {pins}"
-    for name, dep in pins.items():
+    assert all(
+        len(deps) == 1 for deps in pins.values()
+    ), f"expected exactly one contracts pin per group; got {pins}"
+    requirements = {name: deps[0] for name, deps in pins.items()}
+    for name, dep in requirements.items():
         assert (
-            dep.split(";")[0].strip() == "sleap-roots-contracts==0.1.0a9"
+            dep.split(";")[0].strip().startswith("sleap-roots-contracts==")
             and "python_version >= '3.11'" in dep
-        ), f"{name} must pin sleap-roots-contracts==0.1.0a9 with the marker; got {dep!r}"
+        ), (
+            f"{name} must be an exact == pin with the python_version >= '3.11' "
+            f"marker; got {dep!r}"
+        )
+    versions = {name: dep.split(";")[0].strip() for name, dep in requirements.items()}
+    assert len(set(versions.values())) == 1, f"contracts pins disagree: {versions}"
 
 
 def test_image_bakes_traits_code_sha_for_provenance():

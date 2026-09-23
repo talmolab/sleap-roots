@@ -80,7 +80,11 @@ reasons predict documents:
   `SystemExit(143)` is covered too), unlink the temp file with `missing_ok=True`, then re-raise.
   An unlink failure is logged at warning and does not mask the original exception. This is one
   deliberate widening beyond predict, which uses `except Exception` and so leaves an orphan on
-  SIGTERM. Only `SIGKILL` can still orphan a temp file. `extract_batch`'s
+  SIGTERM. A temp file can still be orphaned by `SIGKILL`, by a signal that lands in the
+  microsecond window between `mkstemp` returning and the `try`, or by a second signal during
+  cleanup. Such an orphan is dot-prefixed and harmless.
+- *As implemented (pre-PR review hardening):* if `os.fdopen` raises before taking the fd, the
+  fd is closed explicitly (an `EBADF` from an already-closed fd is ignored). `extract_batch`'s
   existing `except OSError` keeps the forward best-effort.
 
 *Rejected:* keeping the fixed `<name>.tmp`. It is simpler, but on the legacy name two concurrent
@@ -124,6 +128,14 @@ as today. This compares paths after symlink resolution; it does not compare inod
 hardlinked paths, the replace now atomically swaps in the identical bytes it just read. That
 breaks the hardlink but loses no data, which is why no inode check is added. The spec states the
 no-op condition as path identity for exactly this reason.
+
+### Why `os.path.realpath` instead of `Path.resolve()`?
+
+The design first said `.resolve()`. The pre-PR review found that on Python 3.12, which the
+image uses, `Path.resolve()` raises `RuntimeError`, not `OSError`, on a symlink loop at the
+destination. That would escape `extract_batch`'s best-effort `except OSError` after every
+envelope was already written. The run would exit 1, and an Argo retry would skip every scan and
+crash again. `os.path.realpath` has the same path-identity semantics and never raises on loops.
 
 ### D5. Warn on a stale legacy read under a known identity
 

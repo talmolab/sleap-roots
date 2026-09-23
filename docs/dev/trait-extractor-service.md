@@ -104,13 +104,22 @@ cases are honored but logged as a `WARNING`:
 - per-run manifests present in a run with no identity, which ignores them and discovers
   everything.
 
+This reader alone does **not** remove the #71 contamination while the legacy fallback is on.
+Until `bloomctl` writes per-run names, it stamps the newest run's id into the shared legacy
+file. So a legacy manifest can name *this* run and still carry other runs' `scan_keys`, and no
+warning fires. The contamination closes only once `bloomctl` writes per-run manifests and
+pipeline#82 turns the legacy fallback off.
+
 With a manifest, a `.predictions.json` present but out of scope is silently ignored — this is the
 contamination-prevention this manifest exists for — and a scan whose output already matches (both
 `idempotency_key` and `contract_version`) is skipped rather than recomputed. After the batch, the
 manifest is republished into `output_dir` **under the name it was read from**, byte-identical to
 what was scoped against and with the source's permissions. The publish is atomic (a dot-prefixed
 temp file, removed on failure) and best-effort: a failure is logged and never costs the batch its
-results.
+results. It can, however, cost downstream its scoping. A run with an identity whose forward
+failed leaves no `run_manifest.<id>.json` in `output_dir`. Write-back, also on the legacy
+fallback, may then scope to whatever stale `run_manifest.json` a prior run left there. Watch
+for the `failed to copy` warning.
 
 With no manifest, discovery falls back to recursively finding every `{scan_key}.predictions.json`
 under `input_dir` (the original, pre-manifest behavior — used by local/non-pipeline runs); if that
@@ -182,7 +191,8 @@ build-only on PRs, build + push on `main`.
   Bloom's write-back RPC (`insert_cyl_result_envelope`) originally required
   `contract_version == "0.1.0a3"` ([bloom#393](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/393),
   closed by [bloom PR #399](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/pull/399)),
-  and was re-pinned to exactly `0.1.0a7` by
+  and was re-pinned to exactly `0.1.0a7` (`v`-prefix tolerant; the live body has since been
+  redefined and still pins a7) by
   [bloom PR #766](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/pull/766)
   ([bloom#685](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/685), closed
   2026-09-10). It accepts a single literal, so this repo's bump to `0.1.0a9` reopens the same

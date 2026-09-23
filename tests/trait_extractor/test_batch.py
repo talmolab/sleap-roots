@@ -424,7 +424,9 @@ def test_invalid_manifest_aborts_batch(tmp_path, run_id):
     assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
 
 
-def test_manifest_present_input_dir_equals_output_dir_does_not_crash(tmp_path, caplog):
+def test_manifest_present_input_dir_equals_output_dir_does_not_crash(
+    tmp_path, caplog, monkeypatch
+):
     """input_dir == output_dir does not crash the batch (copy-forward same-file case).
 
     Also asserts NO warning was logged: the same-path no-op guard in
@@ -433,8 +435,21 @@ def test_manifest_present_input_dir_equals_output_dir_does_not_crash(tmp_path, c
     warning after a failed publish) -- this distinguishes which of the two defense
     layers actually handled this specific case.
     """
+    import trait_extractor.run_manifest as run_manifest_module
+
     shutil.copytree(_FIXTURE_TREE, tmp_path, dirs_exist_ok=True)
     _write_run_manifest(tmp_path, ["scan0K9E8BI", "scanYR39SJX"])
+    mkstemp_calls = []
+    real_mkstemp = run_manifest_module.tempfile.mkstemp
+
+    def spy_mkstemp(*args, **kwargs):
+        # tempfile is global: scan loading also creates temp files. Count only the
+        # forward's own (dot-prefixed run-manifest) temp files.
+        if str(kwargs.get("prefix", "")).startswith(".run_manifest"):
+            mkstemp_calls.append(1)
+        return real_mkstemp(*args, **kwargs)
+
+    monkeypatch.setattr(run_manifest_module.tempfile, "mkstemp", spy_mkstemp)
 
     with caplog.at_level("WARNING"):
         result = extract_batch(tmp_path, tmp_path)
@@ -442,6 +457,9 @@ def test_manifest_present_input_dir_equals_output_dir_does_not_crash(tmp_path, c
     assert result.ok
     assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
     assert caplog.text == ""
+    # The same-path guard itself fired: a publish over the same file would also leave
+    # identical bytes and no warning, so only "never started a publish" proves it.
+    assert mkstemp_calls == []
 
 
 def test_copy_forward_failure_does_not_discard_already_computed_result(
@@ -942,6 +960,27 @@ def test_batch_forward_failure_leaves_no_temp_file(tmp_path, monkeypatch, caplog
         )
         for r in _warnings_from_extractor(caplog)
     )
+
+
+def test_batch_forward_systemexit_is_not_swallowed(tmp_path, monkeypatch):
+    """SIGTERM's SystemExit mid-forward escapes the best-effort OSError handling."""
+    in_dir = _copy_fixture(tmp_path)
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    out_dir = tmp_path / "out"
+    real_replace = os.replace
+
+    def fake_replace(src, dst, *args, **kwargs):
+        if Path(dst).name.startswith("run_manifest"):
+            raise SystemExit(143)
+        return real_replace(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(os, "replace", fake_replace)
+
+    with pytest.raises(SystemExit) as info:
+        extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+
+    assert info.value.code == 143
+    assert sorted(p.name for p in out_dir.iterdir()) == ["scan0K9E8BI.result.json"]
 
 
 def test_per_run_manifest_rerun_skips_and_reforwards(tmp_path):
