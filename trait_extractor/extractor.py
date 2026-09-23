@@ -381,7 +381,7 @@ def extract_batch(
                 ", ".join(orphaned),
             )
         try:
-            copy_run_manifest_forward(input_dir, output_dir)
+            copy_run_manifest_forward(loaded.read, input_dir, output_dir)
         except OSError as exc:
             # Copy-forward is best-effort infrastructure for the next pipeline stage,
             # not part of this batch's own computed result -- a disk/permission error
@@ -390,7 +390,8 @@ def extract_batch(
             # rather than relying on the exception's own str() (not every OSError, e.g.
             # a disk-full error from a raw write, carries a filename attribute).
             logger.warning(
-                "failed to copy run_manifest.json from %s to %s: %s",
+                "failed to copy %s from %s to %s: %s",
+                loaded.read.filename,
                 Path(input_dir).as_posix(),
                 Path(output_dir).as_posix(),
                 exc,

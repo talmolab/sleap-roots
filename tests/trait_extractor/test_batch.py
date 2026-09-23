@@ -427,11 +427,11 @@ def test_invalid_manifest_aborts_batch(tmp_path, run_id):
 def test_manifest_present_input_dir_equals_output_dir_does_not_crash(tmp_path, caplog):
     """input_dir == output_dir does not crash the batch (copy-forward same-file case).
 
-    Also asserts NO warning was logged: the same-file no-op guard in
+    Also asserts NO warning was logged: the same-path no-op guard in
     copy_run_manifest_forward should fire cleanly here, not extract_batch's separate
-    `except OSError` safety net (which would also prevent a crash, but via a
-    shutil.SameFileError caught after the fact, logging a warning) -- this distinguishes
-    which of the two defense layers actually handled this specific case.
+    `except OSError` safety net (which would also prevent a crash, but only by logging a
+    warning after a failed publish) -- this distinguishes which of the two defense
+    layers actually handled this specific case.
     """
     shutil.copytree(_FIXTURE_TREE, tmp_path, dirs_exist_ok=True)
     _write_run_manifest(tmp_path, ["scan0K9E8BI", "scanYR39SJX"])
@@ -810,6 +810,154 @@ def test_manifest_is_loaded_once_with_allow_legacy_true(tmp_path, monkeypatch):
     calls.clear()
     extract_batch(in_dir, tmp_path / "out-2")  # environment unset -> None
     assert calls == [((in_dir, None), {"allow_legacy": True})]
+
+
+# --- Forwarding the loaded snapshot -------------------------------------------------
+
+
+def test_batch_forwards_loaded_snapshot_not_rewritten_source(tmp_path, monkeypatch):
+    """The forwarded manifest is the snapshot scoped against, not a later re-read."""
+    import trait_extractor.extractor as extractor_module
+
+    in_dir = _copy_fixture(tmp_path)
+    source = _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    original = source.read_bytes()
+    loaded_reads = []
+    forwarded_reads = []
+    real_load = extractor_module.load_run_manifest
+    real_forward = extractor_module.copy_run_manifest_forward
+
+    def load_then_rewrite(*args, **kwargs):
+        loaded = real_load(*args, **kwargs)
+        loaded_reads.append(loaded.read)
+        # Another valid manifest lands at the same path after it was read.
+        _write_per_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"], "wf-a")
+        return loaded
+
+    def spy_forward(read, *args, **kwargs):
+        forwarded_reads.append(read)
+        return real_forward(read, *args, **kwargs)
+
+    monkeypatch.setattr(extractor_module, "load_run_manifest", load_then_rewrite)
+    monkeypatch.setattr(extractor_module, "copy_run_manifest_forward", spy_forward)
+
+    out_dir = tmp_path / "out"
+    result = extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+
+    assert result.succeeded == ["scan0K9E8BI"]
+    assert source.read_bytes() != original
+    assert (out_dir / "run_manifest.wf-a.json").read_bytes() == original
+    assert len(forwarded_reads) == 1
+    assert forwarded_reads[0] is loaded_reads[0]
+
+
+def test_per_run_manifest_forwarded_under_its_own_name(tmp_path, caplog):
+    """A per-run read is forwarded as run_manifest.<id>.json, never as the legacy name."""
+    in_dir = _copy_fixture(tmp_path)
+    source = _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"], pipeline_run_id="wf-a")
+    out_dir = tmp_path / "out"
+
+    with caplog.at_level("WARNING"):
+        extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+
+    assert (out_dir / "run_manifest.wf-a.json").read_bytes() == source.read_bytes()
+    assert not (out_dir / RUN_MANIFEST_FILENAME).exists()
+    assert _warnings_from_extractor(caplog) == []
+
+
+def test_concurrent_runs_forward_only_their_own_manifest(tmp_path):
+    """Runs sharing an input tree each forward only their own per-run manifest."""
+    in_dir = _copy_fixture(tmp_path)
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    _write_per_run_manifest(in_dir, ["scanYR39SJX"], "wf-b")
+
+    extract_batch(in_dir, tmp_path / "out-a", pipeline_run_id="wf-a")
+    extract_batch(in_dir, tmp_path / "out-b", pipeline_run_id="wf-b")
+
+    assert sorted(p.name for p in (tmp_path / "out-a").glob("run_manifest*")) == [
+        "run_manifest.wf-a.json"
+    ]
+    assert sorted(p.name for p in (tmp_path / "out-b").glob("run_manifest*")) == [
+        "run_manifest.wf-b.json"
+    ]
+
+
+def test_concurrent_runs_sharing_output_dir_do_not_clobber_each_others_manifest(
+    tmp_path, caplog
+):
+    """Two runs writing into one output_dir keep both per-run manifests intact."""
+    in_dir = _copy_fixture(tmp_path)
+    source_a = _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    source_b = _write_per_run_manifest(in_dir, ["scanYR39SJX"], "wf-b")
+    out_dir = tmp_path / "out"
+
+    a = extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+    with caplog.at_level("WARNING"):
+        b = extract_batch(in_dir, out_dir, pipeline_run_id="wf-b")
+
+    assert a.succeeded == ["scan0K9E8BI"]
+    assert b.succeeded == ["scanYR39SJX"]
+    assert (out_dir / "run_manifest.wf-a.json").read_bytes() == source_a.read_bytes()
+    assert (out_dir / "run_manifest.wf-b.json").read_bytes() == source_b.read_bytes()
+    # Expected, and pinned so it is not a surprise: from run wf-b's point of view the
+    # first run's envelope is outside its scope.
+    assert any(
+        "scan0K9E8BI" in r.getMessage() and "outside this run's scope" in r.getMessage()
+        for r in _warnings_from_extractor(caplog)
+    )
+
+
+def test_batch_forward_failure_leaves_no_temp_file(tmp_path, monkeypatch, caplog):
+    """A failed forward leaves only the envelopes, and never costs a scan its result."""
+    in_dir = _copy_fixture(tmp_path)
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"], "wf-a")
+    out_dir = tmp_path / "out"
+    real_replace = os.replace
+
+    def fake_replace(src, dst, *args, **kwargs):
+        # Only the manifest publish fails; per-scan write_envelope also uses os.replace.
+        if Path(dst).name.startswith("run_manifest"):
+            raise OSError("replace")
+        return real_replace(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(os, "replace", fake_replace)
+
+    with caplog.at_level("WARNING"):
+        result = extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+
+    assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
+    assert sorted(p.name for p in out_dir.iterdir()) == [
+        "scan0K9E8BI.result.json",
+        "scanYR39SJX.result.json",
+    ]
+    assert any(
+        all(
+            s in r.getMessage()
+            for s in (
+                "failed to copy run_manifest.wf-a.json",
+                in_dir.as_posix(),
+                out_dir.as_posix(),
+            )
+        )
+        for r in _warnings_from_extractor(caplog)
+    )
+
+
+def test_per_run_manifest_rerun_skips_and_reforwards(tmp_path):
+    """A re-run skips the scan and republishes the manifest over the existing copy."""
+    in_dir = _copy_fixture(tmp_path)
+    source = _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    out_dir = tmp_path / "out"
+
+    first = extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+    assert first.succeeded == ["scan0K9E8BI"]
+    (out_dir / "run_manifest.wf-a.json").write_text("junk", encoding="utf-8")
+
+    second = extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+
+    assert second.skipped == ["scan0K9E8BI"]
+    assert (out_dir / "run_manifest.wf-a.json").read_bytes() == source.read_bytes()
 
 
 def test_module_cli_writes_envelopes(tmp_path):
