@@ -228,9 +228,15 @@ this call site it means:
 - **Without a run identity:** `RUN_MANIFEST_FILENAME` is the correct name (not a fallback) and is
   the only candidate; if it is absent, discovery SHALL fall back to the unscoped recursive glob
   described in "Batch driver and module CLI" — today's exact pre-manifest behavior, unchanged.
-  Per-run manifests (`run_manifest.*.json`) are never read without an identity; if any are present
-  at the top level of `input_dir` when this fallback is taken, `extract_batch` SHALL log a
-  `WARNING` naming them before discovering, so the widening is visible rather than silent.
+  Per-run manifests (`run_manifest.*.json`) are never read without an identity.
+
+Whenever the resolved read is **not** a per-run manifest — no manifest resolved at all, or the
+legacy `run_manifest.json` was read (with or without an identity) — and per-run manifests
+(`run_manifest.*.json`) are present at the top level of `input_dir`, `extract_batch` SHALL log a
+`WARNING` naming them before discovering. The run is then either unscoped or scoped by the
+legacy file, while more specific per-run scopes sit beside it unread; that SHALL be visible
+rather than silent. (A copied cluster tree re-run locally is the typical case: the stale legacy
+union is read and the correct per-run manifest is ignored.)
 
 Only a genuinely absent candidate advances resolution; any other failure to read a candidate —
 `PermissionError`, a dangling symlink, a missing `input_dir` — SHALL propagate as an `OSError`
@@ -276,8 +282,9 @@ are written to a uniquely-named, dot-prefixed temporary file inside `output_dir`
 temporary file is created — including a `BaseException` such as the `SystemExit(143)` raised by
 the `SIGTERM` handler — that temporary file SHALL be unlinked before the exception propagates out
 of the forward; if the unlink itself fails, a `WARNING` naming the temporary path SHALL be logged
-and the original exception SHALL propagate unmasked. (A process killed by `SIGKILL` mid-forward
-may still leave a dot-prefixed orphan.) When `(input_dir / read.filename).resolve() ==
+and the original exception SHALL propagate unmasked. (A process killed by `SIGKILL` mid-forward,
+or a signal landing in the instant between `mkstemp` returning and the cleanup scope being
+entered, may still leave a dot-prefixed orphan, which no `run_manifest*` glob sees.) When `(input_dir / read.filename).resolve() ==
 (output_dir / read.filename).resolve()` — path identity after symlink resolution, not inode
 identity — the copy-forward SHALL be a no-op. This copy-forward is **best-effort infrastructure
 for the next pipeline stage, not part of this batch's own computed result**: an `OSError` during
@@ -334,6 +341,15 @@ batch, or discard the already-computed `succeeded`/`skipped`/`failed` results.
 - **THEN** discovery is unscoped (both fixture scans are processed), and a `WARNING` naming
   `run_manifest.wf-a.json` is logged
 
+#### Scenario: A legacy read beside unread per-run manifests is logged
+
+- **WHEN** `extract_batch` runs with `pipeline_run_id=None` over the fixture tree whose top level
+  holds a legacy `run_manifest.json` naming both scans and `run_manifest.wf-a.json` naming one
+- **THEN** discovery is scoped by the legacy manifest (both scans), and a `WARNING` naming
+  `run_manifest.wf-a.json` is logged
+- **AND** when the run instead reads its own per-run manifest (`pipeline_run_id="wf-a"`), no such
+  warning is logged
+
 #### Scenario: A legacy manifest naming another run is honored but logged
 
 - **WHEN** `extract_batch` runs with `pipeline_run_id="wf-a"`, no `run_manifest.wf-a.json`
@@ -388,6 +404,14 @@ batch, or discard the already-computed `succeeded`/`skipped`/`failed` results.
   and the run has no identity
 - **THEN** `extract_batch` raises `FileNotFoundError` naming the link before processing any scan,
   rather than falling back to unscoped discovery
+
+#### Scenario: A directory named like the manifest aborts rather than reading as absent
+
+- **WHEN** `run_manifest.json` at the top of `input_dir` is a directory, and the run has no
+  identity
+- **THEN** `extract_batch` raises an `OSError` that is not a `FileNotFoundError`
+  (`IsADirectoryError` on POSIX, `PermissionError` on Windows) before processing any scan, rather
+  than falling back to unscoped discovery
 
 #### Scenario: A case-only scan_key difference is a per-scan failure, not a silent overwrite
 

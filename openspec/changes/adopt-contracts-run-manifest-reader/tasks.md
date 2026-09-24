@@ -27,7 +27,7 @@ Commit 2 must land first, because commits 3–4 import names that exist only in 
 ## 0. Coordination (not code)
 
 - [x] 0.1 Baseline. `uv pip show sleap-roots-contracts` in the project venv reports `0.1.0a7`. PyPI serves `0.1.0a9`.
-- [x] 0.2 (Filed 2026-09-23 as Salk-Harnessing-Plants-Initiative/bloom#895; the roadmap-frontier note is still pending the user's OK.) **Draft, confirm with the user, then file** a Bloom issue: "`insert_cyl_result_envelope` must accept `contract_version` `0.1.0a9`". It must cover:
+- [x] 0.2 (Filed 2026-09-23 as Salk-Harnessing-Plants-Initiative/bloom#895.) **Draft, confirm with the user, then file** a Bloom issue: "`insert_cyl_result_envelope` must accept `contract_version` `0.1.0a9`". It must cover:
   - **The live body.** The target is the 2-arg `insert_cyl_result_envelope(envelope jsonb, p_argo_workflow_name text)` in `supabase/migrations/20260917140000_fix_cyl_redelivery_status_fallback.sql:43-53`, **not** #766's 1-arg body. Re-verify it is still the latest definition when filing.
   - **Vendored contract.** `contracts/pin.json` and `contracts/schema/result_envelope.schema.json` (`$id`).
   - **Options, with evidence (the choice is Bloom's).**
@@ -39,10 +39,10 @@ Commit 2 must land first, because commits 3–4 import names that exist only in 
     - a new rollback file (`supabase/rollbacks/20260917140000_…_rollback.sql` restores a7);
     - `PINNED_VERSION` in `tests/integration/test_cyl_writeback_rpc.py` and `test_cyl_read_path.py`;
     - `contracts/pin.json`, `contracts/schema/result_envelope.schema.json` and `contracts/README.md`.
-  - After filing, **record the gate in the `sleap-roots-pipeline` roadmap frontier** (rows 2/5/6 currently show no Bloom gate). This is outward-facing, so confirm with the user first.
   - **Evidence of a pure restamp.** The schema diff is `$id`-only. No `ResultEnvelope`/`Provenance`/`TraitValue` hunks. `identity.py`/`hashing.py` are unchanged.
   - **Gate wording.** Applied to the database the cluster write-back targets, not merely merged to `staging`.
   - Then link the issue number from `proposal.md`'s Deploy gate and from the changelog entry.
+- [ ] 0.2b Record the Bloom gate in the `sleap-roots-pipeline` roadmap frontier (rows 2/5/6 show none). **Owned by the pipeline session** that wrote the frontier table (it said so in PR #269's review); not done here.
 - [x] 0.3 (PR #269.) PR body cross-links. Use `Refs` (not closing keywords) for srp#71 and predict#40, which both stay open. Also link pipeline#82 and the Bloom issue as the deploy gate.
 - [x] 0.4 (Filed 2026-09-23 as talmolab/sleap-roots-pipeline#86.) **Draft, confirm with the user, then file** a `sleap-roots-pipeline` issue. Once fail-loud is reachable, traits' exit `1` is retried twice (`retryStrategy: {limit: 2, retryPolicy: Always}`), then `continueOn: failed` runs write-back over `traits/`'s stale manifest. Cross-link it from design Risks.
 
@@ -270,7 +270,7 @@ Directory-content assertions compare the full listing, `sorted(p.name for p in o
 
 ## 8. Post-merge (separate PRs)
 
-- [ ] 8.1 In the archive PR, also repoint `docs/dev/trait-extractor-service.md`'s Downstream note from `openspec/changes/adopt-contracts-run-manifest-reader/proposal.md` (which moves on archive) to the Bloom issue number from 0.2. Verify the merge live (`gh pr view`). Then open `openspec: archive adopt-contracts-run-manifest-reader after PR #N merge`, run `openspec archive … --yes` and `openspec validate --all --strict`, matching `094992d`/`a98918d`.
+- [ ] 8.1 Verify the merge live (`gh pr view`). Then open `openspec: archive adopt-contracts-run-manifest-reader after PR #N merge`, run `openspec archive … --yes` and `openspec validate --all --strict`, matching `094992d`/`a98918d`.
 - [ ] 8.2 The `sleap-roots-pipeline` traits pin bump is **gated on the Bloom a9 acceptance being applied**. It covers:
   - the image `sha-…@sha256:…`;
   - `SRT_TRAITS_CONTAINER_DIGEST` in the same change (`check_manifests.py`);
@@ -282,3 +282,4 @@ Directory-content assertions compare the full listing, `sorted(p.name for p in o
   - live acceptance: a Bloom-dispatched run whose new `cyl_trait_sources` rows carry `contract_version: 0.1.0a9`;
   - if option (b) was chosen, a follow-up issue to narrow the accepted set.
   Record in that PR that the bloomctl writer flip (§4 step 3) waits for both the predict and traits templates to be applied.
+- [ ] 8.3 **When talmolab/sleap-roots-pipeline#82 lands** (the fleet-wide `allow_legacy=False` flip), make a forward failure under a known identity a `BatchResult.failed` entry (exit `3`), not only a warning. The exit-`0` choice in design D3 is valid only while write-back's legacy fallback is on. Tests first: a batch with an identity plus a failing forward must exit `3`.

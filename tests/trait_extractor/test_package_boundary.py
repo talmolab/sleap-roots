@@ -151,6 +151,23 @@ def test_all_contracts_pins_agree():
     assert len(set(versions.values())) == 1, f"contracts pins disagree: {versions}"
 
 
+def test_per_run_manifest_glob_matches_contracts_filenames():
+    """The extractor's hand-spelled per-run glob agrees with contracts' naming.
+
+    Contracts keeps its filename prefix/suffix private, so ``_PER_RUN_MANIFEST_GLOB``
+    re-derives them (see talmolab/sleap-roots-contracts#43). A contracts-side rename
+    would otherwise silently stop the unread-per-run-manifest warning from firing.
+    """
+    import fnmatch
+
+    from sleap_roots_contracts import RUN_MANIFEST_FILENAME, run_manifest_filename
+
+    from trait_extractor.extractor import _PER_RUN_MANIFEST_GLOB
+
+    assert fnmatch.fnmatchcase(run_manifest_filename("wf-a"), _PER_RUN_MANIFEST_GLOB)
+    assert not fnmatch.fnmatchcase(RUN_MANIFEST_FILENAME, _PER_RUN_MANIFEST_GLOB)
+
+
 def test_image_bakes_traits_code_sha_for_provenance():
     """The Docker image + workflow bake the build commit into ``SRT_TRAITS_CODE_SHA``.
 

@@ -708,6 +708,70 @@ def test_per_run_manifests_without_identity_are_ignored_but_warned(tmp_path, cap
     assert len(matching) == 1
 
 
+def test_legacy_read_beside_per_run_manifests_is_warned(tmp_path, caplog):
+    """A legacy read with per-run scopes sitting unread beside it is logged (D7).
+
+    The #71 tree shape: a stale legacy union is read and the correct per-run manifest
+    is ignored -- wrong-scoped, not unscoped, and previously silent.
+    """
+    in_dir = _copy_fixture(tmp_path)
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"])
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+
+    with caplog.at_level("WARNING"):
+        result = extract_batch(in_dir, tmp_path / "out", pipeline_run_id=None)
+
+    assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
+    matching = [
+        r
+        for r in _warnings_from_extractor(caplog)
+        if "run_manifest.wf-a.json" in r.getMessage()
+    ]
+    assert len(matching) == 1
+
+
+def test_own_per_run_read_is_not_warned_about_other_manifests(tmp_path, caplog):
+    """Reading this run's own per-run manifest triggers no unread-manifest warning."""
+    in_dir = _copy_fixture(tmp_path)
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"], pipeline_run_id="wf-a")
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    _write_per_run_manifest(in_dir, ["scanYR39SJX"], "wf-b")
+
+    with caplog.at_level("WARNING"):
+        result = extract_batch(in_dir, tmp_path / "out", pipeline_run_id="wf-a")
+
+    assert result.succeeded == ["scan0K9E8BI"]
+    assert _warnings_from_extractor(caplog) == []
+
+
+def test_directory_named_like_the_manifest_raises(tmp_path):
+    """A directory at run_manifest.json is a broken tree, not an absent manifest."""
+    in_dir = _copy_fixture(tmp_path)
+    out_dir = tmp_path / "out"
+    (in_dir / RUN_MANIFEST_FILENAME).mkdir()
+
+    with pytest.raises(OSError) as info:
+        extract_batch(in_dir, out_dir, pipeline_run_id=None)
+    # IsADirectoryError on POSIX, PermissionError on Windows -- never "absent".
+    assert not isinstance(info.value, FileNotFoundError)
+    assert isinstance(info.value, (IsADirectoryError, PermissionError))
+    assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
+
+
+def test_non_utf8_manifest_raises_validation_error(tmp_path):
+    """Invalid UTF-8 manifest bytes are a pydantic ValidationError, not UnicodeDecodeError.
+
+    Pins the contracts-0.1.0a9 behavior change: the manifest is parsed from bytes.
+    """
+    in_dir = _copy_fixture(tmp_path)
+    out_dir = tmp_path / "out"
+    (in_dir / RUN_MANIFEST_FILENAME).write_bytes(b"\xff\xfe not valid utf-8")
+
+    with pytest.raises(pydantic.ValidationError, match="json_invalid"):
+        extract_batch(in_dir, out_dir, pipeline_run_id=None)
+    assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
+
+
 def test_run_identity_defaults_to_environment(tmp_path, monkeypatch):
     """Omitting pipeline_run_id resolves it via pipeline_run_id_from_env(), once."""
     import trait_extractor.extractor as extractor_module
@@ -1137,6 +1201,10 @@ def test_module_cli_exits_crash_code_on_non_utf8_run_manifest(tmp_path):
 
     assert proc.returncode == 1
     assert "Batch aborted:" in proc.stderr
+    # Discriminates the a9 behavior from the old one: both paths log "Batch aborted:"
+    # and exit 1, but only the new one raises pydantic's ValidationError.
+    assert "ValidationError" in proc.stderr
+    assert "UnicodeDecodeError" not in proc.stderr
 
 
 def test_main_logs_clean_message_on_os_error_from_run_manifest(

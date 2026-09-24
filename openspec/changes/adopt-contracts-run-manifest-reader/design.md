@@ -106,7 +106,13 @@ keep one forwarding rule.
 
 The best-effort exit code for a failed forward also stays `0`, even with a known identity
 (decided the same day). The downstream consequence, write-back falling back to a stale legacy
-manifest, is documented in the service doc and revisited alongside pipeline#82.
+manifest, is documented in the service doc.
+
+That reasoning **expires at pipeline#82.** "No worse than today" holds only while write-back's own
+legacy fallback is on. Once #82 turns it off, a missing forwarded per-run manifest makes
+write-back fail loud, and this stage should then say that it broke the chain. Task 8.3 ties the
+two: when #82 lands, a forward failure under a known identity becomes a `BatchResult.failed`
+entry (exit `3`), not only a warning. (Raised in PR #269's review.)
 
 *Windows edge:* if the source manifest is read-only, `chmod(tmp, read.mode)` makes the temp file
 read-only too. A failure after that point then makes the cleanup `unlink` fail with
@@ -185,14 +191,25 @@ stays listed too. The exit code is unchanged (Python's default `1`). Only the cl
 
 ### D7. Warn when per-run manifests are present but none applies
 
-This covers a run with no identity (`loaded is None`) whose `input_dir` top level holds one or more
-`run_manifest.*.json` files. The typical case is a local re-run over a copied cluster tree. The
-run falls back to unscoped discovery, which is today's behavior and required by design §2.3.
-Before that, it logs one `WARNING` naming the files, so the widening is visible and not silent.
+This covers any run whose read is **not** a per-run manifest (`loaded is None`, or
+`not loaded.read.is_per_run`) while the top level of `input_dir` holds one or more
+`run_manifest.*.json` files. It logs one `WARNING` naming them. The scope is unchanged: the run is
+either unscoped or scoped by the legacy file, exactly as design §2.3 requires.
 
-The match is `Path(input_dir).glob("run_manifest.*.json")`, which excludes `run_manifest.json`
-itself. It is top-level only, matching the reader. It is a warning, not an error: design §2.3
-makes identity-less runs legacy-only on purpose, and a local operator may intend the unscoped run.
+### Why widened from "no manifest resolved" to "not scoped by a per-run manifest"?
+
+As approved, D7 fired only when `loaded is None`. PR #269's review reproduced the #71 tree
+against the released a9: an identity-less reader scoped to the stale 12-key legacy manifest while
+the correct 1-key per-run manifest sat beside it, unread and **unmentioned**. That is not unscoped
+discovery; it is wrong-scoped discovery. It is also the likeliest shape of a local re-run over a
+copied cluster tree. The original rationale ("a local operator may intend the unscoped run") did
+not cover it, and the helper's docstring claimed to log that case when it didn't. The one-condition
+widening makes both true.
+
+The match is `_PER_RUN_MANIFEST_GLOB` (`run_manifest.*.json`), which excludes `run_manifest.json`
+itself. It is top-level only, matching the reader. A test round-trips it against contracts'
+`run_manifest_filename` (talmolab/sleap-roots-contracts#43 tracks exporting the pattern). It is a
+warning, not an error: design §2.3 makes identity-less runs legacy-only on purpose.
 
 ### D8. The run identity is not stamped into `Provenance`
 

@@ -101,8 +101,11 @@ A per-run manifest whose `pipeline_run_id` names a different run is a crash
 cases are honored but logged as a `WARNING`:
 - a legacy manifest read under a known identity that names another run (a stale file, or a later
   concurrent chunk's merge);
-- per-run manifests present in a run with no identity, which ignores them and discovers
-  everything.
+- per-run manifests (`run_manifest.*.json`) present but unread, because the run was *not*
+  scoped by a per-run manifest. Either no manifest resolved and it discovers everything, or it
+  read the legacy `run_manifest.json`. The typical case is a copied cluster tree re-run locally,
+  with no identity: the stale legacy union is read and the correct per-run manifest beside it
+  is ignored.
 
 This reader alone does **not** remove the #71 contamination while the legacy fallback is on.
 Until `bloomctl` writes per-run names, it stamps the newest run's id into the shared legacy

@@ -165,11 +165,19 @@ _FROM_ENV = _Unset.FROM_ENV
 def _resolve_run_manifest(
     input_dir: Union[str, Path], pipeline_run_id: Optional[str]
 ) -> Optional[LoadedRunManifest]:
-    """Load this run's manifest once, and log the two cases that silently widen scope.
+    """Load this run's manifest once, and log the cases where its scope may be wrong.
 
     Resolution, parsing, and the per-run identity cross-check are contracts'
     ``load_run_manifest``; this adds only traceability for what that function
-    deliberately leaves unchecked.
+    deliberately leaves unchecked:
+
+    - the read is not a per-run manifest (unscoped, or scoped by the legacy file) while
+      per-run manifests sit unread at the top of ``input_dir`` (design D7);
+    - a legacy manifest read under a known identity names a different run (design D5).
+
+    Neither changes the scope. A legacy manifest that names *this* run but still carries
+    other runs' ``scan_keys`` (the pre-flip bloomctl union) is not detectable here and
+    stays silent.
 
     Args:
         input_dir: Directory whose top level holds the manifest.
@@ -192,23 +200,33 @@ def _resolve_run_manifest(
     # allow_legacy=True while any stage may still write the legacy name; flipping it
     # to False is fleet-wide (talmolab/sleap-roots-pipeline#82).
     loaded = load_run_manifest(input_dir, pipeline_run_id, allow_legacy=True)
-    if loaded is None:
-        # No identity, so per-run manifests are never candidates (design §2.3) and
-        # discovery widens to the whole tree -- as before, but not silently.
+    if loaded is None or not loaded.read.is_per_run:
+        # Not scoped by a per-run manifest -- either unscoped (no identity, no legacy
+        # file) or scoped by the legacy union -- while more specific per-run scopes may
+        # sit beside it unread (design §2.3 makes them non-candidates without an
+        # identity). The typical case is a copied cluster tree re-run locally: the stale
+        # legacy union is read and the correct per-run manifest ignored. Not an error,
+        # but not silent either.
         per_run = sorted(
             path.name for path in Path(input_dir).glob(_PER_RUN_MANIFEST_GLOB)
         )
         if per_run:
+            scoped_by = (
+                "discovering every scan"
+                if loaded is None
+                else f"scoping by legacy {loaded.read.filename}"
+            )
             logger.warning(
-                "no run identity (ARGO_WORKFLOW_NAME unset or blank, or "
-                "pipeline_run_id=None) and no %s in %s; "
-                "ignoring per-run manifest(s) %s and discovering every scan",
-                RUN_MANIFEST_FILENAME,
+                "run %r is not scoped by a per-run manifest in %s (%s); "
+                "per-run manifest(s) present but unread: %s",
+                pipeline_run_id,
                 Path(input_dir).as_posix(),
+                scoped_by,
                 ", ".join(per_run),
             )
-    elif (
-        pipeline_run_id is not None
+    if (
+        loaded is not None
+        and pipeline_run_id is not None
         and not loaded.read.is_per_run
         and loaded.manifest.pipeline_run_id != pipeline_run_id
     ):

@@ -11,7 +11,9 @@ Loading is not done here: ``extract_batch`` loads the manifest once with contrac
 the bytes forwarded are the bytes scoped against. Two deliberate differences from
 ``sleap-roots-predict``'s forwarder: a copy failure is best-effort here (the caller logs it
 rather than failing the batch), and cleanup also covers ``BaseException`` so a SIGTERM's
-``SystemExit`` mid-forward leaves no temp file.
+``SystemExit`` raised while publishing removes the temp file too. (Only a signal landing in
+the instant between ``mkstemp`` returning and the cleanup scope opening, or a ``SIGKILL``,
+can still leave a dot-prefixed orphan.)
 """
 
 import logging
@@ -60,7 +62,8 @@ def copy_run_manifest_forward(
             (``extract_batch``) treats this as best-effort infrastructure and logs it
             rather than aborting the batch. Any other exception raised mid-publish --
             including the SIGTERM handler's ``SystemExit`` -- gets the same cleanup and
-            propagates unchanged.
+            propagates unchanged. (A signal in the instant before the cleanup scope opens,
+            or a ``SIGKILL``, can still orphan the dot-prefixed temp file.)
     """
     destination_dir = Path(output_dir)
     destination = destination_dir / read.filename
@@ -76,8 +79,10 @@ def copy_run_manifest_forward(
     fd, tmp_name = tempfile.mkstemp(
         dir=destination_dir, prefix=f".{read.filename}.", suffix=".tmp"
     )
-    tmp = Path(tmp_name)
+    # The cleanup scope opens on the very next statement; only a signal landing between
+    # mkstemp returning and this `try` can still orphan the (dot-prefixed) temp file.
     try:
+        tmp = Path(tmp_name)
         # Write through mkstemp's fd and close it before anything else: on Windows an
         # open handle makes both os.replace and the cleanup unlink fail (WinError 32).
         try:
@@ -98,10 +103,13 @@ def copy_run_manifest_forward(
     except BaseException:
         # BaseException, not Exception: the SIGTERM handler's SystemExit(143) must not
         # orphan the temp file either. Re-raised unchanged below.
+        leftover = Path(tmp_name)
         try:
-            tmp.unlink(missing_ok=True)
+            leftover.unlink(missing_ok=True)
         except OSError as cleanup_exc:
             logger.warning(
-                "could not remove temporary file %s: %s", tmp.as_posix(), cleanup_exc
+                "could not remove temporary file %s: %s",
+                leftover.as_posix(),
+                cleanup_exc,
             )
         raise

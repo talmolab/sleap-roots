@@ -48,8 +48,9 @@ stays open, because its NFS `O_CREAT|O_EXCL` question belongs to the staging loc
 - **Traceability warnings** (the scope is unchanged by either):
   - A *legacy* manifest read under a known identity, whose `pipeline_run_id` names another run,
     is honored as `allow_legacy=True` requires but logged as a `WARNING` (design D5).
-  - A run with no identity over an `input_dir` holding only per-run manifests falls back to
-    unscoped discovery exactly as today, but now logs a `WARNING` naming them (design D7).
+  - Whenever the run is *not* scoped by a per-run manifest (unscoped, or scoped by the legacy
+    file) while per-run manifests sit unread beside it, a `WARNING` names them (design D7). This
+    is the shape of a copied cluster tree re-run locally.
 - **Forward under the name read** (§2.5): the snapshot is republished into `output_dir` as
   `read.filename`, with `read.mode`, atomically. The temp file is removed on failure (design D3).
   It stays **best-effort**, as specified today; that divergence from predict is deliberate.
@@ -139,6 +140,11 @@ first run after deploy therefore recomputes every in-scope scan and inserts new 
 - Design §4 step 3, the bloomctl writer flip, is therefore transitively gated on the Bloom change
   too. It must not happen until *both* the predict and traits templates are applied with adopted
   images.
+- **The writer can adopt a9 by accident.** `bloomcli/pyproject.toml:28` pins contracts
+  `>=0.1.0a7`, unbounded, so any incidental bloomctl image rebuild while traits is held back by
+  bloom#895 picks up a9. That alone does not flip the writer, because the per-run filename is a
+  code change in `download_for_predict.py`. But treat a bloomctl rebuild during the Bloom gate
+  window as a rollout event, not a routine one.
 - Predict is not Bloom-gated, because it stamps no `contract_version`. Its gate is the chain in
   design §4:
   1. predict#34 merges (step 0a);
