@@ -1,6 +1,7 @@
 """Tests for the batch driver, failure isolation, and the module CLI."""
 
 import json
+import logging
 import os
 import re
 import shutil
@@ -9,11 +10,17 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Iterable
+from typing import Dict, Iterable, Optional
 
 import pydantic
 import pytest
-from sleap_roots_contracts import RUN_MANIFEST_FILENAME, ResultEnvelope
+from sleap_roots_contracts import (
+    RUN_MANIFEST_FILENAME,
+    ResultEnvelope,
+    RunManifestIdentityError,
+    RunManifestMissingError,
+    run_manifest_filename,
+)
 
 from trait_extractor.extractor import extract_batch
 
@@ -21,13 +28,51 @@ _FIXTURE_TREE = Path("tests/data/rice_3do_pipeline_output")
 
 
 def _write_run_manifest(
-    directory: Path, scan_keys: Iterable[str], pipeline_run_id: str = "local-abc123"
-) -> None:
-    """Write a run_manifest.json into ``directory`` scoping to ``scan_keys``."""
+    directory: Path,
+    scan_keys: Iterable[str],
+    *,
+    pipeline_run_id: str = "local-abc123",
+    filename: Optional[str] = None,
+) -> Path:
+    """Write a run manifest into ``directory`` scoping to ``scan_keys``.
+
+    Args:
+        directory: Directory to write the manifest into.
+        scan_keys: The manifest's ``scan_keys``.
+        pipeline_run_id: The ``pipeline_run_id`` recorded *inside* the manifest.
+        filename: The manifest's filename. Defaults to ``RUN_MANIFEST_FILENAME`` (the
+            legacy name). Pass ``run_manifest_filename(id)`` for a per-run name; the name
+            and the content's ``pipeline_run_id`` are independent so identity-mismatch
+            cases can be expressed.
+
+    Returns:
+        The path written.
+    """
     payload = {"pipeline_run_id": pipeline_run_id, "scan_keys": list(scan_keys)}
-    (directory / RUN_MANIFEST_FILENAME).write_text(
-        json.dumps(payload), encoding="utf-8"
+    path = directory / (filename or RUN_MANIFEST_FILENAME)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
+
+
+def _write_per_run_manifest(
+    directory: Path, scan_keys: Iterable[str], run_id: str
+) -> Path:
+    """Write ``run_manifest.<run_id>.json`` naming ``run_id`` inside it too."""
+    return _write_run_manifest(
+        directory,
+        scan_keys,
+        pipeline_run_id=run_id,
+        filename=run_manifest_filename(run_id),
     )
+
+
+def _warnings_from_extractor(caplog) -> list:
+    """The ``WARNING``-or-above records logged by ``trait_extractor.extractor``."""
+    return [
+        r
+        for r in caplog.records
+        if r.name == "trait_extractor.extractor" and r.levelno >= logging.WARNING
+    ]
 
 
 def test_batch_emits_one_envelope_per_scan(tmp_path):
@@ -152,15 +197,18 @@ def test_empty_unscoped_input_dir_raises(tmp_path):
 
 
 def test_nonexistent_unscoped_input_dir_raises(tmp_path):
-    """A totally missing (not just empty) input_dir hits the same guard.
+    """A totally missing (not just empty) input_dir raises, naming the directory.
 
-    Round-4/PR review found this variant -- Path.rglob() on a nonexistent
-    directory -- was only verified manually, never pinned by a test.
+    Round-4/PR review found this variant was only verified manually, never pinned by a
+    test. Since contracts 0.1.0a9 the run-manifest reader itself raises
+    FileNotFoundError("run manifest directory does not exist") before discovery runs --
+    a mis-mounted input is reported as such, rather than reaching the empty-input
+    RuntimeError guard as it did before.
     """
     in_dir = tmp_path / "does_not_exist"
     out_dir = tmp_path / "out"
 
-    with pytest.raises(RuntimeError, match=re.escape(in_dir.as_posix())):
+    with pytest.raises(FileNotFoundError, match=re.escape(in_dir.as_posix())):
         extract_batch(in_dir, out_dir)
     assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
 
@@ -356,29 +404,52 @@ def test_manifest_scoping_duplicate_of_an_already_skipped_scan_key_is_a_failure(
     assert "duplicate scan_key" in result.failed[0][1]
 
 
-def test_invalid_manifest_aborts_batch(tmp_path):
-    """A present-but-invalid run_manifest.json raises before any scan is processed."""
+@pytest.mark.parametrize("run_id", [None, "wf-a"], ids=["legacy", "per-run"])
+def test_invalid_manifest_aborts_batch(tmp_path, run_id):
+    """A present-but-invalid run manifest raises before any scan is processed.
+
+    Covers both the legacy name (no run identity) and the per-run name (identity known).
+    """
     in_dir = tmp_path / "in"
     out_dir = tmp_path / "out"
     shutil.copytree(_FIXTURE_TREE, in_dir)
-    _write_run_manifest(in_dir, [])  # empty scan_keys is invalid
+    # empty scan_keys is invalid
+    if run_id is None:
+        _write_run_manifest(in_dir, [])
+    else:
+        _write_per_run_manifest(in_dir, [], run_id)
 
     with pytest.raises(pydantic.ValidationError):
-        extract_batch(in_dir, out_dir)
+        extract_batch(in_dir, out_dir, pipeline_run_id=run_id)
     assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
 
 
-def test_manifest_present_input_dir_equals_output_dir_does_not_crash(tmp_path, caplog):
+def test_manifest_present_input_dir_equals_output_dir_does_not_crash(
+    tmp_path, caplog, monkeypatch
+):
     """input_dir == output_dir does not crash the batch (copy-forward same-file case).
 
-    Also asserts NO warning was logged: the same-file no-op guard in
+    Also asserts NO warning was logged: the same-path no-op guard in
     copy_run_manifest_forward should fire cleanly here, not extract_batch's separate
-    `except OSError` safety net (which would also prevent a crash, but via a
-    shutil.SameFileError caught after the fact, logging a warning) -- this distinguishes
-    which of the two defense layers actually handled this specific case.
+    `except OSError` safety net (which would also prevent a crash, but only by logging a
+    warning after a failed publish) -- this distinguishes which of the two defense
+    layers actually handled this specific case.
     """
+    import trait_extractor.run_manifest as run_manifest_module
+
     shutil.copytree(_FIXTURE_TREE, tmp_path, dirs_exist_ok=True)
     _write_run_manifest(tmp_path, ["scan0K9E8BI", "scanYR39SJX"])
+    mkstemp_calls = []
+    real_mkstemp = run_manifest_module.tempfile.mkstemp
+
+    def spy_mkstemp(*args, **kwargs):
+        # tempfile is global: scan loading also creates temp files. Count only the
+        # forward's own (dot-prefixed run-manifest) temp files.
+        if str(kwargs.get("prefix", "")).startswith(".run_manifest"):
+            mkstemp_calls.append(1)
+        return real_mkstemp(*args, **kwargs)
+
+    monkeypatch.setattr(run_manifest_module.tempfile, "mkstemp", spy_mkstemp)
 
     with caplog.at_level("WARNING"):
         result = extract_batch(tmp_path, tmp_path)
@@ -386,6 +457,9 @@ def test_manifest_present_input_dir_equals_output_dir_does_not_crash(tmp_path, c
     assert result.ok
     assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
     assert caplog.text == ""
+    # The same-path guard itself fired: a publish over the same file would also leave
+    # identical bytes and no warning, so only "never started a publish" proves it.
+    assert mkstemp_calls == []
 
 
 def test_copy_forward_failure_does_not_discard_already_computed_result(
@@ -482,6 +556,513 @@ def test_manifest_scoped_scan_is_also_skipped_on_second_run(tmp_path):
     assert set(second.skipped) == {"scan0K9E8BI", "scanYR39SJX"}
 
 
+# --- Run identity + per-run manifest resolution (sleap-roots-pipeline#71) -------------
+
+
+def _copy_fixture(tmp_path: Path, name: str = "in") -> Path:
+    """Copy the two-scan fixture tree to ``tmp_path / name`` and return it."""
+    in_dir = tmp_path / name
+    shutil.copytree(_FIXTURE_TREE, in_dir)
+    return in_dir
+
+
+def test_argo_workflow_name_is_cleared_for_tests():
+    """The autouse conftest fixture removes any inherited run identity.
+
+    Vacuous wherever the variable is never exported (CI); its red step is manual --
+    run with ``ARGO_WORKFLOW_NAME`` exported and the fixture removed.
+    """
+    assert "ARGO_WORKFLOW_NAME" not in os.environ
+
+
+def test_per_run_manifest_wins_over_legacy(tmp_path):
+    """With an identity, run_manifest.<id>.json is used over a legacy run_manifest.json."""
+    in_dir = _copy_fixture(tmp_path)
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"], pipeline_run_id="wf-a")
+
+    result = extract_batch(in_dir, tmp_path / "out", pipeline_run_id="wf-a")
+
+    assert result.ok
+    assert result.succeeded == ["scan0K9E8BI"]
+
+
+def test_concurrent_runs_are_each_scoped_to_their_own_manifest(tmp_path):
+    """Two runs sharing one input tree are each scoped to their own per-run manifest."""
+    in_dir = _copy_fixture(tmp_path)
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    _write_per_run_manifest(in_dir, ["scanYR39SJX"], "wf-b")
+
+    a = extract_batch(in_dir, tmp_path / "out-a", pipeline_run_id="wf-a")
+    b = extract_batch(in_dir, tmp_path / "out-b", pipeline_run_id="wf-b")
+
+    assert a.succeeded == ["scan0K9E8BI"]
+    assert b.succeeded == ["scanYR39SJX"]
+
+
+def test_known_identity_without_manifest_raises_missing(tmp_path):
+    """A run that knows its identity but finds no manifest fails loud, not unscoped."""
+    in_dir = _copy_fixture(tmp_path)
+    out_dir = tmp_path / "out"
+
+    with pytest.raises(RunManifestMissingError, match="wf-a"):
+        extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+    assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
+
+
+def test_known_identity_with_empty_input_raises_missing_not_runtime_error(tmp_path):
+    """The empty-unscoped-input RuntimeError guard is reachable only without an identity."""
+    in_dir = tmp_path / "in"
+    in_dir.mkdir()
+
+    with pytest.raises(RunManifestMissingError):
+        extract_batch(in_dir, tmp_path / "out", pipeline_run_id="wf-a")
+
+
+def test_per_run_manifest_naming_another_run_raises_identity_error(tmp_path):
+    """run_manifest.wf-a.json whose content names wf-b is someone else's manifest."""
+    in_dir = _copy_fixture(tmp_path)
+    out_dir = tmp_path / "out"
+    _write_run_manifest(
+        in_dir,
+        ["scan0K9E8BI"],
+        pipeline_run_id="wf-b",
+        filename=run_manifest_filename("wf-a"),
+    )
+
+    with pytest.raises(RunManifestIdentityError, match="wf-b"):
+        extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+    assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
+
+
+def test_unusable_run_id_raises_value_error(tmp_path):
+    """An id that can't be a filename component raises a bare ValueError."""
+    in_dir = _copy_fixture(tmp_path)
+    out_dir = tmp_path / "out"
+
+    with pytest.raises(ValueError, match="not usable as a filename component") as info:
+        extract_batch(in_dir, out_dir, pipeline_run_id="../x")
+    # Not merely a ValueError subclass such as pydantic.ValidationError.
+    assert type(info.value) is ValueError
+    assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
+
+
+def test_invalid_per_run_manifest_does_not_fall_back_to_valid_legacy(tmp_path):
+    """An invalid per-run manifest raises; it never falls through to the legacy file."""
+    in_dir = _copy_fixture(tmp_path)
+    out_dir = tmp_path / "out"
+    _write_per_run_manifest(in_dir, [], "wf-a")
+    _write_run_manifest(in_dir, ["scan0K9E8BI"], pipeline_run_id="wf-a")
+
+    with pytest.raises(pydantic.ValidationError):
+        extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+    assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
+
+
+def test_legacy_manifest_naming_another_run_is_honored_and_warned(tmp_path, caplog):
+    """A stale legacy manifest under a known identity is honored, but logged (D5)."""
+    in_dir = _copy_fixture(tmp_path)
+    _write_run_manifest(in_dir, ["scan0K9E8BI"], pipeline_run_id="wf-old")
+
+    with caplog.at_level("WARNING"):
+        result = extract_batch(in_dir, tmp_path / "out", pipeline_run_id="wf-a")
+
+    assert result.succeeded == ["scan0K9E8BI"]
+    matching = [
+        r
+        for r in _warnings_from_extractor(caplog)
+        if all(s in r.getMessage() for s in (RUN_MANIFEST_FILENAME, "wf-old", "wf-a"))
+    ]
+    assert len(matching) == 1
+
+
+def test_legacy_manifest_naming_this_run_is_not_warned(tmp_path, caplog):
+    """A legacy manifest naming this very run triggers no stale-manifest warning.
+
+    Regression guard: passes against a stub that never warns, by design.
+    """
+    in_dir = _copy_fixture(tmp_path)
+    _write_run_manifest(in_dir, ["scan0K9E8BI"], pipeline_run_id="wf-a")
+
+    with caplog.at_level("WARNING"):
+        result = extract_batch(in_dir, tmp_path / "out", pipeline_run_id="wf-a")
+
+    assert result.succeeded == ["scan0K9E8BI"]
+    assert _warnings_from_extractor(caplog) == []
+
+
+def test_per_run_manifests_without_identity_are_ignored_but_warned(tmp_path, caplog):
+    """No identity: per-run manifests are never read, and the widening is logged (D7)."""
+    in_dir = _copy_fixture(tmp_path)
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+
+    with caplog.at_level("WARNING"):
+        result = extract_batch(in_dir, tmp_path / "out", pipeline_run_id=None)
+
+    assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
+    matching = [
+        r
+        for r in _warnings_from_extractor(caplog)
+        if "run_manifest.wf-a.json" in r.getMessage()
+    ]
+    assert len(matching) == 1
+
+
+def test_legacy_read_beside_per_run_manifests_is_warned(tmp_path, caplog):
+    """A legacy read with per-run scopes sitting unread beside it is logged (D7).
+
+    The #71 tree shape: a stale legacy union is read and the correct per-run manifest
+    is ignored -- wrong-scoped, not unscoped, and previously silent.
+    """
+    in_dir = _copy_fixture(tmp_path)
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"])
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+
+    with caplog.at_level("WARNING"):
+        result = extract_batch(in_dir, tmp_path / "out", pipeline_run_id=None)
+
+    assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
+    matching = [
+        r
+        for r in _warnings_from_extractor(caplog)
+        if "run_manifest.wf-a.json" in r.getMessage()
+    ]
+    assert len(matching) == 1
+
+
+def test_own_per_run_read_is_not_warned_about_other_manifests(tmp_path, caplog):
+    """Reading this run's own per-run manifest triggers no unread-manifest warning."""
+    in_dir = _copy_fixture(tmp_path)
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"], pipeline_run_id="wf-a")
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    _write_per_run_manifest(in_dir, ["scanYR39SJX"], "wf-b")
+
+    with caplog.at_level("WARNING"):
+        result = extract_batch(in_dir, tmp_path / "out", pipeline_run_id="wf-a")
+
+    assert result.succeeded == ["scan0K9E8BI"]
+    assert _warnings_from_extractor(caplog) == []
+
+
+def test_directory_named_like_the_manifest_raises(tmp_path):
+    """A directory at run_manifest.json is a broken tree, not an absent manifest."""
+    in_dir = _copy_fixture(tmp_path)
+    out_dir = tmp_path / "out"
+    (in_dir / RUN_MANIFEST_FILENAME).mkdir()
+
+    with pytest.raises(OSError) as info:
+        extract_batch(in_dir, out_dir, pipeline_run_id=None)
+    # IsADirectoryError on POSIX, PermissionError on Windows -- never "absent".
+    assert not isinstance(info.value, FileNotFoundError)
+    assert isinstance(info.value, (IsADirectoryError, PermissionError))
+    assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
+
+
+def test_non_utf8_manifest_raises_validation_error(tmp_path):
+    """Invalid UTF-8 manifest bytes are a pydantic ValidationError, not UnicodeDecodeError.
+
+    Pins the contracts-0.1.0a9 behavior change: the manifest is parsed from bytes.
+    """
+    in_dir = _copy_fixture(tmp_path)
+    out_dir = tmp_path / "out"
+    (in_dir / RUN_MANIFEST_FILENAME).write_bytes(b"\xff\xfe not valid utf-8")
+
+    with pytest.raises(pydantic.ValidationError, match="json_invalid"):
+        extract_batch(in_dir, out_dir, pipeline_run_id=None)
+    assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
+
+
+def test_run_identity_defaults_to_environment(tmp_path, monkeypatch):
+    """Omitting pipeline_run_id resolves it via pipeline_run_id_from_env(), once."""
+    import trait_extractor.extractor as extractor_module
+
+    calls = []
+    real = extractor_module.pipeline_run_id_from_env
+
+    def _spy(*args, **kwargs):
+        calls.append(1)
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(extractor_module, "pipeline_run_id_from_env", _spy)
+
+    # Whitespace-padded identity is stripped and selects the per-run manifest.
+    per_run_in = _copy_fixture(tmp_path, "in-per-run")
+    _write_per_run_manifest(per_run_in, ["scan0K9E8BI"], "wf-a")
+    monkeypatch.setenv("ARGO_WORKFLOW_NAME", " wf-a\n")
+    calls.clear()
+    result = extract_batch(per_run_in, tmp_path / "out-1")
+    assert result.succeeded == ["scan0K9E8BI"]
+    assert len(calls) == 1
+
+    # A blank identity is no identity: only the legacy name is read.
+    legacy_in = _copy_fixture(tmp_path, "in-legacy")
+    _write_run_manifest(legacy_in, ["scanYR39SJX"])
+    monkeypatch.setenv("ARGO_WORKFLOW_NAME", "   ")
+    calls.clear()
+    result = extract_batch(legacy_in, tmp_path / "out-2")
+    assert result.succeeded == ["scanYR39SJX"]
+    assert len(calls) == 1
+
+    # An explicit argument (None or an id) never consults the environment.
+    monkeypatch.setenv("ARGO_WORKFLOW_NAME", "wf-a")
+    calls.clear()
+    extract_batch(legacy_in, tmp_path / "out-3", pipeline_run_id=None)
+    extract_batch(per_run_in, tmp_path / "out-4", pipeline_run_id="wf-a")
+    assert calls == []
+
+
+def test_explicit_none_ignores_environment(tmp_path, monkeypatch):
+    """pipeline_run_id=None opts out of the environment's identity.
+
+    Regression guard: passes against a stub that never reads the environment, by
+    design; its red is manual (resolve the environment on None and watch it raise
+    RunManifestMissingError).
+    """
+    monkeypatch.setenv("ARGO_WORKFLOW_NAME", "wf-a")
+
+    result = extract_batch(_FIXTURE_TREE, tmp_path / "out", pipeline_run_id=None)
+
+    assert result.ok
+    assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
+
+
+def test_run_identity_is_not_stamped_into_envelopes(tmp_path):
+    """Envelopes are byte-identical across run identities (spec: Provenance; design D8)."""
+    in_dir = _copy_fixture(tmp_path)
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-b")
+    legacy_in = _copy_fixture(tmp_path, "in-legacy")
+    _write_run_manifest(legacy_in, ["scan0K9E8BI"])
+
+    extract_batch(in_dir, tmp_path / "out-a", pipeline_run_id="wf-a")
+    extract_batch(in_dir, tmp_path / "out-b", pipeline_run_id="wf-b")
+    extract_batch(legacy_in, tmp_path / "out-none", pipeline_run_id=None)
+
+    name = "scan0K9E8BI.result.json"
+    a = (tmp_path / "out-a" / name).read_bytes()
+    assert a == (tmp_path / "out-b" / name).read_bytes()
+    assert a == (tmp_path / "out-none" / name).read_bytes()
+    assert ResultEnvelope.model_validate_json(a).provenance.pipeline_run_id is None
+
+    # A different run over the first run's output reuses it (skip-if-done still holds).
+    again = extract_batch(in_dir, tmp_path / "out-a", pipeline_run_id="wf-b")
+    assert again.skipped == ["scan0K9E8BI"]
+
+
+def test_dangling_symlink_manifest_raises(tmp_path):
+    """A dangling-symlink manifest is a broken tree, not an absent manifest."""
+    in_dir = _copy_fixture(tmp_path)
+    out_dir = tmp_path / "out"
+    link = in_dir / RUN_MANIFEST_FILENAME
+    try:
+        os.symlink(in_dir / "does-not-exist.json", link)
+    except OSError as exc:  # e.g. Windows without the symlink privilege
+        pytest.skip(f"cannot create a symlink here: {exc}")
+
+    with pytest.raises(FileNotFoundError, match=re.escape(link.as_posix())):
+        extract_batch(in_dir, out_dir, pipeline_run_id=None)
+    assert not out_dir.exists() or not list(out_dir.glob("*.result.json"))
+
+
+def test_manifest_is_loaded_once_with_allow_legacy_true(tmp_path, monkeypatch):
+    """extract_batch calls contracts' load_run_manifest once, with allow_legacy=True.
+
+    Pins the call shape (and that the env sentinel never leaks through to contracts).
+    The "one snapshot" guarantee itself is pinned by
+    test_batch_forwards_loaded_snapshot_not_rewritten_source: a call count of 1 alone
+    was already true before this change.
+    """
+    import trait_extractor.extractor as extractor_module
+
+    calls = []
+    real = extractor_module.load_run_manifest
+
+    def _spy(*args, **kwargs):
+        calls.append((args, kwargs))
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(extractor_module, "load_run_manifest", _spy)
+    in_dir = _copy_fixture(tmp_path)
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    _write_run_manifest(in_dir, ["scan0K9E8BI"])
+
+    extract_batch(in_dir, tmp_path / "out-1", pipeline_run_id="wf-a")
+    assert calls == [((in_dir, "wf-a"), {"allow_legacy": True})]
+
+    calls.clear()
+    extract_batch(in_dir, tmp_path / "out-2")  # environment unset -> None
+    assert calls == [((in_dir, None), {"allow_legacy": True})]
+
+
+# --- Forwarding the loaded snapshot -------------------------------------------------
+
+
+def test_batch_forwards_loaded_snapshot_not_rewritten_source(tmp_path, monkeypatch):
+    """The forwarded manifest is the snapshot scoped against, not a later re-read."""
+    import trait_extractor.extractor as extractor_module
+
+    in_dir = _copy_fixture(tmp_path)
+    source = _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    original = source.read_bytes()
+    loaded_reads = []
+    forwarded_reads = []
+    real_load = extractor_module.load_run_manifest
+    real_forward = extractor_module.copy_run_manifest_forward
+
+    def load_then_rewrite(*args, **kwargs):
+        loaded = real_load(*args, **kwargs)
+        loaded_reads.append(loaded.read)
+        # Another valid manifest lands at the same path after it was read.
+        _write_per_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"], "wf-a")
+        return loaded
+
+    def spy_forward(read, *args, **kwargs):
+        forwarded_reads.append(read)
+        return real_forward(read, *args, **kwargs)
+
+    monkeypatch.setattr(extractor_module, "load_run_manifest", load_then_rewrite)
+    monkeypatch.setattr(extractor_module, "copy_run_manifest_forward", spy_forward)
+
+    out_dir = tmp_path / "out"
+    result = extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+
+    assert result.succeeded == ["scan0K9E8BI"]
+    assert source.read_bytes() != original
+    assert (out_dir / "run_manifest.wf-a.json").read_bytes() == original
+    assert len(forwarded_reads) == 1
+    assert forwarded_reads[0] is loaded_reads[0]
+
+
+def test_per_run_manifest_forwarded_under_its_own_name(tmp_path, caplog):
+    """A per-run read is forwarded as run_manifest.<id>.json, never as the legacy name."""
+    in_dir = _copy_fixture(tmp_path)
+    source = _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    _write_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"], pipeline_run_id="wf-a")
+    out_dir = tmp_path / "out"
+
+    with caplog.at_level("WARNING"):
+        extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+
+    assert (out_dir / "run_manifest.wf-a.json").read_bytes() == source.read_bytes()
+    assert not (out_dir / RUN_MANIFEST_FILENAME).exists()
+    assert _warnings_from_extractor(caplog) == []
+
+
+def test_concurrent_runs_forward_only_their_own_manifest(tmp_path):
+    """Runs sharing an input tree each forward only their own per-run manifest."""
+    in_dir = _copy_fixture(tmp_path)
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    _write_per_run_manifest(in_dir, ["scanYR39SJX"], "wf-b")
+
+    extract_batch(in_dir, tmp_path / "out-a", pipeline_run_id="wf-a")
+    extract_batch(in_dir, tmp_path / "out-b", pipeline_run_id="wf-b")
+
+    assert sorted(p.name for p in (tmp_path / "out-a").glob("run_manifest*")) == [
+        "run_manifest.wf-a.json"
+    ]
+    assert sorted(p.name for p in (tmp_path / "out-b").glob("run_manifest*")) == [
+        "run_manifest.wf-b.json"
+    ]
+
+
+def test_concurrent_runs_sharing_output_dir_do_not_clobber_each_others_manifest(
+    tmp_path, caplog
+):
+    """Two runs writing into one output_dir keep both per-run manifests intact."""
+    in_dir = _copy_fixture(tmp_path)
+    source_a = _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    source_b = _write_per_run_manifest(in_dir, ["scanYR39SJX"], "wf-b")
+    out_dir = tmp_path / "out"
+
+    a = extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+    with caplog.at_level("WARNING"):
+        b = extract_batch(in_dir, out_dir, pipeline_run_id="wf-b")
+
+    assert a.succeeded == ["scan0K9E8BI"]
+    assert b.succeeded == ["scanYR39SJX"]
+    assert (out_dir / "run_manifest.wf-a.json").read_bytes() == source_a.read_bytes()
+    assert (out_dir / "run_manifest.wf-b.json").read_bytes() == source_b.read_bytes()
+    # Expected, and pinned so it is not a surprise: from run wf-b's point of view the
+    # first run's envelope is outside its scope.
+    assert any(
+        "scan0K9E8BI" in r.getMessage() and "outside this run's scope" in r.getMessage()
+        for r in _warnings_from_extractor(caplog)
+    )
+
+
+def test_batch_forward_failure_leaves_no_temp_file(tmp_path, monkeypatch, caplog):
+    """A failed forward leaves only the envelopes, and never costs a scan its result."""
+    in_dir = _copy_fixture(tmp_path)
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI", "scanYR39SJX"], "wf-a")
+    out_dir = tmp_path / "out"
+    real_replace = os.replace
+
+    def fake_replace(src, dst, *args, **kwargs):
+        # Only the manifest publish fails; per-scan write_envelope also uses os.replace.
+        if Path(dst).name.startswith("run_manifest"):
+            raise OSError("replace")
+        return real_replace(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(os, "replace", fake_replace)
+
+    with caplog.at_level("WARNING"):
+        result = extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+
+    assert set(result.succeeded) == {"scan0K9E8BI", "scanYR39SJX"}
+    assert sorted(p.name for p in out_dir.iterdir()) == [
+        "scan0K9E8BI.result.json",
+        "scanYR39SJX.result.json",
+    ]
+    assert any(
+        all(
+            s in r.getMessage()
+            for s in (
+                "failed to copy run_manifest.wf-a.json",
+                in_dir.as_posix(),
+                out_dir.as_posix(),
+            )
+        )
+        for r in _warnings_from_extractor(caplog)
+    )
+
+
+def test_batch_forward_systemexit_is_not_swallowed(tmp_path, monkeypatch):
+    """SIGTERM's SystemExit mid-forward escapes the best-effort OSError handling."""
+    in_dir = _copy_fixture(tmp_path)
+    _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    out_dir = tmp_path / "out"
+    real_replace = os.replace
+
+    def fake_replace(src, dst, *args, **kwargs):
+        if Path(dst).name.startswith("run_manifest"):
+            raise SystemExit(143)
+        return real_replace(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(os, "replace", fake_replace)
+
+    with pytest.raises(SystemExit) as info:
+        extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+
+    assert info.value.code == 143
+    assert sorted(p.name for p in out_dir.iterdir()) == ["scan0K9E8BI.result.json"]
+
+
+def test_per_run_manifest_rerun_skips_and_reforwards(tmp_path):
+    """A re-run skips the scan and republishes the manifest over the existing copy."""
+    in_dir = _copy_fixture(tmp_path)
+    source = _write_per_run_manifest(in_dir, ["scan0K9E8BI"], "wf-a")
+    out_dir = tmp_path / "out"
+
+    first = extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+    assert first.succeeded == ["scan0K9E8BI"]
+    (out_dir / "run_manifest.wf-a.json").write_text("junk", encoding="utf-8")
+
+    second = extract_batch(in_dir, out_dir, pipeline_run_id="wf-a")
+
+    assert second.skipped == ["scan0K9E8BI"]
+    assert (out_dir / "run_manifest.wf-a.json").read_bytes() == source.read_bytes()
+
+
 def test_module_cli_writes_envelopes(tmp_path):
     """`python -m trait_extractor <in> <out>` writes the envelopes and exits 0."""
     repo_root = Path(__file__).resolve().parents[2]
@@ -500,13 +1081,20 @@ def test_module_cli_writes_envelopes(tmp_path):
 
 
 def _run_module_cli(
-    repo_root: Path, in_dir: Path, out_dir: Path
+    repo_root: Path,
+    in_dir: Path,
+    out_dir: Path,
+    extra_env: Optional[Dict[str, str]] = None,
 ) -> subprocess.CompletedProcess:
-    """Invoke `python -m trait_extractor <in> <out>` as a subprocess."""
+    """Invoke `python -m trait_extractor <in> <out>` as a subprocess.
+
+    ``extra_env`` is merged over ``os.environ`` (which the autouse conftest fixture has
+    already cleared of ``ARGO_WORKFLOW_NAME``).
+    """
     return subprocess.run(
         [sys.executable, "-m", "trait_extractor", str(in_dir), str(out_dir)],
         cwd=repo_root,
-        env={**os.environ, "PYTHONPATH": str(repo_root)},
+        env={**os.environ, "PYTHONPATH": str(repo_root), **(extra_env or {})},
         capture_output=True,
         text=True,
     )
@@ -595,9 +1183,10 @@ def test_module_cli_exits_crash_code_on_invalid_run_manifest(tmp_path):
 def test_module_cli_exits_crash_code_on_non_utf8_run_manifest(tmp_path):
     """A run_manifest.json with invalid UTF-8 bytes exits 1 with a clean logged message.
 
-    PR review found the log-quality wrapper's except tuple was only exercised
-    for 2 of its 5 exception types through main() -- this closes the
-    UnicodeDecodeError branch (raised by load_run_manifest's read_text call).
+    Originally added to exercise the UnicodeDecodeError branch of main()'s except
+    tuple. Since contracts 0.1.0a9 the manifest is parsed from bytes, so invalid UTF-8
+    surfaces as a pydantic ValidationError (``json_invalid``) instead -- still caught,
+    still exit 1.
     """
     from sleap_roots_contracts import RUN_MANIFEST_FILENAME
 
@@ -612,6 +1201,10 @@ def test_module_cli_exits_crash_code_on_non_utf8_run_manifest(tmp_path):
 
     assert proc.returncode == 1
     assert "Batch aborted:" in proc.stderr
+    # Discriminates the a9 behavior from the old one: both paths log "Batch aborted:"
+    # and exit 1, but only the new one raises pydantic's ValidationError.
+    assert "ValidationError" in proc.stderr
+    assert "UnicodeDecodeError" not in proc.stderr
 
 
 def test_main_logs_clean_message_on_os_error_from_run_manifest(
@@ -652,6 +1245,60 @@ def test_main_logs_clean_message_on_os_error_from_run_manifest(
         signal.signal(signal.SIGTERM, previous_handler)
 
     assert "Batch aborted:" in caplog.text
+
+
+def _assert_logged_abort(proc: subprocess.CompletedProcess, token: str) -> None:
+    """Exit 1 with a ``Batch aborted:`` log line that itself names ``token``."""
+    assert proc.returncode == 1, proc.stderr
+    assert re.search(r"Batch aborted: .*" + re.escape(token), proc.stderr), proc.stderr
+
+
+def test_module_cli_exits_crash_code_on_missing_manifest_for_known_run(tmp_path):
+    """ARGO_WORKFLOW_NAME set + no manifest -> a logged crash naming the run id."""
+    repo_root = Path(__file__).resolve().parents[2]
+    proc = _run_module_cli(
+        repo_root,
+        repo_root / _FIXTURE_TREE,
+        tmp_path / "out",
+        extra_env={"ARGO_WORKFLOW_NAME": "wf-a"},
+    )
+    _assert_logged_abort(proc, "wf-a")
+
+
+def test_module_cli_exits_crash_code_on_identity_mismatch(tmp_path):
+    """A per-run manifest naming another run -> a logged crash naming that run."""
+    repo_root = Path(__file__).resolve().parents[2]
+    in_dir = _copy_fixture(tmp_path)
+    _write_run_manifest(
+        in_dir,
+        ["scan0K9E8BI"],
+        pipeline_run_id="wf-b",
+        filename=run_manifest_filename("wf-a"),
+    )
+    proc = _run_module_cli(
+        repo_root, in_dir, tmp_path / "out", extra_env={"ARGO_WORKFLOW_NAME": "wf-a"}
+    )
+    _assert_logged_abort(proc, "wf-b")
+
+
+def test_module_cli_exits_crash_code_on_unusable_run_id(tmp_path):
+    """An ARGO_WORKFLOW_NAME unusable as a filename component -> a logged crash."""
+    repo_root = Path(__file__).resolve().parents[2]
+    proc = _run_module_cli(
+        repo_root,
+        repo_root / _FIXTURE_TREE,
+        tmp_path / "out",
+        extra_env={"ARGO_WORKFLOW_NAME": "../x"},
+    )
+    _assert_logged_abort(proc, "../x")
+
+
+def test_module_cli_exits_crash_code_on_nonexistent_input_dir(tmp_path):
+    """A missing input_dir -> a logged crash naming the directory (regression guard)."""
+    repo_root = Path(__file__).resolve().parents[2]
+    in_dir = tmp_path / "does_not_exist"
+    proc = _run_module_cli(repo_root, in_dir, tmp_path / "out")
+    _assert_logged_abort(proc, in_dir.as_posix())
 
 
 def test_module_cli_usage_error_exits_two_unrelated_to_partial_code(tmp_path):

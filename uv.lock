@@ -3714,8 +3714,8 @@ requires-dist = [
     { name = "seaborn" },
     { name = "shapely" },
     { name = "sleap-io", specifier = ">=0.0.11" },
-    { name = "sleap-roots-contracts", marker = "python_full_version >= '3.11' and extra == 'dev'", specifier = "==0.1.0a7" },
-    { name = "sleap-roots-contracts", marker = "python_full_version >= '3.11' and extra == 'extractor'", specifier = "==0.1.0a7" },
+    { name = "sleap-roots-contracts", marker = "python_full_version >= '3.11' and extra == 'dev'", specifier = "==0.1.0a9" },
+    { name = "sleap-roots-contracts", marker = "python_full_version >= '3.11' and extra == 'extractor'", specifier = "==0.1.0a9" },
     { name = "toml", marker = "extra == 'dev'" },
     { name = "twine", marker = "extra == 'dev'" },
 ]
@@ -3737,22 +3737,22 @@ dev = [
     { name = "pytest" },
     { name = "pytest-benchmark" },
     { name = "pytest-cov" },
-    { name = "sleap-roots-contracts", marker = "python_full_version >= '3.11'", specifier = "==0.1.0a7" },
+    { name = "sleap-roots-contracts", marker = "python_full_version >= '3.11'", specifier = "==0.1.0a9" },
     { name = "toml" },
     { name = "twine" },
 ]
 
 [[package]]
 name = "sleap-roots-contracts"
-version = "0.1.0a7"
+version = "0.1.0a9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic", marker = "python_full_version >= '3.11'" },
     { name = "pyyaml", marker = "python_full_version >= '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3f/dd/e512bb46a6209ed8c0e47d4861d8774fa94fc619ed4bc9b8bd675e377c61/sleap_roots_contracts-0.1.0a7.tar.gz", hash = "sha256:d3363ece42dc9052e6085016a54b52a921af01d75b325c9f9df52ced7466cd95", size = 28976, upload-time = "2026-08-04T21:24:13.24Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/31/43/979996ec25aae067b371c49807c6ab1815936450abfd32aa93285ed1abd7/sleap_roots_contracts-0.1.0a9.tar.gz", hash = "sha256:f5000772dbcae47b32c6102edcd6944ac48e868cc58ef2f20d54a938d678cc78", size = 39495, upload-time = "2026-09-22T22:26:23.261Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/06/a8/f8bebd47b8c4d1a7d79a54c6ca5e499a42a40568a7b220cbba7a35195f64/sleap_roots_contracts-0.1.0a7-py3-none-any.whl", hash = "sha256:716f2055e893176ef60193f589789a528e3e397bffe08ab7577203c824815335", size = 36954, upload-time = "2026-08-04T21:24:12.299Z" },
+    { url = "https://files.pythonhosted.org/packages/fa/1e/0aad4d123dc02b14f828476cd919ed21a3fd3352b5ad5cb5a62267f88174/sleap_roots_contracts-0.1.0a9-py3-none-any.whl", hash = "sha256:369b1e92e276f508b5072b809ebf5c602056af8f8f7f1e8dc3833deb472caa65", size = 47852, upload-time = "2026-09-22T22:26:22.165Z" },
 ]
 
 [[package]]

@@ -72,7 +72,9 @@ key never changes the key (which would otherwise break Bloom's first-writer-wins
 One `{scan_key}.result.json` per scan — a `ResultEnvelope` = `Provenance` + `list[TraitValue]`
 (`grain="scan"`; `NaN`/`inf` → `None`) + `blobs=[]` (blob locations are filled downstream at
 upload). `Provenance.contract_version` is the pinned bare `sleap-roots-contracts` version
-(`0.1.0a7`); `produced_at` is left `None` so re-emitting over identical inputs is byte-stable.
+(`0.1.0a9`); `produced_at` is left `None` so re-emitting over identical inputs is byte-stable.
+The run identity (below) is deliberately **not** stamped into `Provenance.pipeline_run_id`, so
+envelopes stay byte-identical across runs.
 
 ## Usage
 
@@ -80,17 +82,53 @@ upload). `Provenance.contract_version` is the pinned bare `sleap-roots-contracts
 python -m trait_extractor <input_dir> <output_dir>
 ```
 
-If `input_dir` contains a `run_manifest.json` (`sleap_roots_contracts.RunManifest`, written by
-`bloomctl` and copied forward by each pipeline stage — see
-[talmolab/sleap-roots-pipeline#37](https://github.com/talmolab/sleap-roots-pipeline/issues/37)),
-discovery is scoped to exactly its `scan_keys` (a `.predictions.json` present but out of scope is
-silently ignored — this is the contamination-prevention this manifest exists for), and a scan
-whose output already matches (both `idempotency_key` and `contract_version`) is skipped rather
-than recomputed. If no `run_manifest.json` is present, discovery falls back to recursively
-finding every `{scan_key}.predictions.json` under `input_dir` (the original, pre-manifest
-behavior — used by local/non-pipeline runs); if that unscoped fallback discovers **zero**
-manifests, the driver raises rather than reporting an empty run as a silent success (an empty or
-misconfigured input mount is an operator error, not a no-op). In both cases, each manifest's
+**Run identity and the run manifest.** A run manifest (`sleap_roots_contracts.RunManifest`,
+written by `bloomctl` and copied forward by each pipeline stage — see
+[talmolab/sleap-roots-pipeline#37](https://github.com/talmolab/sleap-roots-pipeline/issues/37)
+and [#71](https://github.com/talmolab/sleap-roots-pipeline/issues/71)) scopes discovery to exactly
+its `scan_keys`. It is read once, from the top level of `input_dir`, by contracts'
+`load_run_manifest`. Which file is used depends on the run identity, taken from
+`ARGO_WORKFLOW_NAME` via contracts' `pipeline_run_id_from_env()` (stripped; unset or blank means
+no identity). The cluster template sets it; `local-WSL2-*` templates and plain local runs do not.
+
+| Run identity | Manifest used | If none exists |
+|---|---|---|
+| none | `run_manifest.json` | unscoped discovery (below) |
+| `<id>` | `run_manifest.<id>.json`, else the legacy `run_manifest.json` (`allow_legacy=True` until [pipeline#82](https://github.com/talmolab/sleap-roots-pipeline/issues/82)) | **crash** (`RunManifestMissingError`, exit `1`) — a run that knows its identity never widens to the whole tree |
+
+A per-run manifest whose `pipeline_run_id` names a different run is a crash
+(`RunManifestIdentityError`), and so is an `ARGO_WORKFLOW_NAME` unusable as a filename. Two
+cases are honored but logged as a `WARNING`:
+- a legacy manifest read under a known identity that names another run (a stale file, or a later
+  concurrent chunk's merge);
+- per-run manifests (`run_manifest.*.json`) present but unread, because the run was *not*
+  scoped by a per-run manifest. Either no manifest resolved and it discovers everything, or it
+  read the legacy `run_manifest.json`. The typical case is a copied cluster tree re-run locally,
+  with no identity: the stale legacy union is read and the correct per-run manifest beside it
+  is ignored.
+
+This reader alone does **not** remove the #71 contamination while the legacy fallback is on.
+Until `bloomctl` writes per-run names, it stamps the newest run's id into the shared legacy
+file. So a legacy manifest can name *this* run and still carry other runs' `scan_keys`, and no
+warning fires. The contamination closes only once `bloomctl` writes per-run manifests and
+pipeline#82 turns the legacy fallback off.
+
+With a manifest, a `.predictions.json` present but out of scope is silently ignored — this is the
+contamination-prevention this manifest exists for — and a scan whose output already matches (both
+`idempotency_key` and `contract_version`) is skipped rather than recomputed. After the batch, the
+manifest is republished into `output_dir` **under the name it was read from**, byte-identical to
+what was scoped against and with the source's permissions. The publish is atomic (a dot-prefixed
+temp file, removed on failure) and best-effort: a failure is logged and never costs the batch its
+results. It can, however, cost downstream its scoping. A run with an identity whose forward
+failed leaves no `run_manifest.<id>.json` in `output_dir`. Write-back, also on the legacy
+fallback, may then scope to whatever stale `run_manifest.json` a prior run left there. Watch
+for the `failed to copy` warning.
+
+With no manifest, discovery falls back to recursively finding every `{scan_key}.predictions.json`
+under `input_dir` (the original, pre-manifest behavior — used by local/non-pipeline runs); if that
+unscoped fallback discovers **zero** manifests, the driver raises rather than reporting an empty
+run as a silent success (an empty or misconfigured input mount is an operator error, not a
+no-op). A missing `input_dir` raises `FileNotFoundError` naming it. In both cases, each manifest's
 sidecar is paired and one envelope is written per scan to `output_dir`. Per-scan failures (bad
 manifest, missing sidecar, a manifest-declared scan_key with no matching predictions.json,
 incompatible/unsupported pipeline) are isolated and reported without discarding the successful or
@@ -102,7 +140,7 @@ skipped envelopes.
 |---|---|
 | `0` | Full success — every discovered scan succeeded or was skipped. |
 | `3` | **Partial** — the batch ran to completion but one or more scans isolated-failed (per-scan failures caught inside the driver's own loop). An Argo caller should treat this as a completed run with partial failures, not retry the whole batch. |
-| `1` | **Crash** — an exception escaped the batch entirely before it could return a result at all (an invalid `run_manifest.json`, the empty-input guard above, or any other bug). A real pod-level failure; Argo's `retryStrategy` should retry it. |
+| `1` | **Crash** — an exception escaped the batch entirely before it could return a result at all: an invalid run manifest, no manifest for a known run identity, a per-run manifest naming another run, an unusable `ARGO_WORKFLOW_NAME`, a missing `input_dir`, the empty-input guard above, or any other bug. A `Batch aborted: …` line is logged first. A real pod-level failure; Argo's `retryStrategy` retries it, though the resolution failures are deterministic and fail again. |
 | `2` | *(not used by this driver)* — reserved: `argparse` already exits `2` on a CLI usage error, before the batch ever runs. |
 | `143` | `SIGTERM` received (Argo preemption/cancellation) — the process exits promptly (`128 + SIGTERM`) rather than waiting out `terminationGracePeriodSeconds`. Per-scan writes are already atomic (temp→rename) and the batch is idempotent on retry, so this loses no completed envelope. |
 
@@ -122,6 +160,11 @@ docker run --rm \
   -v /abs/path/to/results:/out \
   ghcr.io/talmolab/sleap-roots-trait-extractor:latest /in /out
 ```
+
+Passing `-e ARGO_WORKFLOW_NAME=<id>` gives the run an identity. It then needs
+`run_manifest.<id>.json` (or the legacy `run_manifest.json`) in `/in`, or it exits `1` (see
+[Usage](#usage)). Note that `latest` emits `contract_version = "0.1.0a9"` envelopes, which Bloom's
+write-back rejects until it accepts that version (see Downstream below).
 
 On Windows in Git Bash, prefix the command with `MSYS_NO_PATHCONV=1` (or use PowerShell with
 `C:\…` absolute host paths) so the `/in` and `/out` container paths aren't rewritten to host
@@ -150,9 +193,12 @@ build-only on PRs, build + push on `main`.
   `ghcr.io/talmolab/sleap-roots-trait-extractor` (see [Container image](#container-image)).
   Bloom's write-back RPC (`insert_cyl_result_envelope`) originally required
   `contract_version == "0.1.0a3"` ([bloom#393](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/393),
-  closed by [bloom PR #399](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/pull/399)).
-  Bumping this repo's pin to `0.1.0a7` reopens the identical class of blocker — that RPC still
-  hard-pins its accepted literal to exactly `0.1.0a3` and will reject every envelope emitted with
-  `contract_version = "0.1.0a7"` until it's re-pinned. Tracked as
-  [bloom#685](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/685); **this
-  repo's image must not be redeployed to the pipeline until that Bloom-side change lands.**
+  closed by [bloom PR #399](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/pull/399)),
+  and was re-pinned to exactly `0.1.0a7` (`v`-prefix tolerant; the live body has since been
+  redefined and still pins a7) by
+  [bloom PR #766](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/pull/766)
+  ([bloom#685](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/685), closed
+  2026-09-10). It accepts a single literal, so this repo's bump to `0.1.0a9` reopens the same
+  class of blocker: every a9 envelope is rejected until Bloom accepts `0.1.0a9`. **An image built
+  from `0.1.0a9` must not be applied to the cluster's trait-extractor template until that Bloom
+  change is applied to the database the cluster write-back targets.** Tracked as [bloom#895](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/895).

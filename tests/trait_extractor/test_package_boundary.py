@@ -91,11 +91,11 @@ def test_packaging_config_declares_the_extractor_extra():
     assert any(
         # Split off the marker and match the requirement exactly (not startswith, so a
         # superstring version like ==0.1.0a70 cannot slip through).
-        dep.split(";")[0].strip() == "sleap-roots-contracts==0.1.0a7"
+        dep.split(";")[0].strip() == "sleap-roots-contracts==0.1.0a9"
         and "python_version >= '3.11'" in dep
         for dep in extractor
     ), (
-        "extractor extra must pin sleap-roots-contracts==0.1.0a7 with the "
+        "extractor extra must pin sleap-roots-contracts==0.1.0a9 with the "
         f"python_version >= '3.11' marker; got {extractor}"
     )
     # pyyaml is declared explicitly (trait_extractor's pipeline_chooser imports it directly);
@@ -103,6 +103,69 @@ def test_packaging_config_declares_the_extractor_extra():
     assert any(
         dep.split(";")[0].strip() == "pyyaml" for dep in extractor
     ), f"extractor extra must declare pyyaml explicitly; got {extractor}"
+
+
+def test_all_contracts_pins_agree():
+    """Every ``sleap-roots-contracts`` pin in pyproject.toml names the same version.
+
+    Contracts is pinned in three places (the uv ``dev`` dependency group, the pip ``dev``
+    extra, and the ``extractor`` extra). A partial bump -- e.g. only the extra the image
+    installs -- would let CI and the container resolve different contract versions.
+    """
+    import tomllib
+
+    pyproject = tomllib.loads(
+        (_REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    groups = {
+        "[dependency-groups].dev": pyproject["dependency-groups"]["dev"],
+        "[project.optional-dependencies].dev": pyproject["project"][
+            "optional-dependencies"
+        ]["dev"],
+        "[project.optional-dependencies].extractor": pyproject["project"][
+            "optional-dependencies"
+        ]["extractor"],
+    }
+    pins = {
+        name: [
+            dep
+            for dep in deps
+            # Skip non-string entries such as a dependency group's {include-group = ...}.
+            if isinstance(dep, str) and dep.startswith("sleap-roots-contracts")
+        ]
+        for name, deps in groups.items()
+    }
+    assert all(
+        len(deps) == 1 for deps in pins.values()
+    ), f"expected exactly one contracts pin per group; got {pins}"
+    requirements = {name: deps[0] for name, deps in pins.items()}
+    for name, dep in requirements.items():
+        assert (
+            dep.split(";")[0].strip().startswith("sleap-roots-contracts==")
+            and "python_version >= '3.11'" in dep
+        ), (
+            f"{name} must be an exact == pin with the python_version >= '3.11' "
+            f"marker; got {dep!r}"
+        )
+    versions = {name: dep.split(";")[0].strip() for name, dep in requirements.items()}
+    assert len(set(versions.values())) == 1, f"contracts pins disagree: {versions}"
+
+
+def test_per_run_manifest_glob_matches_contracts_filenames():
+    """The extractor's hand-spelled per-run glob agrees with contracts' naming.
+
+    Contracts keeps its filename prefix/suffix private, so ``_PER_RUN_MANIFEST_GLOB``
+    re-derives them (see talmolab/sleap-roots-contracts#43). A contracts-side rename
+    would otherwise silently stop the unread-per-run-manifest warning from firing.
+    """
+    import fnmatch
+
+    from sleap_roots_contracts import RUN_MANIFEST_FILENAME, run_manifest_filename
+
+    from trait_extractor.extractor import _PER_RUN_MANIFEST_GLOB
+
+    assert fnmatch.fnmatchcase(run_manifest_filename("wf-a"), _PER_RUN_MANIFEST_GLOB)
+    assert not fnmatch.fnmatchcase(RUN_MANIFEST_FILENAME, _PER_RUN_MANIFEST_GLOB)
 
 
 def test_image_bakes_traits_code_sha_for_provenance():

@@ -1,5 +1,6 @@
 """Orchestrate a per-scan extraction: manifest + sidecar -> ResultEnvelope JSON."""
 
+import enum
 import logging
 import os
 import time
@@ -7,7 +8,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
-from sleap_roots_contracts import ResultEnvelope
+from sleap_roots_contracts import (
+    RUN_MANIFEST_FILENAME,
+    LoadedRunManifest,
+    ResultEnvelope,
+    load_run_manifest,
+    pipeline_run_id_from_env,
+)
 
 from trait_extractor.compatibility import check_pipeline_compatible
 from trait_extractor.envelope import (
@@ -23,7 +30,7 @@ from trait_extractor.pipeline_chooser import (
     choose_pipeline,
     load_pipeline_cards,
 )
-from trait_extractor.run_manifest import copy_run_manifest_forward, load_run_manifest
+from trait_extractor.run_manifest import copy_run_manifest_forward
 from trait_extractor.traits import compute_scan_traits, scan_trait_values
 
 logger = logging.getLogger(__name__)
@@ -31,6 +38,11 @@ logger = logging.getLogger(__name__)
 _MANIFEST_SUFFIX = ".predictions.json"
 _MANIFEST_GLOB = "*" + _MANIFEST_SUFFIX
 _SIDECAR_SUFFIX = ".scan_metadata.json"
+# Matches the per-run names sleap_roots_contracts.run_manifest_filename() builds
+# ("run_manifest.<pipeline_run_id>.json") but never the legacy "run_manifest.json" (the
+# pattern needs a second dot). Contracts keeps its prefix/suffix private, so the pattern is
+# spelled out here.
+_PER_RUN_MANIFEST_GLOB = "run_manifest.*.json"
 
 _TEST_SCAN_DELAY_ENV = "SRT_TRAIT_EXTRACTOR_TEST_SCAN_DELAY_S"
 
@@ -139,6 +151,98 @@ class BatchResult:
         return not self.failed
 
 
+class _Unset(enum.Enum):
+    """Sentinel type for an omitted ``pipeline_run_id`` (see ``_FROM_ENV``)."""
+
+    FROM_ENV = enum.auto()
+
+
+# "Caller did not pass pipeline_run_id -- resolve it from the environment." Distinct
+# from None, which is a caller explicitly asserting the run has no identity.
+_FROM_ENV = _Unset.FROM_ENV
+
+
+def _resolve_run_manifest(
+    input_dir: Union[str, Path], pipeline_run_id: Optional[str]
+) -> Optional[LoadedRunManifest]:
+    """Load this run's manifest once, and log the cases where its scope may be wrong.
+
+    Resolution, parsing, and the per-run identity cross-check are contracts'
+    ``load_run_manifest``; this adds only traceability for what that function
+    deliberately leaves unchecked:
+
+    - the read is not a per-run manifest (unscoped, or scoped by the legacy file) while
+      per-run manifests sit unread at the top of ``input_dir`` (design D7);
+    - a legacy manifest read under a known identity names a different run (design D5).
+
+    Neither changes the scope. A legacy manifest that names *this* run but still carries
+    other runs' ``scan_keys`` (the pre-flip bloomctl union) is not detectable here and
+    stays silent.
+
+    Args:
+        input_dir: Directory whose top level holds the manifest.
+        pipeline_run_id: This run's identity, or ``None``.
+
+    Returns:
+        The loaded manifest and the read it came from, or ``None`` when the run has no
+        identity and no legacy manifest exists.
+
+    Raises:
+        sleap_roots_contracts.RunManifestMissingError: If ``pipeline_run_id`` is known
+            but no manifest resolves for it.
+        sleap_roots_contracts.RunManifestIdentityError: If a per-run-named manifest
+            names a different run.
+        ValueError: If ``pipeline_run_id`` is not usable as a filename component.
+        pydantic.ValidationError: If the resolved manifest is not a valid
+            ``RunManifest``.
+        OSError: If a candidate exists but can't be read, or ``input_dir`` is missing.
+    """
+    # allow_legacy=True while any stage may still write the legacy name; flipping it
+    # to False is fleet-wide (talmolab/sleap-roots-pipeline#82).
+    loaded = load_run_manifest(input_dir, pipeline_run_id, allow_legacy=True)
+    if loaded is None or not loaded.read.is_per_run:
+        # Not scoped by a per-run manifest -- either unscoped (no identity, no legacy
+        # file) or scoped by the legacy union -- while more specific per-run scopes may
+        # sit beside it unread (design §2.3 makes them non-candidates without an
+        # identity). The typical case is a copied cluster tree re-run locally: the stale
+        # legacy union is read and the correct per-run manifest ignored. Not an error,
+        # but not silent either.
+        per_run = sorted(
+            path.name for path in Path(input_dir).glob(_PER_RUN_MANIFEST_GLOB)
+        )
+        if per_run:
+            scoped_by = (
+                "discovering every scan"
+                if loaded is None
+                else f"scoping by legacy {loaded.read.filename}"
+            )
+            logger.warning(
+                "run %r is not scoped by a per-run manifest in %s (%s); "
+                "per-run manifest(s) present but unread: %s",
+                pipeline_run_id,
+                Path(input_dir).as_posix(),
+                scoped_by,
+                ", ".join(per_run),
+            )
+    if (
+        loaded is not None
+        and pipeline_run_id is not None
+        and not loaded.read.is_per_run
+        and loaded.manifest.pipeline_run_id != pipeline_run_id
+    ):
+        # The legacy name carries no identity, so contracts does not cross-check it.
+        # Honored (allow_legacy=True), but it is another run's scope: a stale file, a
+        # later concurrent chunk's merge, or a predict that failed before forwarding.
+        logger.warning(
+            "run %r is scoped by legacy %s in %s, which names run %r",
+            pipeline_run_id,
+            loaded.read.filename,
+            Path(input_dir).as_posix(),
+            loaded.manifest.pipeline_run_id,
+        )
+    return loaded
+
+
 def extract_batch(
     input_dir: Union[str, Path],
     output_dir: Union[str, Path],
@@ -146,18 +250,24 @@ def extract_batch(
     traits_code_sha: str = "",
     traits_container_digest: str = "",
     cards: Optional[List[PipelineCard]] = None,
+    pipeline_run_id: Union[str, None, _Unset] = _FROM_ENV,
 ) -> BatchResult:
     """Extract every scan discovered under ``input_dir`` with per-scan isolation.
 
-    If a ``run_manifest.json`` (``RunManifest``) is present at the top level of
-    ``input_dir``, discovery is scoped to exactly its ``scan_keys`` -- a
-    ``{scan_key}.predictions.json`` present but not in ``scan_keys`` is silently
-    excluded (contamination prevention), and a manifest-declared ``scan_key`` with no
-    matching file is recorded as a per-scan failure. The manifest is copied forward
-    into ``output_dir`` so ``write-back`` can see it. If no manifest is present,
-    discovery falls back to **recursively** discovering every
-    ``{scan_key}.predictions.json`` under ``input_dir`` (matching predict's per-scan
-    ``out_dir/{scan_key}/`` batch layout), unchanged from before manifest support.
+    The run manifest (``RunManifest``) is resolved once, at the top level of
+    ``input_dir``, by contracts' ``load_run_manifest`` (see ``_resolve_run_manifest``):
+    with a run identity, ``run_manifest.<pipeline_run_id>.json`` first and then the
+    legacy ``run_manifest.json`` (``allow_legacy=True`` until
+    talmolab/sleap-roots-pipeline#82), raising if neither exists; without one, the
+    legacy name alone. When a manifest is loaded, discovery is scoped to exactly its
+    ``scan_keys`` -- a ``{scan_key}.predictions.json`` present but not in ``scan_keys``
+    is silently excluded (contamination prevention), and a manifest-declared
+    ``scan_key`` with no matching file is recorded as a per-scan failure. The loaded
+    manifest is copied forward into ``output_dir`` so ``write-back`` can see it. If no
+    manifest resolves (no identity and no legacy file), discovery falls back to
+    **recursively** discovering every ``{scan_key}.predictions.json`` under
+    ``input_dir`` (matching predict's per-scan ``out_dir/{scan_key}/`` batch layout),
+    unchanged from before manifest support.
 
     In both cases, each manifest is paired with its co-located sidecar and one
     ``{scan_key}.result.json`` is written per scan to ``output_dir``. A scan whose
@@ -172,27 +282,44 @@ def extract_batch(
         traits_code_sha: Optional traits build code sha.
         traits_container_digest: Optional traits container digest.
         cards: Optional pipeline selection cards (defaults to the packaged YAML).
+        pipeline_run_id: This run's identity. Omitted, it is resolved by contracts'
+            ``pipeline_run_id_from_env()`` (the stripped ``ARGO_WORKFLOW_NAME``, or
+            ``None`` when unset or blank) -- the one definition shared with the
+            manifest writer. Pass ``None`` explicitly to run with no identity.
 
     Returns:
         A ``BatchResult`` summarizing successes, skips, and failures.
 
     Raises:
-        pydantic.ValidationError: If ``run_manifest.json`` is present but fails
-            ``RunManifest``'s own validation (e.g. empty ``scan_keys``) -- a
-            once-per-batch, top-level file, not a per-scan best-effort read.
-        OSError: If ``run_manifest.json`` is present but can't be read (see
-            ``run_manifest.load_run_manifest``), for the same reason.
-        UnicodeDecodeError: If ``run_manifest.json``'s bytes aren't valid UTF-8.
-        RuntimeError: If no ``run_manifest.json`` is present (unscoped mode) and
-            zero ``*.predictions.json`` files are discovered anywhere under
-            ``input_dir`` -- an empty or misconfigured input mount, not a
-            successful no-op.
+        sleap_roots_contracts.RunManifestMissingError: If the run has an identity but
+            neither its per-run manifest nor the legacy one exists -- a run that knows
+            which run it is must not widen to unscoped discovery.
+        sleap_roots_contracts.RunManifestIdentityError: If a per-run-named manifest
+            names a different run.
+        ValueError: If ``pipeline_run_id`` is not usable as a filename component.
+        pydantic.ValidationError: If the resolved manifest fails to parse or validate
+            as a ``RunManifest`` (e.g. empty ``scan_keys``, or bytes that aren't valid
+            UTF-8/JSON) -- a once-per-batch, top-level file, not a per-scan
+            best-effort read.
+        OSError: If the resolved manifest exists but can't be read, including
+            ``FileNotFoundError`` for a missing ``input_dir`` or a dangling-symlink
+            manifest, for the same reason.
+        RuntimeError: If no manifest resolves (unscoped mode) and zero
+            ``*.predictions.json`` files are discovered anywhere under ``input_dir``
+            -- an empty or misconfigured input mount, not a successful no-op.
         yaml.YAMLError: If the packaged ``pipeline_selection.yaml`` (loaded via
             ``load_pipeline_cards``) is malformed.
+        UnicodeDecodeError: If the packaged ``pipeline_selection.yaml`` isn't valid
+            UTF-8.
     """
     cards = cards or load_pipeline_cards()
-    run_manifest = load_run_manifest(input_dir)
-    scope = set(run_manifest.scan_keys) if run_manifest is not None else None
+    run_id: Optional[str] = (
+        pipeline_run_id_from_env()
+        if isinstance(pipeline_run_id, _Unset)
+        else pipeline_run_id
+    )
+    loaded = _resolve_run_manifest(input_dir, run_id)
+    scope = set(loaded.manifest.scan_keys) if loaded is not None else None
     result = BatchResult()
     seen: Dict[str, Path] = {}
     seen_casefold: Dict[str, str] = {}  # casefolded stem -> the original stem
@@ -268,7 +395,8 @@ def extract_batch(
             result.failed.append((stem, str(exc)))
         _test_only_scan_delay()
 
-    if scope is not None:
+    if loaded is not None:
+        assert scope is not None  # both are derived from `loaded` above
         for missing_scan_key in sorted(scope - seen.keys()):
             result.failed.append(
                 (
@@ -291,13 +419,13 @@ def extract_batch(
         if orphaned:
             logger.warning(
                 "%d pre-existing result file(s) in %s are outside this run's scope "
-                "(from a prior run's wider manifest): %s",
+                "(another run's, or a prior wider manifest's): %s",
                 len(orphaned),
                 Path(output_dir).as_posix(),
                 ", ".join(orphaned),
             )
         try:
-            copy_run_manifest_forward(input_dir, output_dir)
+            copy_run_manifest_forward(loaded.read, input_dir, output_dir)
         except OSError as exc:
             # Copy-forward is best-effort infrastructure for the next pipeline stage,
             # not part of this batch's own computed result -- a disk/permission error
@@ -306,7 +434,8 @@ def extract_batch(
             # rather than relying on the exception's own str() (not every OSError, e.g.
             # a disk-full error from a raw write, carries a filename attribute).
             logger.warning(
-                "failed to copy run_manifest.json from %s to %s: %s",
+                "failed to copy %s from %s to %s: %s",
+                loaded.read.filename,
                 Path(input_dir).as_posix(),
                 Path(output_dir).as_posix(),
                 exc,
