@@ -3134,21 +3134,71 @@ recorded in <code>Provenance</code> for audit but is not itself a key input — 
 <p>One <code>{scan_key}.result.json</code> per scan — a <code>ResultEnvelope</code> = <code>Provenance</code> + <code>list[TraitValue]</code>
 (<code>grain="scan"</code>; <code>NaN</code>/<code>inf</code> → <code>None</code>) + <code>blobs=[]</code> (blob locations are filled downstream at
 upload). <code>Provenance.contract_version</code> is the pinned bare <code>sleap-roots-contracts</code> version
-(<code>0.1.0a7</code>); <code>produced_at</code> is left <code>None</code> so re-emitting over identical inputs is byte-stable.</p>
+(<code>0.1.0a9</code>); <code>produced_at</code> is left <code>None</code> so re-emitting over identical inputs is byte-stable.
+The run identity (below) is deliberately <strong>not</strong> stamped into <code>Provenance.pipeline_run_id</code>, so
+envelopes stay byte-identical across runs.</p>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>trait_extractor<span class="w"> </span>&lt;input_dir&gt;<span class="w"> </span>&lt;output_dir&gt;
 </span></code></pre></div>
-<p>If <code>input_dir</code> contains a <code>run_manifest.json</code> (<code>sleap_roots_contracts.RunManifest</code>, written by
-<code>bloomctl</code> and copied forward by each pipeline stage — see
-<a href="https://github.com/talmolab/sleap-roots-pipeline/issues/37">talmolab/sleap-roots-pipeline#37</a>),
-discovery is scoped to exactly its <code>scan_keys</code> (a <code>.predictions.json</code> present but out of scope is
-silently ignored — this is the contamination-prevention this manifest exists for), and a scan
-whose output already matches (both <code>idempotency_key</code> and <code>contract_version</code>) is skipped rather
-than recomputed. If no <code>run_manifest.json</code> is present, discovery falls back to recursively
-finding every <code>{scan_key}.predictions.json</code> under <code>input_dir</code> (the original, pre-manifest
-behavior — used by local/non-pipeline runs); if that unscoped fallback discovers <strong>zero</strong>
-manifests, the driver raises rather than reporting an empty run as a silent success (an empty or
-misconfigured input mount is an operator error, not a no-op). In both cases, each manifest's
+<p><strong>Run identity and the run manifest.</strong> A run manifest (<code>sleap_roots_contracts.RunManifest</code>,
+written by <code>bloomctl</code> and copied forward by each pipeline stage — see
+<a href="https://github.com/talmolab/sleap-roots-pipeline/issues/37">talmolab/sleap-roots-pipeline#37</a>
+and <a href="https://github.com/talmolab/sleap-roots-pipeline/issues/71">#71</a>) scopes discovery to exactly
+its <code>scan_keys</code>. It is read once, from the top level of <code>input_dir</code>, by contracts'
+<code>load_run_manifest</code>. Which file is used depends on the run identity, taken from
+<code>ARGO_WORKFLOW_NAME</code> via contracts' <code>pipeline_run_id_from_env()</code> (stripped; unset or blank means
+no identity). The cluster template sets it; <code>local-WSL2-*</code> templates and plain local runs do not.</p>
+<table>
+<thead>
+<tr>
+<th>Run identity</th>
+<th>Manifest used</th>
+<th>If none exists</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>none</td>
+<td><code>run_manifest.json</code></td>
+<td>unscoped discovery (below)</td>
+</tr>
+<tr>
+<td><code>&lt;id&gt;</code></td>
+<td><code>run_manifest.&lt;id&gt;.json</code>, else the legacy <code>run_manifest.json</code> (<code>allow_legacy=True</code> until <a href="https://github.com/talmolab/sleap-roots-pipeline/issues/82">pipeline#82</a>)</td>
+<td><strong>crash</strong> (<code>RunManifestMissingError</code>, exit <code>1</code>) — a run that knows its identity never widens to the whole tree</td>
+</tr>
+</tbody>
+</table>
+<p>A per-run manifest whose <code>pipeline_run_id</code> names a different run is a crash
+(<code>RunManifestIdentityError</code>), and so is an <code>ARGO_WORKFLOW_NAME</code> unusable as a filename. Two
+cases are honored but logged as a <code>WARNING</code>:
+- a legacy manifest read under a known identity that names another run (a stale file, or a later
+  concurrent chunk's merge);
+- per-run manifests (<code>run_manifest.*.json</code>) present but unread, because the run was <em>not</em>
+  scoped by a per-run manifest. Either no manifest resolved and it discovers everything, or it
+  read the legacy <code>run_manifest.json</code>. The typical case is a copied cluster tree re-run locally,
+  with no identity: the stale legacy union is read and the correct per-run manifest beside it
+  is ignored.</p>
+<p>This reader alone does <strong>not</strong> remove the #71 contamination while the legacy fallback is on.
+Until <code>bloomctl</code> writes per-run names, it stamps the newest run's id into the shared legacy
+file. So a legacy manifest can name <em>this</em> run and still carry other runs' <code>scan_keys</code>, and no
+warning fires. The contamination closes only once <code>bloomctl</code> writes per-run manifests and
+pipeline#82 turns the legacy fallback off.</p>
+<p>With a manifest, a <code>.predictions.json</code> present but out of scope is silently ignored — this is the
+contamination-prevention this manifest exists for — and a scan whose output already matches (both
+<code>idempotency_key</code> and <code>contract_version</code>) is skipped rather than recomputed. After the batch, the
+manifest is republished into <code>output_dir</code> <strong>under the name it was read from</strong>, byte-identical to
+what was scoped against and with the source's permissions. The publish is atomic (a dot-prefixed
+temp file, removed on failure) and best-effort: a failure is logged and never costs the batch its
+results. It can, however, cost downstream its scoping. A run with an identity whose forward
+failed leaves no <code>run_manifest.&lt;id&gt;.json</code> in <code>output_dir</code>. Write-back, also on the legacy
+fallback, may then scope to whatever stale <code>run_manifest.json</code> a prior run left there. Watch
+for the <code>failed to copy</code> warning.</p>
+<p>With no manifest, discovery falls back to recursively finding every <code>{scan_key}.predictions.json</code>
+under <code>input_dir</code> (the original, pre-manifest behavior — used by local/non-pipeline runs); if that
+unscoped fallback discovers <strong>zero</strong> manifests, the driver raises rather than reporting an empty
+run as a silent success (an empty or misconfigured input mount is an operator error, not a
+no-op). A missing <code>input_dir</code> raises <code>FileNotFoundError</code> naming it. In both cases, each manifest's
 sidecar is paired and one envelope is written per scan to <code>output_dir</code>. Per-scan failures (bad
 manifest, missing sidecar, a manifest-declared scan_key with no matching predictions.json,
 incompatible/unsupported pipeline) are isolated and reported without discarding the successful or
@@ -3172,7 +3222,7 @@ skipped envelopes.</p>
 </tr>
 <tr>
 <td><code>1</code></td>
-<td><strong>Crash</strong> — an exception escaped the batch entirely before it could return a result at all (an invalid <code>run_manifest.json</code>, the empty-input guard above, or any other bug). A real pod-level failure; Argo's <code>retryStrategy</code> should retry it.</td>
+<td><strong>Crash</strong> — an exception escaped the batch entirely before it could return a result at all: an invalid run manifest, no manifest for a known run identity, a per-run manifest naming another run, an unusable <code>ARGO_WORKFLOW_NAME</code>, a missing <code>input_dir</code>, the empty-input guard above, or any other bug. A <code>Batch aborted: …</code> line is logged first. A real pod-level failure; Argo's <code>retryStrategy</code> retries it, though the resolution failures are deterministic and fail again.</td>
 </tr>
 <tr>
 <td><code>2</code></td>
@@ -3197,6 +3247,10 @@ pip-installable), and runs headless (<code>MPLBACKEND=Agg</code>). The <code>ENT
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-v<span class="w"> </span>/abs/path/to/results:/out<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span>ghcr.io/talmolab/sleap-roots-trait-extractor:latest<span class="w"> </span>/in<span class="w"> </span>/out
 </span></code></pre></div>
+<p>Passing <code>-e ARGO_WORKFLOW_NAME=&lt;id&gt;</code> gives the run an identity. It then needs
+<code>run_manifest.&lt;id&gt;.json</code> (or the legacy <code>run_manifest.json</code>) in <code>/in</code>, or it exits <code>1</code> (see
+<a href="#usage">Usage</a>). Note that <code>latest</code> emits <code>contract_version = "0.1.0a9"</code> envelopes, which Bloom's
+write-back rejects until it accepts that version (see Downstream below).</p>
 <p>On Windows in Git Bash, prefix the command with <code>MSYS_NO_PATHCONV=1</code> (or use PowerShell with
 <code>C:\…</code> absolute host paths) so the <code>/in</code> and <code>/out</code> container paths aren't rewritten to host
 paths by MSYS.</p>
@@ -3221,12 +3275,15 @@ build-only on PRs, build + push on <code>main</code>.</p>
   <code>ghcr.io/talmolab/sleap-roots-trait-extractor</code> (see <a href="#container-image">Container image</a>).
   Bloom's write-back RPC (<code>insert_cyl_result_envelope</code>) originally required
   <code>contract_version == "0.1.0a3"</code> (<a href="https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/393">bloom#393</a>,
-  closed by <a href="https://github.com/Salk-Harnessing-Plants-Initiative/bloom/pull/399">bloom PR #399</a>).
-  Bumping this repo's pin to <code>0.1.0a7</code> reopens the identical class of blocker — that RPC still
-  hard-pins its accepted literal to exactly <code>0.1.0a3</code> and will reject every envelope emitted with
-  <code>contract_version = "0.1.0a7"</code> until it's re-pinned. Tracked as
-  <a href="https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/685">bloom#685</a>; <strong>this
-  repo's image must not be redeployed to the pipeline until that Bloom-side change lands.</strong></li>
+  closed by <a href="https://github.com/Salk-Harnessing-Plants-Initiative/bloom/pull/399">bloom PR #399</a>),
+  and was re-pinned to exactly <code>0.1.0a7</code> (<code>v</code>-prefix tolerant; the live body has since been
+  redefined and still pins a7) by
+  <a href="https://github.com/Salk-Harnessing-Plants-Initiative/bloom/pull/766">bloom PR #766</a>
+  (<a href="https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/685">bloom#685</a>, closed
+  2026-09-10). It accepts a single literal, so this repo's bump to <code>0.1.0a9</code> reopens the same
+  class of blocker: every a9 envelope is rejected until Bloom accepts <code>0.1.0a9</code>. <strong>An image built
+  from <code>0.1.0a9</code> must not be applied to the cluster's trait-extractor template until that Bloom
+  change is applied to the database the cluster write-back targets.</strong> Tracked as <a href="https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/895">bloom#895</a>.</li>
 </ul>
 
 
