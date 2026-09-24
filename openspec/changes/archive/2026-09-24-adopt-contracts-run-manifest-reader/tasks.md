@@ -270,7 +270,7 @@ Directory-content assertions compare the full listing, `sorted(p.name for p in o
 
 ## 8. Post-merge (separate PRs)
 
-- [ ] 8.1 Verify the merge live (`gh pr view`). Then open `openspec: archive adopt-contracts-run-manifest-reader after PR #N merge`, run `openspec archive … --yes` and `openspec validate --all --strict`, matching `094992d`/`a98918d`.
+- [x] 8.1 (PR #269 merged 2026-09-24 as e373b0f; archived in this PR.) Verify the merge live (`gh pr view`). Then open `openspec: archive adopt-contracts-run-manifest-reader after PR #N merge`, run `openspec archive … --yes` and `openspec validate --all --strict`, matching `094992d`/`a98918d`.
 - [ ] 8.2 The `sleap-roots-pipeline` traits pin bump is **gated on the Bloom a9 acceptance being applied**. It covers:
   - the image `sha-…@sha256:…`;
   - `SRT_TRAITS_CONTAINER_DIGEST` in the same change (`check_manifests.py`);

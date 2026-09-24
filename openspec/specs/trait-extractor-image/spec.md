@@ -28,11 +28,11 @@ end-to-end (a pre-existing gap, not introduced by this requirement).
 
 - **WHEN** the image is built and run as
   `docker run -v <tests/data/rice_3do_pipeline_output>:/in -v <out>:/out
-  ghcr.io/talmolab/sleap-roots-trait-extractor /in /out`
+  ghcr.io/talmolab/sleap-roots-trait-extractor /in /out` (no `ARGO_WORKFLOW_NAME` set)
 - **THEN** a `scan0K9E8BI.result.json` and a `scanYR39SJX.result.json` are written to the
   output directory
 - **AND** each file parses as a `sleap-roots-contracts` `ResultEnvelope` whose
-  `provenance.scan_key` matches its manifest and whose `provenance.contract_version == "0.1.0a7"`
+  `provenance.scan_key` matches its manifest and whose `provenance.contract_version == "0.1.0a9"`
 - **AND** the process exits `0` (all scans succeeded)
 
 #### Scenario: Required packages are importable inside the image
@@ -100,15 +100,18 @@ The trait-extractor image SHALL be published under the explicit identity
 ### Requirement: Slim contracts install via an extractor extra
 
 `pyproject.toml` SHALL declare a `[project.optional-dependencies] extractor` group containing
-`sleap-roots-contracts==0.1.0a7` marked `; python_version >= '3.11'`, and the image SHALL
+`sleap-roots-contracts==0.1.0a9` marked `; python_version >= '3.11'`, and the image SHALL
 install it with `uv sync --frozen --no-dev --extra extractor`. This SHALL install the
 `sleap-roots` library (whose `sleap_roots/` source is copied into the build context so
 setuptools can build it and resolve its dynamic version), its runtime dependencies, and
 `sleap-roots-contracts` and `pyyaml` (declared explicitly since `trait_extractor` imports it
 directly) **without** installing the
-`[dependency-groups] dev` tooling (mkdocs/pytest/black/twine/…). `uv.lock` SHALL be re-locked
-in the same commit as the `pyproject.toml` change so the frozen sync resolves (`uv lock` exits
-`0`; the published `sleap-roots` runtime dependency set is unchanged).
+`[dependency-groups] dev` tooling (mkdocs/pytest/black/twine/…). Every `sleap-roots-contracts`
+pin in `pyproject.toml` (the `[dependency-groups] dev` group, the
+`[project.optional-dependencies] dev` extra, and the `extractor` extra) SHALL name the same
+version. `uv.lock` SHALL be re-locked in the same commit as the `pyproject.toml` change so the
+frozen sync resolves (`uv lock` exits `0`; the published `sleap-roots` runtime dependency set is
+unchanged).
 
 #### Scenario: Image installs contracts but not the dev group
 
@@ -126,9 +129,16 @@ in the same commit as the `pyproject.toml` change so the frozen sync resolves (`
 
 - **WHEN** the test suite runs (`ci.yml` triggers on `pyproject.toml`/`uv.lock` changes)
 - **THEN** a test asserts the `[project.optional-dependencies] extractor` group exists and
-  pins `sleap-roots-contracts==0.1.0a7` with the `; python_version >= '3.11'` marker
+  pins `sleap-roots-contracts==0.1.0a9` with the `; python_version >= '3.11'` marker
 - **AND** removing or renaming the extra fails that test (so the image's install path cannot
   be silently broken by a CI-green change)
+
+#### Scenario: All contracts pins agree
+
+- **WHEN** the test suite runs
+- **THEN** a test asserts that every `sleap-roots-contracts` requirement in `pyproject.toml`
+  (dependency group `dev`, extras `dev` and `extractor`) pins the identical `==` version, so a
+  partial bump (e.g. only the `extractor` extra) fails CI
 
 ### Requirement: Install-free, headless container entry
 
