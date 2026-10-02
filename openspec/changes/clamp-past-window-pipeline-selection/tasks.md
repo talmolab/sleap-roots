@@ -108,7 +108,8 @@ In `test_pipeline_chooser.py`, keep the packaged rows as one module-level `SHARE
 `pytest.param(species, mode, age, expected_class_or_None, past_window_age_or_None,
 id="<species>-<mode with _ for spaces>-<age>")`, in this table's order, so predict can diff it
 row for row. Derive each test's rows by filtering. Keep the injected rows in a separate
-`INJECTED_CASES` list.
+`INJECTED_CASES` list that also carries each row's expected outcome (a class, or the anchored
+regex the `ValueError` must match), so the whole injected table can be diffed too.
 
 ## 0. Coordination (no code)
 

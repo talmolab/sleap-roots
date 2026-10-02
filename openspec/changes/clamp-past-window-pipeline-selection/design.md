@@ -84,8 +84,9 @@ parity rests on both repos testing the same inputs (tasks.md "Shared case list")
 - **Older roots measured with the highest window's pipeline.** Every species except rice has a
   single cylinder window, so a clamped scan gets the pipeline it would get in-window. Rice has two
   windows (YoungerMonocot 2–5, OlderMonocot 6–10); past day 10 it gets OlderMonocot (crown only),
-  matching predict's clamped `rice-older-crown`. Whether the traits are valid on these older
-  scans is the bloom#971 decision's call, and Bloom's confirm dialog will warn the user.
+  matching predict's clamped `rice-older-crown`. The traits on these older scans are not
+  validated: bloom#971 chose to run them anyway, with a warning in Bloom's confirm dialog.
+  The changelog and `docs/dev/trait-extractor-service.md` say so where users will read it.
 - **Multiplant cylinder and plate** past-window scans clamp to `MultipleDicotPipeline` /
   `MultipleDicotPlatePipeline`, which the scan-grain guard still rejects, the same as in-window
   scans of those modes.
@@ -118,6 +119,25 @@ implementation moves it to its own `test_past_window_rerun_is_skipped_without_wa
 skip failure is reported separately from a provenance or trait failure. The assertions are the
 ones 1.7 lists; nothing was dropped. Both tests were red before the clamp and green after it,
 as 1.9 and 2.5 predicted for the combined test.
+
+### Why more tests than tasks.md listed?
+
+The pre-PR `/review-pr` pass mutation-tested the branch: 18 of 21 mutants were caught. Two
+of the survivors were real gaps, and the third can't be caught by any test: a zero-match only
+happens when nothing was clamped, so the matched and real ages are equal there. Tests were
+added after the fact for the two real gaps; they pin behaviour the code already had, so they
+were green on arrival rather than red first:
+- `test_warning_uses_the_cards_passed_in`: injected cards whose highest window (12) differs
+  from the packaged one (10). This pins "the cards are resolved once and shared"; a warning
+  computed from the packaged cards survived before.
+- Every chooser test now asserts that nothing at all is logged, at DEBUG on the root logger.
+  Before, only past-window rows were checked, and only for the chooser's own logger name.
+
+The same pass also:
+- folded the injected rows' expected outcomes into `INJECTED_CASES`, so one test selects or
+  raises per row;
+- pinned the in-window ambiguity message (no `matched as` suffix);
+- added a plate row to the extractor's warn-then-reject test.
 
 ## Open Questions
 

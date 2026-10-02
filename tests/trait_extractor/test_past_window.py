@@ -16,10 +16,10 @@ from trait_extractor.extractor import extract_scan
 from trait_extractor.manifest import load_manifest, load_scan_metadata
 from trait_extractor.pipeline_chooser import PipelineCard
 
-_RICE_DIR = Path("tests/data/rice_3do_pipeline_output/scan0K9E8BI")
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_RICE_DIR = _REPO_ROOT / "tests/data/rice_3do_pipeline_output/scan0K9E8BI"
 _MANIFEST = _RICE_DIR / "scan0K9E8BI.predictions.json"
 _SIDECAR = _RICE_DIR / "scan0K9E8BI.scan_metadata.json"
-_REPO_ROOT = Path(__file__).resolve().parents[2]
 _EXTRACTOR_LOGGER = "trait_extractor.extractor"
 
 
@@ -108,17 +108,48 @@ def test_in_window_scan_logs_no_clamp_warning(tmp_path, caplog):
     assert _clamp_warnings(caplog) == []
 
 
-def test_past_window_multiplant_warns_then_is_rejected(tmp_path, caplog):
-    """A clamped multiplant scan logs its warning, then fails the scan-grain guard."""
+@pytest.mark.parametrize(
+    "mode, age, pipeline_class",
+    [
+        pytest.param(
+            "multiplant cylinder", 28, "MultipleDicotPipeline", id="multiplant"
+        ),
+        pytest.param("plate", 20, "MultipleDicotPlatePipeline", id="plate"),
+    ],
+)
+def test_past_window_multi_plant_warns_then_is_rejected(
+    tmp_path, caplog, mode, age, pipeline_class
+):
+    """A clamped multiplant/plate scan logs its warning, then fails the grain guard."""
     sidecar = _write_sidecar(
-        tmp_path / "multi", species="arabidopsis", mode="multiplant cylinder", age=28
+        tmp_path / "multi", species="arabidopsis", mode=mode, age=age
     )
     with caplog.at_level(logging.WARNING, logger=_EXTRACTOR_LOGGER):
         with pytest.raises(ValueError, match="not supported for scan-grain emission"):
             extract_scan(_MANIFEST, sidecar, tmp_path / "out")
     assert [w.getMessage() for w in _clamp_warnings(caplog)] == [
-        "past-window age: scan_key=scan0K9E8BI species='arabidopsis' "
-        "mode='multiplant cylinder' age=28 matched as age=14 -> MultipleDicotPipeline"
+        f"past-window age: scan_key=scan0K9E8BI species='arabidopsis' "
+        f"mode={mode!r} age={age} matched as age=14 -> {pipeline_class}"
+    ]
+
+
+def test_warning_uses_the_cards_passed_in(tmp_path, caplog):
+    """Selection and the warning share the caller's cards, not the packaged ones."""
+    sidecar = _write_sidecar(tmp_path / "sc18", age=18)
+    cards = [
+        PipelineCard(
+            species="rice",
+            mode="cylinder",
+            age_min=2,
+            age_max=12,
+            pipeline_class="OlderMonocotPipeline",
+        )
+    ]
+    with caplog.at_level(logging.WARNING, logger=_EXTRACTOR_LOGGER):
+        extract_scan(_MANIFEST, sidecar, tmp_path / "out", cards=cards)
+    assert [w.getMessage() for w in _clamp_warnings(caplog)] == [
+        "past-window age: scan_key=scan0K9E8BI species='rice' mode='cylinder' age=18 "
+        "matched as age=12 -> OlderMonocotPipeline"
     ]
 
 
@@ -163,7 +194,7 @@ def _run_cli(in_dir, out_dir):
 def test_past_window_scan_succeeds_through_batch_cli(tmp_path):
     """The batch CLI emits a past-window scan and prints its warning to stderr."""
     scan_dir = tmp_path / "in" / "scan0K9E8BI"
-    shutil.copytree(_REPO_ROOT / _RICE_DIR, scan_dir)
+    shutil.copytree(_RICE_DIR, scan_dir)
     sidecar = scan_dir / _SIDECAR.name
     data = json.loads(sidecar.read_text(encoding="utf-8"))
     data["params"]["age"] = 18

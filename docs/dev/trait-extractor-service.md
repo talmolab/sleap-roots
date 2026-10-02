@@ -52,7 +52,7 @@ Per scan, discovered recursively under an input directory (mirroring predict's p
 | `images_checksum` | `str` | Feeds the idempotency key; its stability is the downloader's responsibility. |
 | `params.species` | `str` | Selection + `param_hash`. |
 | `params.mode` | `str` | Selection + `param_hash`. |
-| `params.age` | int-coercible | **Canonicalized to an integer** for the hash — `3`, `3.0`, and `"3"` are equivalent; `3.5`/`"abc"`/`true` are rejected. Selection: an age above every window for the species + mode matches its highest window (see [Past-window ages](#notes-follow-ups)). |
+| `params.age` | int-coercible | **Canonicalized to an integer** for the hash — `3`, `3.0`, and `"3"` are equivalent; `3.5`/`"abc"`/`true` are rejected. Selection: an age above every window for the species + mode matches its highest window (see "Past-window ages" under Notes & follow-ups). |
 
 Only `{species, mode, age}` feed the idempotency key: `ResolvedParams.values` is built as that
 **closed set** with `age` coerced to `int`, so a differently-encoded age or an extra `params`
@@ -192,13 +192,28 @@ build-only on PRs, build + push on `main`.
 - **Past-window ages** — a scan older than every `pipeline_selection.yaml` window for its
   species + mode is matched at that species + mode's highest window
   (`pipeline_chooser.past_window_age`; phase 1 of
-  [bloom#971](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/971)). Its
-  provenance keeps the real age. `extract_scan` logs one WARNING per such scan, e.g.
-  `past-window age: scan_key=scan0K9E8BI species='rice' mode='cylinder' age=18 matched as
-  age=10 -> OlderMonocotPipeline`; with no logging handler configured, it reaches stderr as
-  that bare line. Scans younger than every window still fail
-  ([bloom#994](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/994) asks
-  whether they should match the lowest window).
+  [bloom#971](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/971)).
+  - **What the traits mean.** They come from a pipeline validated only up to that window's
+    `age_max`, so they extrapolate past it. For rice above day 10 the pipeline is
+    `OlderMonocotPipeline`, which computes crown-root traits only (no primary-root traits),
+    the same as in-window rice days 6–10.
+  - **Telling a result apart.** No provenance field marks a clamp. The envelope keeps the
+    real age in `provenance.params`; compare it with the highest `age_max` for that species +
+    mode in `pipeline_selection.yaml` at the envelope's `traits_code_sha` (and, for models,
+    the model-card windows in wandb for `predict_models`). This assumes the windows never
+    change, and it can't be resolved for an envelope whose `traits_code_sha` is empty (a run
+    outside the image).
+  - **Logs.** `extract_scan` logs one WARNING per such scan, e.g.
+    `past-window age: scan_key=scan0K9E8BI species='rice' mode='cylinder' age=18 matched as
+    age=10 -> OlderMonocotPipeline`. The batch CLI configures no logging handler, so it
+    reaches stderr as that bare line with no level, timestamp or logger name; search logs for
+    `past-window age:`, not `WARNING`. In the batch summary a clamped scan counts as `ok`.
+  - **Batch outcome.** Past-window scans used to fail (`No pipeline matches`) and wrote no
+    envelope. They now produce one, so a batch whose only failures were past-window scans
+    exits 0 instead of 3, and those scans become new Bloom rows on write-back.
+  - Scans younger than every window still fail
+    ([bloom#994](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/994) asks
+    whether they should match the lowest window).
 - **Downstream** — the trait-extractor ships as the GHCR image
   `ghcr.io/talmolab/sleap-roots-trait-extractor` (see [Container image](#container-image)).
   Bloom's write-back RPC (`insert_cyl_result_envelope`) originally required

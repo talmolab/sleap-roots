@@ -127,7 +127,10 @@ def extract_scan(
     selection_cards = cards or load_pipeline_cards()
     pipeline_cls = choose_pipeline(params, selection_cards)
     # Logged only once selection succeeded, and before the scan-grain guard, so a clamped
-    # multi-plant scan still records the clamp before it is rejected (bloom#971).
+    # multi-plant scan still records the clamp before it is rejected (bloom#971). This
+    # recomputes the clamp rather than asking choose_pipeline, which is exact only
+    # because extract_scan never passes an override; if it ever does, skip the warning
+    # when one is given.
     matched_age = past_window_age(params, selection_cards)
     if matched_age is not None:
         logger.warning(

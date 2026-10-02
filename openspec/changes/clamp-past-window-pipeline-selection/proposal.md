@@ -1,7 +1,7 @@
 ## Why
 
 Scans older than every window for their species can't run today. The bloom#971 decision comment
-counts 21,902 such cylinder scans on staging.
+counts 21,902 such scans in staging's `cyl_scans_extended` (cylinder scans).
 - sleap-roots-predict's `choose_models` uses the same per-species windows, so predict finds no
   model for them and raises `no models resolved`.
 - Even with predictions, `trait_extractor`'s `choose_pipeline` would raise `No pipeline matches`.
