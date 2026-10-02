@@ -199,15 +199,18 @@ build-only on PRs, build + push on `main`.
     the same as in-window rice days 6–10.
   - **Telling a result apart.** No provenance field marks a clamp. The envelope keeps the
     real age in `provenance.params`; compare it with the highest `age_max` for that species +
-    mode in `pipeline_selection.yaml` at the envelope's `traits_code_sha` (and, for models,
-    the model-card windows in wandb for `predict_models`). This assumes the windows never
-    change, and it can't be resolved for an envelope whose `traits_code_sha` is empty (a run
-    outside the image).
+    mode in `pipeline_selection.yaml` at the envelope's `traits_code_sha`, which git fixes.
+    This can't be resolved when `traits_code_sha` is empty (a run outside the image) or when a
+    caller injected its own `cards=`. For the models, the wandb card windows behind
+    `predict_models` identify a clamp only if those cards' selectors are never edited in place.
   - **Logs.** `extract_scan` logs one WARNING per such scan, e.g.
     `past-window age: scan_key=scan0K9E8BI species='rice' mode='cylinder' age=18 matched as
-    age=10 -> OlderMonocotPipeline`. The batch CLI configures no logging handler, so it
-    reaches stderr as that bare line with no level, timestamp or logger name; search logs for
-    `past-window age:`, not `WARNING`. In the batch summary a clamped scan counts as `ok`.
+    age=10 -> OlderMonocotPipeline`. The batch CLI configures no logging, so the first such
+    lines reach stderr bare, through Python's last-resort handler. Later ones may carry a
+    `WARNING:trait_extractor.extractor:` prefix: `sleap_roots/convhull.py` calls the
+    module-level `logging.debug`, which runs `logging.basicConfig()` the first time it fires.
+    Search logs for `past-window age:` anywhere in the line, not at its start and not for
+    `WARNING`. In the batch summary a clamped scan counts as `ok`.
   - **Batch outcome.** Past-window scans used to fail (`No pipeline matches`) and wrote no
     envelope. They now produce one, so a batch whose only failures were past-window scans
     exits 0 instead of 3, and those scans become new Bloom rows on write-back.

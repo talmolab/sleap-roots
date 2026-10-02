@@ -113,7 +113,7 @@ regex the `ValueError` must match), so the whole injected table can be diffed to
 
 ## 0. Coordination (no code)
 
-- [ ] 0.1 Send the predict change's author a note (via this change's author) with:
+- [x] 0.1 Send the predict change's author a note (via this change's author) with:
       - the shared case list above, including the **T** rows to consider adding (the
         boundaries, rice 99, arabidopsis plate 3, soybean plate 10, the past-window multiplant
         and plate rows), and the two P rows whose species predict leaves unnamed (365 and
@@ -126,6 +126,14 @@ regex the `ValueError` must match), so the whole injected table can be diffed to
       Before this PR merges, read predict's PR test table (read-only) and confirm the inputs and
       matched-as ages match row for row. Any comment on sleap-roots-contracts#13 is posted only
       with the author's go-ahead.
+
+      Done 2026-10-02 against talmolab/sleap-roots-predict#50 (head `fcbaf66`). The case list
+      and the missing rows went to predict in the author-approved review on #50. Two
+      independent parity sweeps ran both repos' `past_window_age` and found the same
+      matched-as age on every comparable row: the 25 packaged-card rows other than plate, all
+      10 injected rows, and a 324-case grid. Plate is N/A, since predict has no plate cards.
+      Predict's tests don't yet cover the boundary rows (rice 10/11, soybean 9), rice 99,
+      pennycress 20 or multiplant 28; that's reported on #50, not a disagreement.
 
 ## 1. Tests first
 
@@ -276,11 +284,11 @@ Write every test in this group before any of group 2.
 - [x] 5.3 CI's test command: `uv run pytest tests/`.
 - [x] 5.4 Re-read the proposal, design, spec and tasks against the implementation. Record any
       deviation in design.md under a `### Why N instead of M?` heading.
-- [ ] 5.5 Before pushing, check that the branch is up to date: run `git fetch`, then
+- [x] 5.5 Before pushing, check that the branch is up to date: run `git fetch`, then
       `git merge-base --is-ancestor origin/main HEAD`. If it's behind, rebase onto `origin/main`
       and re-run 5.1–5.3; `docs/changelog.md` is the likely conflict. Force-push
       (`--force-with-lease`) only with the author's go-ahead.
-- [ ] 5.6 Write the PR body to a file and open the PR with `gh pr create --body-file` (only with
+- [x] 5.6 Write the PR body to a file and open the PR with `gh pr create --body-file` (only with
       the author's go-ahead). Title: `traits: clamp past-window ages to the highest pipeline
       window (bloom#971)`. Body sections:
       - Summary;

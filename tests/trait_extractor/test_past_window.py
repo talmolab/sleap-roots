@@ -88,16 +88,29 @@ def test_past_window_rerun_is_skipped_without_warning(tmp_path, caplog):
     assert _clamp_warnings(caplog) == []
 
 
-def test_past_window_warning_names_scan_and_ages(tmp_path, caplog):
-    """An age-18 rice scan logs exactly one clamp warning with every field."""
-    sidecar18 = _write_sidecar(tmp_path / "sc18", age=18)
+@pytest.mark.parametrize(
+    "sidecar_age",
+    [
+        pytest.param(18, id="int"),
+        pytest.param("18", id="string"),
+        pytest.param(18.0, id="whole-float"),
+    ],
+)
+def test_past_window_warning_names_scan_and_ages(tmp_path, caplog, sidecar_age):
+    """An age-18 rice scan logs exactly one clamp warning with every field.
+
+    The sidecar's ``"18"`` and ``18.0`` canonicalize to the int 18 before selection,
+    so they clamp exactly like ``18`` and keep the real age in provenance.
+    """
+    sidecar18 = _write_sidecar(tmp_path / "sc18", age=sidecar_age)
     with caplog.at_level(logging.WARNING, logger=_EXTRACTOR_LOGGER):
-        extract_scan(_MANIFEST, sidecar18, tmp_path / "out18")
+        envelope = extract_scan(_MANIFEST, sidecar18, tmp_path / "out18")
     warnings = _clamp_warnings(caplog)
     assert [w.getMessage() for w in warnings] == [
         "past-window age: scan_key=scan0K9E8BI species='rice' mode='cylinder' age=18 "
         "matched as age=10 -> OlderMonocotPipeline"
     ]
+    assert envelope.provenance.params.values["age"] == 18
 
 
 def test_in_window_scan_logs_no_clamp_warning(tmp_path, caplog):
@@ -204,4 +217,8 @@ def test_past_window_scan_succeeds_through_batch_cli(tmp_path):
 
     assert result.returncode == 0, result.stderr
     assert "ok    scan0K9E8BI" in result.stdout
+    # A substring match on purpose: the CLI configures no logging, so the line may be
+    # bare (Python's last-resort handler) or carry a "WARNING:trait_extractor.extractor:"
+    # prefix once a library call has implicitly run logging.basicConfig() earlier in the
+    # process (sleap_roots/convhull.py calls the module-level logging.debug).
     assert "past-window age: scan_key=scan0K9E8BI" in result.stderr

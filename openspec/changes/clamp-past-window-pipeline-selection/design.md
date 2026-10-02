@@ -72,9 +72,13 @@ parity rests on both repos testing the same inputs (tasks.md "Shared case list")
   Exactly: `f"past-window age: scan_key={scan_key} species={species!r} mode={mode!r} age={age}
   matched as age={matched_age} -> {pipeline_cls.__name__}"`. Species and mode use `%r`, as the
   existing errors do.
-  - The batch CLI configures no logging handler, so Python's last-resort handler prints WARNING
-    records to stderr as the bare message. That's why the message carries a fixed prefix and
-    every field.
+  - The batch CLI configures no logging handler. The first such lines reach stderr bare,
+    through Python's last-resort handler. After `sleap_roots/convhull.py`'s module-level
+    `logging.debug` first fires, it implicitly runs `logging.basicConfig()`, so later lines
+    carry a `WARNING:trait_extractor.extractor:` prefix. That's why the message carries its
+    own fixed `past-window age:` marker and every field, and why the docs say to search for
+    the marker anywhere in the line. Configuring logging in the CLI was considered and left
+    out of this change; see "Implementation notes".
   - Pod logs are readable under the `bloom-pipeline` kubeconfig (sleap-roots-pipeline
     `docs/cluster-identities.md`) but aren't archived. The warning is for diagnosis; the
     envelope's real age is the lasting record.
@@ -89,7 +93,10 @@ parity rests on both repos testing the same inputs (tasks.md "Shared case list")
   The changelog and `docs/dev/trait-extractor-service.md` say so where users will read it.
 - **Multiplant cylinder and plate** past-window scans clamp to `MultipleDicotPipeline` /
   `MultipleDicotPlatePipeline`, which the scan-grain guard still rejects, the same as in-window
-  scans of those modes.
+  scans of those modes. Plate cards exist only on the traits side: predict's catalog has none,
+  so predict resolves no models for a plate scan and no manifest ever reaches traits. The
+  plate clamp is therefore unreachable in production today, and a parity audit should treat
+  it as N/A rather than a mismatch.
 - **Parity drift with predict.** Mitigated by the shared case list, checked against predict's PR
   before merge (tasks.md 0.1).
 - **Deploy order.** If predict's clamp goes live before this one, past-window scans run GPU
@@ -138,6 +145,14 @@ The same pass also:
   raises per row;
 - pinned the in-window ambiguity message (no `matched as` suffix);
 - added a plate row to the extractor's warn-then-reject test.
+
+### Why document the log prefix instead of fixing it?
+
+Found while reviewing predict#50: the `past-window age:` line can change format partway
+through a batch (see "Warning format"). The author chose to correct the docs rather than
+configure logging in the CLI. It's cosmetic: envelopes, exit codes and the recommended grep
+are unaffected, and the CLI test already matches on a substring. Fixing the root cause, a
+library calling module-level `logging` functions, belongs in a separate sleap_roots change.
 
 ## Open Questions
 
