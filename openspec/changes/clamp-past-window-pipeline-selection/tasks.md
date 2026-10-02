@@ -253,14 +253,14 @@ Write every test in this group before any of group 2.
 
 ## 4. Docs
 
-- [ ] 4.1 `docs/changelog.md` `[Unreleased]` → Added, appended after the existing trait_extractor
+- [x] 4.1 `docs/changelog.md` `[Unreleased]` → Added, appended after the existing trait_extractor
       entries (oldest-first in that group). Format, matching those entries:
       - a bold lead;
       - the parenthetical (OpenSpec change `clamp-past-window-pipeline-selection`; phase 1 of
         [bloom#971](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/971));
       - 3–4 sentences with a `**Deploy note:**` (predict's change must also be live; re-pin both
         templates together, or traits first).
-- [ ] 4.2 `docs/dev/trait-extractor-service.md`:
+- [x] 4.2 `docs/dev/trait-extractor-service.md`:
       - in the `params.age` row, note that ages above the species + mode's highest window match
         that window;
       - under "Notes & follow-ups", one bullet on the `past-window age:` WARNING (stderr, one per
@@ -268,12 +268,12 @@ Write every test in this group before any of group 2.
 
 ## 5. Verification and PR
 
-- [ ] 5.1 `openspec validate clamp-past-window-pipeline-selection --strict` (local only; no
+- [x] 5.1 `openspec validate clamp-past-window-pipeline-selection --strict` (local only; no
       workflow runs it).
-- [ ] 5.2 CI's lint commands (`ci.yml`): `uv run black --check sleap_roots tests trait_extractor`
+- [x] 5.2 CI's lint commands (`ci.yml`): `uv run black --check sleap_roots tests trait_extractor`
       and `uv run pydocstyle --convention=google sleap_roots trait_extractor`.
-- [ ] 5.3 CI's test command: `uv run pytest tests/`.
-- [ ] 5.4 Re-read the proposal, design, spec and tasks against the implementation. Record any
+- [x] 5.3 CI's test command: `uv run pytest tests/`.
+- [x] 5.4 Re-read the proposal, design, spec and tasks against the implementation. Record any
       deviation in design.md under a `### Why N instead of M?` heading.
 - [ ] 5.5 Before pushing, check that the branch is up to date: run `git fetch`, then
       `git merge-base --is-ancestor origin/main HEAD`. If it's behind, rebase onto `origin/main`

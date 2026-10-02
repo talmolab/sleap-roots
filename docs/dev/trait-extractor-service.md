@@ -52,7 +52,7 @@ Per scan, discovered recursively under an input directory (mirroring predict's p
 | `images_checksum` | `str` | Feeds the idempotency key; its stability is the downloader's responsibility. |
 | `params.species` | `str` | Selection + `param_hash`. |
 | `params.mode` | `str` | Selection + `param_hash`. |
-| `params.age` | int-coercible | **Canonicalized to an integer** for the hash — `3`, `3.0`, and `"3"` are equivalent; `3.5`/`"abc"`/`true` are rejected. |
+| `params.age` | int-coercible | **Canonicalized to an integer** for the hash — `3`, `3.0`, and `"3"` are equivalent; `3.5`/`"abc"`/`true` are rejected. Selection: an age above every window for the species + mode matches its highest window (see [Past-window ages](#notes-follow-ups)). |
 
 Only `{species, mode, age}` feed the idempotency key: `ResolvedParams.values` is built as that
 **closed set** with `age` coerced to `int`, so a differently-encoded age or an extra `params`
@@ -189,6 +189,16 @@ build-only on PRs, build + push on `main`.
   missing public pipeline API, [#251](https://github.com/talmolab/sleap-roots/issues/251))
   checks `required ⊆ loaded`; multi-plant / plate pipelines are rejected for scan-grain
   emission ([#252](https://github.com/talmolab/sleap-roots/issues/252)).
+- **Past-window ages** — a scan older than every `pipeline_selection.yaml` window for its
+  species + mode is matched at that species + mode's highest window
+  (`pipeline_chooser.past_window_age`; phase 1 of
+  [bloom#971](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/971)). Its
+  provenance keeps the real age. `extract_scan` logs one WARNING per such scan, e.g.
+  `past-window age: scan_key=scan0K9E8BI species='rice' mode='cylinder' age=18 matched as
+  age=10 -> OlderMonocotPipeline`; with no logging handler configured, it reaches stderr as
+  that bare line. Scans younger than every window still fail
+  ([bloom#994](https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/994) asks
+  whether they should match the lowest window).
 - **Downstream** — the trait-extractor ships as the GHCR image
   `ghcr.io/talmolab/sleap-roots-trait-extractor` (see [Container image](#container-image)).
   Bloom's write-back RPC (`insert_cyl_result_envelope`) originally required

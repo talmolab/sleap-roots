@@ -109,6 +109,16 @@ parity rests on both repos testing the same inputs (tasks.md "Shared case list")
     changes every in-window scan's key, so a rollback recomputes everything in scope. Removing
     the past-window results means deleting the Bloom rows, which is out of scope here.
 
+## Implementation notes
+
+### Why two envelope tests instead of one?
+
+tasks.md 1.7 put the skip-if-done re-run inside `test_past_window_envelope_keeps_real_age`. The
+implementation moves it to its own `test_past_window_rerun_is_skipped_without_warning`, so a
+skip failure is reported separately from a provenance or trait failure. The assertions are the
+ones 1.7 lists; nothing was dropped. Both tests were red before the clamp and green after it,
+as 1.9 and 2.5 predicted for the combined test.
+
 ## Open Questions
 
 - bloom#994 (open, no comments as of 2026-10-01): whether younger-than-window scans should clamp
