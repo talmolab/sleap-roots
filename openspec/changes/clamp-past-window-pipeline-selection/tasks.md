@@ -142,28 +142,28 @@ Write every test in this group before any of group 2.
   `record.levelno == logging.WARNING`, and that `record.getMessage()` **equals** the exact format
   in design.md ("Warning format").
 
-- [ ] 1.1 `past_window_age` on every packaged and injected row returns the table's "Clamp"
+- [x] 1.1 `past_window_age` on every packaged and injected row returns the table's "Clamp"
       value, with "no" meaning `None`. The tie (14) and unknown-class (10) rows return a value
       even though `choose_pipeline` raises.
-- [ ] 1.2 Past-window packaged rows, except multiplant and plate. `choose_pipeline`:
+- [x] 1.2 Past-window packaged rows, except multiplant and plate. `choose_pipeline`:
       - returns the expected class;
       - leaves `params.values` equal to a `dict(params.values)` copy taken before the call;
       - leaves `params.param_hash == compute_param_hash(params.values)` (from
         `sleap_roots_contracts`). The stored hash doesn't change on in-place mutation, so it has
         to be recomputed;
       - logs nothing.
-- [ ] 1.3 In-window packaged rows, including the highest-`age_max` boundaries: expected class.
-- [ ] 1.4 Raise rows. **Replaces `test_no_match_raises`**: rice 99 now clamps, and it's in 1.2.
+- [x] 1.3 In-window packaged rows, including the highest-`age_max` boundaries: expected class.
+- [x] 1.4 Raise rows. **Replaces `test_no_match_raises`**: rice 99 now clamps, and it's in 1.2.
       Each raises `match=rf"^No pipeline matches species={re.escape(repr(s))}
       mode={re.escape(repr(m))} age={real}$"`.
-- [ ] 1.5 Injected rows through `choose_pipeline`:
+- [x] 1.5 Injected rows through `choose_pipeline`:
       - canola per-mode, lower window, gap age 11, rice 2–5 at age 9 and canola multiplant 15:
         the expected class;
       - gap age 6, canola 3 (per-species lowest window) and `cards=[]`: as 1.4;
       - tie: `match=r"^Ambiguous pipeline selection \(2 cards match\) for species='arabidopsis'
         mode='cylinder' age=28 matched as age=14$"`;
       - unknown class: `match="^Unknown pipeline class"`.
-- [ ] 1.6 Multiplant and plate rows return `MultipleDicotPipeline` / `MultipleDicotPlatePipeline`,
+- [x] 1.6 Multiplant and plate rows return `MultipleDicotPipeline` / `MultipleDicotPlatePipeline`,
       and each class is in `compatibility.MULTI_PLANT_PIPELINES` (the grain guard itself is
       already covered by `test_compatibility.py`). `override="DicotPipeline"` on rice 18 still
       returns `DicotPipeline`.
@@ -204,7 +204,7 @@ Write every test in this group before any of group 2.
         one.
       - Assert return code 0, `ok    scan0K9E8BI` in stdout, and
         `past-window age: scan_key=scan0K9E8BI` in stderr. Put the stderr assertion last.
-- [ ] 1.9 Run group 1 against the unchanged code and save the output (outside the worktree) for
+- [x] 1.9 Run group 1 against the unchanged code and save the output (outside the worktree) for
       the commit bodies. Expected:
       - **red:**
         - 1.1 (every row: `AttributeError`, no `past_window_age`);
@@ -226,17 +226,17 @@ Write every test in this group before any of group 2.
 
 ## 2. Implement the clamp (`trait_extractor/pipeline_chooser.py`)
 
-- [ ] 2.1 Add `past_window_age(params, cards) -> Optional[int]` with a Google-style docstring
+- [x] 2.1 Add `past_window_age(params, cards) -> Optional[int]` with a Google-style docstring
       (match the module's existing conventions). Update the `choose_pipeline` docstring and the
       module docstring (lines 1–8) to say that ages above every window for a species + mode
       select its highest window (bloom#971).
-- [ ] 2.2 Implement design.md's `past_window_age` and `choose_pipeline` algorithm, including the
+- [x] 2.2 Implement design.md's `past_window_age` and `choose_pipeline` algorithm, including the
       ambiguity suffix. `choose_pipeline`'s signature is unchanged. Never write to
       `params.values`, and don't log.
-- [ ] 2.3 Add one pointer line to the `pipeline_selection.yaml` header comment: ages above a
+- [x] 2.3 Add one pointer line to the `pipeline_selection.yaml` header comment: ages above a
       species + mode's highest window match that window; see `past_window_age`. No card changes.
-- [ ] 2.4 1.1–1.6 pass. `test_compatibility.py`, unchanged, passes.
-- [ ] 2.5 Re-run `test_past_window.py`. The envelope test and the no-warning tests now pass,
+- [x] 2.4 1.1–1.6 pass. `test_compatibility.py`, unchanged, passes.
+- [x] 2.5 Re-run `test_past_window.py`. The envelope test and the no-warning tests now pass,
       including unknown-class. Only the age-18 and multiplant warning tests and 1.8's stderr
       assertion are red (no warning logged). Save that output for commit 3's body.
 

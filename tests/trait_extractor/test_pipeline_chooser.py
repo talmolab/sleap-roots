@@ -1,14 +1,20 @@
 """Tests for species/mode/age -> Pipeline selection."""
 
+import logging
+import re
+
 import pytest
 from sleap_roots.trait_pipelines import (
     DicotPipeline,
+    MultipleDicotPipeline,
     MultipleDicotPlatePipeline,
     OlderMonocotPipeline,
     YoungerMonocotPipeline,
 )
-from sleap_roots_contracts import ResolvedParams
+from sleap_roots_contracts import ResolvedParams, compute_param_hash
 
+from trait_extractor import pipeline_chooser
+from trait_extractor.compatibility import MULTI_PLANT_PIPELINES
 from trait_extractor.pipeline_chooser import (
     PipelineCard,
     choose_pipeline,
@@ -19,6 +25,152 @@ from trait_extractor.pipeline_chooser import (
 def _params(species, mode, age):
     """Build a canonical ResolvedParams (age already an int)."""
     return ResolvedParams(values={"species": species, "mode": mode, "age": age})
+
+
+def _card(species, mode, age_min, age_max, pipeline_class):
+    """Build an injected PipelineCard."""
+    return PipelineCard(
+        species=species,
+        mode=mode,
+        age_min=age_min,
+        age_max=age_max,
+        pipeline_class=pipeline_class,
+    )
+
+
+def _case_id(species, mode, age):
+    """Build a ``species-mode-age`` test id (spaces in the mode become ``_``)."""
+    return f"{species}-{mode.replace(' ', '_')}-{age}"
+
+
+def _shared(species, mode, age, expected, past_window_age):
+    """One packaged-card row of the shared case list (tasks.md)."""
+    return pytest.param(
+        species,
+        mode,
+        age,
+        expected,
+        past_window_age,
+        id=_case_id(species, mode, age),
+    )
+
+
+# The shared case list against the packaged cards, in tasks.md's order, so it can be
+# diffed row for row with sleap-roots-predict's choose_models tests. Columns: species,
+# mode, age, expected class (None: raises "No pipeline matches"), and past_window_age's
+# return (None: no clamp).
+SHARED_CASES = [
+    _shared("soybean", "cylinder", 10, DicotPipeline, 8),
+    _shared("canola", "cylinder", 14, DicotPipeline, 13),
+    _shared("pennycress", "cylinder", 15, DicotPipeline, 14),
+    _shared("pennycress", "cylinder", 20, DicotPipeline, 14),
+    _shared("arabidopsis", "cylinder", 28, DicotPipeline, 14),
+    _shared("rice", "cylinder", 18, OlderMonocotPipeline, 10),
+    _shared("arabidopsis", "cylinder", 365, DicotPipeline, 14),
+    _shared("rice", "cylinder", 99, OlderMonocotPipeline, 10),
+    _shared("rice", "cylinder", 11, OlderMonocotPipeline, 10),
+    _shared("soybean", "cylinder", 9, DicotPipeline, 8),
+    _shared("arabidopsis", "multiplant cylinder", 28, MultipleDicotPipeline, 14),
+    _shared("arabidopsis", "plate", 20, MultipleDicotPlatePipeline, 14),
+    _shared("arabidopsis", "cylinder", 10, DicotPipeline, None),
+    _shared("arabidopsis", "cylinder", 14, DicotPipeline, None),
+    _shared("rice", "cylinder", 4, YoungerMonocotPipeline, None),
+    _shared("rice", "cylinder", 8, OlderMonocotPipeline, None),
+    _shared("canola", "cylinder", 13, DicotPipeline, None),
+    _shared("soybean", "cylinder", 8, DicotPipeline, None),
+    _shared("rice", "cylinder", 10, OlderMonocotPipeline, None),
+    _shared("rice", "cylinder", 3, YoungerMonocotPipeline, None),
+    _shared("canola", "cylinder", 0, None, None),
+    _shared("arabidopsis", "cylinder", 1, None, None),
+    _shared("rice", "cylinder", 1, None, None),
+    _shared("arabidopsis", "plate", 3, None, None),
+    _shared("sorghum", "cylinder", 30, None, None),
+    _shared("canola", "multiplant cylinder", 20, None, None),
+    _shared("soybean", "plate", 10, None, None),
+]
+
+
+def _select(cases, predicate):
+    """Filter shared-case params by ``predicate(species, mode, age, expected, pwa)``."""
+    return [case for case in cases if predicate(*case.values)]
+
+
+PAST_WINDOW_CASES = _select(
+    SHARED_CASES,
+    lambda s, m, a, cls, pwa: pwa is not None and cls not in MULTI_PLANT_PIPELINES,
+)
+MULTI_PLANT_CASES = _select(
+    SHARED_CASES,
+    lambda s, m, a, cls, pwa: pwa is not None and cls in MULTI_PLANT_PIPELINES,
+)
+IN_WINDOW_CASES = _select(
+    SHARED_CASES, lambda s, m, a, cls, pwa: pwa is None and cls is not None
+)
+UNMATCHED_CASES = _select(SHARED_CASES, lambda s, m, a, cls, pwa: cls is None)
+
+_CANOLA_BY_MODE = [
+    _card("canola", "cylinder", 2, 13, "DicotPipeline"),
+    _card("canola", "multiplant cylinder", 2, 20, "MultipleDicotPipeline"),
+]
+_LOWER_WINDOW = [
+    _card("x", "cylinder", 2, 10, "DicotPipeline"),
+    _card("x", "cylinder", 2, 14, "OlderMonocotPipeline"),
+]
+_GAPPED = [
+    _card("x", "cylinder", 2, 5, "YoungerMonocotPipeline"),
+    _card("x", "cylinder", 8, 10, "OlderMonocotPipeline"),
+]
+_TIED = [
+    _card("arabidopsis", "cylinder", 2, 14, "DicotPipeline"),
+    _card("arabidopsis", "cylinder", 10, 14, "OlderMonocotPipeline"),
+]
+_RICE_YOUNGER_ONLY = [_card("rice", "cylinder", 2, 5, "YoungerMonocotPipeline")]
+_PER_SPECIES_LOWEST = [
+    _card("canola", "cylinder", 5, 13, "DicotPipeline"),
+    _card("pennycress", "cylinder", 2, 14, "OlderMonocotPipeline"),
+]
+_UNKNOWN_CLASS = [_card("x", "cylinder", 2, 10, "NopePipeline")]
+
+
+def _injected(cards, species, mode, age, past_window_age, label):
+    """One injected-card row of the shared case list (tasks.md)."""
+    return pytest.param(cards, species, mode, age, past_window_age, id=label)
+
+
+# The shared case list's injected-card rows, in tasks.md's order. Columns: cards,
+# species, mode, age, and past_window_age's return.
+INJECTED_CASES = [
+    _injected(_CANOLA_BY_MODE, "canola", "cylinder", 15, 13, "per-mode-cylinder"),
+    _injected(
+        _CANOLA_BY_MODE,
+        "canola",
+        "multiplant cylinder",
+        15,
+        None,
+        "per-mode-multiplant",
+    ),
+    _injected(_LOWER_WINDOW, "x", "cylinder", 28, 14, "lower-window"),
+    _injected(_GAPPED, "x", "cylinder", 6, None, "gap-6"),
+    _injected(_GAPPED, "x", "cylinder", 11, 10, "gap-11"),
+    _injected(_TIED, "arabidopsis", "cylinder", 28, 14, "tie"),
+    _injected(_RICE_YOUNGER_ONLY, "rice", "cylinder", 9, 5, "rice-2-5-age-9"),
+    _injected(_PER_SPECIES_LOWEST, "canola", "cylinder", 3, None, "per-species-lowest"),
+    _injected([], "rice", "cylinder", 100, None, "no-cards"),
+    _injected(_UNKNOWN_CLASS, "x", "cylinder", 12, 10, "unknown-class"),
+]
+
+
+def _no_match_pattern(species, mode, age):
+    """Anchored regex for the 'No pipeline matches' error with the real age."""
+    return (
+        rf"^No pipeline matches species={re.escape(repr(species))} "
+        rf"mode={re.escape(repr(mode))} age={age}$"
+    )
+
+
+def _chooser_records(caplog):
+    """Records the chooser logged (it must log nothing)."""
+    return [r for r in caplog.records if r.name == "trait_extractor.pipeline_chooser"]
 
 
 def test_yaml_cards_select_expected():
@@ -45,11 +197,150 @@ def test_override_wins():
     )
 
 
-def test_no_match_raises():
-    """An age outside every window raises."""
+def test_override_wins_for_past_window_age():
+    """An override still wins when the scan's age is past every window."""
     cards = load_pipeline_cards()
-    with pytest.raises(ValueError):
-        choose_pipeline(_params("rice", "cylinder", 99), cards)
+    assert (
+        choose_pipeline(
+            _params("rice", "cylinder", 18), cards, override="DicotPipeline"
+        )
+        is DicotPipeline
+    )
+
+
+@pytest.mark.parametrize("species, mode, age, expected, past_window_age", SHARED_CASES)
+def test_past_window_age_shared_cases(species, mode, age, expected, past_window_age):
+    """past_window_age returns the shared case list's matched-as age, or None."""
+    cards = load_pipeline_cards()
+    params = _params(species, mode, age)
+    assert pipeline_chooser.past_window_age(params, cards) == past_window_age
+
+
+@pytest.mark.parametrize("cards, species, mode, age, past_window_age", INJECTED_CASES)
+def test_past_window_age_injected_cases(cards, species, mode, age, past_window_age):
+    """past_window_age returns the injected rows' matched-as age, or None."""
+    params = _params(species, mode, age)
+    assert pipeline_chooser.past_window_age(params, cards) == past_window_age
+
+
+@pytest.mark.parametrize(
+    "species, mode, age, expected, past_window_age", PAST_WINDOW_CASES
+)
+def test_past_window_age_selects_highest_window(
+    species, mode, age, expected, past_window_age, caplog
+):
+    """A past-window age selects the highest window's class, keeping params intact."""
+    cards = load_pipeline_cards()
+    params = _params(species, mode, age)
+    before = dict(params.values)
+    with caplog.at_level(logging.DEBUG, logger="trait_extractor"):
+        selected = choose_pipeline(params, cards)
+    assert selected is expected
+    assert params.values == before
+    assert params.param_hash == compute_param_hash(params.values)
+    assert _chooser_records(caplog) == []
+
+
+@pytest.mark.parametrize(
+    "species, mode, age, expected, past_window_age", IN_WINDOW_CASES
+)
+def test_in_window_selection_unchanged(species, mode, age, expected, past_window_age):
+    """In-window ages, including each highest age_max, select as before."""
+    cards = load_pipeline_cards()
+    assert choose_pipeline(_params(species, mode, age), cards) is expected
+
+
+@pytest.mark.parametrize(
+    "species, mode, age, expected, past_window_age", UNMATCHED_CASES
+)
+def test_unmatched_scans_still_raise(species, mode, age, expected, past_window_age):
+    """Younger-than-window and no-card scans raise with the real age."""
+    cards = load_pipeline_cards()
+    with pytest.raises(ValueError, match=_no_match_pattern(species, mode, age)):
+        choose_pipeline(_params(species, mode, age), cards)
+
+
+@pytest.mark.parametrize(
+    "cards, species, mode, age, expected",
+    [
+        pytest.param(
+            _CANOLA_BY_MODE,
+            "canola",
+            "cylinder",
+            15,
+            DicotPipeline,
+            id="per-mode-cylinder",
+        ),
+        pytest.param(
+            _CANOLA_BY_MODE,
+            "canola",
+            "multiplant cylinder",
+            15,
+            MultipleDicotPipeline,
+            id="per-mode-multiplant",
+        ),
+        pytest.param(
+            _LOWER_WINDOW, "x", "cylinder", 28, OlderMonocotPipeline, id="lower-window"
+        ),
+        pytest.param(_GAPPED, "x", "cylinder", 11, OlderMonocotPipeline, id="gap-11"),
+        pytest.param(
+            _RICE_YOUNGER_ONLY,
+            "rice",
+            "cylinder",
+            9,
+            YoungerMonocotPipeline,
+            id="rice-2-5-age-9",
+        ),
+    ],
+)
+def test_injected_cards_select(cards, species, mode, age, expected):
+    """Injected cards: the highest window is per species + mode, never a lower one."""
+    assert choose_pipeline(_params(species, mode, age), cards) is expected
+
+
+@pytest.mark.parametrize(
+    "cards, species, mode, age",
+    [
+        pytest.param(_GAPPED, "x", "cylinder", 6, id="gap-6"),
+        pytest.param(_PER_SPECIES_LOWEST, "canola", "cylinder", 3, id="per-species"),
+        pytest.param([], "rice", "cylinder", 100, id="no-cards"),
+    ],
+)
+def test_injected_cards_unmatched_raise(cards, species, mode, age):
+    """A gap, an age below the species' own lowest window, or no cards raises."""
+    with pytest.raises(ValueError, match=_no_match_pattern(species, mode, age)):
+        choose_pipeline(_params(species, mode, age), cards)
+
+
+def test_tie_at_highest_window_raises_with_both_ages():
+    """Two cards tied at the highest age_max are ambiguous after the clamp."""
+    with pytest.raises(
+        ValueError,
+        match=(
+            r"^Ambiguous pipeline selection \(2 cards match\) for "
+            r"species='arabidopsis' mode='cylinder' age=28 matched as age=14$"
+        ),
+    ):
+        choose_pipeline(_params("arabidopsis", "cylinder", 28), _TIED)
+
+
+def test_unknown_class_reached_by_clamp_raises():
+    """A highest-window card with an unknown class raises after clamping."""
+    with pytest.raises(ValueError, match="^Unknown pipeline class"):
+        choose_pipeline(_params("x", "cylinder", 12), _UNKNOWN_CLASS)
+
+
+@pytest.mark.parametrize(
+    "species, mode, age, expected, past_window_age", MULTI_PLANT_CASES
+)
+def test_past_window_multi_plant_scans_clamp(
+    species, mode, age, expected, past_window_age
+):
+    """Past-window multiplant/plate scans clamp to a class the grain guard rejects."""
+    cards = load_pipeline_cards()
+    selected = choose_pipeline(_params(species, mode, age), cards)
+    assert selected is expected
+    assert selected in MULTI_PLANT_PIPELINES
 
 
 def test_ambiguous_match_raises():

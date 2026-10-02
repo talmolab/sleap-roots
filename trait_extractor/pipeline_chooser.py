@@ -3,8 +3,10 @@
 Modeled on ``sleap-roots-predict``'s ``choose_models`` / ``ModelCard`` (which are NOT
 importable here — the matcher is authored in-tree): a ``PipelineCard`` carries a
 contiguous inclusive ``[age_min, age_max]`` window, and ``choose_pipeline`` returns the
-single matching Pipeline subclass. Whether the selected pipeline can be emitted at
-scan grain is a separate concern (see ``compatibility.py``).
+single matching Pipeline subclass. A scan older than every window for its species + mode
+matches that species + mode's highest window (bloom#971 phase 1); ``past_window_age``
+returns the age it is matched at. Whether the selected pipeline can be emitted at scan
+grain is a separate concern (see ``compatibility.py``).
 """
 
 from pathlib import Path
@@ -74,6 +76,37 @@ def _resolve_class(name: str) -> Type[Pipeline]:
     return cls
 
 
+def past_window_age(params: ResolvedParams, cards: List[PipelineCard]) -> Optional[int]:
+    """Return the age a past-window scan is matched at, or ``None``.
+
+    A scan is past-window when at least one card has its ``species`` and ``mode`` and its
+    ``age`` is greater than every such card's ``age_max``; it is then matched at the
+    highest of those ``age_max`` values, with no upper limit on how far past (bloom#971
+    phase 1). The maximum is taken over that species + mode only. Younger-than-window,
+    in-gap, in-window and no-card scans return ``None``. Pure: reads the
+    already-canonical ``params.values`` (``age`` is an ``int``) and does not log.
+
+    Args:
+        params: Canonical resolved params (``values`` has ``species``, ``mode``,
+            ``age: int``).
+        cards: Candidate selection cards.
+
+    Returns:
+        The highest ``age_max`` for the scan's species + mode if the scan is older than
+        all of them, else ``None``.
+    """
+    values = params.values
+    windows = [
+        card.age_max
+        for card in cards
+        if card.species == values["species"] and card.mode == values["mode"]
+    ]
+    highest = max(windows, default=None)
+    if highest is not None and values["age"] > highest:
+        return highest
+    return None
+
+
 def choose_pipeline(
     params: ResolvedParams,
     cards: List[PipelineCard],
@@ -83,7 +116,9 @@ def choose_pipeline(
 
     Reads ``species``/``mode``/``age`` from the already-canonical ``params.values``
     (``age`` is an ``int``); does not mutate ``params``. An explicit ``override``
-    class-name wins and bypasses matching.
+    class-name wins and bypasses matching. A past-window scan is matched at
+    ``past_window_age`` (its species + mode's highest window); only the matching age is
+    clamped, so the caller's ``params`` keep the real age. Does not log.
 
     Args:
         params: Canonical resolved params (``values`` has ``species``, ``mode``,
@@ -104,20 +139,23 @@ def choose_pipeline(
     species = values["species"]
     mode = values["mode"]
     age = values["age"]
+    clamped_age = past_window_age(params, cards)
+    matched_age = age if clamped_age is None else clamped_age
     matches = [
         card
         for card in cards
         if card.species == species
         and card.mode == mode
-        and card.age_min <= age <= card.age_max
+        and card.age_min <= matched_age <= card.age_max
     ]
     if not matches:
         raise ValueError(
             f"No pipeline matches species={species!r} mode={mode!r} age={age}"
         )
     if len(matches) > 1:
+        clamp_note = "" if clamped_age is None else f" matched as age={clamped_age}"
         raise ValueError(
             f"Ambiguous pipeline selection ({len(matches)} cards match) for "
-            f"species={species!r} mode={mode!r} age={age}"
+            f"species={species!r} mode={mode!r} age={age}{clamp_note}"
         )
     return _resolve_class(matches[0].pipeline_class)

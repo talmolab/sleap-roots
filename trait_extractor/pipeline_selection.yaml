@@ -5,6 +5,9 @@
 # [age_min, age_max] windows (mirroring predict's ModelCard age windows). Selection only
 # resolves the class; whether a pipeline supports one-row scan-grain emission is guarded
 # separately (see compatibility.check_pipeline_compatible).
+#
+# Ages above a species + mode's highest window match that window (bloom#971); see
+# pipeline_chooser.past_window_age.
 - species: soybean
   mode: cylinder
   age_min: 2
