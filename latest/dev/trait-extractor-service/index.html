@@ -3113,7 +3113,7 @@ sibling). Consequently:</p>
 <tr>
 <td><code>params.age</code></td>
 <td>int-coercible</td>
-<td><strong>Canonicalized to an integer</strong> for the hash — <code>3</code>, <code>3.0</code>, and <code>"3"</code> are equivalent; <code>3.5</code>/<code>"abc"</code>/<code>true</code> are rejected.</td>
+<td><strong>Canonicalized to an integer</strong> for the hash — <code>3</code>, <code>3.0</code>, and <code>"3"</code> are equivalent; <code>3.5</code>/<code>"abc"</code>/<code>true</code> are rejected. Selection: an age above every window for the species + mode matches its highest window (see "Past-window ages" under Notes &amp; follow-ups).</td>
 </tr>
 </tbody>
 </table>
@@ -3271,6 +3271,34 @@ build-only on PRs, build + push on <code>main</code>.</p>
   missing public pipeline API, <a href="https://github.com/talmolab/sleap-roots/issues/251">#251</a>)
   checks <code>required ⊆ loaded</code>; multi-plant / plate pipelines are rejected for scan-grain
   emission (<a href="https://github.com/talmolab/sleap-roots/issues/252">#252</a>).</li>
+<li><strong>Past-window ages</strong> — a scan older than every <code>pipeline_selection.yaml</code> window for its
+  species + mode is matched at that species + mode's highest window
+  (<code>pipeline_chooser.past_window_age</code>; phase 1 of
+  <a href="https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/971">bloom#971</a>).</li>
+<li><strong>What the traits mean.</strong> They come from a pipeline validated only up to that window's
+    <code>age_max</code>, so they extrapolate past it. For rice above day 10 the pipeline is
+    <code>OlderMonocotPipeline</code>, which computes crown-root traits only (no primary-root traits),
+    the same as in-window rice days 6–10.</li>
+<li><strong>Telling a result apart.</strong> No provenance field marks a clamp. The envelope keeps the
+    real age in <code>provenance.params</code>; compare it with the highest <code>age_max</code> for that species +
+    mode in <code>pipeline_selection.yaml</code> at the envelope's <code>traits_code_sha</code>, which git fixes.
+    This can't be resolved when <code>traits_code_sha</code> is empty (a run outside the image) or when a
+    caller injected its own <code>cards=</code>. For the models, the wandb card windows behind
+    <code>predict_models</code> identify a clamp only if those cards' selectors are never edited in place.</li>
+<li><strong>Logs.</strong> <code>extract_scan</code> logs one WARNING per such scan, e.g.
+    <code>past-window age: scan_key=scan0K9E8BI species='rice' mode='cylinder' age=18 matched as
+    age=10 -&gt; OlderMonocotPipeline</code>. The batch CLI configures no logging, so the first such
+    lines reach stderr bare, through Python's last-resort handler. Later ones may carry a
+    <code>WARNING:trait_extractor.extractor:</code> prefix: <code>sleap_roots/convhull.py</code> calls the
+    module-level <code>logging.debug</code>, which runs <code>logging.basicConfig()</code> the first time it fires.
+    Search logs for <code>past-window age:</code> anywhere in the line, not at its start and not for
+    <code>WARNING</code>. In the batch summary a clamped scan counts as <code>ok</code>.</li>
+<li><strong>Batch outcome.</strong> Past-window scans used to fail (<code>No pipeline matches</code>) and wrote no
+    envelope. They now produce one, so a batch whose only failures were past-window scans
+    exits 0 instead of 3, and those scans become new Bloom rows on write-back.</li>
+<li>Scans younger than every window still fail
+    (<a href="https://github.com/Salk-Harnessing-Plants-Initiative/bloom/issues/994">bloom#994</a> asks
+    whether they should match the lowest window).</li>
 <li><strong>Downstream</strong> — the trait-extractor ships as the GHCR image
   <code>ghcr.io/talmolab/sleap-roots-trait-extractor</code> (see <a href="#container-image">Container image</a>).
   Bloom's write-back RPC (<code>insert_cyl_result_envelope</code>) originally required
