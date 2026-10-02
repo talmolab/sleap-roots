@@ -304,15 +304,19 @@ Write every test in this group before any of group 2.
 
 ## 6. Post-merge (follow-up PRs in this and other repos)
 
-- [ ] 6.1 `openspec: archive clamp-past-window-pipeline-selection after PR #N merge`:
+- [x] 6.1 `openspec: archive clamp-past-window-pipeline-selection after PR #N merge`:
       `openspec archive … --yes`, then `openspec validate --all --strict`. Do this before any
       bloom#994 change is proposed, since that change would MODIFY the same requirement.
-- [ ] 6.2 Find the main-push `docker-trait-extractor.yml` run for the squash commit. A later
+- [x] 6.2 Find the main-push `docker-trait-extractor.yml` run for the squash commit. A later
       merge can cancel it (`cancel-in-progress`), so check that the recorded digest's
       `org.opencontainers.image.revision` equals the squash SHA. Optional local smoke on that
       digest:
       `docker run --entrypoint python <digest> -c "…past_window_age and choose_pipeline on
       rice/cylinder/18…"`.
+      Done 2026-10-02: run 36965318493 for squash `426ad4d` succeeded. The image's
+      `org.opencontainers.image.revision` and its baked `SRT_TRAITS_CODE_SHA` are both
+      `426ad4d`, and GHCR resolves `sha-426ad4d` to
+      `sha256:7d5bdaf94dcaf1b695b0bfb2390bfb4dd687c0c18cb4720b25ce5bd43ed4b7e8`.
 - [ ] 6.3 sleap-roots-pipeline, re-pinning traits together with predict's re-pin (or traits
       first, if they must be split):
       - In `sleap-roots-trait-extractor-template.yaml`, update the `image:` line's `:sha-<short>`
