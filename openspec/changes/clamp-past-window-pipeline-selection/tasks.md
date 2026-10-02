@@ -167,7 +167,7 @@ Write every test in this group before any of group 2.
       and each class is in `compatibility.MULTI_PLANT_PIPELINES` (the grain guard itself is
       already covered by `test_compatibility.py`). `override="DicotPipeline"` on rice 18 still
       returns `DicotPipeline`.
-- [ ] 1.7 Extractor level, new `tests/trait_extractor/test_past_window.py`:
+- [x] 1.7 Extractor level, new `tests/trait_extractor/test_past_window.py`:
       - `monkeypatch.delenv` `SRT_TRAITS_CODE_SHA` and `SRT_TRAITS_CONTAINER_DIGEST`
         (`raising=False`).
       - A helper writes a copy of
@@ -182,7 +182,9 @@ Write every test in this group before any of group 2.
         - `env18.traits == env8.traits`, and at least one `TraitValue.value` is not `None`, so the
           equality isn't vacuous;
         - a second age-18 `extract_scan` into `out18` returns `None`, leaves the file bytes
-          unchanged, and logs no clamp warning.
+          unchanged, and logs no clamp warning. (Implemented as its own
+          `test_past_window_rerun_is_skipped_without_warning`; see design.md "Implementation
+          notes".)
       - In separate warning tests (kept apart so 2.5 shows the envelope test already passes):
         - age 18: exactly one WARNING whose message equals
           `past-window age: scan_key=scan0K9E8BI species='rice' mode='cylinder' age=18 matched as
@@ -196,7 +198,7 @@ Write every test in this group before any of group 2.
           `cards=[PipelineCard(species="rice", mode="cylinder", age_min=2, age_max=10,
           pipeline_class="NopePipeline")]`: raises `Unknown pipeline class`, with no clamp
           warning. This pins "log only after `choose_pipeline` returns".
-- [ ] 1.8 Batch CLI, in `test_past_window.py`:
+- [x] 1.8 Batch CLI, in `test_past_window.py`:
       - Copy `tests/data/rice_3do_pipeline_output/scan0K9E8BI/` to `tmp_path / "in" /
         "scan0K9E8BI"` and set its sidecar's age to 18 (`encoding="utf-8"`).
       - Run `python -m trait_extractor <in> <out>` as a subprocess, the same way
@@ -242,11 +244,11 @@ Write every test in this group before any of group 2.
 
 ## 3. Log the warning (`trait_extractor/extractor.py`)
 
-- [ ] 3.1 Add the `logger.warning` in `extract_scan` per design.md's "`extract_scan`" decision.
+- [x] 3.1 Add the `logger.warning` in `extract_scan` per design.md's "`extract_scan`" decision.
       It goes after `choose_pipeline` returns and before `check_pipeline_compatible`, and fires
       only when `past_window_age(params, cards)` is not `None`. Pass the same resolved cards to
       both calls, and update the `extract_scan` docstring. 1.7 and 1.8 pass.
-- [ ] 3.2 `uv run pytest tests/trait_extractor`. `test_envelope.py`'s golden regression and the
+- [x] 3.2 `uv run pytest tests/trait_extractor`. `test_envelope.py`'s golden regression and the
       skip-if-done tests pass unchanged.
 
 ## 4. Docs

@@ -29,6 +29,7 @@ from trait_extractor.pipeline_chooser import (
     PipelineCard,
     choose_pipeline,
     load_pipeline_cards,
+    past_window_age,
 )
 from trait_extractor.run_manifest import copy_run_manifest_forward
 from trait_extractor.traits import compute_scan_traits, scan_trait_values
@@ -82,6 +83,11 @@ def extract_scan(
     exactly as if skip-if-done did not exist, reusing the already-built ``provenance``
     for the final envelope.
 
+    A scan older than every selection window for its species + mode is matched at that
+    species + mode's highest window (see ``past_window_age``); its provenance keeps the
+    real age. Such a scan logs one ``past-window age:`` WARNING naming the scan key,
+    after selection succeeds and before the scan-grain compatibility check.
+
     Args:
         manifest_path: Path to ``{scan_key}.predictions.json``.
         scan_metadata_path: Path to the co-located ``{scan_key}.scan_metadata.json``.
@@ -118,7 +124,22 @@ def extract_scan(
         return None
 
     series = load_series(manifest, manifest_path.parent)
-    pipeline_cls = choose_pipeline(params, cards or load_pipeline_cards())
+    selection_cards = cards or load_pipeline_cards()
+    pipeline_cls = choose_pipeline(params, selection_cards)
+    # Logged only once selection succeeded, and before the scan-grain guard, so a clamped
+    # multi-plant scan still records the clamp before it is rejected (bloom#971).
+    matched_age = past_window_age(params, selection_cards)
+    if matched_age is not None:
+        logger.warning(
+            "past-window age: scan_key=%s species=%r mode=%r age=%s matched as age=%s "
+            "-> %s",
+            manifest.scan_key,
+            params.values["species"],
+            params.values["mode"],
+            params.values["age"],
+            matched_age,
+            pipeline_cls.__name__,
+        )
     check_pipeline_compatible(series, pipeline_cls)
 
     traits = compute_scan_traits(series, pipeline_cls)
