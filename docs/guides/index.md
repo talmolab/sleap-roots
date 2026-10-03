@@ -135,6 +135,25 @@ graph TD
 | Special architecture | Any | Multiple primary | `MultiplePrimaryRootPipeline` |
 | Lateral root focus | Any | Lateral only | `LateralRootPipeline` |
 
+!!! note "Production trait-extractor"
+    This table is a rule of thumb for library users. The production trait-extractor chooses
+    the pipeline from a scan's species, mode and age using
+    [`trait_extractor/pipeline_selection.yaml`](https://github.com/talmolab/sleap-roots/blob/main/trait_extractor/pipeline_selection.yaml),
+    and its choices can differ from the table. For example:
+
+    - Wheat runs on `OlderMonocotPipeline` at every age it supports. The wheat model labels
+      all seminal roots, including the primary, as `crown` (as the older-rice model does).
+      Wheat gets `crown_*` traits plus network-level traits (length, convex hull, ellipse,
+      scanlines) computed from those `crown` points only; wheat lateral roots are not
+      predicted, and there are no separate primary-root traits.
+    - Sorghum runs on `DicotPipeline` even though it is a monocot, because its models predict
+      only the primary root and its laterals. It gets `DicotPipeline`'s full trait set:
+      `primary_*` and `lateral_*` traits plus network-level traits from both.
+    - A scan older than its species + mode's highest window is matched at that window, so
+      its traits are extrapolated past the ages the pipeline was validated for.
+
+    See [Trait-extractor service](../dev/trait-extractor-service.md).
+
 ## Pipeline Components
 
 All pipelines share a common structure:

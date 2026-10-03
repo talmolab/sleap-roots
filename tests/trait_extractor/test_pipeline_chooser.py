@@ -44,7 +44,7 @@ def _case_id(species, mode, age):
 
 
 def _shared(species, mode, age, expected, past_window_age):
-    """One packaged-card row of the shared case list (tasks.md)."""
+    """One packaged-card row of the shared case list (see SHARED_CASES)."""
     return pytest.param(
         species,
         mode,
@@ -55,10 +55,13 @@ def _shared(species, mode, age, expected, past_window_age):
     )
 
 
-# The shared case list against the packaged cards, in tasks.md's order, so it can be
-# diffed row for row with sleap-roots-predict's choose_models tests. Columns: species,
-# mode, age, expected class (None: raises "No pipeline matches"), and past_window_age's
-# return (None: no clamp).
+# The shared case list against the packaged cards. Columns: species, mode, age, expected
+# class (None: raises "No pipeline matches"), and past_window_age's return (None: no
+# clamp). Rows through soybean plate 10 follow the archived
+# clamp-past-window-pipeline-selection tasks.md, so they can be diffed row for row with
+# sleap-roots-predict's choose_models tests. The alfalfa no-card row and the trailing
+# wheat and sorghum rows come from add-wheat-sorghum-pipeline-cards (#276); predict's
+# copy doesn't have them yet.
 SHARED_CASES = [
     _shared("soybean", "cylinder", 10, DicotPipeline, 8),
     _shared("canola", "cylinder", 14, DicotPipeline, 13),
@@ -84,9 +87,22 @@ SHARED_CASES = [
     _shared("arabidopsis", "cylinder", 1, None, None),
     _shared("rice", "cylinder", 1, None, None),
     _shared("arabidopsis", "plate", 3, None, None),
-    _shared("sorghum", "cylinder", 30, None, None),
+    _shared("alfalfa", "cylinder", 30, None, None),
     _shared("canola", "multiplant cylinder", 20, None, None),
     _shared("soybean", "plate", 10, None, None),
+    _shared("wheat", "cylinder", 5, OlderMonocotPipeline, None),
+    _shared("wheat", "cylinder", 10, OlderMonocotPipeline, None),
+    _shared("wheat", "cylinder", 14, OlderMonocotPipeline, None),
+    _shared("wheat", "cylinder", 15, OlderMonocotPipeline, 14),
+    _shared("wheat", "cylinder", 20, OlderMonocotPipeline, 14),
+    _shared("wheat", "cylinder", 4, None, None),
+    _shared("wheat", "plate", 10, None, None),
+    _shared("sorghum", "cylinder", 3, DicotPipeline, None),
+    _shared("sorghum", "cylinder", 8, DicotPipeline, None),
+    _shared("sorghum", "cylinder", 14, DicotPipeline, None),
+    _shared("sorghum", "cylinder", 15, DicotPipeline, 14),
+    _shared("sorghum", "cylinder", 17, DicotPipeline, 14),
+    _shared("sorghum", "cylinder", 2, None, None),
 ]
 
 
@@ -245,6 +261,22 @@ def test_yaml_cards_select_expected():
     )
 
 
+def test_wheat_and_sorghum_packaged_cards():
+    """The packaged wheat and sorghum cards are exactly the #276 rows.
+
+    Their windows must equal the predict model cards' windows in
+    talmolab/sleap-roots-training#72; nothing checks that across repos, so change them
+    only together with the predict cards.
+    """
+    cards = load_pipeline_cards()
+    assert [c for c in cards if c.species == "wheat"] == [
+        _card("wheat", "cylinder", 5, 14, "OlderMonocotPipeline")
+    ]
+    assert [c for c in cards if c.species == "sorghum"] == [
+        _card("sorghum", "cylinder", 3, 14, "DicotPipeline")
+    ]
+
+
 def test_override_wins():
     """An explicit override bypasses species/mode/age matching."""
     assert (
@@ -271,8 +303,10 @@ def test_past_window_age_shared_cases(
     """past_window_age returns the shared case list's matched-as age, or None."""
     cards = load_pipeline_cards()
     params = _params(species, mode, age)
+    before = dict(params.values)
     with caplog.at_level(logging.DEBUG):
         assert pipeline_chooser.past_window_age(params, cards) == past_window_age
+    assert params.values == before
     assert caplog.records == []
 
 
@@ -315,8 +349,11 @@ def test_in_window_selection_unchanged(
 ):
     """In-window ages, including each highest age_max, select as before."""
     cards = load_pipeline_cards()
+    params = _params(species, mode, age)
+    before = dict(params.values)
     with caplog.at_level(logging.DEBUG):
-        assert choose_pipeline(_params(species, mode, age), cards) is expected
+        assert choose_pipeline(params, cards) is expected
+    assert params.values == before
     assert caplog.records == []
 
 

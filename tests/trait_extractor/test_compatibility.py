@@ -14,15 +14,21 @@ from sleap_roots.trait_pipelines import (
     Pipeline,
     YoungerMonocotPipeline,
 )
+from sleap_roots_contracts import ResolvedParams
 
 from trait_extractor.compatibility import (
     MULTI_PLANT_PIPELINES,
     PIPELINE_REQUIRED_ROOTS,
     check_pipeline_compatible,
+    loaded_root_types,
 )
 from trait_extractor.loading import load_series
 from trait_extractor.manifest import load_manifest
-from trait_extractor.pipeline_chooser import PIPELINE_CLASSES
+from trait_extractor.pipeline_chooser import (
+    PIPELINE_CLASSES,
+    choose_pipeline,
+    load_pipeline_cards,
+)
 
 _RICE_DIR = Path("tests/data/rice_3do_pipeline_output/scan0K9E8BI")
 
@@ -58,6 +64,42 @@ def test_crown_only_pipeline_accepts_superset():
     """OlderMonocotPipeline (crown-only) passes against a primary+crown scan."""
     series = _rice_series()
     check_pipeline_compatible(series, OlderMonocotPipeline)  # no raise
+
+
+def _packaged_selection(species, age):
+    """Select a cylinder scan's pipeline class from the packaged cards."""
+    params = ResolvedParams(values={"species": species, "mode": "cylinder", "age": age})
+    return choose_pipeline(params, load_pipeline_cards())
+
+
+def test_wheat_selection_accepts_crown_only_series():
+    """Wheat's packaged pipeline passes against a crown-only scan.
+
+    The wheat model labels seminal roots as crown, so wheat scans load crown only. No
+    wheat .slp is in tests/data; the guard reads only which root types loaded, so a
+    crown-only rice series exercises the same path.
+    """
+    series = Series.load(
+        series_name="0K9E8BI",
+        crown_path="tests/data/rice_10do/0K9E8BI.crown.predictions.slp",
+    )
+    # Series.load leaves labels None for a missing path, so pin what actually loaded.
+    assert loaded_root_types(series) == {"crown"}
+    pipeline_cls = _packaged_selection("wheat", 10)
+    assert pipeline_cls is OlderMonocotPipeline
+    check_pipeline_compatible(series, pipeline_cls)  # no raise
+
+
+def test_sorghum_selection_accepts_primary_lateral_series():
+    """Sorghum's packaged pipeline passes against a primary + lateral scan.
+
+    No sorghum .slp is in tests/data; a canola series loads the same root types.
+    """
+    series = _canola_series()
+    assert loaded_root_types(series) == {"primary", "lateral"}
+    pipeline_cls = _packaged_selection("sorghum", 8)
+    assert pipeline_cls is DicotPipeline
+    check_pipeline_compatible(series, pipeline_cls)  # no raise
 
 
 def test_missing_required_root_raises():

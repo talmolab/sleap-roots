@@ -6,6 +6,11 @@
 # resolves the class; whether a pipeline supports one-row scan-grain emission is guarded
 # separately (see compatibility.check_pipeline_compatible).
 #
+# The wheat and sorghum rows are not from the legacy table: their pipeline classes match
+# past hpi_dev production runs (talmolab/sleap-roots#276). Wheat's model labels all seminal
+# roots, including the primary, as crown, so wheat runs crown-only OlderMonocotPipeline. Their windows must equal the predict model
+# cards' windows in talmolab/sleap-roots-training#72; nothing checks that across repos.
+#
 # Ages above a species + mode's highest window match that window (bloom#971); see
 # pipeline_chooser.past_window_age.
 - species: soybean
@@ -48,3 +53,13 @@
   age_min: 6
   age_max: 10
   pipeline_class: OlderMonocotPipeline
+- species: wheat
+  mode: cylinder
+  age_min: 5
+  age_max: 14
+  pipeline_class: OlderMonocotPipeline
+- species: sorghum
+  mode: cylinder
+  age_min: 3
+  age_max: 14
+  pipeline_class: DicotPipeline
