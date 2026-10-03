@@ -144,9 +144,9 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
 
 ## 3. Docs
 
-- [ ] 3.0 Before any docs edit, record a baseline: `uv run mkdocs build 2>&1 | grep -c WARNING`
+- [x] 3.0 Before any docs edit, record a baseline: `uv run mkdocs build 2>&1 | grep -c WARNING`
       (`docs.yml` runs a non-strict `mkdocs build` after `pip install -e .[dev]`).
-- [ ] 3.1 `docs/guides/index.md`: add a `!!! note "Production trait-extractor"` admonition under
+- [x] 3.1 `docs/guides/index.md`: add a `!!! note "Production trait-extractor"` admonition under
       the Quick Reference table, and leave the table unchanged. The note:
       - says the table is a rule of thumb for library users, and that the production
         trait-extractor chooses by species, mode and age from
@@ -158,13 +158,13 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
         (primary + lateral);
       - links to `../dev/trait-extractor-service.md`;
       - states no age windows (the yaml holds them).
-- [ ] 3.2 `docs/dev/trait-extractor-service.md`, "Notes & follow-ups": add a "Predict/traits
+- [x] 3.2 `docs/dev/trait-extractor-service.md`, "Notes & follow-ups": add a "Predict/traits
       window coupling" bullet.
       - It says each species + mode's windows in `pipeline_selection.yaml` must equal its predict
         model cards' windows, which sleap-roots-training manages.
       - Nothing checks this across repos (follow-up in talmolab/sleap-roots-pipeline#118).
       - `test_wheat_and_sorghum_packaged_cards` pins the wheat and sorghum cards.
-- [ ] 3.3 `docs/changelog.md` `[Unreleased]` → `### Added`, after the past-window clamp entry.
+- [x] 3.3 `docs/changelog.md` `[Unreleased]` → `### Added`, after the past-window clamp entry.
       One entry of about 100 words, opening "**`trait_extractor` selects pipelines for wheat and
       sorghum**". It covers:
       - the OpenSpec change, #276 and pipeline#118;
@@ -173,13 +173,13 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
       - the training#72 coupling;
       - a one-sentence **Deploy note** (#119 deploys before training#72 links `production`) and
         the recompute.
-- [ ] 3.4 Re-run the 3.0 count: it does not rise, and the yaml link renders.
+- [x] 3.4 Re-run the 3.0 count: it does not rise, and the yaml link renders.
 
 ## 4. Validation and reconciliation
 
-- [ ] 4.1 Re-read `proposal.md`, the spec delta and this file against the diff. Fix any drift in
+- [x] 4.1 Re-read `proposal.md`, the spec delta and this file against the diff. Fix any drift in
       the change, with a `### Why N instead of M?` note in `proposal.md`.
-- [ ] 4.2 Run `openspec validate add-wheat-sorghum-pipeline-cards --strict` (after 4.1, and again
+- [x] 4.2 Run `openspec validate add-wheat-sorghum-pipeline-cards --strict` (after 4.1, and again
       after any later edit to the change).
 - [ ] 4.3 PR pre-merge checklist:
       - repeat 0.1;
