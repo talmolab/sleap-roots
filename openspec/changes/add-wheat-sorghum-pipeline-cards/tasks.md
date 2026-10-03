@@ -181,6 +181,17 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
       the change, with a `### Why N instead of M?` note in `proposal.md`.
 - [x] 4.2 Run `openspec validate add-wheat-sorghum-pipeline-cards --strict` (after 4.1, and again
       after any later edit to the change).
+- [x] 4.2a Pre-PR `/review-pr` fixes (5 reviewers, no blocking findings), in a trailing commit:
+      - `test_past_window_crown_only_wheat_scan_emits_envelope` asserts that the manifest loads
+        crown only. Traits from a primary + crown load are identical, so without this a broken
+        filter would pass.
+      - `test_compatibility.py`: `sleap_roots_contracts` is grouped with the third-party imports,
+        as in the other trait_extractor tests.
+      - The 3.1 note and the 3.3 entry also cover:
+        - wheat `crown` includes the primary seminal root, as in older rice (author, 2026-10-03);
+        - why sorghum, a monocot, runs on `DicotPipeline` (its models predict primary and
+          lateral roots only);
+        - traits of scans past the highest window are extrapolated.
 - [ ] 4.3 PR pre-merge checklist:
       - repeat 0.1;
       - check that the PR's `CI` run (lint + 3-OS tests) and `Docker Trait-Extractor Build and
@@ -199,6 +210,10 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
       - Posting needs the author's go-ahead.
 - [ ] 5.2 With the author's go-ahead, comment on talmolab/sleap-roots-pipeline#118: predict's
       `tests/test_model_selection.py` uses `sorghum cylinder 30` as a no-card row, which goes
-      stale if its test catalog gains sorghum.
+      stale if its test catalog gains sorghum. In the same comment, ask that #120 (or the step-6
+      link) first check Bloom's distinct `species_name` values for the wheat and sorghum scans.
+      They must resolve to exactly `wheat` and `sorghum`: `choose_pipeline` and predict's
+      `choose_models` match species exactly, and contracts' `resolve_params` only lowercases and
+      strips (variants like "Sorghum bicolor" wouldn't match).
 - [ ] 5.3 Archive this change (`openspec archive add-wheat-sorghum-pipeline-cards`) in a
       follow-up PR.

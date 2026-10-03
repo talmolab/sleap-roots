@@ -11,8 +11,10 @@ from pathlib import Path
 import pytest
 from sleap_roots_contracts import ResolvedParams
 
+from trait_extractor.compatibility import loaded_root_types
 from trait_extractor.envelope import build_provenance
 from trait_extractor.extractor import extract_scan
+from trait_extractor.loading import load_series
 from trait_extractor.manifest import load_manifest, load_scan_metadata
 from trait_extractor.pipeline_chooser import PipelineCard
 
@@ -195,6 +197,9 @@ def _write_crown_only_scan(directory):
 def test_past_window_crown_only_wheat_scan_emits_envelope(tmp_path, caplog):
     """A crown-only wheat scan at age 20 emits the age-14 traits with one warning."""
     manifest = _write_crown_only_scan(tmp_path / "scan")
+    # The traits match a primary + crown load too, so pin that only crown loads.
+    loaded = load_series(load_manifest(manifest), manifest.parent)
+    assert loaded_root_types(loaded) == {"crown"}
     sidecar14 = _write_sidecar(tmp_path / "sc14", species="wheat", age=14)
     sidecar20 = _write_sidecar(tmp_path / "sc20", species="wheat", age=20)
 

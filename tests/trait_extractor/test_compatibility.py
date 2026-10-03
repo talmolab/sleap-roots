@@ -14,7 +14,6 @@ from sleap_roots.trait_pipelines import (
     Pipeline,
     YoungerMonocotPipeline,
 )
-
 from sleap_roots_contracts import ResolvedParams
 
 from trait_extractor.compatibility import (
