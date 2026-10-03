@@ -3046,6 +3046,26 @@
 </tr>
 </tbody>
 </table>
+<div class="admonition note">
+<p class="admonition-title">Production trait-extractor</p>
+<p>This table is a rule of thumb for library users. The production trait-extractor chooses
+the pipeline from a scan's species, mode and age using
+<a href="https://github.com/talmolab/sleap-roots/blob/main/trait_extractor/pipeline_selection.yaml"><code>trait_extractor/pipeline_selection.yaml</code></a>,
+and its choices can differ from the table. For example:</p>
+<ul>
+<li>Wheat runs on <code>OlderMonocotPipeline</code> at every age it supports. The wheat model labels
+  all seminal roots, including the primary, as <code>crown</code> (as the older-rice model does).
+  Wheat gets <code>crown_*</code> traits plus network-level traits (length, convex hull, ellipse,
+  scanlines) computed from those <code>crown</code> points only; wheat lateral roots are not
+  predicted, and there are no separate primary-root traits.</li>
+<li>Sorghum runs on <code>DicotPipeline</code> even though it is a monocot, because its models predict
+  only the primary root and its laterals. It gets <code>DicotPipeline</code>'s full trait set:
+  <code>primary_*</code> and <code>lateral_*</code> traits plus network-level traits from both.</li>
+<li>A scan older than its species + mode's highest window is matched at that window, so
+  its traits are extrapolated past the ages the pipeline was validated for.</li>
+</ul>
+<p>See <a href="../dev/trait-extractor-service/">Trait-extractor service</a>.</p>
+</div>
 <h2 id="pipeline-components">Pipeline Components<a class="headerlink" href="#pipeline-components" title="Permanent link">&para;</a></h2>
 <p>All pipelines share a common structure:</p>
 <h3 id="1-series-loading">1. Series Loading<a class="headerlink" href="#1-series-loading" title="Permanent link">&para;</a></h3>

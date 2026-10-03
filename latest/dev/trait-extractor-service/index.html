@@ -3271,6 +3271,13 @@ build-only on PRs, build + push on <code>main</code>.</p>
   missing public pipeline API, <a href="https://github.com/talmolab/sleap-roots/issues/251">#251</a>)
   checks <code>required ⊆ loaded</code>; multi-plant / plate pipelines are rejected for scan-grain
   emission (<a href="https://github.com/talmolab/sleap-roots/issues/252">#252</a>).</li>
+<li><strong>Predict/traits window coupling</strong> — each species + mode's windows in
+  <code>pipeline_selection.yaml</code> must equal its predict model cards' windows (the wandb registry,
+  managed in <a href="https://github.com/talmolab/sleap-roots-training">sleap-roots-training</a>).
+  Nothing checks this across repos (a follow-up in
+  <a href="https://github.com/talmolab/sleap-roots-pipeline/issues/118">sleap-roots-pipeline#118</a>).
+  <code>test_wheat_and_sorghum_packaged_cards</code> pins the wheat and sorghum cards, so changing them
+  fails a test that names the cross-repo copy.</li>
 <li><strong>Past-window ages</strong> — a scan older than every <code>pipeline_selection.yaml</code> window for its
   species + mode is matched at that species + mode's highest window
   (<code>pipeline_chooser.past_window_age</code>; phase 1 of
