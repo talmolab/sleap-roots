@@ -76,7 +76,7 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
 
       **Green before the rows:** wheat 4, sorghum 2 and wheat plate 10 everywhere, and the
       in-window rows in `test_past_window_age_shared_cases`. These rows guard the lower bound and
-      the mode only after the rows exist. 1.3 is what catches a wrong `age_min`.
+      the mode only after the rows exist. The wheat 5 and sorghum 3 in-window rows are what catch a too-high `age_min`.
 - [x] 1.3 `test_pipeline_chooser.py`, `test_in_window_selection_unchanged`: snapshot
       `before = dict(params.values)` and assert `params.values == before` after
       `choose_pipeline`, as `test_past_window_age_selects_highest_window` does. This is the
@@ -212,8 +212,10 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
       `tests/test_model_selection.py` uses `sorghum cylinder 30` as a no-card row, which goes
       stale if its test catalog gains sorghum. In the same comment, ask that #120 (or the step-6
       link) first check Bloom's distinct `species_name` values for the wheat and sorghum scans.
-      They must resolve to exactly `wheat` and `sorghum`: `choose_pipeline` and predict's
-      `choose_models` match species exactly, and contracts' `resolve_params` only lowercases and
-      strips (variants like "Sorghum bicolor" wouldn't match).
+      They must resolve to exactly `wheat` and `sorghum`, and `mode` to exactly `cylinder`:
+      `choose_pipeline` and predict's `choose_models` match both exactly, and contracts'
+      `resolve_params` only lowercases and strips (variants like "Sorghum bicolor" wouldn't
+      match). Also confirm sidecars are written through `resolve_params`: the trait-extractor
+      doesn't normalize them, so a `"Wheat"` sidecar fails at traits after predict has run.
 - [ ] 5.3 Archive this change (`openspec archive add-wheat-sorghum-pipeline-cards`) in a
       follow-up PR.

@@ -44,7 +44,7 @@ def _case_id(species, mode, age):
 
 
 def _shared(species, mode, age, expected, past_window_age):
-    """One packaged-card row of the shared case list (tasks.md)."""
+    """One packaged-card row of the shared case list (see SHARED_CASES)."""
     return pytest.param(
         species,
         mode,
@@ -55,11 +55,13 @@ def _shared(species, mode, age, expected, past_window_age):
     )
 
 
-# The shared case list against the packaged cards, in tasks.md's order, so it can be
-# diffed row for row with sleap-roots-predict's choose_models tests. Columns: species,
-# mode, age, expected class (None: raises "No pipeline matches"), and past_window_age's
-# return (None: no clamp). The alfalfa no-card row and the wheat and sorghum rows come
-# from add-wheat-sorghum-pipeline-cards (#276); predict's copy doesn't have them yet.
+# The shared case list against the packaged cards. Columns: species, mode, age, expected
+# class (None: raises "No pipeline matches"), and past_window_age's return (None: no
+# clamp). Rows through soybean plate 10 follow the archived
+# clamp-past-window-pipeline-selection tasks.md, so they can be diffed row for row with
+# sleap-roots-predict's choose_models tests. The alfalfa no-card row and the trailing
+# wheat and sorghum rows come from add-wheat-sorghum-pipeline-cards (#276); predict's
+# copy doesn't have them yet.
 SHARED_CASES = [
     _shared("soybean", "cylinder", 10, DicotPipeline, 8),
     _shared("canola", "cylinder", 14, DicotPipeline, 13),
@@ -301,8 +303,10 @@ def test_past_window_age_shared_cases(
     """past_window_age returns the shared case list's matched-as age, or None."""
     cards = load_pipeline_cards()
     params = _params(species, mode, age)
+    before = dict(params.values)
     with caplog.at_level(logging.DEBUG):
         assert pipeline_chooser.past_window_age(params, cards) == past_window_age
+    assert params.values == before
     assert caplog.records == []
 
 

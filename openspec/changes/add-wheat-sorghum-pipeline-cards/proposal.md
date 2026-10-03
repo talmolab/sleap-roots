@@ -81,7 +81,7 @@ as its no-card example. With a sorghum row, that scan clamps to 14 and resolves 
   2. Then re-pin traits to the previous digest. That alone is the operational rollback; no
      revert here is needed. It also rolls back any later traits change.
   - **If a code revert is wanted:** revert the whole squash commit, not just the rows; reverting
-    only the rows leaves the new tests red. After the archive (task 5.2), a revert also needs an
+    only the rows leaves the new tests red. After the archive (task 5.3), a revert also needs an
     OpenSpec change, because the live spec would then name the cards.
   - Envelopes already written to Bloom stay.
 - **Independent of** open PR #140: it touches only `openspec/changes/add-fourier-shape-descriptors/`.

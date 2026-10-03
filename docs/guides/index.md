@@ -142,13 +142,15 @@ graph TD
     and its choices can differ from the table. For example:
 
     - Wheat runs on `OlderMonocotPipeline` at every age it supports. The wheat model labels
-      all seminal roots, including the primary, as `crown` (as the older-rice model does), so
-      wheat gets crown-root and whole-network traits only, with no separate primary- or
-      lateral-root traits.
+      all seminal roots, including the primary, as `crown` (as the older-rice model does).
+      Wheat gets `crown_*` traits plus network-level traits (length, convex hull, ellipse,
+      scanlines) computed from those `crown` points only; wheat lateral roots are not
+      predicted, and there are no separate primary-root traits.
     - Sorghum runs on `DicotPipeline` even though it is a monocot, because its models predict
-      only the primary root and its laterals (`primary_*`, `lateral_*` traits).
-    - A scan older than its species' highest window is matched at that window, so its traits
-      are extrapolated past the ages the pipeline was validated for.
+      only the primary root and its laterals. It gets `DicotPipeline`'s full trait set:
+      `primary_*` and `lateral_*` traits plus network-level traits from both.
+    - A scan older than its species + mode's highest window is matched at that window, so
+      its traits are extrapolated past the ages the pipeline was validated for.
 
     See [Trait-extractor service](../dev/trait-extractor-service.md).
 
