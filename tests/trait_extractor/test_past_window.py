@@ -168,11 +168,48 @@ def test_warning_uses_the_cards_passed_in(tmp_path, caplog):
 
 def test_unmatched_scan_raises_without_warning(tmp_path, caplog):
     """A no-card species raises 'No pipeline matches' and logs no clamp warning."""
-    sidecar = _write_sidecar(tmp_path / "sorghum", species="sorghum", age=30)
+    sidecar = _write_sidecar(tmp_path / "alfalfa", species="alfalfa", age=30)
     with caplog.at_level(logging.WARNING, logger=_EXTRACTOR_LOGGER):
         with pytest.raises(ValueError, match="^No pipeline matches"):
             extract_scan(_MANIFEST, sidecar, tmp_path / "out")
     assert _clamp_warnings(caplog) == []
+
+
+def _write_crown_only_scan(directory):
+    """Write the rice scan as a crown-only manifest + .slp; return the manifest path.
+
+    Wheat production scans carry a crown artifact only (the wheat model labels seminal
+    roots as crown). No wheat .slp is in tests/data, so the rice crown predictions
+    stand in.
+    """
+    data = json.loads(_MANIFEST.read_text(encoding="utf-8"))
+    data["artifacts"] = [a for a in data["artifacts"] if a["root_type"] == "crown"]
+    directory.mkdir(parents=True, exist_ok=True)
+    for artifact in data["artifacts"]:
+        shutil.copy2(_RICE_DIR / artifact["slp_path"], directory / artifact["slp_path"])
+    path = directory / _MANIFEST.name
+    path.write_text(json.dumps(data), encoding="utf-8")
+    return path
+
+
+def test_past_window_crown_only_wheat_scan_emits_envelope(tmp_path, caplog):
+    """A crown-only wheat scan at age 20 emits the age-14 traits with one warning."""
+    manifest = _write_crown_only_scan(tmp_path / "scan")
+    sidecar14 = _write_sidecar(tmp_path / "sc14", species="wheat", age=14)
+    sidecar20 = _write_sidecar(tmp_path / "sc20", species="wheat", age=20)
+
+    env14 = extract_scan(manifest, sidecar14, tmp_path / "out14")
+    caplog.clear()
+    with caplog.at_level(logging.WARNING, logger=_EXTRACTOR_LOGGER):
+        env20 = extract_scan(manifest, sidecar20, tmp_path / "out20")
+
+    assert [w.getMessage() for w in _clamp_warnings(caplog)] == [
+        "past-window age: scan_key=scan0K9E8BI species='wheat' mode='cylinder' age=20 "
+        "matched as age=14 -> OlderMonocotPipeline"
+    ]
+    assert env20.provenance.params.values["age"] == 20
+    assert env20.traits == env14.traits
+    assert any(tv.value is not None for tv in env20.traits)
 
 
 def test_clamp_ending_in_unknown_class_logs_no_warning(tmp_path, caplog):

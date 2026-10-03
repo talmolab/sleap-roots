@@ -43,18 +43,18 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
 
 ## 0. Before tests
 
-- [ ] 0.1 Re-read sleap-roots-training#72's body and confirm wheat is cylinder 5–14 and sorghum is
+- [x] 0.1 Re-read sleap-roots-training#72's body and confirm wheat is cylinder 5–14 and sorghum is
       cylinder 3–14. If either differs, stop and ask the author; don't change either side here.
 
 ## 1. Tests first (red)
 
-- [ ] 1.1 `test_pipeline_chooser.py`, `SHARED_CASES`:
+- [x] 1.1 `test_pipeline_chooser.py`, `SHARED_CASES`:
       - Replace `_shared("sorghum", "cylinder", 30, None, None)` with `_shared("alfalfa",
         "cylinder", 30, None, None)`: a no-card species with no row. Green before and after the
         rows.
       - Update the comment above `SHARED_CASES`: the wheat, sorghum and alfalfa rows come from
         this change (#276), and predict's copy doesn't have them yet.
-- [ ] 1.2 `test_pipeline_chooser.py`, `SHARED_CASES`: add rows (spec "Wheat and sorghum select by
+- [x] 1.2 `test_pipeline_chooser.py`, `SHARED_CASES`: add rows (spec "Wheat and sorghum select by
       window", "Unmatched scans still raise"):
       - wheat cylinder: 5, 10, 14 → `OlderMonocotPipeline`, `None`; 15, 20 →
         `OlderMonocotPipeline`, 14; 4 → `None`, `None`;
@@ -77,19 +77,19 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
       **Green before the rows:** wheat 4, sorghum 2 and wheat plate 10 everywhere, and the
       in-window rows in `test_past_window_age_shared_cases`. These rows guard the lower bound and
       the mode only after the rows exist. 1.3 is what catches a wrong `age_min`.
-- [ ] 1.3 `test_pipeline_chooser.py`, `test_in_window_selection_unchanged`: snapshot
+- [x] 1.3 `test_pipeline_chooser.py`, `test_in_window_selection_unchanged`: snapshot
       `before = dict(params.values)` and assert `params.values == before` after
       `choose_pipeline`, as `test_past_window_age_selects_highest_window` does. This is the
       in-window half of the spec's "`params.values` is unchanged" clause. Green for existing
       rows.
-- [ ] 1.4 `test_pipeline_chooser.py`, new `test_wheat_and_sorghum_packaged_cards` (spec "Wheat and
+- [x] 1.4 `test_pipeline_chooser.py`, new `test_wheat_and_sorghum_packaged_cards` (spec "Wheat and
       sorghum packaged cards"):
       - It asserts that the `wheat` and `sorghum` cards from `load_pipeline_cards()` equal exactly
         `[_card("wheat", "cylinder", 5, 14, "OlderMonocotPipeline")]` and
         `[_card("sorghum", "cylinder", 3, 14, "DicotPipeline")]`.
       - Its docstring says the windows must equal sleap-roots-training#72's predict cards.
       - Red: there are no such cards.
-- [ ] 1.5 `test_compatibility.py`: new `test_wheat_selection_accepts_crown_only_series` and
+- [x] 1.5 `test_compatibility.py`: new `test_wheat_selection_accepts_crown_only_series` and
       `test_sorghum_selection_accepts_primary_lateral_series` (spec "Wheat and sorghum
       selections pass the scan-grain guard").
       - **Imports:** `loaded_root_types`, plus `choose_pipeline` and `load_pipeline_cards` from
@@ -107,7 +107,7 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
       - **Stand-in data:** no wheat or sorghum `.slp` exists in `tests/data`. The guard reads only
         which root types loaded.
       - Red: selection raises `No pipeline matches`.
-- [ ] 1.6 `test_past_window.py`:
+- [x] 1.6 `test_past_window.py`:
       - **`test_unmatched_scan_raises_without_warning`:** `species="alfalfa"` instead of
         `"sorghum"` (directory `tmp_path / "alfalfa"`). Green before and after the rows. Sorghum
         would now clamp, warn, and fail the root-type guard.
@@ -125,7 +125,7 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
           `["past-window age: scan_key=scan0K9E8BI species='wheat' mode='cylinder' age=20
           matched as age=14 -> OlderMonocotPipeline"]`.
         - Red: `No pipeline matches`.
-- [ ] 1.7 Run `uv run pytest tests/trait_extractor -q` and save the output to the scratchpad.
+- [x] 1.7 Run `uv run pytest tests/trait_extractor -q` and save the output to the scratchpad.
       - **Expect exactly 18 red ids:** the 14 from 1.2, plus 1.4, the two from 1.5, and the new
         test from 1.6.
       - **Each fails on `No pipeline matches`**, except the four
@@ -135,12 +135,12 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
 
 ## 2. Implementation (green)
 
-- [ ] 2.1 Append the two rows from #276 verbatim to `trait_extractor/pipeline_selection.yaml`,
+- [x] 2.1 Append the two rows from #276 verbatim to `trait_extractor/pipeline_selection.yaml`,
       after the rice rows. Extend the header comment: wheat and sorghum come from past hpi_dev
       production runs (#276), not the legacy table, and their windows must equal
       sleap-roots-training#72's predict cards.
-- [ ] 2.2 Run `uv run pytest tests/trait_extractor -q`: all green.
-- [ ] 2.3 Run the full suite, `black --check` and `pydocstyle`, as in the commit rules: all green.
+- [x] 2.2 Run `uv run pytest tests/trait_extractor -q`: all green.
+- [x] 2.3 Run the full suite, `black --check` and `pydocstyle`, as in the commit rules: all green.
 
 ## 3. Docs
 
