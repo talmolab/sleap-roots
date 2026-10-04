@@ -162,6 +162,43 @@ raise a `ValueError`.
 - **THEN** it returns `MultipleDicotPlatePipeline` (the class the legacy chooser table named but
   could not resolve) — selection resolves the class; scan-grain support is guarded separately
 
+#### Scenario: Wheat and sorghum packaged cards
+
+- **WHEN** the packaged cards are loaded with `load_pipeline_cards()`
+- **THEN** the only `wheat` card is `{species: "wheat", mode: "cylinder", age_min: 5, age_max: 14,
+  pipeline_class: "OlderMonocotPipeline"}`
+- **AND** the only `sorghum` card is `{species: "sorghum", mode: "cylinder", age_min: 3,
+  age_max: 14, pipeline_class: "DicotPipeline"}`
+
+#### Scenario: Wheat and sorghum select by window
+
+- **WHEN** `choose_pipeline` and `past_window_age` are given, against the packaged cards, wheat
+  cylinder ages 5, 10, 14, 15 and 20, and sorghum cylinder ages 3, 8, 14, 15 and 17
+- **THEN** `choose_pipeline` returns `OlderMonocotPipeline` for every wheat age and
+  `DicotPipeline` for every sorghum age
+- **AND** `past_window_age` returns `None` for wheat 5, 10 and 14 and sorghum 3, 8 and 14, and
+  14 for wheat 15 and 20 and sorghum 15 and 17
+- **AND** `params.values` is unchanged by each call, and neither function logs
+
+#### Scenario: Wheat and sorghum selections pass the scan-grain guard
+
+- **WHEN** the class `choose_pipeline` returns for wheat cylinder age 10 is checked by
+  `check_pipeline_compatible` against a `Series` that loaded `crown` labels only, and the class it
+  returns for sorghum cylinder age 8 against a `Series` that loaded `primary` and `lateral` labels
+- **THEN** the selected classes are `OlderMonocotPipeline` and `DicotPipeline` respectively, and
+  `check_pipeline_compatible` returns without raising for both
+
+#### Scenario: Past-window crown-only wheat scan emits an envelope with one warning
+
+- **WHEN** `extract_scan` runs on a scan whose manifest lists only a `crown` artifact and whose
+  sidecar says wheat cylinder age 20
+- **THEN** it writes an envelope whose `provenance.params.values["age"]` is 20, and whose trait
+  values equal those `extract_scan` produces for the same crown-only scan with a wheat age-14
+  sidecar
+- **AND** exactly one WARNING on `trait_extractor.extractor` is logged, whose message starts
+  `past-window age:` and names the scan key, species `wheat`, mode `cylinder`, ages 20 and 14, and
+  `OlderMonocotPipeline`
+
 #### Scenario: Past-window age matches the species' highest window
 
 - **WHEN** `choose_pipeline` and `past_window_age` are given, against the packaged cards,
@@ -240,11 +277,12 @@ raise a `ValueError`.
 #### Scenario: Unmatched scans still raise
 
 - **WHEN** `choose_pipeline` is given any of these:
-  - canola cylinder age 0, rice cylinder age 1 or arabidopsis cylinder age 1 (below every window);
+  - canola cylinder age 0, rice cylinder age 1, arabidopsis cylinder age 1, wheat cylinder age 4 or
+    sorghum cylinder age 2 (below every window);
   - arabidopsis plate age 3 (below that mode's window, though other arabidopsis modes start at 2);
-  - sorghum cylinder age 30 (no card);
-  - soybean plate age 10 or canola multiplant cylinder age 20 (species has cards, but not for this
-    mode);
+  - alfalfa cylinder age 30 (no card);
+  - soybean plate age 10, canola multiplant cylinder age 20 or wheat plate age 10 (species has
+    cards, but not for this mode);
   - an empty `cards` list at age 100;
   - age 6 against injected `x`/`cylinder` cards with windows 2–5 and 8–10 (a gap)
 - **THEN** it raises a `ValueError` starting `No pipeline matches` that reports the real age, and

@@ -192,7 +192,7 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
         - why sorghum, a monocot, runs on `DicotPipeline` (its models predict primary and
           lateral roots only);
         - traits of scans past the highest window are extrapolated.
-- [ ] 4.3 PR pre-merge checklist:
+- [x] 4.3 PR pre-merge checklist:
       - repeat 0.1;
       - check that the PR's `CI` run (lint + 3-OS tests) and `Docker Trait-Extractor Build and
         Push` run are green. Branch protection requires no checks, so check by hand. A
@@ -200,7 +200,7 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
 
 ## 5. After merge (tracking only; no service is deployed from this repo)
 
-- [ ] 5.1 Find the `docker-trait-extractor.yml` run for the merge commit (event `push`, branch
+- [x] 5.1 Find the `docker-trait-extractor.yml` run for the merge commit (event `push`, branch
       `main`).
       - **Cancelled:** rerun it (`gh run rerun <id>`) rather than pinning a later sha.
       - **Succeeded:** record on #276 and talmolab/sleap-roots-pipeline#119 the merge commit, the
@@ -208,7 +208,7 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
         summary. The pin is `ghcr.io/talmolab/sleap-roots-trait-extractor@sha256:…`. The
         envelopes' `traits_code_sha` will be the full sha.
       - Posting needs the author's go-ahead.
-- [ ] 5.2 With the author's go-ahead, comment on talmolab/sleap-roots-pipeline#118: predict's
+- [x] 5.2 With the author's go-ahead, comment on talmolab/sleap-roots-pipeline#118: predict's
       `tests/test_model_selection.py` uses `sorghum cylinder 30` as a no-card row, which goes
       stale if its test catalog gains sorghum. In the same comment, ask that #120 (or the step-6
       link) first check Bloom's distinct `species_name` values for the wheat and sorghum scans.
@@ -217,5 +217,19 @@ One PR, on branch `add-wheat-sorghum-pipeline-cards` from `main` `1d532cc`.
       `resolve_params` only lowercases and strips (variants like "Sorghum bicolor" wouldn't
       match). Also confirm sidecars are written through `resolve_params`: the trait-extractor
       doesn't normalize them, so a `"Wheat"` sidecar fails at traits after predict has run.
-- [ ] 5.3 Archive this change (`openspec archive add-wheat-sorghum-pipeline-cards`) in a
+- [x] 5.3 Archive this change (`openspec archive add-wheat-sorghum-pipeline-cards`) in a
       follow-up PR.
+
+## Outcome
+
+- Merged as talmolab/sleap-roots#277, squash commit `e45b6bfee2f80526fe9dc472a63eb0e784c2ea42`
+  (2026-10-03). PR CI was green on all three OSes and the GHCR build. training#72's body was
+  last edited 2026-10-03T01:48Z, before 0.1, so its windows held through the merge (4.3,
+  checked after the merge).
+- Image: docker-trait-extractor run 37154088603 (push to main) succeeded.
+  - tag: `sha-e45b6bf`
+  - digest: `sha256:ba5693fc1dec229b1cd3f673a5df2196af283610b7f8d7e40915fd00fd439313`
+  - The registry confirms `sha-e45b6bf` and `latest` both resolve to that digest.
+  - Recorded on #276 and talmolab/sleap-roots-pipeline#119 (5.1).
+- The talmolab/sleap-roots-pipeline#118 note (5.2) is posted.
+
