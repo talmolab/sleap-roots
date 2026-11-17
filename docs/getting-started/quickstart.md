@@ -37,8 +37,8 @@ import sleap_roots as sr
 series = sr.Series.load(
     series_name="919QDUH",
     h5_path="tests/data/canola_7do/919QDUH.h5",
-    primary_path="tests/data/canola_7do/919QDUH.primary.slp",
-    lateral_path="tests/data/canola_7do/919QDUH.lateral.slp"
+    primary_path="tests/data/canola_7do/919QDUH.primary.predictions.slp",
+    lateral_path="tests/data/canola_7do/919QDUH.lateral.predictions.slp"
 )
 
 # Step 2: Create a pipeline
